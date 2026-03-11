@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.1] — 2026-03-11
+
+> ### TypeScript Fixes & UI Polish
+
+### 🐛 Bug Fixes
+
+- **OAuth Modal displayed Portuguese text regardless of language setting (#314)** — Two hardcoded PT-BR strings in `OAuthModal.tsx` (remote-access info banner and `redirect_uri_mismatch` error message) are now in English for all users (PR #325).
+- **TypeScript errors in Kimi usage parser (`usage.ts`)** — `dataObj.five_hour`, `dataObj.seven_day`, and `dataObj.user` were typed as `unknown`. Wrapped with `toRecord()` before passing to typed functions — fixes 6 compiler errors on lines 921–948.
+- **`await` missing on `getSettings()` in `instrumentation.ts` (#316 follow-up)** — `getSettings()` is declared `async`; calling it without `await` made `settings` a `Promise` causing 4 TS errors when accessing `settings.modelAliases`.
+
+---
+
 ## [2.3.0] — 2026-03-11
 
 > ### Bug Fixes
