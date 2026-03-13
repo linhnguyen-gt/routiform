@@ -146,6 +146,22 @@ const COMBO_TEMPLATE_FALLBACK = {
 
 const COMBO_TEMPLATES = [
   {
+    id: "free-stack",
+    icon: "volunteer_activism",
+    titleKey: "templateFreeStack",
+    descKey: "templateFreeStackDesc",
+    fallbackTitle: COMBO_TEMPLATE_FALLBACK.freeStackTitle,
+    fallbackDesc: COMBO_TEMPLATE_FALLBACK.freeStackDesc,
+    strategy: "round-robin",
+    suggestedName: "free-stack",
+    isFeatured: true,
+    config: {
+      maxRetries: 3,
+      retryDelayMs: 500,
+      healthCheckEnabled: true,
+    },
+  },
+  {
     id: "high-availability",
     icon: "shield",
     titleKey: "templateHighAvailability",
@@ -187,21 +203,6 @@ const COMBO_TEMPLATES = [
     config: {
       maxRetries: 1,
       retryDelayMs: 1000,
-      healthCheckEnabled: true,
-    },
-  },
-  {
-    id: "free-stack",
-    icon: "volunteer_activism",
-    titleKey: "templateFreeStack",
-    descKey: "templateFreeStackDesc",
-    fallbackTitle: COMBO_TEMPLATE_FALLBACK.freeStackTitle,
-    fallbackDesc: COMBO_TEMPLATE_FALLBACK.freeStackDesc,
-    strategy: "round-robin",
-    suggestedName: "free-stack",
-    config: {
-      maxRetries: 3,
-      retryDelayMs: 500,
       healthCheckEnabled: true,
     },
   },
@@ -1486,7 +1487,7 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
           </div>
 
           {!isEdit && (
-            <div className="rounded-lg border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-2.5">
+            <div className="rounded-lg border border-black/8 dark:border-white/8 bg-black/[0.02] dark:bg-white/[0.02] p-3">
               <div className="mb-2">
                 <p className="text-xs font-medium">
                   {getI18nOrFallback(t, "templatesTitle", COMBO_TEMPLATE_FALLBACK.title)}
@@ -1499,27 +1500,36 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
                   )}
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                 {COMBO_TEMPLATES.map((template) => (
                   <button
                     type="button"
                     key={template.id}
                     onClick={() => applyTemplate(template)}
-                    className="text-left rounded-md border border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] px-2 py-1.5 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                    className={`text-left rounded-md border px-3 py-2 transition-all ${
+                      template.isFeatured
+                        ? "border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500/80 hover:bg-emerald-500/10 ring-1 ring-emerald-500/20"
+                        : "border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] hover:border-primary/40 hover:bg-primary/5"
+                    }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px] text-primary">
+                    <div className="flex items-center gap-2">
+                      <span className={`material-symbols-outlined text-[16px] ${template.isFeatured ? "text-emerald-500" : "text-primary"}`}>
                         {template.icon}
                       </span>
-                      <span className="text-[11px] font-medium text-text-main">
+                      <span className="text-[12px] font-semibold text-text-main">
                         {getI18nOrFallback(t, template.titleKey, template.fallbackTitle)}
                       </span>
+                      {template.isFeatured && (
+                        <span className="ml-auto text-[9px] font-bold uppercase tracking-wide bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                          FREE
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[10px] text-text-muted mt-1 leading-4">
+                    <p className="text-[10px] text-text-muted mt-1.5 leading-[1.5]">
                       {getI18nOrFallback(t, template.descKey, template.fallbackDesc)}
                     </p>
-                    <p className="text-[10px] text-primary mt-1">
-                      {getI18nOrFallback(t, "templateApply", COMBO_TEMPLATE_FALLBACK.apply)}
+                    <p className={`text-[10px] mt-1.5 font-medium ${template.isFeatured ? "text-emerald-500" : "text-primary"}`}>
+                      {getI18nOrFallback(t, "templateApply", COMBO_TEMPLATE_FALLBACK.apply)} →
                     </p>
                   </button>
                 ))}
