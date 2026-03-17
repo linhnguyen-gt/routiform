@@ -197,9 +197,23 @@ export async function updateProxy(id: string, payload: Partial<ProxyPayload>) {
   const existing = await getProxyById(id, { includeSecrets: true });
   if (!existing) return null;
 
+  const incomingUsername =
+    typeof payload.username === "string" ? payload.username.trim() : undefined;
+  const incomingPassword =
+    typeof payload.password === "string" ? payload.password.trim() : undefined;
+
   const merged = {
     ...existing,
     ...payload,
+    // Preserve stored credentials unless caller explicitly sends non-empty replacements.
+    username:
+      incomingUsername === undefined || incomingUsername.length === 0
+        ? existing.username
+        : incomingUsername,
+    password:
+      incomingPassword === undefined || incomingPassword.length === 0
+        ? existing.password
+        : incomingPassword,
     updatedAt: new Date().toISOString(),
   };
 
@@ -508,6 +522,7 @@ export async function getProxyHealthStats(options?: { hours?: number }) {
        LEFT JOIN proxy_logs l
          ON l.proxy_host = p.host
         AND l.proxy_type = p.type
+        AND l.proxy_port = p.port
         AND l.timestamp >= ?
        GROUP BY p.id, p.name, p.type, p.host, p.port
        ORDER BY p.name ASC`

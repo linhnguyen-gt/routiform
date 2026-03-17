@@ -9,6 +9,7 @@ import {
 import { createProxyRegistrySchema, updateProxyRegistrySchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { createErrorResponse, createErrorResponseFromUnknown } from "@/lib/api/errorResponse";
+import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 
 function toPagination(searchParams: URLSearchParams) {
   const limit = Math.max(1, Math.min(200, Number(searchParams.get("limit") || 50)));
@@ -17,6 +18,9 @@ function toPagination(searchParams: URLSearchParams) {
 }
 
 export async function GET(request: Request) {
+  const authError = await requireManagementAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -48,6 +52,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const authError = await requireManagementAuth(request);
+  if (authError) return authError;
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -78,6 +85,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const authError = await requireManagementAuth(request);
+  if (authError) return authError;
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -113,6 +123,9 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const authError = await requireManagementAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

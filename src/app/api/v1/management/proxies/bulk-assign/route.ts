@@ -2,9 +2,13 @@ import { bulkAssignProxyToScope } from "@/lib/localDb";
 import { bulkProxyAssignmentSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { createErrorResponse, createErrorResponseFromUnknown } from "@/lib/api/errorResponse";
+import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { clearDispatcherCache } from "@omniroute/open-sse/utils/proxyDispatcher";
 
 export async function PUT(request: Request) {
+  const authError = await requireManagementAuth(request);
+  if (authError) return authError;
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();

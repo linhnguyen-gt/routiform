@@ -155,18 +155,25 @@ export default function ProxyRegistryManager() {
     setSaving(true);
     setError(null);
 
-    const payload = {
+    const normalizedUsername = form.username.trim();
+    const normalizedPassword = form.password.trim();
+
+    const payload: Record<string, unknown> = {
       ...(editingId ? { id: editingId } : {}),
       name: form.name.trim(),
       type: form.type,
       host: form.host.trim(),
       port: Number(form.port || 8080),
-      username: form.username.trim(),
-      password: form.password.trim(),
       region: form.region.trim() || null,
       notes: form.notes.trim() || null,
       status: form.status,
     };
+    if (!editingId || normalizedUsername.length > 0) {
+      payload.username = normalizedUsername;
+    }
+    if (!editingId || normalizedPassword.length > 0) {
+      payload.password = normalizedPassword;
+    }
 
     try {
       const res = await fetch("/api/settings/proxies", {
@@ -474,6 +481,7 @@ export default function ProxyRegistryManager() {
               <input
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.username}
+                placeholder={editingId ? "Leave blank to keep current username" : ""}
                 onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
               />
             </div>
@@ -483,6 +491,7 @@ export default function ProxyRegistryManager() {
                 type="password"
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.password}
+                placeholder={editingId ? "Leave blank to keep current password" : ""}
                 onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
               />
             </div>

@@ -211,6 +211,9 @@ test.describe("Proxy Registry smoke flow", () => {
       .toBe(1);
 
     await row.getByRole("button", { name: "Delete" }).click();
-    await expect(page.locator("table")).not.toContainText("Registry Smoke Proxy");
+    await expect
+      .poll(() => state.proxies.some((proxy) => proxy.name === "Registry Smoke Proxy"))
+      .toBe(false);
+    await expect(page.locator("tr", { hasText: "Registry Smoke Proxy" })).toHaveCount(0);
   });
 });

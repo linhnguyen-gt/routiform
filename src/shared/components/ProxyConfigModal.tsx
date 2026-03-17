@@ -207,6 +207,21 @@ export default function ProxyConfigModal({
           await fetch(`/api/settings/proxy?${clearParams.toString()}`, { method: "DELETE" });
         }
       } else {
+        const clearAssignmentRes = await fetch("/api/settings/proxies/assignments", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scope,
+            scopeId: level === "global" ? null : levelId,
+            proxyId: null,
+          }),
+        });
+        const clearAssignmentPayload = await clearAssignmentRes.json().catch(() => ({}));
+        if (!clearAssignmentRes.ok) {
+          setFormError(clearAssignmentPayload?.error?.message || "Failed to clear saved proxy");
+          return;
+        }
+
         const proxy = {
           type: proxyType,
           host: host.trim(),
@@ -226,6 +241,9 @@ export default function ProxyConfigModal({
         return;
       }
       setHasOwnProxy(true);
+      if (mode === "custom") {
+        setSelectedProxyId("");
+      }
       onSaved?.();
     } catch (error) {
       console.error("Error saving proxy:", error);
