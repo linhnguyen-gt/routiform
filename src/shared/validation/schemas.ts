@@ -80,6 +80,9 @@ export const createComboSchema = z.object({
   strategy: comboStrategySchema.optional().default("priority"),
   config: comboConfigSchema,
   allowedProviders: z.array(z.string().max(200)).optional(),
+  system_message: z.string().max(50000).optional(),
+  tool_filter_regex: z.string().max(1000).optional(),
+  context_cache_protection: z.boolean().optional(),
 });
 
 // ──── Auto-Combo Schemas ────
@@ -813,6 +816,9 @@ export const updateComboSchema = z
     config: comboRuntimeConfigSchema.optional(),
     isActive: z.boolean().optional(),
     allowedProviders: z.array(z.string().max(200)).optional(),
+    system_message: z.string().max(50000).optional(),
+    tool_filter_regex: z.string().max(1000).optional(),
+    context_cache_protection: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     if (
@@ -821,7 +827,10 @@ export const updateComboSchema = z
       value.strategy === undefined &&
       value.config === undefined &&
       value.isActive === undefined &&
-      value.allowedProviders === undefined
+      value.allowedProviders === undefined &&
+      value.system_message === undefined &&
+      value.tool_filter_regex === undefined &&
+      value.context_cache_protection === undefined
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

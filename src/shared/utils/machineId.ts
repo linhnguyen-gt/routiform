@@ -23,13 +23,16 @@ export async function getConsistentMachineId(salt = null) {
   } catch (error) {
     console.log("Error getting machine ID:", error);
     // Fallback to random ID if node-machine-id fails
-    return crypto.randomUUID
-      ? crypto.randomUUID()
-      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-          const r = (Math.random() * 16) | 0;
-          const v = c == "x" ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
+    try {
+      const cryptoFallback = await import("crypto");
+      return cryptoFallback.randomUUID();
+    } catch {
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c == "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
   }
 }
 
@@ -44,13 +47,16 @@ export async function getRawMachineId() {
   } catch (error) {
     console.log("Error getting raw machine ID:", error);
     // Fallback to random ID if node-machine-id fails
-    return crypto.randomUUID
-      ? crypto.randomUUID()
-      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-          const r = (Math.random() * 16) | 0;
-          const v = c == "x" ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
+    try {
+      const cryptoFallback = await import("crypto");
+      return cryptoFallback.randomUUID();
+    } catch {
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c == "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
   }
 }
 
