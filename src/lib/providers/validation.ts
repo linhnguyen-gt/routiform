@@ -452,6 +452,12 @@ async function validateSearchProvider(
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
+    // For provider setup we only need to confirm authentication passed.
+    // Search providers may return non-auth statuses for exhausted credits,
+    // rate limiting, or request-shape quirks while still accepting the key.
+    if (response.status < 500) {
+      return { valid: true, error: null };
+    }
     return { valid: false, error: `Validation failed: ${response.status}` };
   } catch (error: any) {
     return { valid: false, error: error.message || "Validation failed" };
