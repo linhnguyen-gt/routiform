@@ -157,10 +157,16 @@ export async function handleChatCore({
   // Detect source format and get target format
   // Model-specific targetFormat takes priority over provider default
 
-  // Apply custom model aliases (Settings → Model Aliases → Pattern→Target) before routing (#315)
+  // Apply custom model aliases (Settings → Model Aliases → Pattern→Target) before routing (#315, #472)
   // Custom aliases take priority over built-in and must be resolved here so the
-  // downstream getModelTargetFormat() lookup uses the correct, aliased model ID.
+  // downstream getModelTargetFormat() lookup AND the actual provider request use
+  // the correct, aliased model ID. Without this, aliases only affect format detection.
   const resolvedModel = resolveModelAlias(model);
+  // Use resolvedModel for all downstream operations (routing, provider requests, logging)
+  const effectiveModel = resolvedModel !== model ? resolvedModel : model;
+  if (resolvedModel !== model) {
+    log?.info?.("ALIAS", `Model alias applied: ${model} → ${resolvedModel}`);
+  }
 
   const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
   const modelTargetFormat = getModelTargetFormat(alias, resolvedModel);
@@ -367,8 +373,8 @@ export async function handleChatCore({
   delete translatedBody._toolNameMap;
   delete translatedBody._disableToolPrefix;
 
-  // Update model in body
-  translatedBody.model = model;
+  // Update model in body — use resolved alias so the provider gets the correct model ID (#472)
+  translatedBody.model = effectiveModel;
 
   // Strip unsupported parameters for reasoning models (o1, o3, etc.)
   const unsupported = getUnsupportedParams(provider, model);
@@ -397,7 +403,7 @@ export async function handleChatCore({
   const dedupEnabled = shouldDeduplicate(dedupRequestBody);
   const dedupHash = dedupEnabled ? computeRequestHash(dedupRequestBody) : null;
 
-  const executeProviderRequest = async (modelToCall = model, allowDedup = false) => {
+  const executeProviderRequest = async (modelToCall = effectiveModel, allowDedup = false) => {
     const execute = async () => {
       const bodyToSend =
         translatedBody.model === modelToCall
@@ -445,8 +451,8 @@ export async function handleChatCore({
   trackPendingRequest(model, provider, connectionId, true);
 
   // T5: track which models we've tried for intra-family fallback
-  const triedModels = new Set<string>([model]);
-  let currentModel = model;
+  const triedModels = new Set<string>([effectiveModel]);
+  let currentModel = effectiveModel;
 
   // Log start
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => {});
@@ -465,7 +471,7 @@ export async function handleChatCore({
   let finalBody;
 
   try {
-    const result = await executeProviderRequest(model, true);
+    const result = await executeProviderRequest(effectiveModel, true);
 
     providerResponse = result.response;
     providerUrl = result.url;
