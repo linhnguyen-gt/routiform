@@ -88,6 +88,8 @@ docs/*
 !docs/AUTO-COMBO.md
 !docs/MCP-SERVER.md
 !docs/CLI-TOOLS.md
+!docs/new-features-sub21/
+!docs/new-features-sub21/**
 
 # open-sse tests
 open-sse/test/*
