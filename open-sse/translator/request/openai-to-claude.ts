@@ -27,6 +27,60 @@ type ClaudeTool = {
   defer_loading?: boolean;
 };
 
+/**
+ * T02: Recursively strips empty text blocks from content arrays.
+ * Anthropic returns 400 "text content blocks must be non-empty" if any
+ * text block has text: "". Must also recurse into nested tool_result.content.
+ * Ref: sub2api PR #1212
+ */
+export function stripEmptyTextBlocks(content: unknown[] | undefined): unknown[] {
+  if (!Array.isArray(content)) return content ?? [];
+  return content
+    .filter((block: unknown) => {
+      if (
+        block &&
+        typeof block === "object" &&
+        (block as Record<string, unknown>).type === "text"
+      ) {
+        const text = (block as Record<string, unknown>).text;
+        if (text === "" || text == null) return false;
+      }
+      return true;
+    })
+    .map((block: unknown) => {
+      if (
+        block &&
+        typeof block === "object" &&
+        (block as Record<string, unknown>).type === "tool_result" &&
+        Array.isArray((block as Record<string, unknown>).content)
+      ) {
+        // Recurse into nested tool_result.content
+        return {
+          ...(block as Record<string, unknown>),
+          content: stripEmptyTextBlocks((block as Record<string, unknown>).content as unknown[]),
+        };
+      }
+      return block;
+    });
+}
+
+/**
+ * T15: Normalize content to string form.
+ * Handles both string and array-of-blocks forms (Cursor, Codex 2.x, etc.).
+ * Ref: sub2api PR #1197
+ */
+export function normalizeContentToString(content: string | unknown[] | null | undefined): string {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return (content as Array<Record<string, unknown>>)
+      .filter((b) => b.type === "text")
+      .map((b) => String(b.text ?? ""))
+      .join("\n");
+  }
+  return "";
+}
+
 // Convert OpenAI request to Claude format
 export function openaiToClaudeRequest(model, body, stream) {
   // Check if tool prefix should be disabled (configured per-provider or global)
@@ -61,11 +115,11 @@ export function openaiToClaudeRequest(model, body, stream) {
   const systemParts = [];
 
   if (body.messages && Array.isArray(body.messages)) {
-    // Extract system messages
+    // Extract system messages (T15: handle both string and array content)
     for (const msg of body.messages) {
       if (msg.role === "system") {
         systemParts.push(
-          typeof msg.content === "string" ? msg.content : extractTextContent(msg.content)
+          typeof msg.content === "string" ? msg.content : normalizeContentToString(msg.content)
         );
       }
     }
@@ -270,10 +324,14 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map(), disableToolPr
   const blocks = [];
 
   if (msg.role === "tool") {
+    // T02: Strip empty text blocks from nested tool_result content to avoid Anthropic 400
+    const toolContent = Array.isArray(msg.content)
+      ? stripEmptyTextBlocks(msg.content)
+      : msg.content;
     blocks.push({
       type: "tool_result",
       tool_use_id: msg.tool_call_id,
-      content: msg.content,
+      content: toolContent,
     });
   } else if (msg.role === "user") {
     if (typeof msg.content === "string") {
@@ -287,10 +345,14 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map(), disableToolPr
         } else if (part.type === "tool_result") {
           // Skip tool_result with no tool_use_id (would be useless and may cause errors)
           if (!part.tool_use_id) continue;
+          // T02: strip empty text blocks from nested content before passing to Anthropic
+          const resultContent = Array.isArray(part.content)
+            ? stripEmptyTextBlocks(part.content)
+            : part.content;
           blocks.push({
             type: "tool_result",
             tool_use_id: part.tool_use_id,
-            content: part.content,
+            content: resultContent,
             ...(part.is_error && { is_error: part.is_error }),
           });
         } else if (part.type === "image_url") {

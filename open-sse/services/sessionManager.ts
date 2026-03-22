@@ -175,6 +175,32 @@ export function clearSessions(): void {
   sessions.clear();
 }
 
+/**
+ * T04: Extract an external session ID from request headers.
+ * Accepts both hyphenated and underscore forms for Nginx compatibility.
+ * Nginx drops headers with underscores by default — use `underscores_in_headers on`
+ * in nginx.conf, or use X-Session-Id (hyphenated) which passes cleanly.
+ *
+ * Ref: sub2api README + PR #634
+ *
+ * @param headers - Request headers (Headers object or plain object with .get())
+ * @returns External session ID with "ext:" prefix, or null
+ */
+export function extractExternalSessionId(
+  headers: Headers | { get?: (n: string) => string | null } | null | undefined
+): string | null {
+  if (!headers || typeof (headers as Headers).get !== "function") return null;
+  const h = headers as Headers;
+  const raw =
+    h.get("x-session-id") ?? // Preferred: hyphenated (passes through Nginx)
+    h.get("x-omniroute-session") ?? // OmniRoute-specific form
+    h.get("session-id") ?? // Bare session-id
+    null;
+  if (!raw || !raw.trim()) return null;
+  // Prefix "ext:" to ensure no collision with internal SHA-256 hash IDs
+  return `ext:${raw.trim().slice(0, 64)}`; // max 64 chars to avoid abuse
+}
+
 // ─── Internal Helpers ───────────────────────────────────────────────────────
 
 function hashShort(text: string): string {

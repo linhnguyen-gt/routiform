@@ -19,6 +19,8 @@ export const EFFORT_BUDGETS = {
   low: 1024,
   medium: 10240,
   high: 131072,
+  max: 131072, // T11: Claude "max" / "xhigh" — full budget
+  xhigh: 131072, // T11: explicit alias used internally
 };
 
 // thinkingLevel string → budget token mapping
@@ -28,6 +30,8 @@ export const THINKING_LEVEL_MAP = {
   low: 1024,
   medium: 10240,
   high: 131072,
+  max: 131072, // T11: max = full Claude budget (sub2api: xhigh)
+  xhigh: 131072, // T11: explicit xhigh alias
 };
 
 // Default config (passthrough = backward compatible)
@@ -198,7 +202,7 @@ function setCustomBudget(body, budget) {
     };
   }
 
-  // OpenAI reasoning_effort mapping
+  // OpenAI reasoning_effort mapping (T11: add 'max' tier for full budget)
   if (result.reasoning_effort !== undefined || result.reasoning !== undefined) {
     if (budget <= 0) {
       delete result.reasoning_effort;
@@ -207,8 +211,10 @@ function setCustomBudget(body, budget) {
       result.reasoning_effort = "low";
     } else if (budget <= 10240) {
       result.reasoning_effort = "medium";
-    } else {
+    } else if (budget < 131072) {
       result.reasoning_effort = "high";
+    } else {
+      result.reasoning_effort = "max"; // T11: full budget → "max"
     }
   }
 

@@ -101,7 +101,8 @@ test("CUSTOM: sets OpenAI reasoning_effort from budget", () => {
     reasoning_effort: "low",
   };
   const result = applyThinkingBudget(body);
-  assert.equal(result.reasoning_effort, "high");
+  // T11 (sub2api gap): full budget (131072) now maps to "max" instead of "high"
+  assert.equal(result.reasoning_effort, "max");
   setThinkingBudgetConfig(DEFAULT_THINKING_CONFIG);
 });
 

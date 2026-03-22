@@ -802,6 +802,30 @@ export const DEFAULT_PRICING = {
       reasoning: 1.8,
       cache_creation: 0.3,
     },
+    // T12: MiniMax M2.7 — new default model (sub2api PR #1120)
+    // Upgraded from M2.5, same API endpoint api.minimax.io
+    // Pricing estimated, check https://platform.minimaxi.com/document/Price
+    "minimax-m2.7": {
+      input: 0.4,
+      output: 1.6,
+      cached: 0.2,
+      reasoning: 2.4,
+      cache_creation: 0.4,
+    },
+    "MiniMax-M2.7": {
+      input: 0.4,
+      output: 1.6,
+      cached: 0.2,
+      reasoning: 2.4,
+      cache_creation: 0.4,
+    },
+    "minimax-m2.7-highspeed": {
+      input: 0.4,
+      output: 1.6,
+      cached: 0.2,
+      reasoning: 2.4,
+      cache_creation: 0.4,
+    },
   },
 
   // ─── Free-tier API Key Providers (nominal $0 pricing) ───

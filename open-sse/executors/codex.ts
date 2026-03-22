@@ -3,6 +3,72 @@ import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.ts";
 import { PROVIDERS } from "../config/constants.ts";
 import { refreshCodexToken } from "../services/tokenRefresh.ts";
 
+/**
+ * T03: Parsed quota snapshot from Codex response headers.
+ * Codex includes per-account usage windows that allow precise reset scheduling.
+ * Ref: sub2api PR #357 (feat(oauth): persist usage snapshots and window cooldown)
+ */
+export interface CodexQuotaSnapshot {
+  usage5h: number; // tokens used in 5h window
+  limit5h: number; // token limit for 5h window
+  resetAt5h: string | null; // ISO timestamp when 5h window resets
+  usage7d: number; // tokens used in 7d window
+  limit7d: number; // token limit for 7d window
+  resetAt7d: string | null; // ISO timestamp when 7d window resets
+}
+
+/**
+ * T03: Parse Codex-specific quota headers from a provider response.
+ * Returns null if none of the relevant headers are present.
+ *
+ * Extracts:
+ *   x-codex-5h-usage / x-codex-5h-limit / x-codex-5h-reset-at
+ *   x-codex-7d-usage / x-codex-7d-limit / x-codex-7d-reset-at
+ */
+export function parseCodexQuotaHeaders(headers: Headers): CodexQuotaSnapshot | null {
+  const usage5h = headers.get("x-codex-5h-usage");
+  const limit5h = headers.get("x-codex-5h-limit");
+  const resetAt5h = headers.get("x-codex-5h-reset-at");
+  const usage7d = headers.get("x-codex-7d-usage");
+  const limit7d = headers.get("x-codex-7d-limit");
+  const resetAt7d = headers.get("x-codex-7d-reset-at");
+
+  // Return null if none of the quota headers are present (not a quota-aware response)
+  if (!usage5h && !limit5h && !resetAt5h && !usage7d && !limit7d && !resetAt7d) {
+    return null;
+  }
+
+  return {
+    usage5h: usage5h ? parseFloat(usage5h) : 0,
+    limit5h: limit5h ? parseFloat(limit5h) : Infinity,
+    resetAt5h: resetAt5h ?? null,
+    usage7d: usage7d ? parseFloat(usage7d) : 0,
+    limit7d: limit7d ? parseFloat(limit7d) : Infinity,
+    resetAt7d: resetAt7d ?? null,
+  };
+}
+
+/**
+ * T03: Get the soonest quota reset time from a CodexQuotaSnapshot.
+ * 7d window takes priority (wider window, harder limit) but we use whichever
+ * is further in the future to avoid releasing the block too early.
+ *
+ * @returns Unix timestamp (ms) of the soonest effective reset, or null
+ */
+export function getCodexResetTime(quota: CodexQuotaSnapshot): number | null {
+  const times: number[] = [];
+  if (quota.resetAt7d) {
+    const t = new Date(quota.resetAt7d).getTime();
+    if (!isNaN(t) && t > Date.now()) times.push(t);
+  }
+  if (quota.resetAt5h) {
+    const t = new Date(quota.resetAt5h).getTime();
+    if (!isNaN(t) && t > Date.now()) times.push(t);
+  }
+  if (times.length === 0) return null;
+  return Math.max(...times); // Use furthest-out reset to avoid premature unblock
+}
+
 // Ordered list of effort levels from lowest to highest
 const EFFORT_ORDER = ["none", "low", "medium", "high", "xhigh"] as const;
 type EffortLevel = (typeof EFFORT_ORDER)[number];
