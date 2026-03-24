@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card, Button, Input } from "@/shared/components";
+import ProviderIcon from "@/shared/components/ProviderIcon";
 import { useTranslations } from "next-intl";
 import { AI_PROVIDERS } from "@/shared/constants/config";
 import { CLI_COMPAT_PROVIDER_IDS } from "@/shared/constants/cliCompatProviders";
@@ -23,6 +24,35 @@ interface AgentSummary {
   notFound: number;
   builtIn: number;
   custom: number;
+}
+
+// Map agent binary IDs to provider icon IDs for ProviderIcon component
+const AGENT_ICON_MAP: Record<string, string> = {
+  claude: "anthropic",
+  "claude-code": "anthropic",
+  codex: "openai",
+  "gemini-cli": "google",
+  gemini: "google",
+  opencode: "opencode",
+  openclaw: "openclaw",
+  cline: "cline",
+  kilocode: "kilocode",
+  kilo: "kilocode",
+  cursor: "cursor",
+  antigravity: "antigravity",
+  droid: "droid",
+  goose: "goose",
+  aider: "aider",
+  iflow: "iflow",
+  kiro: "kiro",
+  nanobot: "nanobot",
+  picoclaw: "picoclaw",
+  zeroclaw: "zeroclaw",
+  ironclaw: "ironclaw",
+};
+
+function getAgentIconId(agentId: string): string | null {
+  return AGENT_ICON_MAP[agentId] || null;
 }
 
 export default function AgentsPage() {
@@ -304,9 +334,13 @@ export default function AgentsPage() {
                       : "bg-zinc-500/10 text-zinc-400"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {agent.installed ? "smart_toy" : "block"}
-                  </span>
+                  {getAgentIconId(agent.id) ? (
+                    <ProviderIcon providerId={getAgentIconId(agent.id)!} size={20} type="color" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[20px]">
+                      {agent.installed ? "smart_toy" : "block"}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <div className="font-semibold text-sm flex items-center gap-1.5">
