@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, Button, Select, Badge } from "@/shared/components";
+import { ALIAS_TO_ID } from "@/shared/constants/providers";
 import dynamic from "next/dynamic";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -225,9 +226,11 @@ export default function PlaygroundPage() {
       .then((res) => res.json())
       .then((data) => {
         const allConns: ConnectionOption[] = [];
+        // Resolve alias → ID (e.g. cx → codex, kr → kiro)
+        const resolvedProvider = ALIAS_TO_ID[provider] || provider;
         // API returns flat { connections: [...] } — each has a .provider field
         for (const conn of data?.connections || []) {
-          if (conn.provider !== provider) continue;
+          if (conn.provider !== resolvedProvider && conn.provider !== provider) continue;
           allConns.push({
             id: conn.id,
             name: conn.name || conn.email || conn.id,
