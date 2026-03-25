@@ -511,7 +511,7 @@ export default function ProviderLimits() {
       </div>
 
       {/* Account rows */}
-      <div className="rounded-xl border border-border overflow-hidden bg-bg-subtle">
+      <div className="rounded-xl border border-border overflow-hidden bg-surface">
         {/* Table header */}
         <div
           className="items-center px-4 py-2.5 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-text-muted"
