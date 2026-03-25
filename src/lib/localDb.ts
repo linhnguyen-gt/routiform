@@ -48,6 +48,7 @@ export {
   getCustomModels,
   getAllCustomModels,
   addCustomModel,
+  replaceCustomModels,
   removeCustomModel,
   updateCustomModel,
   getModelCompatOverrides,

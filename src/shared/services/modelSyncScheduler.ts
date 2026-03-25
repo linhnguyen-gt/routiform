@@ -1,8 +1,9 @@
 /**
  * Model Auto-Sync Scheduler (#488)
  *
- * Automatically refreshes model lists for all providers with autoSync enabled
- * at a configurable interval (default: 24h).
+ * Automatically refreshes model lists for provider connections that have
+ * autoSync enabled in their providerSpecificData, at a configurable
+ * interval (default: 24h).
  *
  * Pattern mirrors cloudSyncScheduler.ts for consistency.
  */
@@ -12,53 +13,67 @@ import { getSettings, updateSettings } from "@/lib/localDb";
 const DEFAULT_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MODEL_SYNC_SETTING_KEY = "model_sync_last_run";
 
-/** Providers that support live model list fetching via /v1/models */
-const AUTO_SYNC_PROVIDERS = [
-  "openai",
-  "anthropic",
-  "google",
-  "gemini",
-  "deepseek",
-  "groq",
-  "mistral",
-  "cohere",
-  "openrouter",
-  "together",
-  "fireworks",
-  "perplexity",
-  "xai",
-  "cerebras",
-  "ollama",
-  "nvidia",
-];
-
 let schedulerTimer: NodeJS.Timeout | null = null;
 let isRunning = false;
 
 /**
- * Fetch and cache models for a single provider.
- * Calls the internal /api/providers/{id}/sync-models endpoint (if it exists)
- * or falls back to /v1/models from the provider registry.
+ * Fetch all provider connections that have autoSync enabled.
  */
-async function syncProviderModels(providerId: string, baseUrl: string): Promise<void> {
+async function getAutoSyncConnections(): Promise<
+  Array<{ id: string; provider: string; name?: string }>
+> {
   try {
-    const res = await fetch(`${baseUrl}/api/provider-nodes/sync-models`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-internal": "model-sync-scheduler" },
-      body: JSON.stringify({ provider: providerId }),
+    const { getProviderConnections } = await import("@/lib/localDb");
+    const connections = await getProviderConnections();
+    return connections.filter((conn: any) => {
+      if (!conn.isActive && conn.isActive !== undefined) return false;
+      const psd =
+        conn.providerSpecificData && typeof conn.providerSpecificData === "object"
+          ? conn.providerSpecificData
+          : {};
+      return psd.autoSync === true;
     });
-    if (!res.ok) {
-      console.warn(`[ModelSync] Provider ${providerId}: sync returned ${res.status}`);
-    } else {
-      console.log(`[ModelSync] Provider ${providerId}: ✓ updated`);
-    }
   } catch (err) {
-    console.warn(`[ModelSync] Provider ${providerId}: fetch failed —`, (err as Error).message);
+    console.warn("[ModelSync] Failed to load connections:", (err as Error).message);
+    return [];
   }
 }
 
 /**
- * Run one full model-sync cycle across all auto-sync providers.
+ * Sync models for a single connection via the internal sync-models endpoint.
+ */
+async function syncConnectionModels(
+  connectionId: string,
+  provider: string,
+  baseUrl: string
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${baseUrl}/api/providers/${connectionId}/sync-models`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-internal": "model-sync-scheduler" },
+    });
+    if (!res.ok) {
+      console.warn(
+        `[ModelSync] ${provider} (${connectionId.slice(0, 8)}): sync returned ${res.status}`
+      );
+      return false;
+    }
+    const data = await res.json();
+    console.log(
+      `[ModelSync] ${provider} (${connectionId.slice(0, 8)}): ✓ ${data.syncedModels || 0} models`
+    );
+    return true;
+  } catch (err) {
+    console.warn(
+      `[ModelSync] ${provider} (${connectionId.slice(0, 8)}): fetch failed —`,
+      (err as Error).message
+    );
+    return false;
+  }
+}
+
+/**
+ * Run one full model-sync cycle across all auto-sync connections.
  */
 async function runSyncCycle(apiBaseUrl: string): Promise<void> {
   if (isRunning) {
@@ -67,26 +82,37 @@ async function runSyncCycle(apiBaseUrl: string): Promise<void> {
   }
   isRunning = true;
   const start = Date.now();
-  console.log(
-    `[ModelSync] Starting 24h model sync cycle — ${AUTO_SYNC_PROVIDERS.length} providers`
-  );
 
-  const results = await Promise.allSettled(
-    AUTO_SYNC_PROVIDERS.map((id) => syncProviderModels(id, apiBaseUrl))
-  );
-
-  const succeeded = results.filter((r) => r.status === "fulfilled").length;
-  console.log(
-    `[ModelSync] Cycle complete: ${succeeded}/${AUTO_SYNC_PROVIDERS.length} providers synced in ${Date.now() - start}ms`
-  );
-
-  // Record last sync time
   try {
-    await updateSettings({ [MODEL_SYNC_SETTING_KEY]: new Date().toISOString() });
-  } catch {
-    // Non-critical
+    const connections = await getAutoSyncConnections();
+
+    if (connections.length === 0) {
+      console.log("[ModelSync] No connections with autoSync enabled — skipping cycle");
+      return;
+    }
+
+    console.log(`[ModelSync] Starting model sync cycle — ${connections.length} connection(s)`);
+
+    const results = await Promise.allSettled(
+      connections.map((conn) =>
+        syncConnectionModels(conn.id, conn.name || conn.provider, apiBaseUrl)
+      )
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled" && r.value === true).length;
+    console.log(
+      `[ModelSync] Cycle complete: ${succeeded}/${connections.length} synced in ${Date.now() - start}ms`
+    );
+
+    // Record last sync time
+    try {
+      await updateSettings({ [MODEL_SYNC_SETTING_KEY]: new Date().toISOString() });
+    } catch {
+      // Non-critical
+    }
+  } finally {
+    isRunning = false;
   }
-  isRunning = false;
 }
 
 /**
@@ -108,9 +134,7 @@ export function startModelSyncScheduler(
   const effectiveIntervalMs =
     !isNaN(envHours) && envHours > 0 ? envHours * 60 * 60 * 1000 : intervalMs;
 
-  console.log(
-    `[ModelSync] Scheduler started — interval: ${effectiveIntervalMs / 3_600_000}h, providers: ${AUTO_SYNC_PROVIDERS.length}`
-  );
+  console.log(`[ModelSync] Scheduler started — interval: ${effectiveIntervalMs / 3_600_000}h`);
 
   // Run immediately on startup (staggered by 5s to avoid startup congestion)
   const startupDelay = setTimeout(() => runSyncCycle(apiBaseUrl), 5_000);

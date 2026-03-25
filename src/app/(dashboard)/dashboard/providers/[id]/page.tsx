@@ -1513,6 +1513,35 @@ export default function ProviderDetailPage() {
 
   const canImportModels = connections.some((conn) => conn.isActive !== false);
 
+  // Auto-sync toggle state: read from first active connection's providerSpecificData
+  const autoSyncConnection = connections.find((conn: any) => conn.isActive !== false);
+  const isAutoSyncEnabled = !!(autoSyncConnection as any)?.providerSpecificData?.autoSync;
+  const [togglingAutoSync, setTogglingAutoSync] = useState(false);
+
+  const handleToggleAutoSync = async () => {
+    if (!autoSyncConnection || togglingAutoSync) return;
+    setTogglingAutoSync(true);
+    try {
+      const newValue = !isAutoSyncEnabled;
+      await fetch(`/api/providers/${(autoSyncConnection as any).id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerSpecificData: { autoSync: newValue },
+        }),
+      });
+      await fetchConnections();
+      notify[newValue ? "success" : "info"](
+        newValue ? t("autoSyncEnabled") : t("autoSyncDisabled")
+      );
+    } catch (error) {
+      console.log("Error toggling auto-sync:", error);
+      notify.error(t("autoSyncToggleFailed"));
+    } finally {
+      setTogglingAutoSync(false);
+    }
+  };
+
   const customMap = useMemo(() => buildCompatMap(modelMeta.customModels), [modelMeta.customModels]);
   const overrideMap = useMemo(
     () => buildCompatMap(modelMeta.modelCompatOverrides),
@@ -1604,29 +1633,50 @@ export default function ProviderDetailPage() {
   };
 
   const renderModelsSection = () => {
+    const autoSyncToggle = canImportModels && (
+      <button
+        onClick={handleToggleAutoSync}
+        disabled={togglingAutoSync}
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-transparent cursor-pointer text-[12px] disabled:opacity-50 disabled:cursor-not-allowed"
+        title={t("autoSyncTooltip")}
+      >
+        <span
+          className="material-symbols-outlined text-[16px]"
+          style={{ color: isAutoSyncEnabled ? "#22c55e" : "var(--color-text-muted)" }}
+        >
+          {isAutoSyncEnabled ? "toggle_on" : "toggle_off"}
+        </span>
+        <span className="text-text-main">{t("autoSync")}</span>
+      </button>
+    );
+
     if (isCompatible) {
       return (
-        <CompatibleModelsSection
-          providerStorageAlias={providerStorageAlias}
-          providerDisplayAlias={providerDisplayAlias}
-          modelAliases={modelAliases}
-          copied={copied}
-          onCopy={copy}
-          onSetAlias={handleSetAlias}
-          onDeleteAlias={handleDeleteAlias}
-          connections={connections}
-          isAnthropic={isAnthropicCompatible}
-          onImportWithProgress={handleCompatibleImportWithProgress}
-          t={t}
-          effectiveModelNormalize={effectiveModelNormalize}
-          effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-          getUpstreamHeadersRecord={getUpstreamHeadersRecordForModel}
-          saveModelCompatFlags={saveModelCompatFlags}
-          compatSavingModelId={compatSavingModelId}
-          onModelsChanged={fetchProviderModelMeta}
-        />
+        <div>
+          <div className="flex items-center gap-2 mb-4">{autoSyncToggle}</div>
+          <CompatibleModelsSection
+            providerStorageAlias={providerStorageAlias}
+            providerDisplayAlias={providerDisplayAlias}
+            modelAliases={modelAliases}
+            copied={copied}
+            onCopy={copy}
+            onSetAlias={handleSetAlias}
+            onDeleteAlias={handleDeleteAlias}
+            connections={connections}
+            isAnthropic={isAnthropicCompatible}
+            onImportWithProgress={handleCompatibleImportWithProgress}
+            t={t}
+            effectiveModelNormalize={effectiveModelNormalize}
+            effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+            getUpstreamHeadersRecord={getUpstreamHeadersRecordForModel}
+            saveModelCompatFlags={saveModelCompatFlags}
+            compatSavingModelId={compatSavingModelId}
+            onModelsChanged={fetchProviderModelMeta}
+          />
+        </div>
       );
     }
+
     if (providerInfo.passthroughModels) {
       return (
         <div>
@@ -1640,6 +1690,7 @@ export default function ProviderDetailPage() {
             >
               {importingModels ? t("importingModels") : t("importFromModels")}
             </Button>
+            {autoSyncToggle}
             {!canImportModels && (
               <span className="text-xs text-text-muted">{t("addConnectionToImport")}</span>
             )}
@@ -1673,6 +1724,7 @@ export default function ProviderDetailPage() {
         >
           {importingModels ? t("importingModels") : t("importFromModels")}
         </Button>
+        {autoSyncToggle}
         {!canImportModels && (
           <span className="text-xs text-text-muted">{t("addConnectionToImport")}</span>
         )}

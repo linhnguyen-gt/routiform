@@ -360,6 +360,76 @@ export async function addCustomModel(
   return model;
 }
 
+/**
+ * Replace the entire custom models list for a provider (used by auto-sync).
+ * Preserves per-model compatibility overrides for models that still exist.
+ */
+export async function replaceCustomModels(
+  providerId: string,
+  models: Array<{
+    id: string;
+    name?: string;
+    source?: string;
+    apiFormat?: string;
+    supportedEndpoints?: string[];
+  }>
+) {
+  const db = getDbInstance();
+  const existing = await getCustomModels(providerId);
+  const existingMap = new Map<string, JsonRecord>();
+  if (Array.isArray(existing)) {
+    for (const m of existing) {
+      if (m && typeof m === "object" && m.id) existingMap.set(m.id, m);
+    }
+  }
+
+  // Merge: keep existing per-model compat flags if model still exists
+  const merged = models.map((m) => {
+    const prev = existingMap.get(m.id);
+    return {
+      id: m.id,
+      name: m.name || m.id,
+      source: m.source || "auto-sync",
+      apiFormat: m.apiFormat || (prev as any)?.apiFormat || "chat-completions",
+      supportedEndpoints: m.supportedEndpoints || (prev as any)?.supportedEndpoints || ["chat"],
+      // Preserve existing compat flags
+      ...(prev && (prev as any).normalizeToolCallId !== undefined
+        ? { normalizeToolCallId: (prev as any).normalizeToolCallId }
+        : {}),
+      ...(prev && (prev as any).preserveOpenAIDeveloperRole !== undefined
+        ? { preserveOpenAIDeveloperRole: (prev as any).preserveOpenAIDeveloperRole }
+        : {}),
+      ...(prev && (prev as any).compatByProtocol
+        ? { compatByProtocol: (prev as any).compatByProtocol }
+        : {}),
+      ...(prev && (prev as any).upstreamHeaders
+        ? { upstreamHeaders: (prev as any).upstreamHeaders }
+        : {}),
+    };
+  });
+
+  if (merged.length === 0) {
+    db.prepare("DELETE FROM key_value WHERE namespace = 'customModels' AND key = ?").run(
+      providerId
+    );
+  } else {
+    db.prepare(
+      "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('customModels', ?, ?)"
+    ).run(providerId, JSON.stringify(merged));
+  }
+
+  // Remove compat overrides for models that no longer exist
+  const newIds = new Set(models.map((m) => m.id));
+  const compatList = readCompatList(providerId);
+  const filteredCompat = compatList.filter((e) => newIds.has(e.id));
+  if (filteredCompat.length !== compatList.length) {
+    writeCompatList(providerId, filteredCompat);
+  }
+
+  backupDbFile("pre-write");
+  return merged;
+}
+
 export async function removeCustomModel(providerId, modelId) {
   const db = getDbInstance();
   const row = db
