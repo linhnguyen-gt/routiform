@@ -391,11 +391,16 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     models: [
       { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 Thinking" },
       { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },
+      { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
+      { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
       { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
       { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
       { id: "gpt-oss-120b-medium", name: "GPT OSS 120B Medium" },
+      { id: "gpt-5", name: "GPT 5" },
+      { id: "gpt-5-mini", name: "GPT 5 Mini" },
     ],
+    passthroughModels: true,
   },
 
   github: {
