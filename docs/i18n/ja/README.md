@@ -98,16 +98,17 @@ _AI を活用した IDE または CLI ツールを、無制限のコーディン
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -909,19 +910,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 可観測性と分析
 
-| 特集                            | 何をするのか                                                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 📝 **リクエストログ**           | 完全なリクエスト/レスポンス ログを含むデバッグ モード                                                        |
-| 💾 **SQLite プロキシ ログ**     | 永続的なプロキシ ログはサーバーの再起動後も存続します。                                                      |
-| 📊 **分析ダッシュボード**       | Recharts を活用: 統計カード、モデル使用状況チャート、プロバイダー テーブル                                   |
-| 📈 **進捗状況の追跡**           | ストリーミング用の SSE 進行状況イベントをオプトインする                                                      |
-| 🧪 **LLM 評価**                 | 4 つの試合戦略によるゴールデン セット テスト                                                                 |
-| 🔍 **テレメトリのリクエスト**   | p50/p95/p99 レイテンシ集計 + X-Request-Id トレース                                                           |
-| 📋 **ログ ダッシュボード**      | 統合された 4 つのタブ ページ: リクエスト ログ、プロキシ ログ、監査ログ、コンソール                           |
-| 🖥️ **コンソール ログ ビューア** | レベルフィルター、検索、自動スクロール機能を備えたリアルタイムターミナルスタイルのビューア                   |
-| 📑 **ファイルベースのロギング** | コンソール インターセプターは、ローテーションを使用してすべての出力を JSON ログ ファイルにキャプチャします。 |
-| 🏥 **健康ダッシュボード**       | システム稼働時間、サーキット ブレーカーの状態、ロックアウト、キャッシュ統計                                  |
-| 💰 **コスト追跡**               | 予算管理 + モデルごとの価格設定                                                                              |
+| 特集                             | 何をするのか                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 📝 **リクエストログ**            | 完全なリクエスト/レスポンス ログを含むデバッグ モード                                                        |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                                                         |
+| 💾 **SQLite プロキシ ログ**      | 永続的なプロキシ ログはサーバーの再起動後も存続します。                                                      |
+| 📊 **分析ダッシュボード**        | Recharts を活用: 統計カード、モデル使用状況チャート、プロバイダー テーブル                                   |
+| 📈 **進捗状況の追跡**            | ストリーミング用の SSE 進行状況イベントをオプトインする                                                      |
+| 🧪 **LLM 評価**                  | 4 つの試合戦略によるゴールデン セット テスト                                                                 |
+| 🔍 **テレメトリのリクエスト**    | p50/p95/p99 レイテンシ集計 + X-Request-Id トレース                                                           |
+| 📋 **ログ ダッシュボード**       | 統合された 4 つのタブ ページ: リクエスト ログ、プロキシ ログ、監査ログ、コンソール                           |
+| 🖥️ **コンソール ログ ビューア**  | レベルフィルター、検索、自動スクロール機能を備えたリアルタイムターミナルスタイルのビューア                   |
+| 📑 **ファイルベースのロギング**  | コンソール インターセプターは、ローテーションを使用してすべての出力を JSON ログ ファイルにキャプチャします。 |
+| 🏥 **健康ダッシュボード**        | システム稼働時間、サーキット ブレーカーの状態、ロックアウト、キャッシュ統計                                  |
+| 💰 **コスト追跡**                | 予算管理 + モデルごとの価格設定                                                                              |
 
 ### ☁️ 導入と同期
 
@@ -936,6 +938,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **国際化**                       | next-intl を備えた完全な i18n — 英語 + ポルトガル語 (ブラジル) のサポート           |
 | 🌍 **言語セレクター**               | リアルタイム言語切り替え用のヘッダーの地球儀アイコン (🇺🇸/🇧🇷)                        |
 | 🧹 **Clear All Models**             | One-click model list clearing in provider details                                   |
+| 👁️ **Sidebar Controls** 🆕          | Hide components and integrations from Appearance Settings                           |
 | 📋 **Issue Templates**              | Standardized GitHub templates for bugs and features                                 |
 | 📂 **カスタム データ ディレクトリ** | デフォルトの `~/.omniroute` ストレージ パスをオーバーライドする `DATA_DIR` 環境変数 |
 

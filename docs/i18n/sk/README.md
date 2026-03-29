@@ -98,16 +98,17 @@ _Pripojte akýkoľvek nástroj IDE alebo CLI poháňaný AI cez OmniRoute – be
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -914,6 +915,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | Funkcia                                    | Čo to robí                                                                                            |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | 📝 **Požiadať o prihlásenie**              | Režim ladenia s úplnými protokolmi požiadaviek/odpovedí                                               |
+| 📉 **Streamed Detailed Logs** 🆕           | Reconstructs SSE payload streams cleanly into the UI                                                  |
 | 💾 **Proxy protokoly SQLite**              | Trvalé protokoly proxy prežijú reštart servera                                                        |
 | 📊 **Hlavný panel služby Analytics**       | Poháňané recharts: štatistické karty, graf používania modelu, tabuľka poskytovateľov                  |
 | 📈 **Sledovanie pokroku**                  | Prihlásiť udalosti priebehu SSE pre streamovanie                                                      |
@@ -938,6 +940,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internacionalizácia**     | Plný i18n s next-intl — podpora angličtiny + portugalčiny (Brazília)            |
 | 🌍 **Výber jazyka**            | Ikona zemegule v hlavičke na prepínanie jazyka v reálnom čase (🇺🇸/🇧🇷)           |
 | 🧹 **Clear All Models**        | One-click model list clearing in provider details                               |
+| 👁️ **Sidebar Controls** 🆕     | Hide components and integrations from Appearance Settings                       |
 | 📋 **Issue Templates**         | Standardized GitHub templates for bugs and features                             |
 | 📂 **Custom Data Directory**   | `DATA_DIR` env var na prepísanie predvolenej cesty úložiska `~/.omniroute`      |
 

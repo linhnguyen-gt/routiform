@@ -1212,6 +1212,7 @@ OmniRoute v2.0 er bygget som en operationel platform, ikke kun en relæ-proxy.
 | 🌐 **IP-filtrering**                | Tilladelsesliste/blokeringslistekontrol for udsatte implementeringer                         |
 | 📊 **Redigerbare satsgrænser**      | Konfigurerbare grænser på globalt niveau/udbyderniveau med persistens                        |
 | 🔑 **API Key Management + Scoping** | Sikker nøgleudstedelse/rotation og model-/leverandørkontrol                                  |
+| 👁️ **Scoped API Key Reveal** 🆕     | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                       |
 | 🛡️ **Beskyttet `/models`**          | Valgfri godkendelse og udbyderskjul til modelkatalog                                         |
 
 ### 📊 Observerbarhed og analyse
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 er bygget som en operationel platform, ikke kun en relæ-proxy.
 | Funktion                           | Hvad det gør                                           |
 | ---------------------------------- | ------------------------------------------------------ |
 | 📝 **Forespørgsel + Proxylogning** | Fuld anmodning/svar og proxy-logning                   |
+| 📉 **Streamed Detailed Logs** 🆕   | Reconstructs SSE payload streams cleanly into the UI   |
 | 📋 **Unified Logs Dashboard**      | Anmodning, proxy, revision og konsolvisning på én side |
 | 🔍 **Anmod om telemetri**          | p50/p95/p99 latens og anmodningssporing                |
 | 🏥 **Sundhedskontrolpanel**        | Oppetid, breaker-tilstande, lockouts, cache-statistik  |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 er bygget som en operationel platform, ikke kun en relæ-proxy.
 | 🔏 **CLI Fingerprint Toggle**          | Fingeraftryksmatchning pr. udbyder i Indstillinger > Sikkerhed |
 | 🌐 **i18n (30 sprog)**                 | Fuldt dashboard + understøttelse af docs-sprog med RTL-dækning |
 | 🧹 **Ryd alle modeller**               | Rydning af modelliste med ét klik i udbyderoplysninger         |
+| 👁️ **Sidebar Controls** 🆕             | Hide components and integrations from Appearance Settings      |
 | 📋 **Udgaveskabeloner**                | Standardiserede GitHub-skabeloner til fejl og funktioner       |
 | 📂 **Tilpasset datakatalog**           | `DATA_DIR` tilsidesættelse for lagerplacering                  |
 

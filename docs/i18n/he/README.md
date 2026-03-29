@@ -98,16 +98,17 @@ _חבר כל כלי IDE או CLI המופעל על ידי AI דרך OmniRoute - 
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -907,19 +908,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 יכולת תצפית וניתוח
 
-| תכונה                           | מה זה עושה                                                             |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| 📝 **בקש רישום**                | מצב ניפוי באגים עם יומני בקשות/תגובות מלאים                            |
-| 💾 **יומני פרוקסי של SQLite**   | יומני פרוקסי מתמשכים שורדים אתחול מחדש של השרת                         |
-| 📊 **לוח המחוונים של אנליטיקס** | מופעל מחדש ב-Recharts: כרטיסי סטטיסטיקה, טבלת שימוש במודל, טבלת ספקים  |
-| 📈 **מעקב התקדמות**             | הצטרפות לאירועי התקדמות SSE לסטרימינג                                  |
-| 🧪 **LM Evaluations**           | בדיקת סט זהב עם 4 אסטרטגיות התאמה                                      |
-| 🔍 **בקש טלמטריה**              | צבירת זמן אחזור p50/p95/p99 + מעקב אחר X-Request-Id                    |
-| 📋 **לוח מחוונים יומני**        | עמוד מאוחד בן 4 לשוניות: יומני בקשות, יומני פרוקסי, יומני ביקורת, מסוף |
-| 🖥️ **מציג יומן מסוף**           | מציג בסגנון טרמינל בזמן אמת עם מסנן רמות, חיפוש, גלילה אוטומטית        |
-| 📑 **רישום מבוסס קבצים**        | מיירט מסוף לוכד את כל הפלט לקובץ יומן JSON עם סיבוב                    |
-| 🏥 **לוח מחוונים לבריאות**      | זמן פעילות מערכת, מצבי מפסק זרם, נעילות, סטטיסטיקות מטמון              |
-| 💰 **מעקב עלויות**              | ניהול תקציב + תצורת תמחור לפי דגם                                      |
+| תכונה                            | מה זה עושה                                                             |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| 📝 **בקש רישום**                 | מצב ניפוי באגים עם יומני בקשות/תגובות מלאים                            |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                   |
+| 💾 **יומני פרוקסי של SQLite**    | יומני פרוקסי מתמשכים שורדים אתחול מחדש של השרת                         |
+| 📊 **לוח המחוונים של אנליטיקס**  | מופעל מחדש ב-Recharts: כרטיסי סטטיסטיקה, טבלת שימוש במודל, טבלת ספקים  |
+| 📈 **מעקב התקדמות**              | הצטרפות לאירועי התקדמות SSE לסטרימינג                                  |
+| 🧪 **LM Evaluations**            | בדיקת סט זהב עם 4 אסטרטגיות התאמה                                      |
+| 🔍 **בקש טלמטריה**               | צבירת זמן אחזור p50/p95/p99 + מעקב אחר X-Request-Id                    |
+| 📋 **לוח מחוונים יומני**         | עמוד מאוחד בן 4 לשוניות: יומני בקשות, יומני פרוקסי, יומני ביקורת, מסוף |
+| 🖥️ **מציג יומן מסוף**            | מציג בסגנון טרמינל בזמן אמת עם מסנן רמות, חיפוש, גלילה אוטומטית        |
+| 📑 **רישום מבוסס קבצים**         | מיירט מסוף לוכד את כל הפלט לקובץ יומן JSON עם סיבוב                    |
+| 🏥 **לוח מחוונים לבריאות**       | זמן פעילות מערכת, מצבי מפסק זרם, נעילות, סטטיסטיקות מטמון              |
+| 💰 **מעקב עלויות**               | ניהול תקציב + תצורת תמחור לפי דגם                                      |
 
 ### ☁️ פריסה וסנכרון
 
@@ -934,6 +936,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **בינלאומיות**                  | i18n מלא עם next-intl — תמיכה באנגלית + פורטוגזית (ברזיל)             |
 | 🌍 **בורר שפה**                    | סמל גלובוס בכותרת למעבר שפה בזמן אמת (🇺🇸/🇧🇷)                          |
 | 🧹 **Clear All Models**            | One-click model list clearing in provider details                     |
+| 👁️ **Sidebar Controls** 🆕         | Hide components and integrations from Appearance Settings             |
 | 📋 **Issue Templates**             | Standardized GitHub templates for bugs and features                   |
 | 📂 **ספריית נתונים מותאמים אישית** | `DATA_DIR` env var כדי לעקוף את ברירת המחדל `~/.omniroute` נתיב אחסון |
 

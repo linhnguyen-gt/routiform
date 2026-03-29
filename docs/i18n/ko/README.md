@@ -98,16 +98,17 @@ _무제한 코딩을 위한 무료 API 게이트웨이인 OmniRoute를 통해 AI
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -907,19 +908,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 관찰 가능성 및 분석
 
-| 기능                      | 그것이 하는 일                                                       |
-| ------------------------- | -------------------------------------------------------------------- |
-| 📝 **로깅 요청**          | 전체 요청/응답 로그가 포함된 디버그 모드                             |
-| 💾 **SQLite 프록시 로그** | 영구 프록시 로그는 서버를 다시 시작해도 유지됩니다.                  |
-| 📊 **분석 대시보드**      | Recharts 기반: 통계 카드, 모델 사용 차트, 공급자 테이블              |
-| 📈 **진행 상황 추적**     | 스트리밍을 위한 옵트인 SSE 진행 이벤트                               |
-| 🧪 **LLM 평가**           | 4가지 매치 전략을 사용한 골든 세트 테스트                            |
-| 🔍 **원격 측정 요청**     | p50/p95/p99 대기 시간 집계 + X-요청-ID 추적                          |
-| 📋 **로그 대시보드**      | 통합된 4개 탭 페이지: 요청 로그, 프록시 로그, 감사 로그, 콘솔        |
-| 🖥️ **콘솔 로그 뷰어**     | 레벨 필터, 검색, 자동 스크롤 기능을 갖춘 실시간 터미널 스타일 뷰어   |
-| 📑 **파일 기반 로깅**     | 콘솔 인터셉터는 회전을 통해 모든 출력을 JSON 로그 파일로 캡처합니다. |
-| 🏥 **건강 대시보드**      | 시스템 가동 시간, 회로 차단기 상태, 잠금, 캐시 통계                  |
-| 💰 **비용 추적**          | 예산 관리 + 모델별 가격 구성                                         |
+| 기능                             | 그것이 하는 일                                                       |
+| -------------------------------- | -------------------------------------------------------------------- |
+| 📝 **로깅 요청**                 | 전체 요청/응답 로그가 포함된 디버그 모드                             |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                 |
+| 💾 **SQLite 프록시 로그**        | 영구 프록시 로그는 서버를 다시 시작해도 유지됩니다.                  |
+| 📊 **분석 대시보드**             | Recharts 기반: 통계 카드, 모델 사용 차트, 공급자 테이블              |
+| 📈 **진행 상황 추적**            | 스트리밍을 위한 옵트인 SSE 진행 이벤트                               |
+| 🧪 **LLM 평가**                  | 4가지 매치 전략을 사용한 골든 세트 테스트                            |
+| 🔍 **원격 측정 요청**            | p50/p95/p99 대기 시간 집계 + X-요청-ID 추적                          |
+| 📋 **로그 대시보드**             | 통합된 4개 탭 페이지: 요청 로그, 프록시 로그, 감사 로그, 콘솔        |
+| 🖥️ **콘솔 로그 뷰어**            | 레벨 필터, 검색, 자동 스크롤 기능을 갖춘 실시간 터미널 스타일 뷰어   |
+| 📑 **파일 기반 로깅**            | 콘솔 인터셉터는 회전을 통해 모든 출력을 JSON 로그 파일로 캡처합니다. |
+| 🏥 **건강 대시보드**             | 시스템 가동 시간, 회로 차단기 상태, 잠금, 캐시 통계                  |
+| 💰 **비용 추적**                 | 예산 관리 + 모델별 가격 구성                                         |
 
 ### ☁️ 배포 및 동기화
 
@@ -934,6 +936,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **국제화**                      | next-intl이 포함된 전체 i18n — 영어 + 포르투갈어(브라질) 지원     |
 | 🌍 **언어 선택기**                 | 실시간 언어 전환을 위한 헤더의 지구본 아이콘(🇺🇸/🇧🇷)               |
 | 🧹 **Clear All Models**            | One-click model list clearing in provider details                 |
+| 👁️ **Sidebar Controls** 🆕         | Hide components and integrations from Appearance Settings         |
 | 📋 **Issue Templates**             | Standardized GitHub templates for bugs and features               |
 | 📂 **사용자 정의 데이터 디렉터리** | `DATA_DIR` env var는 기본 `~/.omniroute` 저장 경로를 재정의합니다 |
 

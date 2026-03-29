@@ -36,6 +36,7 @@ _Universaali API-välityspalvelin – yksi päätepiste, yli 67 palveluntarjoaja
 | ✅ **Reitin vahvistaminen**              | Kaikki 176 API-reittiä nyt validoitu Zod-skeemoilla + `validateBody()` — CI `check:route-validation:t06` -passit                                                                                                |
 | 🐛 **omniModel Tag Leak**                | Sisäiset `<omniModel>` -tunnisteet eivät enää vuoda asiakkaille SSE-suoratoistovastauksissa (#585)                                                                                                              |
 | 🔑 **Registered Keys API**               | Määritä API-avaimet automaattisesti `POST /api/v1/registered-keys`:n kautta palveluntarjoaja-/tilikiintiön pakottamisen, idempotenssin, SHA-256-tallennustilan ja valinnaisen GitHub-ongelmaraportoinnin avulla |
+| 👁️ **Scoped API Key Reveal** 🆕          | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                                          |
 | 🎨 ** Palveluntarjoajan kuvakkeet**      | Yli 130 palveluntarjoajan logoa `@lobehub/icons` (SVG) ja PNG:n kautta → yleinen varaketju                                                                                                                      |
 | 🔄 **Mallin automaattinen synkronointi** | 24 tunnin ajastin ja manuaalinen käyttöliittymä synkronoidaksesi malliluettelot sisäänrakennetuille ja mukautetuille OpenAI-yhteensopiville palveluntarjoajille                                                 |
 | 🌐 **OpenCode Zen/Go**                   | Kaksi uutta palveluntarjoajaa @kang-heewonilta PR #530:n kautta: ilmainen taso + tilaustaso `OpencodeExecutor` -palvelun kautta                                                                                 |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 on rakennettu toiminnalliseksi alustaksi, ei vain välityspalveli
 | Ominaisuus                                | Mitä se tekee                                                           |
 | ----------------------------------------- | ----------------------------------------------------------------------- |
 | 📝 **Pyyntö + välityspalvelimen kirjaus** | Täysi pyyntö/vastaus ja välityspalvelimen kirjaus                       |
+| 📉 **Streamed Detailed Logs** 🆕          | Reconstructs SSE payload streams cleanly into the UI                    |
 | 📋 **Unified Logs Dashboard**             | Pyyntö-, välityspalvelin-, tarkastus- ja konsolinäkymät yhdellä sivulla |
 | 🔍 **Pyydä telemetriaa**                  | p50/p95/p99 latenssi ja pyynnön jäljitys                                |
 | 🏥 **Terveyden hallintapaneeli**          | Käyttöaika, katkaisutilat, lukitukset, välimuistitilastot               |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 on rakennettu toiminnalliseksi alustaksi, ei vain välityspalveli
 | 🔏 **CLI-sormenjälkivalitsin**      | Palveluntarjoajakohtainen sormenjälkien vastaavuus kohdassa Asetukset > Suojaus |
 | 🌐 **i18n (30 kieltä)**             | Täysi kojelauta + asiakirjojen kielen tuki RTL-kattauksella                     |
 | 🧹 **Tyhjennä kaikki mallit**       | Yhden napsautuksen malliluettelon tyhjennys toimittajan tiedoissa               |
+| 👁️ **Sidebar Controls** 🆕          | Hide components and integrations from Appearance Settings                       |
 | 📋 **Ongelman mallit**              | Standardoidut GitHub-mallit bugeille ja ominaisuuksille                         |
 | 📂 **Muokattu tietohakemisto**      | `DATA_DIR` ohitus tallennuspaikalle                                             |
 

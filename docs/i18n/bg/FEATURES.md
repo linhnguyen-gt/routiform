@@ -67,7 +67,7 @@ Customizable color themes for the entire dashboard. Choose from 7 preset colors 
 Comprehensive settings panel with tabs:
 
 - **General** — System storage, backup management (export/import database)
-- **Appearance** — Theme selector (dark/light/system), color theme presets and custom colors, health log visibility
+- **Appearance** — Theme selector (dark/light/system), color theme presets and custom colors, health log visibility, sidebar item visibility controls
 - **Security** — API endpoint protection, custom provider blocking, IP filtering, session info
 - **Routing** — Model aliases, background task degradation
 - **Resilience** — Rate limit persistence, circuit breaker tuning

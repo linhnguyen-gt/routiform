@@ -1212,6 +1212,7 @@ OmniRoute v2.0 är byggd som en operativ plattform, inte bara en reläproxy.
 | 🌐 **IP-filtrering**                 | Kontroll av tillåtelse/blockeringslista för exponerade distributioner                             |
 | 📊 **Redigerbara hastighetsgränser** | Konfigurerbara globala/leverantörsnivågränser med beständighet                                    |
 | 🔑 **API Key Management + Scoping**  | Säker nyckelutgivning/rotation och modell/leverantörskontroller                                   |
+| 👁️ **Scoped API Key Reveal** 🆕      | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                            |
 | 🛡️ **Skyddad `/models`**             | Valfri autentisering och leverantörsdöljning för modellkatalog                                    |
 
 ### 📊 Observerbarhet och analys
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 är byggd som en operativ plattform, inte bara en reläproxy.
 | Funktion                          | Vad det gör                                            |
 | --------------------------------- | ------------------------------------------------------ |
 | 📝 **Begäran + proxyloggning**    | Fullständig begäran/svar och proxyloggning             |
+| 📉 **Streamed Detailed Logs** 🆕  | Reconstructs SSE payload streams cleanly into the UI   |
 | 📋 **Unified Logs Dashboard**     | Begäran, proxy, revision och konsolvyer på en sida     |
 | 🔍 **Begär telemetri**            | p50/p95/p99 latens och spårning av begäran             |
 | 🏥 **Hälsoinstrumentpanel**       | Drifttid, brytartillstånd, lockouter, cachestatistik   |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 är byggd som en operativ plattform, inte bara en reläproxy.
 | 🔏 **CLI Fingerprint Toggle**           | Fingeravtrycksmatchning per leverantör i Inställningar > Säkerhet     |
 | 🌐 **i18n (30 språk)**                  | Fullständig instrumentpanel + stöd för dokumentspråk med RTL-täckning |
 | 🧹 **Rensa alla modeller**              | Rensa modelllistan med ett klick i leverantörsinformation             |
+| 👁️ **Sidebar Controls** 🆕              | Hide components and integrations from Appearance Settings             |
 | 📋 **Utgåvamallar**                     | Standardiserade GitHub-mallar för buggar och funktioner               |
 | 📂 **Anpassad datakatalog**             | `DATA_DIR` åsidosättning för lagringsplats                            |
 

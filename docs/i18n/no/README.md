@@ -98,16 +98,17 @@ _Koble til ethvert AI-drevet IDE- eller CLI-verktøy gjennom OmniRoute – grati
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -908,19 +909,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 Observerbarhet og analyse
 
-| Funksjon                   | Hva det gjør                                                                        |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| 📝 **Be om logging**       | Feilsøkingsmodus med fullstendige forespørsels-/svarlogger                          |
-| 💾 **SQLite proxy-logger** | Vedvarende proxy-logger overlever omstart av server                                 |
-| 📊 **Analytics Dashboard** | Recharts-drevet: statistikkkort, modellbruksdiagram, leverandørtabell               |
-| 📈 **Fremdriftssporing**   | Opt-in SSE-fremdriftshendelser for streaming                                        |
-| 🧪 **LLM-evalueringer**    | Gylden sett-testing med 4 kampstrategier                                            |
-| 🔍 **Be om telemetri**     | p50/p95/p99 latensaggregering + X-Request-Id-sporing                                |
-| 📋 **Logger Dashboard**    | Samlet side med 4 faner: Forespørselslogger, proxy-logger, revisjonslogger, konsoll |
-| 🖥️ **Konsollloggvisning**  | Viser i sanntid i terminalstil med nivåfilter, søk, automatisk rulling              |
-| 📑 **Filbasert logging**   | Console interceptor fanger opp all utgang til JSON-loggfil med rotasjon             |
-| 🏥 **Helse Dashboard**     | Systemoppetid, strømbrytertilstander, sperringer, cachestatistikk                   |
-| 💰 **Kostnadssporing**     | Budsjettadministrasjon + priskonfigurasjon per modell                               |
+| Funksjon                         | Hva det gjør                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| 📝 **Be om logging**             | Feilsøkingsmodus med fullstendige forespørsels-/svarlogger                          |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                                |
+| 💾 **SQLite proxy-logger**       | Vedvarende proxy-logger overlever omstart av server                                 |
+| 📊 **Analytics Dashboard**       | Recharts-drevet: statistikkkort, modellbruksdiagram, leverandørtabell               |
+| 📈 **Fremdriftssporing**         | Opt-in SSE-fremdriftshendelser for streaming                                        |
+| 🧪 **LLM-evalueringer**          | Gylden sett-testing med 4 kampstrategier                                            |
+| 🔍 **Be om telemetri**           | p50/p95/p99 latensaggregering + X-Request-Id-sporing                                |
+| 📋 **Logger Dashboard**          | Samlet side med 4 faner: Forespørselslogger, proxy-logger, revisjonslogger, konsoll |
+| 🖥️ **Konsollloggvisning**        | Viser i sanntid i terminalstil med nivåfilter, søk, automatisk rulling              |
+| 📑 **Filbasert logging**         | Console interceptor fanger opp all utgang til JSON-loggfil med rotasjon             |
+| 🏥 **Helse Dashboard**           | Systemoppetid, strømbrytertilstander, sperringer, cachestatistikk                   |
+| 💰 **Kostnadssporing**           | Budsjettadministrasjon + priskonfigurasjon per modell                               |
 
 ### ☁️ Implementering og synkronisering
 
@@ -935,6 +937,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internasjonalisering**      | Full i18n med neste-intl — støtte for engelsk + portugisisk (Brasil)                     |
 | 🌍 **Språkvelger**               | Globusikon i overskriften for sanntids språkbytte (🇺🇸/🇧🇷)                                |
 | 🧹 **Clear All Models**          | One-click model list clearing in provider details                                        |
+| 👁️ **Sidebar Controls** 🆕       | Hide components and integrations from Appearance Settings                                |
 | 📋 **Issue Templates**           | Standardized GitHub templates for bugs and features                                      |
 | 📂 **Tilpasset datakatalog**     | `DATA_DIR` env var for å overstyre standard `~/.omniroute` lagringsbane                  |
 

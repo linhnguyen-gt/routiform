@@ -26,6 +26,10 @@ export default function HomePageClient({ machineId }) {
 
   const [versionInfo, setVersionInfo] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
+  const [updateSteps, setUpdateSteps] = useState<
+    Array<{ step: string; status: string; message: string }>
+  >([]);
+  const [updatePhase, setUpdatePhase] = useState<"idle" | "running" | "done" | "failed">("idle");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -89,7 +93,6 @@ export default function HomePageClient({ machineId }) {
       const providerKeys = new Set([providerId, providerInfo.alias].filter(Boolean));
       const providerModels = models.filter((m) => providerKeys.has(m.provider));
 
-      // Determine auth type
       const authType = FREE_PROVIDERS[providerId]
         ? "free"
         : OAUTH_PROVIDERS[providerId]
@@ -108,7 +111,6 @@ export default function HomePageClient({ machineId }) {
     });
   }, [providerConnections, models]);
 
-  // Models for selected provider
   const selectedProviderModels = useMemo(() => {
     if (!selectedProvider) return [];
     const providerKeys = new Set(
@@ -135,22 +137,110 @@ export default function HomePageClient({ machineId }) {
   const handleUpdate = async () => {
     const notify = useNotificationStore.getState();
     setUpdating(true);
+    setUpdatePhase("running");
+    setUpdateSteps([]);
+
     try {
-      notify.info(t("updateStarted") || "Update process started...");
       const res = await fetch("/api/system/version", { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        notify.success(
-          data.message || "Update initiated successfully. The system will restart shortly."
-        );
-      } else {
-        notify.error(data.error || "Failed to start update.");
+
+      // If response is JSON (error/already up to date)
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          notify.error(data.error || "Failed to start update.");
+          setUpdating(false);
+          setUpdatePhase("idle");
+          return;
+        }
+      }
+
+      // SSE stream — read progress events
+      if (!res.body) {
+        notify.error("No response stream received.");
         setUpdating(false);
+        setUpdatePhase("idle");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+
+            setUpdateSteps((prev) => {
+              // Replace existing step entry or add new one
+              const idx = prev.findIndex((s) => s.step === event.step);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = event;
+                return next;
+              }
+              return [...prev, event];
+            });
+
+            if (event.step === "complete") {
+              setUpdatePhase("done");
+              notify.success(event.message || "Update complete!");
+            } else if (event.step === "error") {
+              setUpdatePhase("failed");
+              notify.error(event.message || "Update failed.");
+              setUpdating(false);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
       }
     } catch {
-      notify.error("Network error while trying to update.");
+      setUpdatePhase("failed");
+      setUpdateSteps((prev) => [
+        ...prev,
+        {
+          step: "error",
+          status: "failed",
+          message: "Network error — connection lost during update.",
+        },
+      ]);
       setUpdating(false);
     }
+  };
+
+  // Auto-reload after successful update (service restarts, need new page)
+  useEffect(() => {
+    if (updatePhase !== "done") return;
+    const timer = setTimeout(() => {
+      window.location.reload();
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [updatePhase]);
+
+  const stepIcons: Record<string, string> = {
+    install: "download",
+    rebuild: "build",
+    restart: "restart_alt",
+    complete: "check_circle",
+    error: "error",
+  };
+
+  const stepLabels: Record<string, string> = {
+    install: "Install Package",
+    rebuild: "Rebuild Native Modules",
+    restart: "Restart Service",
+    complete: "Complete",
+    error: "Error",
   };
 
   if (loading) {
@@ -166,8 +256,122 @@ export default function HomePageClient({ machineId }) {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Update Progress Overlay */}
+      {updating && (
+        <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-bg-main border border-border rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="material-symbols-outlined text-primary text-[28px] animate-spin">
+                progress_activity
+              </span>
+              <div>
+                <h3 className="text-lg font-bold">
+                  {updatePhase === "done"
+                    ? "Update Complete!"
+                    : updatePhase === "failed"
+                      ? "Update Failed"
+                      : "Updating OmniRoute..."}
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {updatePhase === "done"
+                    ? "The page will reload automatically in a few seconds."
+                    : updatePhase === "failed"
+                      ? "Please try again or update manually via the CLI."
+                      : "Do not close this page. The system will restart automatically."}
+                </p>
+              </div>
+            </div>
+
+            {/* Step list */}
+            <div className="flex flex-col gap-2">
+              {updateSteps
+                .filter((s) => s.step !== "complete" && s.step !== "error")
+                .map((s) => (
+                  <div
+                    key={s.step}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                      s.status === "running"
+                        ? "border-primary/40 bg-primary/5"
+                        : s.status === "done"
+                          ? "border-green-500/30 bg-green-500/5"
+                          : s.status === "failed"
+                            ? "border-red-500/30 bg-red-500/5"
+                            : "border-border bg-bg-subtle"
+                    }`}
+                  >
+                    {s.status === "running" ? (
+                      <span className="material-symbols-outlined text-primary text-[18px] animate-spin">
+                        progress_activity
+                      </span>
+                    ) : s.status === "done" ? (
+                      <span className="material-symbols-outlined text-green-500 text-[18px]">
+                        check_circle
+                      </span>
+                    ) : s.status === "failed" ? (
+                      <span className="material-symbols-outlined text-red-500 text-[18px]">
+                        error
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-yellow-500 text-[18px]">
+                        warning
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{stepLabels[s.step] || s.step}</p>
+                      <p className="text-xs text-text-muted truncate">{s.message}</p>
+                    </div>
+                  </div>
+                ))}
+
+              {/* Error message */}
+              {updateSteps.find((s) => s.step === "error") && (
+                <div className="mt-1 px-3 py-2.5 rounded-lg border border-red-500/30 bg-red-500/5 text-red-500">
+                  <p className="text-xs font-mono break-all">
+                    {updateSteps.find((s) => s.step === "error")?.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Completion message */}
+              {updatePhase === "done" && (
+                <div className="mt-1 px-3 py-2.5 rounded-lg border border-green-500/30 bg-green-500/5">
+                  <p className="text-sm font-semibold text-green-500 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                    {updateSteps.find((s) => s.step === "complete")?.message || "Update complete!"}
+                  </p>
+                  <p className="text-xs text-text-muted mt-1">Reloading page automatically...</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            {(updatePhase === "failed" || updatePhase === "done") && (
+              <div className="flex gap-2 mt-4">
+                <Button
+                  size="sm"
+                  fullWidth
+                  onClick={() => {
+                    setUpdating(false);
+                    setUpdatePhase("idle");
+                    setUpdateSteps([]);
+                    if (updatePhase === "done") window.location.reload();
+                  }}
+                >
+                  {updatePhase === "done" ? "Reload Now" : "Close"}
+                </Button>
+                {updatePhase === "failed" && (
+                  <Button size="sm" variant="secondary" fullWidth onClick={handleUpdate}>
+                    Retry
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Update Notification Banner */}
-      {versionInfo?.updateAvailable && (
+      {versionInfo?.updateAvailable && !updating && (
         <div className="bg-primary/10 border border-primary/20 text-primary px-5 py-4 rounded-xl flex items-center justify-between min-h-[64px]">
           <div className="flex items-center gap-4">
             <span className="material-symbols-outlined text-[24px]">system_update_alt</span>
@@ -185,7 +389,7 @@ export default function HomePageClient({ machineId }) {
             disabled={updating}
             className="shrink-0 ml-4 font-semibold"
           >
-            {updating ? t("updating") || "Updating..." : t("updateNow") || "Update Now"}
+            {t("updateNow") || "Update Now"}
           </Button>
         </div>
       )}

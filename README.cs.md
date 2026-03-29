@@ -36,6 +36,7 @@ _Váš univerzální API proxy – jeden koncový bod, 67+ poskytovatelů, nulov
 | ✅ **Ověření trasy**                    | Všech 176 tras API je nyní ověřeno pomocí schémat Zod + `validateBody()` – průkazy CI `check:route-validation:t06`                                                                                           |
 | 🐛 **omniModel Tag Leak**               | Interní značky `<omniModel>` již neunikají klientům v odpovědích streamování SSE (#585)                                                                                                                      |
 | 🔑 **Registered Keys API**              | Klíče API pro automatické poskytování prostřednictvím `POST /api/v1/registered-keys` s vynucováním kvót pro jednotlivé poskytovatele/účty, idempotence, úložiště SHA-256 a volitelné hlášení problémů GitHub |
+| 👁️ **Scoped API Key Reveal** 🆕         | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                                       |
 | 🎨 **Ikony poskytovatelů**              | Více než 130 log poskytovatelů prostřednictvím `@lobehub/icons` (SVG) s PNG → obecný záložní řetězec                                                                                                         |
 | 🔄 **Automatická synchronizace modelu** | 24h plánovač a ruční přepínání uživatelského rozhraní pro synchronizaci seznamů modelů pro vestavěné a vlastní poskytovatele kompatibilní s OpenAI                                                           |
 | 🌐 **OpenCode Zen/Go**                  | Dva noví poskytovatelé od @kang-heewon prostřednictvím PR #530: úroveň zdarma + úroveň předplatného přes `OpencodeExecutor`                                                                                  |
@@ -1224,6 +1225,7 @@ OmniRoute v2.0 je postaven jako operační platforma, nikoli pouze jako přenoso
 | Funkce                                 | Co to dělá                                                             |
 | -------------------------------------- | ---------------------------------------------------------------------- |
 | 📝 **Požadavek + protokolování proxy** | Úplný požadavek/odpověď a protokolování proxy                          |
+| 📉 **Streamed Detailed Logs** 🆕       | Reconstructs SSE payload streams cleanly into the UI                   |
 | 📋 **Sjednocený panel protokolů**      | Požadavek, proxy, audit a zobrazení konzoly na jedné stránce           |
 | 🔍 **Požádejte o telemetrii**          | p50/p95/p99 latence a trasování požadavků                              |
 | 🏥 **Health Dashboard**                | Doba provozuschopnosti, stavy jističe, uzamčení, statistiky mezipaměti |
@@ -1244,6 +1246,7 @@ OmniRoute v2.0 je postaven jako operační platforma, nikoli pouze jako přenoso
 | 🔏 **CLI Fingerprint Toggle** | Shoda otisků prstů jednotlivých poskytovatelů v Nastavení > Zabezpečení |
 | 🌐 **i18n (30 jazyků)**       | Plná podpora řídicího panelu + docs s pokrytím RTL                      |
 | 🧹 **Vymazat všechny modely** | Vymazání seznamu modelů jedním kliknutím v detailech poskytovatele      |
+| 👁️ **Sidebar Controls** 🆕    | Hide components and integrations from Appearance Settings               |
 | 📋 **Šablony vydání**         | Standardizované šablony GitHub pro chyby a funkce                       |
 | 📂 **Custom Data Directory**  | `DATA_DIR` přepsání umístění úložiště                                   |
 

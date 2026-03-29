@@ -30,21 +30,22 @@ _Proksi API universal anda — satu titik akhir, 67+ pembekal, masa henti sifar.
 
 > **Menaik taraf daripada v2.9.5?** — Lihat [full CHANGELOG](CHANGELOG.md#300--2026-03-22-release-candidate--not-yet-merged-to-main) untuk semua perubahan.
 
-| Kawasan                       | Tukar                                                                                                                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔒 **Keselamatan CodeQL**     | Memperbaiki 10+ amaran CodeQL: polinomial-redos, tidak selamat-rawak, pemulihan suntikan shell                                                                                    |
-| ✅ **Pengesahan Laluan**      | Semua 176 laluan API kini disahkan dengan skema Zod + `validateBody()` — CI `check:route-validation:t06` pas                                                                      |
-| 🐛 **omniModel Tag Bocor**    | Teg dalaman `<omniModel>` tidak lagi bocor kepada pelanggan dalam respons penstriman SSE (#585)                                                                                   |
-| 🔑 **API Kunci Berdaftar**    | Auto-peruntukkan kunci API melalui `POST /api/v1/registered-keys` dengan penguatkuasaan kuota setiap pembekal/akaun, idempotency, storan SHA-256 dan pelaporan isu GitHub pilihan |
-| 🎨 **Ikon Pembekal**          | 130+ logo pembekal melalui `@lobehub/icons` (SVG) dengan PNG → rantaian sandaran generik                                                                                          |
-| 🔄 **Model Auto-Segerak**     | Penjadual 24 jam dan togol UI manual untuk menyegerakkan senarai model bagi pembekal terbina dalam dan tersuai serasi OpenAI                                                      |
-| 🌐 **OpenCode Zen/Go**        | Dua pembekal baharu daripada @kang-heewon melalui PR #530: peringkat percuma + peringkat langganan melalui `OpencodeExecutor`                                                     |
-| 🐛 **Gemini CLI OAuth**       | Ralat boleh diambil tindakan apabila `GEMINI_OAUTH_CLIENT_SECRET` tiada dalam Docker (adalah ralat Google samar)                                                                  |
-| 🐛 **Konfigurasi OpenCode**   | `saveOpenCodeConfig()` kini menulis TOML dengan betul kepada `XDG_CONFIG_HOME`                                                                                                    |
-| 🐛 **Timpa model disematkan** | `body.model` ditetapkan dengan betul kepada `pinnedModel` pada perlindungan konteks-cache                                                                                         |
-| 🐛 **Gelung Codex/Claude**    | `tool_result` blok kini ditukar kepada teks untuk menghentikan gelung tak terhingga                                                                                               |
-| 🐛 **Ubah hala log masuk**    | Log masuk tidak lagi membeku selepas melangkau persediaan kata laluan                                                                                                             |
-| 🐛 **Laluan Windows**         | Laluan MSYS2/Git-Bash (`/c/...`) dinormalkan kepada `C:\...` secara automatik                                                                                                     |
+| Kawasan                         | Tukar                                                                                                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔒 **Keselamatan CodeQL**       | Memperbaiki 10+ amaran CodeQL: polinomial-redos, tidak selamat-rawak, pemulihan suntikan shell                                                                                    |
+| ✅ **Pengesahan Laluan**        | Semua 176 laluan API kini disahkan dengan skema Zod + `validateBody()` — CI `check:route-validation:t06` pas                                                                      |
+| 🐛 **omniModel Tag Bocor**      | Teg dalaman `<omniModel>` tidak lagi bocor kepada pelanggan dalam respons penstriman SSE (#585)                                                                                   |
+| 🔑 **API Kunci Berdaftar**      | Auto-peruntukkan kunci API melalui `POST /api/v1/registered-keys` dengan penguatkuasaan kuota setiap pembekal/akaun, idempotency, storan SHA-256 dan pelaporan isu GitHub pilihan |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                            |
+| 🎨 **Ikon Pembekal**            | 130+ logo pembekal melalui `@lobehub/icons` (SVG) dengan PNG → rantaian sandaran generik                                                                                          |
+| 🔄 **Model Auto-Segerak**       | Penjadual 24 jam dan togol UI manual untuk menyegerakkan senarai model bagi pembekal terbina dalam dan tersuai serasi OpenAI                                                      |
+| 🌐 **OpenCode Zen/Go**          | Dua pembekal baharu daripada @kang-heewon melalui PR #530: peringkat percuma + peringkat langganan melalui `OpencodeExecutor`                                                     |
+| 🐛 **Gemini CLI OAuth**         | Ralat boleh diambil tindakan apabila `GEMINI_OAUTH_CLIENT_SECRET` tiada dalam Docker (adalah ralat Google samar)                                                                  |
+| 🐛 **Konfigurasi OpenCode**     | `saveOpenCodeConfig()` kini menulis TOML dengan betul kepada `XDG_CONFIG_HOME`                                                                                                    |
+| 🐛 **Timpa model disematkan**   | `body.model` ditetapkan dengan betul kepada `pinnedModel` pada perlindungan konteks-cache                                                                                         |
+| 🐛 **Gelung Codex/Claude**      | `tool_result` blok kini ditukar kepada teks untuk menghentikan gelung tak terhingga                                                                                               |
+| 🐛 **Ubah hala log masuk**      | Log masuk tidak lagi membeku selepas melangkau persediaan kata laluan                                                                                                             |
+| 🐛 **Laluan Windows**           | Laluan MSYS2/Git-Bash (`/c/...`) dinormalkan kepada `C:\...` secara automatik                                                                                                     |
 
 ---
 
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 dibina sebagai platform operasi, bukan hanya proksi geganti.
 | Ciri                                  | Apa yang Dilakukan                                               |
 | ------------------------------------- | ---------------------------------------------------------------- |
 | 📝 **Permintaan + Pembalakan Proksi** | Permintaan/tindak balas penuh dan pengelogan proksi              |
+| 📉 **Streamed Detailed Logs** 🆕      | Reconstructs SSE payload streams cleanly into the UI             |
 | 📋 **Papan Pemuka Log Bersatu**       | Permintaan, proksi, audit dan paparan konsol dalam satu halaman  |
 | 🔍 **Minta Telemetri**                | kependaman p50/p95/p99 dan pengesanan permintaan                 |
 | 🏥 **Papan Pemuka Kesihatan**         | Masa aktif, keadaan pemutus, sekatan, statistik cache            |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 dibina sebagai platform operasi, bukan hanya proksi geganti.
 | 🔏 **Togol Cap Jari CLI**     | Padanan cap jari setiap pembekal dalam Tetapan > Keselamatan    |
 | 🌐 **i18n (30 bahasa)**       | Papan pemuka penuh + sokongan bahasa dokumen dengan liputan RTL |
 | 🧹 **Kosongkan Semua Model**  | Pembersihan senarai model satu klik dalam butiran pembekal      |
+| 👁️ **Sidebar Controls** 🆕    | Hide components and integrations from Appearance Settings       |
 | 📋 **Templat Isu**            | Templat GitHub standard untuk pepijat dan ciri                  |
 | 📂 **Direktori Data Tersuai** | `DATA_DIR` ganti untuk lokasi storan                            |
 

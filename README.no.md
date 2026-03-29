@@ -1212,6 +1212,7 @@ OmniRoute v2.0 er bygget som en operativ plattform, ikke bare en reléproxy.
 | 🌐 **IP-filtrering**                | Tillatelsesliste/blokkeringslistekontroll for eksponerte distribusjoner                             |
 | 📊 **Redigerbare satsgrenser**      | Konfigurerbare grenser på globalt nivå/leverandørnivå med utholdenhet                               |
 | 🔑 **API Key Management + Scoping** | Sikker nøkkelutstedelse/rotasjon og modell/leverandørkontroller                                     |
+| 👁️ **Scoped API Key Reveal** 🆕     | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                              |
 | 🛡️ **Beskyttet `/models`**          | Valgfri godkjenning og leverandørskjul for modellkatalog                                            |
 
 ### 📊 Observerbarhet og analyse
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 er bygget som en operativ plattform, ikke bare en reléproxy.
 | Funksjon                           | Hva det gjør                                                     |
 | ---------------------------------- | ---------------------------------------------------------------- |
 | 📝 **Forespørsel + proxy-logging** | Full forespørsel/svar og proxy-logging                           |
+| 📉 **Streamed Detailed Logs** 🆕   | Reconstructs SSE payload streams cleanly into the UI             |
 | 📋 **Unified Logs Dashboard**      | Forespørsels-, proxy-, revisjons- og konsollvisninger på én side |
 | 🔍 **Be om telemetri**             | p50/p95/p99 ventetid og forespørselssporing                      |
 | 🏥 **Helse Dashboard**             | Oppetid, breaker-tilstander, lockouts, cachestatistikk           |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 er bygget som en operativ plattform, ikke bare en reléproxy.
 | 🔏 **CLI Fingerprint Toggle**             | Fingeravtrykksmatching per leverandør i Innstillinger > Sikkerhet |
 | 🌐 **i18n (30 språk)**                    | Fullt dashbord + støtte for dokumentspråk med RTL-dekning         |
 | 🧹 **Slett alle modeller**                | Sletting av modellliste med ett klikk i leverandørdetaljer        |
+| 👁️ **Sidebar Controls** 🆕                | Hide components and integrations from Appearance Settings         |
 | 📋 **Utgavemaler**                        | Standardiserte GitHub-maler for feil og funksjoner                |
 | 📂 **Tilpasset datakatalog**              | `DATA_DIR` overstyring for lagringssted                           |
 

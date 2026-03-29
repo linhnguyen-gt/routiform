@@ -1212,6 +1212,7 @@ Ang OmniRoute v2.0 ay binuo bilang isang operating platform, hindi lamang isang 
 | 🌐 **Pag-filter ng IP**                   | Allowlist/blocklist control para sa mga nakalantad na deployment                                                                    |
 | 📊 **Mga Nae-edit na Limitasyon sa Rate** | Nako-configure ang mga limitasyon sa antas ng global/provider na may pagtitiyaga                                                    |
 | 🔑 **API Key Management + Scoping**       | Secure na pagpapalabas/pag-ikot ng susi at mga kontrol ng modelo/tagapagbigay                                                       |
+| 👁️ **Scoped API Key Reveal** 🆕           | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                              |
 | 🛡️ **Protektado `/models`**               | Opsyonal na auth gating at pagtatago ng provider para sa catalog ng modelo                                                          |
 
 ### 📊 Pagmamasid at Analytics
@@ -1219,6 +1220,7 @@ Ang OmniRoute v2.0 ay binuo bilang isang operating platform, hindi lamang isang 
 | Tampok                                | Ano ang Ginagawa Nito                                                |
 | ------------------------------------- | -------------------------------------------------------------------- |
 | 📝 **Kahilingan + Proxy Logging**     | Buong kahilingan/tugon at proxy logging                              |
+| 📉 **Streamed Detailed Logs** 🆕      | Reconstructs SSE payload streams cleanly into the UI                 |
 | 📋 **Unified Logs Dashboard**         | Kahilingan, proxy, audit, at console view sa isang page              |
 | 🔍 **Humiling ng Telemetry**          | p50/p95/p99 latency at kahilingan sa pagsubaybay                     |
 | 🏥 **Dashboard ng Kalusugan**         | Uptime, breaker states, lockouts, cache stats                        |
@@ -1239,6 +1241,7 @@ Ang OmniRoute v2.0 ay binuo bilang isang operating platform, hindi lamang isang 
 | 🔏 **CLI Fingerprint Toggle**       | Pagtutugma ng fingerprint ng bawat provider sa Mga Setting > Seguridad    |
 | 🌐 **i18n (30 wika)**               | Buong dashboard + suporta sa wika ng mga doc na may saklaw ng RTL         |
 | 🧹 **I-clear ang Lahat ng Modelo**  | Isang-click na pag-clear ng listahan ng modelo sa mga detalye ng provider |
+| 👁️ **Sidebar Controls** 🆕          | Hide components and integrations from Appearance Settings                 |
 | 📋 **Mga Template ng Isyu**         | Standardized GitHub template para sa mga bug at feature                   |
 | 📂 **Custom na Direktoryo ng Data** | `DATA_DIR` override para sa lokasyon ng storage                           |
 

@@ -98,16 +98,17 @@ _เชื่อมต่อเครื่องมือ IDE หรือ CLI 
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -908,19 +909,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 ความสามารถในการสังเกตและการวิเคราะห์
 
-| คุณสมบัติ                   | มันทำอะไร                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| 📝 **ขอบันทึก**             | โหมดแก้ไขข้อบกพร่องพร้อมบันทึกคำขอ/การตอบกลับแบบเต็ม                           |
-| 💾 **บันทึกพร็อกซี SQLite** | บันทึกพร็อกซีถาวรยังคงอยู่เซิร์ฟเวอร์รีสตาร์ท                                  |
-| 📊 **แดชบอร์ดการวิเคราะห์** | ขับเคลื่อนโดย Recharts: การ์ดสถิติ แผนภูมิการใช้งานโมเดล ตารางผู้ให้บริการ     |
-| 📈 **ติดตามความคืบหน้า**    | เลือกใช้กิจกรรมความคืบหน้าของ SSE สำหรับการสตรีม                               |
-| 🧪 **การประเมิน LLM**       | การทดสอบชุดทองด้วย 4 กลยุทธ์การจับคู่                                          |
-| 🔍 **ขอโทรมาตร**            | การรวมเวลาแฝง p50/p95/p99 + การติดตาม X-Request-Id                             |
-| 📋 **แดชบอร์ดบันทึก**       | หน้าแท็บ 4 แบบรวม: บันทึกคำขอ บันทึกพร็อกซี บันทึกการตรวจสอบ คอนโซล            |
-| 🖥️ **ผู้ดูบันทึกคอนโซล**    | โปรแกรมดูสไตล์เทอร์มินัลแบบเรียลไทม์พร้อมตัวกรองระดับ การค้นหา เลื่อนอัตโนมัติ |
-| 📑 **การบันทึกตามไฟล์**     | ตัวดักจับคอนโซลจับเอาต์พุตทั้งหมดไปยังไฟล์บันทึก JSON พร้อมการหมุน             |
-| 🏥 **แดชบอร์ดสุขภาพ**       | เวลาทำงานของระบบ, สถานะของเซอร์กิตเบรกเกอร์, การล็อกเอาต์, สถิติแคช            |
-| 💰 **ติดตามต้นทุน**         | การจัดการงบประมาณ + การกำหนดค่าราคาต่อรุ่น                                     |
+| คุณสมบัติ                        | มันทำอะไร                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| 📝 **ขอบันทึก**                  | โหมดแก้ไขข้อบกพร่องพร้อมบันทึกคำขอ/การตอบกลับแบบเต็ม                           |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                           |
+| 💾 **บันทึกพร็อกซี SQLite**      | บันทึกพร็อกซีถาวรยังคงอยู่เซิร์ฟเวอร์รีสตาร์ท                                  |
+| 📊 **แดชบอร์ดการวิเคราะห์**      | ขับเคลื่อนโดย Recharts: การ์ดสถิติ แผนภูมิการใช้งานโมเดล ตารางผู้ให้บริการ     |
+| 📈 **ติดตามความคืบหน้า**         | เลือกใช้กิจกรรมความคืบหน้าของ SSE สำหรับการสตรีม                               |
+| 🧪 **การประเมิน LLM**            | การทดสอบชุดทองด้วย 4 กลยุทธ์การจับคู่                                          |
+| 🔍 **ขอโทรมาตร**                 | การรวมเวลาแฝง p50/p95/p99 + การติดตาม X-Request-Id                             |
+| 📋 **แดชบอร์ดบันทึก**            | หน้าแท็บ 4 แบบรวม: บันทึกคำขอ บันทึกพร็อกซี บันทึกการตรวจสอบ คอนโซล            |
+| 🖥️ **ผู้ดูบันทึกคอนโซล**         | โปรแกรมดูสไตล์เทอร์มินัลแบบเรียลไทม์พร้อมตัวกรองระดับ การค้นหา เลื่อนอัตโนมัติ |
+| 📑 **การบันทึกตามไฟล์**          | ตัวดักจับคอนโซลจับเอาต์พุตทั้งหมดไปยังไฟล์บันทึก JSON พร้อมการหมุน             |
+| 🏥 **แดชบอร์ดสุขภาพ**            | เวลาทำงานของระบบ, สถานะของเซอร์กิตเบรกเกอร์, การล็อกเอาต์, สถิติแคช            |
+| 💰 **ติดตามต้นทุน**              | การจัดการงบประมาณ + การกำหนดค่าราคาต่อรุ่น                                     |
 
 ### ☁️ การปรับใช้และการซิงค์
 
@@ -935,6 +937,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **ความเป็นสากล**                  | i18n เต็มรูปแบบพร้อม next-intl — รองรับภาษาอังกฤษ + โปรตุเกส (บราซิล)       |
 | 🌍 **ตัวเลือกภาษา**                  | ไอคอนลูกโลกในส่วนหัวสำหรับการสลับภาษาแบบเรียลไทม์ (USA/🇧🇷)                  |
 | 🧹 **Clear All Models**              | One-click model list clearing in provider details                           |
+| 👁️ **Sidebar Controls** 🆕           | Hide components and integrations from Appearance Settings                   |
 | 📋 **Issue Templates**               | Standardized GitHub templates for bugs and features                         |
 | 📂 **ไดเรกทอรีข้อมูลที่กำหนดเอง**    | `DATA_DIR` env var เพื่อแทนที่ค่าเริ่มต้น `~/.omniroute` พาธหน่วยเก็บข้อมูล |
 

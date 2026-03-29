@@ -36,6 +36,7 @@ _Proxy API phổ quát của bạn — một điểm cuối, hơn 67 nhà cung c
 | ✅ **Xác thực lộ trình**           | Tất cả 176 tuyến API hiện đã được xác thực bằng lược đồ Zod + `validateBody()` — CI `check:route-validation:t06` vượt qua                                                                     |
 | 🐛 **Rò rỉ thẻ omniModel**         | Thẻ `<omniModel>` nội bộ không còn bị rò rỉ tới máy khách trong phản hồi phát trực tuyến SSE (#585)                                                                                           |
 | 🔑 **API khóa đã đăng ký**         | Tự động cung cấp khóa API thông qua `POST /api/v1/registered-keys` với việc thực thi hạn ngạch cho mỗi nhà cung cấp/tài khoản, tính tạm thời, bộ nhớ SHA-256 và báo cáo sự cố GitHub tùy chọn |
+| 👁️ **Scoped API Key Reveal** 🆕    | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                        |
 | 🎨 **Biểu tượng nhà cung cấp**     | Hơn 130 logo nhà cung cấp thông qua `@lobehub/icons` (SVG) với PNG → chuỗi dự phòng chung                                                                                                     |
 | 🔄 **Tự động đồng bộ hóa mô hình** | Bộ lập lịch 24 giờ và chuyển đổi giao diện người dùng thủ công để đồng bộ hóa danh sách mô hình cho các nhà cung cấp tương thích OpenAI tích hợp và tùy chỉnh                                 |
 | 🌐 **OpenCode Zen/Go**             | Hai nhà cung cấp mới từ @kang-heewon qua PR #530: bậc miễn phí + bậc đăng ký qua `OpencodeExecutor`                                                                                           |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 được xây dựng như một nền tảng hoạt động, khô
 | Tính năng                               | Nó làm gì                                                                    |
 | --------------------------------------- | ---------------------------------------------------------------------------- |
 | 📝 **Yêu cầu + Ghi nhật ký proxy**      | Yêu cầu/phản hồi đầy đủ và ghi nhật ký proxy                                 |
+| 📉 **Streamed Detailed Logs** 🆕        | Reconstructs SSE payload streams cleanly into the UI                         |
 | 📋 **Bảng điều khiển nhật ký hợp nhất** | Chế độ xem yêu cầu, proxy, kiểm tra và bảng điều khiển trong một trang       |
 | 🔍 **Yêu cầu đo từ xa**                 | độ trễ p50/p95/p99 và theo dõi yêu cầu                                       |
 | 🏥 **Bảng thông tin sức khỏe**          | Thời gian hoạt động, trạng thái ngắt, khóa, số liệu thống kê bộ đệm          |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 được xây dựng như một nền tảng hoạt động, khô
 | 🔏 **Chuyển đổi vân tay CLI**      | So khớp dấu vân tay của mỗi nhà cung cấp trong Cài đặt > Bảo mật           |
 | 🌐 **i18n (30 ngôn ngữ)**          | Hỗ trợ ngôn ngữ tài liệu + bảng điều khiển đầy đủ với phạm vi bảo hiểm RTL |
 | 🧹 **Xóa tất cả các mẫu**          | Xóa danh sách mô hình bằng một cú nhấp chuột trong chi tiết nhà cung cấp   |
+| 👁️ **Sidebar Controls** 🆕         | Hide components and integrations from Appearance Settings                  |
 | 📋 **Mẫu vấn đề**                  | Mẫu GitHub được chuẩn hóa cho các lỗi và tính năng                         |
 | 📂 **Thư mục dữ liệu tùy chỉnh**   | `DATA_DIR` ghi đè vị trí lưu trữ                                           |
 

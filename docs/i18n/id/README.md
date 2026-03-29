@@ -98,16 +98,17 @@ _Hubungkan alat IDE atau CLI apa pun yang didukung AI melalui OmniRoute — gerb
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -908,19 +909,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 Observabilitas & Analisis
 
-| Fitur                        | Apa Fungsinya                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------------- |
-| 📝 **Permintaan Pencatatan** | Mode debug dengan log permintaan/respons lengkap                                |
-| 💾 **Log Proksi SQLite**     | Log proksi persisten bertahan saat server dimulai ulang                         |
-| 📊 **Dasbor Analitik**       | Didukung grafik ulang: kartu stat, bagan penggunaan model, tabel penyedia       |
-| 📈 **Pelacakan Kemajuan**    | Ikut serta dalam acara kemajuan SSE untuk streaming                             |
-| 🧪 **Evaluasi LLM**          | Pengujian set emas dengan 4 strategi pertandingan                               |
-| 🔍 **Permintaan Telemetri**  | agregasi latensi p50/p95/p99 + penelusuran X-Request-Id                         |
-| 📋 **Dasbor Log**            | Halaman 4 tab terpadu: Log Permintaan, Log Proksi, Log Audit, Konsol            |
-| 🖥️ **Penampil Log Konsol**   | Penampil gaya terminal real-time dengan filter level, pencarian, gulir otomatis |
-| 📑 **Logging Berbasis File** | Pencegat konsol menangkap semua output ke file log JSON dengan rotasi           |
-| 🏥 **Dasbor Kesehatan**      | Waktu aktif sistem, status pemutus sirkuit, penguncian, statistik cache         |
-| 💰 **Pelacakan Biaya**       | Manajemen anggaran + konfigurasi harga per model                                |
+| Fitur                            | Apa Fungsinya                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| 📝 **Permintaan Pencatatan**     | Mode debug dengan log permintaan/respons lengkap                                |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                            |
+| 💾 **Log Proksi SQLite**         | Log proksi persisten bertahan saat server dimulai ulang                         |
+| 📊 **Dasbor Analitik**           | Didukung grafik ulang: kartu stat, bagan penggunaan model, tabel penyedia       |
+| 📈 **Pelacakan Kemajuan**        | Ikut serta dalam acara kemajuan SSE untuk streaming                             |
+| 🧪 **Evaluasi LLM**              | Pengujian set emas dengan 4 strategi pertandingan                               |
+| 🔍 **Permintaan Telemetri**      | agregasi latensi p50/p95/p99 + penelusuran X-Request-Id                         |
+| 📋 **Dasbor Log**                | Halaman 4 tab terpadu: Log Permintaan, Log Proksi, Log Audit, Konsol            |
+| 🖥️ **Penampil Log Konsol**       | Penampil gaya terminal real-time dengan filter level, pencarian, gulir otomatis |
+| 📑 **Logging Berbasis File**     | Pencegat konsol menangkap semua output ke file log JSON dengan rotasi           |
+| 🏥 **Dasbor Kesehatan**          | Waktu aktif sistem, status pemutus sirkuit, penguncian, statistik cache         |
+| 💰 **Pelacakan Biaya**           | Manajemen anggaran + konfigurasi harga per model                                |
 
 ### ☁️ Penerapan & Sinkronisasi
 
@@ -935,6 +937,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internasionalisasi**    | I18n lengkap dengan next-intl — Dukungan Inggris + Portugis (Brasil)         |
 | 🌍 **Pemilih Bahasa**        | Ikon bola dunia di header untuk peralihan bahasa secara real-time (🇮🇩/🇧🇷)    |
 | 🧹 **Clear All Models**      | One-click model list clearing in provider details                            |
+| 👁️ **Sidebar Controls** 🆕   | Hide components and integrations from Appearance Settings                    |
 | 📋 **Issue Templates**       | Standardized GitHub templates for bugs and features                          |
 | 📂 **Direktori Data Khusus** | `DATA_DIR` env var untuk mengganti jalur penyimpanan `~/.omniroute` default  |
 

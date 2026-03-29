@@ -36,6 +36,7 @@ _Proksi API universal Anda — satu titik akhir, 67+ penyedia, tanpa waktu henti
 | ✅ **Validasi Rute**                        | Semua 176 rute API sekarang divalidasi dengan skema Zod + `validateBody()` — tiket CI `check:route-validation:t06`                                                                     |
 | 🐛 **Kebocoran Tag omniModel**              | Tag `<omniModel>` internal tidak lagi bocor ke klien dalam respons streaming SSE (#585)                                                                                                |
 | 🔑 **API Kunci Terdaftar**                  | Kunci API penyediaan otomatis melalui `POST /api/v1/registered-keys` dengan penerapan kuota per penyedia/akun, idempotensi, penyimpanan SHA-256, dan pelaporan masalah GitHub opsional |
+| 👁️ **Scoped API Key Reveal** 🆕             | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                 |
 | 🎨 **Ikon Penyedia**                        | 130+ logo penyedia melalui `@lobehub/icons` (SVG) dengan PNG → rantai fallback umum                                                                                                    |
 | 🔄 **Sinkronisasi Otomatis Model**          | Penjadwal 24 jam dan UI manual beralih untuk menyinkronkan daftar model untuk penyedia bawaan dan kustom yang kompatibel dengan OpenAI                                                 |
 | 🌐 **OpenCode Zen/Go**                      | Dua penyedia baru dari @kang-heewon melalui PR #530: tingkat gratis + tingkat berlangganan melalui `OpencodeExecutor`                                                                  |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 dibangun sebagai platform operasional, bukan hanya proxy relai.
 | Fitur                                 | Apa Fungsinya                                                          |
 | ------------------------------------- | ---------------------------------------------------------------------- |
 | 📝 **Permintaan + Pencatatan Proksi** | Permintaan/tanggapan lengkap dan pencatatan proksi                     |
+| 📉 **Streamed Detailed Logs** 🆕      | Reconstructs SSE payload streams cleanly into the UI                   |
 | 📋 **Dasbor Log Terpadu**             | Tampilan permintaan, proksi, audit, dan konsol dalam satu halaman      |
 | 🔍 **Permintaan Telemetri**           | latensi p50/p95/p99 dan penelusuran permintaan                         |
 | 🏥 **Dasbor Kesehatan**               | Waktu aktif, status pemutus, penguncian, statistik cache               |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 dibangun sebagai platform operasional, bukan hanya proxy relai.
 | 🔏 **Tolak Sidik Jari CLI**  | Pencocokan sidik jari per penyedia di Pengaturan > Keamanan |
 | 🌐 **i18n (30 bahasa)**      | Dasbor lengkap + dukungan bahasa dokumen dengan cakupan RTL |
 | 🧹 **Hapus Semua Model**     | Pembersihan daftar model sekali klik di detail penyedia     |
+| 👁️ **Sidebar Controls** 🆕   | Hide components and integrations from Appearance Settings   |
 | 📋 **Template Masalah**      | Templat GitHub standar untuk bug dan fitur                  |
 | 📂 **Direktori Data Khusus** | `DATA_DIR` penggantian untuk lokasi penyimpanan             |
 

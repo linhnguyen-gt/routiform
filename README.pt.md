@@ -36,6 +36,7 @@ _Seu proxy de API universal — um endpoint, mais de 67 provedores, zero tempo d
 | ✅ **Validação de Rota**                  | Todas as 176 rotas de API agora validadas com esquemas Zod + `validateBody()` — CI `check:route-validation:t06` passa                                                                                    |
 | 🐛 ** Vazamento de tag omniModel **       | Tags internas `<omniModel>` não vazam mais para clientes em respostas de streaming SSE (#585)                                                                                                            |
 | 🔑 **API de chaves registradas**          | Provisionamento automático de chaves de API via `POST /api/v1/registered-keys` com aplicação de cota por provedor/conta, idempotência, armazenamento SHA-256 e relatório opcional de problemas do GitHub |
+| 👁️ **Scoped API Key Reveal** 🆕           | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                                   |
 | 🎨 **Ícones de provedor**                 | Mais de 130 logotipos de provedores via `@lobehub/icons` (SVG) com PNG → cadeia de fallback genérica                                                                                                     |
 | 🔄 **Sincronização automática do modelo** | Agendador 24h e alternância manual da interface do usuário para sincronizar listas de modelos para provedores integrados e personalizados compatíveis com OpenAI                                         |
 | 🌐 **OpenCode Zen/Go**                    | Dois novos provedores de @kang-heewon via PR #530: nível gratuito + nível de assinatura via `OpencodeExecutor`                                                                                           |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 é construído como uma plataforma operacional, não apenas um pr
 | Recurso                                | O que faz                                                                    |
 | -------------------------------------- | ---------------------------------------------------------------------------- |
 | 📝 **Solicitação + Registro de Proxy** | Solicitação/resposta completa e registro de proxy                            |
+| 📉 **Streamed Detailed Logs** 🆕       | Reconstructs SSE payload streams cleanly into the UI                         |
 | 📋 **Painel de registros unificado**   | Visualizações de solicitação, proxy, auditoria e console em uma página       |
 | 🔍 **Solicitar Telemetria**            | Latência p50/p95/p99 e rastreamento de solicitação                           |
 | 🏥 **Painel de saúde**                 | Tempo de atividade, estados de disjuntores, bloqueios, estatísticas de cache |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 é construído como uma plataforma operacional, não apenas um pr
 | 🔏 **Alternar impressão digital CLI**   | Correspondência de impressão digital por provedor em Configurações > Segurança |
 | 🌐 **i18n (30 idiomas)**                | Painel completo + suporte a idiomas de documentos com cobertura RTL            |
 | 🧹 **Limpar todos os modelos**          | Limpeza da lista de modelos com um clique nos detalhes do provedor             |
+| 👁️ **Sidebar Controls** 🆕              | Hide components and integrations from Appearance Settings                      |
 | 📋 **Modelos de problemas**             | Modelos padronizados do GitHub para bugs e recursos                            |
 | 📂 **Diretório de dados personalizado** | Substituição de `DATA_DIR` para local de armazenamento                         |
 

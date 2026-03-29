@@ -98,16 +98,17 @@ _Anslut alla AI-drivna IDE- eller CLI-verktyg via OmniRoute — gratis API-gatew
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -909,19 +910,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 Observerbarhet och analys
 
-| Funktion                    | Vad det gör                                                                   |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| 📝 **Begär loggning**       | Felsökningsläge med fullständiga förfrågnings-/svarsloggar                    |
-| 💾 **SQLite proxyloggar**   | Beständiga proxyloggar överlever serverstarter                                |
-| 📊 **Analytics Dashboard**  | Recharts-driven: statistikkort, modellanvändningsdiagram, leverantörstabell   |
-| 📈 **Förloppsspårning**     | Opt-in SSE-förloppshändelser för streaming                                    |
-| 🧪 **LLM-utvärderingar**    | Golden set testning med 4 matchstrategier                                     |
-| 🔍 **Begär telemetri**      | p50/p95/p99 latensaggregation + X-Request-Id-spårning                         |
-| 📋 **Dashboard för loggar** | Enad sida med 4 flikar: Begäranloggar, Proxyloggar, Granskningsloggar, Konsol |
-| 🖥️ **Konsolloggvisare**     | Realtidsvisare i terminalstil med nivåfilter, sökning, automatisk rullning    |
-| 📑 **Filbaserad loggning**  | Console Interceptor fångar all utdata till JSON-loggfilen med rotation        |
-| 🏥 **Hälsoinstrumentpanel** | Systemupptid, strömbrytartillstånd, låsningar, cachestatistik                 |
-| 💰 **Kostnadsspårning**     | Budgethantering + prissättning per modell                                     |
+| Funktion                         | Vad det gör                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| 📝 **Begär loggning**            | Felsökningsläge med fullständiga förfrågnings-/svarsloggar                    |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                          |
+| 💾 **SQLite proxyloggar**        | Beständiga proxyloggar överlever serverstarter                                |
+| 📊 **Analytics Dashboard**       | Recharts-driven: statistikkort, modellanvändningsdiagram, leverantörstabell   |
+| 📈 **Förloppsspårning**          | Opt-in SSE-förloppshändelser för streaming                                    |
+| 🧪 **LLM-utvärderingar**         | Golden set testning med 4 matchstrategier                                     |
+| 🔍 **Begär telemetri**           | p50/p95/p99 latensaggregation + X-Request-Id-spårning                         |
+| 📋 **Dashboard för loggar**      | Enad sida med 4 flikar: Begäranloggar, Proxyloggar, Granskningsloggar, Konsol |
+| 🖥️ **Konsolloggvisare**          | Realtidsvisare i terminalstil med nivåfilter, sökning, automatisk rullning    |
+| 📑 **Filbaserad loggning**       | Console Interceptor fångar all utdata till JSON-loggfilen med rotation        |
+| 🏥 **Hälsoinstrumentpanel**      | Systemupptid, strömbrytartillstånd, låsningar, cachestatistik                 |
+| 💰 **Kostnadsspårning**          | Budgethantering + prissättning per modell                                     |
 
 ### ☁️ Implementering och synkronisering
 
@@ -936,6 +938,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internationalisering**      | Fullständig i18n med nästa-intl — stöd för engelska + portugisiska (Brasilien)         |
 | 🌍 **Språkväljare**              | Globikon i rubriken för språkväxling i realtid (🇺🇸/🇧🇷)                                 |
 | 🧹 **Clear All Models**          | One-click model list clearing in provider details                                      |
+| 👁️ **Sidebar Controls** 🆕       | Hide components and integrations from Appearance Settings                              |
 | 📋 **Issue Templates**           | Standardized GitHub templates for bugs and features                                    |
 | 📂 **Anpassad datakatalog**      | `DATA_DIR` env var för att åsidosätta standard `~/.omniroute` lagringssökväg           |
 

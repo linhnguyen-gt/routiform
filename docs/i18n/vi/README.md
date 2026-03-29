@@ -98,16 +98,17 @@ _Kết nối mọi công cụ IDE hoặc CLI được hỗ trợ bởi AI thông
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -911,6 +912,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | Tính năng                                | Nó làm gì                                                                                     |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
 | 📝 **Yêu cầu ghi nhật ký**               | Chế độ gỡ lỗi với nhật ký yêu cầu/phản hồi đầy đủ                                             |
+| 📉 **Streamed Detailed Logs** 🆕         | Reconstructs SSE payload streams cleanly into the UI                                          |
 | 💾 **Nhật ký proxy SQLite**              | Nhật ký proxy liên tục vẫn tồn tại khi khởi động lại máy chủ                                  |
 | 📊 **Bảng thông tin phân tích**          | Recharts-Powered: thẻ thống kê, biểu đồ sử dụng mô hình, bảng nhà cung cấp                    |
 | 📈 **Theo dõi tiến độ**                  | Chọn tham gia các sự kiện tiến trình SSE để phát trực tuyến                                   |
@@ -935,6 +937,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Quốc tế hóa**                 | I18n đầy đủ với hỗ trợ next-intl — Tiếng Anh + Tiếng Bồ Đào Nha (Brazil)                |
 | 🌍 **Bộ chọn ngôn ngữ**            | Biểu tượng quả địa cầu trong tiêu đề để chuyển đổi ngôn ngữ theo thời gian thực (🇺🇸/🇧🇷) |
 | 🧹 **Clear All Models**            | One-click model list clearing in provider details                                       |
+| 👁️ **Sidebar Controls** 🆕         | Hide components and integrations from Appearance Settings                               |
 | 📋 **Issue Templates**             | Standardized GitHub templates for bugs and features                                     |
 | 📂 **Thư mục dữ liệu tùy chỉnh**   | `DATA_DIR` env var để ghi đè đường dẫn lưu trữ `~/.omniroute` mặc định                  |
 

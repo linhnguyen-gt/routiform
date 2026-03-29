@@ -36,6 +36,7 @@ _Uw universele API-proxy: één eindpunt, meer dan 67 providers, geen downtime. 
 | ✅ **Routevalidatie**                    | Alle 176 API-routes nu gevalideerd met Zod-schema's + `validateBody()` — CI `check:route-validation:t06` passen                                                                          |
 | 🐛 **omniModel-tag lekt**                | Interne `<omniModel>`-tags lekken niet langer naar clients in SSE-streamingreacties (#585)                                                                                               |
 | 🔑 **Geregistreerde sleutels-API**       | API-sleutels automatisch inrichten via `POST /api/v1/registered-keys` met handhaving van quota per provider/account, idempotentie, SHA-256-opslag en optionele GitHub-probleemrapportage |
+| 👁️ **Scoped API Key Reveal** 🆕          | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                   |
 | 🎨 **Providerpictogrammen**              | 130+ providerlogo's via `@lobehub/icons` (SVG) met PNG → generieke fallback-keten                                                                                                        |
 | 🔄 **Model automatische synchronisatie** | 24-uurs planner en handmatige UI-schakelaar om modellijsten te synchroniseren voor ingebouwde en aangepaste OpenAI-compatibele providers                                                 |
 | 🌐 **OpenCode Zen/Go**                   | Twee nieuwe providers van @kang-heewon via PR #530: gratis niveau + abonnementsniveau via `OpencodeExecutor`                                                                             |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 is gebouwd als een operationeel platform, niet alleen als een rel
 | Kenmerk                           | Wat het doet                                                            |
 | --------------------------------- | ----------------------------------------------------------------------- |
 | 📝 **Verzoek + proxyregistratie** | Volledige aanvraag/antwoord en proxyregistratie                         |
+| 📉 **Streamed Detailed Logs** 🆕  | Reconstructs SSE payload streams cleanly into the UI                    |
 | 📋 **Unified Logdashboard**       | Verzoek-, proxy-, audit- en consoleweergaven op één pagina              |
 | 🔍 **Telemetrie aanvragen**       | p50/p95/p99-latentie en tracering van aanvragen                         |
 | 🏥 **Gezondheidsdashboard**       | Uptime, status van stroomonderbrekers, uitsluitingen, cachestatistieken |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 is gebouwd als een operationeel platform, niet alleen als een rel
 | 🔏 **CLI-vingerafdrukschakelaar** | Matching van vingerafdrukken per provider in Instellingen > Beveiliging |
 | 🌐 **i18n (30 talen)**            | Volledig dashboard + documenttaalondersteuning met RTL-dekking          |
 | 🧹 **Alle modellen wissen**       | Modellijst wissen met één klik in providergegevens                      |
+| 👁️ **Sidebar Controls** 🆕        | Hide components and integrations from Appearance Settings               |
 | 📋 **Uitgiftesjablonen**          | Gestandaardiseerde GitHub-sjablonen voor bugs en functies               |
 | 📂 **Aangepaste gegevensmap**     | `DATA_DIR` overschrijven voor opslaglocatie                             |
 

@@ -36,6 +36,7 @@ _Proxy-ul dvs. universal API — un punct final, peste 67 de furnizori, zero tim
 | ✅ **Validare traseu**                   | Toate cele 176 de rute API validate acum cu scheme Zod + treceri `validateBody()` — CI `check:route-validation:t06`                                                                            |
 | 🐛 **OmniModel Tag Leak**                | Etichetele interne `<omniModel>` nu mai curg către clienți în răspunsurile în flux SSE (#585)                                                                                                  |
 | 🔑 **Registered Keys API**               | Furnizarea automată a cheilor API prin `POST /api/v1/registered-keys` cu aplicarea cotei pentru fiecare furnizor/cont, idempotity, stocare SHA-256 și raportare opțională a problemelor GitHub |
+| 👁️ **Scoped API Key Reveal** 🆕          | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                                                                                                                         |
 | 🎨 **Icoane furnizor**                   | Peste 130 de sigle ale furnizorului prin `@lobehub/icons` (SVG) cu PNG → lanț de rezervă generic                                                                                               |
 | 🔄 **Sincronizare automată a modelului** | Programator 24 de ore și comutare manuală a interfeței de utilizare pentru a sincroniza listele de modele pentru furnizorii încorporați și personalizați compatibili cu OpenAI                 |
 | 🌐 **OpenCode Zen/Go**                   | Doi furnizori noi de la @kang-heewon prin PR #530: nivel gratuit + nivel de abonament prin `OpencodeExecutor`                                                                                  |
@@ -1219,6 +1220,7 @@ OmniRoute v2.0 este construit ca o platformă operațională, nu doar un proxy-r
 | Caracteristica                                    | Ce face                                                                            |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | 📝 **Solicitare + Înregistrare proxy**            | Cerere/răspuns complet și înregistrare proxy                                       |
+| 📉 **Streamed Detailed Logs** 🆕                  | Reconstructs SSE payload streams cleanly into the UI                               |
 | 📋 **Tabloul de bord pentru jurnalele unificate** | Vizualizări de solicitare, proxy, audit și consolă într-o singură pagină           |
 | 🔍 **Solicitare telemetrie**                      | latența p50/p95/p99 și urmărirea solicitărilor                                     |
 | 🏥 **Tabloul de bord pentru sănătate**            | Uptime, stări de întrerupere, blocări, statistici cache                            |
@@ -1239,6 +1241,7 @@ OmniRoute v2.0 este construit ca o platformă operațională, nu doar un proxy-r
 | 🔏 **CLI Fingerprint Toggle**         | Potrivirea amprentelor pentru fiecare furnizor în Setări > Securitate          |
 | 🌐 **i18n (30 de limbi)**             | Tabloul de bord complet + suport pentru limbajul documentelor cu acoperire RTL |
 | 🧹 **Șterge toate modelele**          | Ștergerea listei de modele cu un singur clic în detaliile furnizorului         |
+| 👁️ **Sidebar Controls** 🆕            | Hide components and integrations from Appearance Settings                      |
 | 📋 **Șabloane de probleme**           | Șabloane GitHub standardizate pentru erori și caracteristici                   |
 | 📂 **Director de date personalizate** | `DATA_DIR` anulează pentru locația de stocare                                  |
 

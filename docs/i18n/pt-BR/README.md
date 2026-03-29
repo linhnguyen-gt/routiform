@@ -98,16 +98,17 @@ _Conecte qualquer IDE ou ferramenta CLI com IA através do OmniRoute — gateway
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -923,6 +924,7 @@ Por que isso é relevante:
 | Funcionalidade                   | O que Faz                                                             |
 | -------------------------------- | --------------------------------------------------------------------- |
 | 📝 **Logs de Requisição**        | Modo debug com logs completos de request/response                     |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                  |
 | 💾 **Logs SQLite**               | Logs de proxy persistentes sobrevivem a reinicializações              |
 | 📊 **Dashboard de Analytics**    | Recharts: cards de estatísticas, gráfico de uso, tabela de provedores |
 | 📈 **Rastreamento de Progresso** | Eventos de progresso SSE opt-in para streaming                        |
@@ -945,6 +947,7 @@ Por que isso é relevante:
 | 🌐 **Internacionalização**        | i18n completo com next-intl — suporte a 30 idiomas com RTL                        |
 | 🌍 **Seletor de Idioma**          | Ícone de globo no cabeçalho para troca entre 30 idiomas em tempo real             |
 | 🧹 **Clear All Models**           | One-click model list clearing in provider details                                 |
+| 👁️ **Sidebar Controls** 🆕        | Hide components and integrations from Appearance Settings                         |
 | 📋 **Issue Templates**            | Standardized GitHub templates for bugs and features                               |
 | 📂 **Diretório de Dados Custom**  | Variável `DATA_DIR` para sobrescrever o caminho padrão `~/.omniroute`             |
 

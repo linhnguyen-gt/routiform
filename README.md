@@ -1241,35 +1241,38 @@ OmniRoute v2.0 is built as an operational platform, not just a relay proxy.
 | 🌐 **IP Filtering**                 | Allowlist/blocklist control for exposed deployments                                    |
 | 📊 **Editable Rate Limits**         | Configurable global/provider-level limits with persistence                             |
 | 🔑 **API Key Management + Scoping** | Secure key issuance/rotation and model/provider controls                               |
+| 👁️ **Scoped API Key Reveal** 🆕     | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                                 |
 | 🛡️ **Protected `/models`**          | Optional auth gating and provider hiding for model catalog                             |
 
 ### 📊 Observability & Analytics
 
-| Feature                         | What It Does                                          |
-| ------------------------------- | ----------------------------------------------------- |
-| 📝 **Request + Proxy Logging**  | Full request/response and proxy logging               |
-| 📋 **Unified Logs Dashboard**   | Request, proxy, audit, and console views in one page  |
-| 🔍 **Request Telemetry**        | p50/p95/p99 latency and request tracing               |
-| 🏥 **Health Dashboard**         | Uptime, breaker states, lockouts, cache stats         |
-| 💰 **Cost Tracking**            | Budget controls and per-model pricing visibility      |
-| 📈 **Analytics Visualizations** | Model/provider usage insights and trend views         |
-| 🧪 **Evaluation Framework**     | Golden set testing with configurable match strategies |
+| Feature                          | What It Does                                          |
+| -------------------------------- | ----------------------------------------------------- |
+| 📝 **Request + Proxy Logging**   | Full request/response and proxy logging               |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI  |
+| 📋 **Unified Logs Dashboard**    | Request, proxy, audit, and console views in one page  |
+| 🔍 **Request Telemetry**         | p50/p95/p99 latency and request tracing               |
+| 🏥 **Health Dashboard**          | Uptime, breaker states, lockouts, cache stats         |
+| 💰 **Cost Tracking**             | Budget controls and per-model pricing visibility      |
+| 📈 **Analytics Visualizations**  | Model/provider usage insights and trend views         |
+| 🧪 **Evaluation Framework**      | Golden set testing with configurable match strategies |
 
 ### ☁️ Deployment & Platform
 
-| Feature                       | What It Does                                             |
-| ----------------------------- | -------------------------------------------------------- |
-| 🌐 **Deploy Anywhere**        | Localhost, VPS, Docker, Cloud environments               |
-| 💾 **Cloud Sync**             | Configuration sync via cloud worker                      |
-| 🔄 **Backup/Restore**         | Export/import and disaster recovery flows                |
-| 🧙 **Onboarding Wizard**      | First-run guided setup                                   |
-| 🔧 **CLI Tools Dashboard**    | One-click setup for popular coding tools                 |
-| 🎮 **Model Playground**       | Test any provider/model/endpoint from the dashboard      |
-| 🔏 **CLI Fingerprint Toggle** | Per-provider fingerprint matching in Settings > Security |
-| 🌐 **i18n (30 languages)**    | Full dashboard + docs language support with RTL coverage |
-| 🧹 **Clear All Models**       | One-click model list clearing in provider details        |
-| 📋 **Issue Templates**        | Standardized GitHub templates for bugs and features      |
-| 📂 **Custom Data Directory**  | `DATA_DIR` override for storage location                 |
+| Feature                       | What It Does                                              |
+| ----------------------------- | --------------------------------------------------------- |
+| 🌐 **Deploy Anywhere**        | Localhost, VPS, Docker, Cloud environments                |
+| 💾 **Cloud Sync**             | Configuration sync via cloud worker                       |
+| 🔄 **Backup/Restore**         | Export/import and disaster recovery flows                 |
+| 🧙 **Onboarding Wizard**      | First-run guided setup                                    |
+| 🔧 **CLI Tools Dashboard**    | One-click setup for popular coding tools                  |
+| 🎮 **Model Playground**       | Test any provider/model/endpoint from the dashboard       |
+| 🔏 **CLI Fingerprint Toggle** | Per-provider fingerprint matching in Settings > Security  |
+| 🌐 **i18n (30 languages)**    | Full dashboard + docs language support with RTL coverage  |
+| 🧹 **Clear All Models**       | One-click model list clearing in provider details         |
+| 👁️ **Sidebar Controls** 🆕    | Hide components and integrations from Appearance Settings |
+| 📋 **Issue Templates**        | Standardized GitHub templates for bugs and features       |
+| 📂 **Custom Data Directory**  | `DATA_DIR` override for storage location                  |
 
 ### Feature Deep Dive
 

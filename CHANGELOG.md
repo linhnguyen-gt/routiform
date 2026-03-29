@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [3.2.7] - 2026-03-29
+
+### Fixed
+
+- **Seamless UI Updates**: The "Update Now" feature on the Dashboard now provides live, transparent feedback using Server-Sent Events (SSE). It performs package installation, native module rebuilds (better-sqlite3), and PM2 restarts reliably while showing real-time loaders instead of silently hanging.
+
 ---
 
 ## [3.2.6] — 2026-03-29

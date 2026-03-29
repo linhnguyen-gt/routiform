@@ -98,16 +98,17 @@ _Verbind elke AI-aangedreven IDE- of CLI-tool via OmniRoute: gratis API-gateway 
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -910,6 +911,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | Kenmerk                                           | Wat het doet                                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | 📝 **Logboekregistratie aanvragen**               | Foutopsporingsmodus met volledige aanvraag-/antwoordlogboeken                               |
+| 📉 **Streamed Detailed Logs** 🆕                  | Reconstructs SSE payload streams cleanly into the UI                                        |
 | 💾 **SQLite Proxy-logboeken**                     | Aanhoudende proxylogboeken overleven het opnieuw opstarten van de server                    |
 | 📊 **Analytics-dashboard**                        | Recharts-aangedreven: statistische kaarten, modelgebruiksgrafiek, providertabel             |
 | 📈 **Voortgang bijhouden**                        | SSE-voortgangsgebeurtenissen aanmelden voor streaming                                       |
@@ -934,6 +936,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internationalisering**   | Volledige i18n met next-intl — Engels + Portugees (Brazilië) ondersteuning      |
 | 🌍 **Taalkiezer**             | Wereldbolpictogram in koptekst voor realtime taalwisseling (🇺🇸/🇧🇷)              |
 | 🧹 **Clear All Models**       | One-click model list clearing in provider details                               |
+| 👁️ **Sidebar Controls** 🆕    | Hide components and integrations from Appearance Settings                       |
 | 📋 **Issue Templates**        | Standardized GitHub templates for bugs and features                             |
 | 📂 **Aangepaste gegevensmap** | `DATA_DIR` env var om standaard `~/.omniroute` opslagpad te overschrijven       |
 

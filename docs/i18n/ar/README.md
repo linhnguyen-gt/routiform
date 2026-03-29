@@ -94,16 +94,17 @@ _قم بتوصيل أي أداة IDE أو CLI مدعومة بالذكاء الا
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -919,6 +920,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | ميزة                             | ماذا يفعل                                                                 |
 | -------------------------------- | ------------------------------------------------------------------------- |
 | 📝 **الطلب + تسجيل الوكيل**      | الطلب/الاستجابة الكاملة وتسجيل الوكيل                                     |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                      |
 | 📋 **لوحة تحكم السجلات الموحدة** | طلب العروض والوكيل والتدقيق ووحدة التحكم في صفحة واحدة                    |
 | 🔍 **طلب القياس عن بعد**         | زمن الاستجابة p50/p95/p99 وطلب التتبع                                     |
 | 🏥 **لوحة المعلومات الصحية**     | وقت التشغيل، حالات الكسارة، عمليات الإغلاق، إحصائيات ذاكرة التخزين المؤقت |
@@ -928,16 +930,17 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### ☁️ النشر والمنصة
 
-| ميزة                             | ماذا يفعل                                           |
-| -------------------------------- | --------------------------------------------------- | --- | ------------------------ | ------------------------------- |
-| 🌐 **النشر في أي مكان**          | المضيف المحلي، VPS، Docker، البيئات السحابية        |     | 💾 **المزامنة السحابية** | مزامنة التكوين عبر عامل السحابة |
-| 🔄 **النسخ الاحتياطي/الاستعادة** | تدفقات التصدير/الاستيراد والتعافي من الكوارث        |
-| 🧙 **معالج الإعداد**             | الإعداد الموجه لأول مرة                             |
-| 🔧 **لوحة تحكم أدوات CLI**       | إعداد بنقرة واحدة لأدوات الترميز الشائعة            |
-| 🌐 **i18n (30 لغة)**             | لوحة تحكم كاملة + دعم لغة المستندات مع تغطية RTL    |
-| 🧹 **Clear All Models**          | One-click model list clearing in provider details   |
-| 📋 **Issue Templates**           | Standardized GitHub templates for bugs and features |
-| 📂 **دليل البيانات المخصصة**     | تجاوز `DATA_DIR` لموقع التخزين                      |
+| ميزة                             | ماذا يفعل                                                 |
+| -------------------------------- | --------------------------------------------------------- | --- | ------------------------ | ------------------------------- |
+| 🌐 **النشر في أي مكان**          | المضيف المحلي، VPS، Docker، البيئات السحابية              |     | 💾 **المزامنة السحابية** | مزامنة التكوين عبر عامل السحابة |
+| 🔄 **النسخ الاحتياطي/الاستعادة** | تدفقات التصدير/الاستيراد والتعافي من الكوارث              |
+| 🧙 **معالج الإعداد**             | الإعداد الموجه لأول مرة                                   |
+| 🔧 **لوحة تحكم أدوات CLI**       | إعداد بنقرة واحدة لأدوات الترميز الشائعة                  |
+| 🌐 **i18n (30 لغة)**             | لوحة تحكم كاملة + دعم لغة المستندات مع تغطية RTL          |
+| 🧹 **Clear All Models**          | One-click model list clearing in provider details         |
+| 👁️ **Sidebar Controls** 🆕       | Hide components and integrations from Appearance Settings |
+| 📋 **Issue Templates**           | Standardized GitHub templates for bugs and features       |
+| 📂 **دليل البيانات المخصصة**     | تجاوز `DATA_DIR` لموقع التخزين                            |
 
 ### ميزة الغوص العميق
 

@@ -98,16 +98,17 @@ _Ikonekta ang anumang AI-powered IDE o CLI tool sa pamamagitan ng OmniRoute — 
 
 ### 🆕 What's New in v3.0.0
 
-| Area                       | Change                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| 🔒 **CodeQL Security**     | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
-| ✅ **Route Validation**    | All 176 API routes validated with Zod schemas + `validateBody()`                  |
-| 🐛 **omniModel Tag Leak**  | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
-| 🔑 **Registered Keys API** | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
-| 🎨 **Provider Icons**      | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
-| 🔄 **Model Auto-Sync**     | 24h scheduler refreshes model lists for 16 providers                              |
-| 🌐 **OpenCode Zen/Go**     | Two new providers: free tier + subscription tier                                  |
-| 🔧 **926 Tests**           | Full test suite passes with 0 failures                                            |
+| Area                            | Change                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| 🔒 **CodeQL Security**          | Fixed 10+ CodeQL alerts: polynomial-redos, insecure-randomness, shell-injection   |
+| ✅ **Route Validation**         | All 176 API routes validated with Zod schemas + `validateBody()`                  |
+| 🐛 **omniModel Tag Leak**       | Internal `<omniModel>` tags no longer leak to clients in SSE streams (#585)       |
+| 🔑 **Registered Keys API**      | Auto-provision API keys via `POST /api/v1/registered-keys` with quota enforcement |
+| 👁️ **Scoped API Key Reveal** 🆕 | Opt-in recovery of API keys via `ALLOW_API_KEY_REVEAL`                            |
+| 🎨 **Provider Icons**           | 130+ provider logos via `@lobehub/icons` (SVG) with PNG fallback                  |
+| 🔄 **Model Auto-Sync**          | 24h scheduler refreshes model lists for 16 providers                              |
+| 🌐 **OpenCode Zen/Go**          | Two new providers: free tier + subscription tier                                  |
+| 🔧 **926 Tests**                | Full test suite passes with 0 failures                                            |
 
 ### 🆕 What's New in v3.0.0
 
@@ -909,19 +910,20 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### 📊 Pagmamasid at Analytics
 
-| Tampok                          | Ano ang Ginagawa Nito                                                                        |
-| ------------------------------- | -------------------------------------------------------------------------------------------- |
-| 📝 **Kahilingan sa Pag-log**    | Debug mode na may buong kahilingan/tugon logs                                                |
-| 💾 **SQLite Proxy Logs**        | Ang mga paulit-ulit na proxy log ay nakaligtas sa pag-restart ng server                      |
-| 📊 **Analytics Dashboard**      | Recharts-powered: mga stat card, chart ng paggamit ng modelo, talahanayan ng provider        |
-| 📈 **Pagsubaybay sa Pag-unlad** | Mag-opt-in sa mga kaganapan sa pag-usad ng SSE para sa streaming                             |
-| 🧪 **Mga Pagsusuri sa LLM**     | Golden set testing na may 4 na diskarte sa pagtutugma                                        |
-| 🔍 **Humiling ng Telemetry**    | p50/p95/p99 latency aggregation + X-Request-Id tracing                                       |
-| 📋 **Dashboard ng Mga Log**     | Pinag-isang 4-tab na pahina: Mga Log ng Kahilingan, Mga Proxy Log, Mga Log ng Audit, Console |
-| 🖥️ **Console Log Viewer**       | Real-time na terminal-style viewer na may level filter, search, auto-scroll                  |
-| 📑 **File-Based Logging**       | Kinukuha ng Console interceptor ang lahat ng output sa JSON log file na may pag-ikot         |
-| 🏥 **Dashboard ng Kalusugan**   | System uptime, circuit breaker states, lockouts, cache stats                                 |
-| 💰 **Pagsubaybay sa Gastos**    | Pamamahala ng badyet + configuration ng pagpepresyo sa bawat modelo                          |
+| Tampok                           | Ano ang Ginagawa Nito                                                                        |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| 📝 **Kahilingan sa Pag-log**     | Debug mode na may buong kahilingan/tugon logs                                                |
+| 📉 **Streamed Detailed Logs** 🆕 | Reconstructs SSE payload streams cleanly into the UI                                         |
+| 💾 **SQLite Proxy Logs**         | Ang mga paulit-ulit na proxy log ay nakaligtas sa pag-restart ng server                      |
+| 📊 **Analytics Dashboard**       | Recharts-powered: mga stat card, chart ng paggamit ng modelo, talahanayan ng provider        |
+| 📈 **Pagsubaybay sa Pag-unlad**  | Mag-opt-in sa mga kaganapan sa pag-usad ng SSE para sa streaming                             |
+| 🧪 **Mga Pagsusuri sa LLM**      | Golden set testing na may 4 na diskarte sa pagtutugma                                        |
+| 🔍 **Humiling ng Telemetry**     | p50/p95/p99 latency aggregation + X-Request-Id tracing                                       |
+| 📋 **Dashboard ng Mga Log**      | Pinag-isang 4-tab na pahina: Mga Log ng Kahilingan, Mga Proxy Log, Mga Log ng Audit, Console |
+| 🖥️ **Console Log Viewer**        | Real-time na terminal-style viewer na may level filter, search, auto-scroll                  |
+| 📑 **File-Based Logging**        | Kinukuha ng Console interceptor ang lahat ng output sa JSON log file na may pag-ikot         |
+| 🏥 **Dashboard ng Kalusugan**    | System uptime, circuit breaker states, lockouts, cache stats                                 |
+| 💰 **Pagsubaybay sa Gastos**     | Pamamahala ng badyet + configuration ng pagpepresyo sa bawat modelo                          |
 
 ### ☁️ Deployment at Pag-sync
 
@@ -936,6 +938,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 | 🌐 **Internasyonalisasyon**         | Buong i18n na may next-intl — suporta sa English + Portuguese (Brazil)                          |
 | 🌍 **Pili ng Wika**                 | Globe icon sa header para sa real-time na paglipat ng wika (🇺🇸/🇧🇷)                              |
 | 🧹 **Clear All Models**             | One-click model list clearing in provider details                                               |
+| 👁️ **Sidebar Controls** 🆕          | Hide components and integrations from Appearance Settings                                       |
 | 📋 **Issue Templates**              | Standardized GitHub templates for bugs and features                                             |
 | 📂 **Custom na Direktoryo ng Data** | `DATA_DIR` env var to override default `~/.omniroute` storage path                              |
 
