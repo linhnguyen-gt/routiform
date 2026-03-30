@@ -270,9 +270,17 @@ describe("Page Integration — usage page wiring", () => {
 describe("Page Integration — settings page wiring", () => {
   const src = readProjectFile("src/app/(dashboard)/dashboard/settings/page.tsx");
 
-  it("should include resilience and cache cards in tabs", () => {
+  it("should include resilience tab in advanced settings", () => {
     assert.ok(src, "src/app/(dashboard)/dashboard/settings/page.tsx should exist");
     assert.match(src, /ResilienceTab/);
+  });
+});
+
+describe("Page Integration — cache page wiring", () => {
+  const src = readProjectFile("src/app/(dashboard)/dashboard/cache/page.tsx");
+
+  it("should include cache stats card for prompt cache metrics", () => {
+    assert.ok(src, "src/app/(dashboard)/dashboard/cache/page.tsx should exist");
     assert.match(src, /CacheStatsCard/);
   });
 });
