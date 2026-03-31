@@ -7,48 +7,26 @@
  *   - Creating the log directory on startup
  *
  * Configuration via env vars:
- *   - LOG_TO_FILE: enable file logging (default: true)
- *   - LOG_FILE_PATH: path to log file (default: logs/application/app.log)
- *   - LOG_MAX_FILE_SIZE: max file size before rotation (default: 50MB)
- *   - LOG_RETENTION_DAYS: days to keep old logs (default: 7)
+ *   - APP_LOG_TO_FILE: enable file logging (default: true)
+ *   - APP_LOG_FILE_PATH: path to log file (default: logs/application/app.log)
+ *   - APP_LOG_MAX_FILE_SIZE: max file size before rotation (default: 50MB)
+ *   - APP_LOG_RETENTION_DAYS: days to keep old logs (default: 7)
  */
 
 import { existsSync, mkdirSync, statSync, renameSync, readdirSync, unlinkSync } from "fs";
 import { dirname, join, basename, extname } from "path";
-
-const DEFAULT_LOG_PATH = "logs/application/app.log";
-const DEFAULT_MAX_SIZE = 50 * 1024 * 1024; // 50MB
-const DEFAULT_RETENTION_DAYS = 7;
-
-function parseFileSize(raw: string | undefined): number {
-  if (!raw) return DEFAULT_MAX_SIZE;
-  const match = raw.match(/^(\d+)\s*(k|m|g|kb|mb|gb)?$/i);
-  if (!match) return DEFAULT_MAX_SIZE;
-  const num = parseInt(match[1], 10);
-  const unit = (match[2] || "").toLowerCase();
-  switch (unit) {
-    case "k":
-    case "kb":
-      return num * 1024;
-    case "m":
-    case "mb":
-      return num * 1024 * 1024;
-    case "g":
-    case "gb":
-      return num * 1024 * 1024 * 1024;
-    default:
-      return num;
-  }
-}
+import {
+  getAppLogFilePath,
+  getAppLogMaxFileSize,
+  getAppLogRetentionDays,
+  getAppLogToFile,
+} from "./logEnv";
 
 export function getLogConfig() {
-  const logToFile = process.env.LOG_TO_FILE !== "false";
-  const logFilePath = process.env.LOG_FILE_PATH || join(process.cwd(), DEFAULT_LOG_PATH);
-  const maxFileSize = parseFileSize(process.env.LOG_MAX_FILE_SIZE);
-  const retentionDays = parseInt(
-    process.env.LOG_RETENTION_DAYS || String(DEFAULT_RETENTION_DAYS),
-    10
-  );
+  const logToFile = getAppLogToFile();
+  const logFilePath = getAppLogFilePath() || join(process.cwd(), "logs/application/app.log");
+  const maxFileSize = getAppLogMaxFileSize();
+  const retentionDays = getAppLogRetentionDays();
 
   return { logToFile, logFilePath, maxFileSize, retentionDays };
 }

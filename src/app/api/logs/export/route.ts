@@ -17,16 +17,10 @@ export async function GET(request: Request) {
     let rows: unknown[] = [];
     let tableName = "";
 
-    if (logType === "call-logs") {
+    if (logType === "call-logs" || logType === "request-logs") {
       tableName = "call_logs";
       const stmt = db.prepare(
         "SELECT * FROM call_logs WHERE timestamp >= @since ORDER BY timestamp DESC"
-      );
-      rows = stmt.all({ since });
-    } else if (logType === "request-logs") {
-      tableName = "request_logs";
-      const stmt = db.prepare(
-        "SELECT * FROM request_logs WHERE timestamp >= @since ORDER BY timestamp DESC"
       );
       rows = stmt.all({ since });
     } else if (logType === "proxy-logs") {

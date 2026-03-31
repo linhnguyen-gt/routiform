@@ -658,23 +658,33 @@ function getAntigravityPlanLabel(subscriptionInfo) {
 /**
  * Antigravity Usage - Fetch quota from Google Cloud Code API
  * Now calls loadCodeAssist ONCE (cached) and reuses for projectId + plan.
+ * Uses retrieveUserQuota API (same as Gemini CLI) for accurate quota data across all tiers.
  */
 async function getAntigravityUsage(accessToken, providerSpecificData) {
   try {
-    // Single cached call for subscription info (provides both projectId and plan)
     const subscriptionInfo = await getAntigravitySubscriptionInfoCached(accessToken);
     const projectId = subscriptionInfo?.cloudaicompanionProject || null;
 
-    // Fetch quota data
-    const response = await fetch(ANTIGRAVITY_CONFIG.quotaApiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(projectId ? { project: projectId } : {}),
-    });
+    if (!projectId) {
+      return {
+        plan: getAntigravityPlanLabel(subscriptionInfo),
+        message: "Antigravity project ID not available.",
+      };
+    }
+
+    // Use retrieveUserQuota API (same as Gemini CLI) - works correctly for both Free and Pro tiers
+    const response = await fetch(
+      "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ project: projectId }),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
 
     if (response.status === 403) {
       return { message: "Antigravity access forbidden. Check subscription." };
@@ -685,54 +695,26 @@ async function getAntigravityUsage(accessToken, providerSpecificData) {
     }
 
     const data = await response.json();
-    const dataObj = toRecord(data);
-    const modelEntries = toRecord(dataObj.models);
     const quotas: Record<string, UsageQuota> = {};
 
-    // Parse model quotas (inspired by vscode-antigravity-cockpit)
-    if (Object.keys(modelEntries).length > 0) {
-      // Filter only recommended/important models (must match PROVIDER_MODELS ag ids)
-      const importantModels = [
-        "claude-opus-4-6-thinking",
-        "claude-sonnet-4-6",
-        "gemini-3.1-pro-high",
-        "gemini-3.1-pro-low",
-        "gemini-3-flash",
-        "gpt-oss-120b-medium",
-      ];
+    // Parse buckets from retrieveUserQuota response (same format as Gemini CLI)
+    if (Array.isArray(data.buckets)) {
+      for (const bucket of data.buckets) {
+        if (!bucket.modelId || bucket.remainingFraction == null) continue;
 
-      for (const [modelKey, infoValue] of Object.entries(modelEntries)) {
-        const info = toRecord(infoValue);
-        const quotaInfo = toRecord(info.quotaInfo);
-        // Skip models without quota info
-        if (Object.keys(quotaInfo).length === 0) {
-          continue;
-        }
-
-        // Skip internal models and non-important models
-        if (info.isInternal === true || !importantModels.includes(modelKey)) {
-          continue;
-        }
-
-        const remainingFraction = toNumber(quotaInfo.remainingFraction, 0);
+        const remainingFraction = toNumber(bucket.remainingFraction, 0);
         const remainingPercentage = remainingFraction * 100;
-
-        // Convert percentage to used/total for UI compatibility
-        // QUOTA_NORMALIZED_BASE is an arbitrary base for converting fractions
-        // to integer used/total pairs that the dashboard UI can display as bars.
         const QUOTA_NORMALIZED_BASE = 1000;
         const total = QUOTA_NORMALIZED_BASE;
         const remaining = Math.round(total * remainingFraction);
-        const used = total - remaining;
+        const used = Math.max(0, total - remaining);
 
-        // Use modelKey as key (matches PROVIDER_MODELS id)
-        quotas[modelKey] = {
+        quotas[bucket.modelId] = {
           used,
           total,
-          resetAt: parseResetTime(quotaInfo.resetTime),
+          resetAt: parseResetTime(bucket.resetTime),
           remainingPercentage,
           unlimited: false,
-          displayName: typeof info.displayName === "string" ? info.displayName : modelKey,
         };
       }
     }
@@ -743,7 +725,7 @@ async function getAntigravityUsage(accessToken, providerSpecificData) {
       subscriptionInfo,
     };
   } catch (error) {
-    return { message: `Antigravity error: ${error.message}` };
+    return { message: `Antigravity error: ${(error as Error).message}` };
   }
 }
 

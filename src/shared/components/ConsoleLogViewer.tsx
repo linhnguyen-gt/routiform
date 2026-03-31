@@ -206,7 +206,7 @@ export default function ConsoleLogViewer() {
           <span className="material-symbols-outlined text-[16px] align-middle mr-2">error</span>
           {error}
           <span className="text-xs ml-2 opacity-70">
-            — Make sure the application is writing logs to file (LOG_TO_FILE=true)
+            — Make sure the application is writing logs to file (APP_LOG_TO_FILE=true)
           </span>
         </div>
       )}
@@ -237,7 +237,7 @@ export default function ConsoleLogViewer() {
               </span>
               <p>{t("noLogEntries")}</p>
               <p className="text-[10px] mt-1 opacity-60">
-                Ensure LOG_TO_FILE=true is set in your .env file
+                Ensure APP_LOG_TO_FILE=true is set in your .env file
               </p>
             </div>
           ) : (

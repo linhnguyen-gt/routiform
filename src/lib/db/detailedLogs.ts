@@ -1,9 +1,9 @@
 /**
  * Detailed Request Logs DB Layer (#378)
  *
- * Saves full request/response bodies at each pipeline stage.
- * Ring-buffer of 500 entries enforced by SQL trigger in migration 006.
- * Only active when settings.detailed_logs_enabled = "1".
+ * Legacy compatibility layer for detailed request logs.
+ * New requests now store pipeline details inside unified call log artifacts.
+ * This module remains available for reading historical request_detail_logs rows.
  */
 import { v4 as uuidv4 } from "uuid";
 import { getDbInstance } from "./core";
@@ -37,7 +37,7 @@ export interface RequestDetailLog {
 export async function isDetailedLoggingEnabled(): Promise<boolean> {
   try {
     const settings = await getSettings();
-    const val = settings.detailed_logs_enabled;
+    const val = settings.call_log_pipeline_enabled;
     return val === true || val === "1" || val === "true";
   } catch {
     return false;

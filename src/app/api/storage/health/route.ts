@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import { resolveDataDir } from "@/lib/dataPaths";
+import { getAppLogRetentionDays, getCallLogRetentionDays } from "@/lib/logEnv";
 
 /**
  * GET /api/storage/health — Return database storage information.
@@ -56,7 +57,10 @@ export async function GET() {
       sizeBytes,
       lastBackupAt,
       backupCount,
-      retentionDays: 90,
+      retentionDays: {
+        app: getAppLogRetentionDays(),
+        call: getCallLogRetentionDays(),
+      },
       dataDir: dataDir.startsWith(homeDir) ? "~" + dataDir.slice(homeDir.length) : dataDir,
     });
   } catch (error) {

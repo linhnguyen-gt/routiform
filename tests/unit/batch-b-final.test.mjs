@@ -40,7 +40,13 @@ describe("evalRunner", () => {
 
   it("should evaluate exact match", () => {
     const result = evaluateCase(
-      { id: "t1", name: "test", model: "test", input: {}, expected: { strategy: "exact", value: "hello" } },
+      {
+        id: "t1",
+        name: "test",
+        model: "test",
+        input: {},
+        expected: { strategy: "exact", value: "hello" },
+      },
       "hello"
     );
     assert.equal(result.passed, true);
@@ -48,7 +54,13 @@ describe("evalRunner", () => {
 
   it("should fail exact match on mismatch", () => {
     const result = evaluateCase(
-      { id: "t2", name: "test", model: "test", input: {}, expected: { strategy: "exact", value: "hello" } },
+      {
+        id: "t2",
+        name: "test",
+        model: "test",
+        input: {},
+        expected: { strategy: "exact", value: "hello" },
+      },
       "world"
     );
     assert.equal(result.passed, false);
@@ -56,7 +68,13 @@ describe("evalRunner", () => {
 
   it("should evaluate contains (case-insensitive)", () => {
     const result = evaluateCase(
-      { id: "t3", name: "test", model: "test", input: {}, expected: { strategy: "contains", value: "paris" } },
+      {
+        id: "t3",
+        name: "test",
+        model: "test",
+        input: {},
+        expected: { strategy: "contains", value: "paris" },
+      },
       "The capital is Paris."
     );
     assert.equal(result.passed, true);
@@ -64,7 +82,13 @@ describe("evalRunner", () => {
 
   it("should evaluate regex", () => {
     const result = evaluateCase(
-      { id: "t4", name: "test", model: "test", input: {}, expected: { strategy: "regex", value: "\\d+" } },
+      {
+        id: "t4",
+        name: "test",
+        model: "test",
+        input: {},
+        expected: { strategy: "regex", value: "\\d+" },
+      },
       "The answer is 42."
     );
     assert.equal(result.passed, true);
@@ -73,7 +97,10 @@ describe("evalRunner", () => {
   it("should evaluate custom function", () => {
     const result = evaluateCase(
       {
-        id: "t5", name: "test", model: "test", input: {},
+        id: "t5",
+        name: "test",
+        model: "test",
+        input: {},
         expected: { strategy: "custom", fn: (output) => output.length > 5 },
       },
       "this is long enough"
@@ -95,8 +122,20 @@ describe("evalRunner", () => {
       id: "test-suite",
       name: "Test Suite",
       cases: [
-        { id: "c1", name: "pass", model: "m", input: {}, expected: { strategy: "contains", value: "yes" } },
-        { id: "c2", name: "fail", model: "m", input: {}, expected: { strategy: "contains", value: "no" } },
+        {
+          id: "c1",
+          name: "pass",
+          model: "m",
+          input: {},
+          expected: { strategy: "contains", value: "yes" },
+        },
+        {
+          id: "c2",
+          name: "fail",
+          model: "m",
+          input: {},
+          expected: { strategy: "contains", value: "no" },
+        },
       ],
     });
 
@@ -225,7 +264,7 @@ describe("compliance", () => {
     assert.equal(isNoLog("key-1"), false);
   });
 
-  it("should have default retention of 90 days", () => {
-    assert.equal(getRetentionDays(), 90);
+  it("should expose split default retention windows", () => {
+    assert.deepEqual(getRetentionDays(), { app: 7, call: 7 });
   });
 });

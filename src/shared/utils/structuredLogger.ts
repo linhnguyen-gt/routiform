@@ -5,7 +5,7 @@
  * and human-readable output for development. Replaces scattered console.log
  * calls with consistent, parseable log entries.
  *
- * When LOG_TO_FILE is enabled, log entries are also appended as JSON lines
+ * When APP_LOG_TO_FILE is enabled, log entries are also appended as JSON lines
  * to the application log file for the Console Log Viewer.
  *
  * @module shared/utils/structuredLogger
@@ -14,6 +14,7 @@
 import { getCorrelationId } from "../middleware/correlationId";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { dirname, resolve } from "path";
+import { getAppLogFilePath, getAppLogLevel, getAppLogToFile } from "@/lib/logEnv";
 
 const LOG_LEVELS: Record<string, number> = {
   debug: 10,
@@ -23,12 +24,12 @@ const LOG_LEVELS: Record<string, number> = {
   fatal: 50,
 };
 
-const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL?.toLowerCase() || ""] || LOG_LEVELS.info;
+const currentLevel = LOG_LEVELS[getAppLogLevel("info").toLowerCase() || ""] || LOG_LEVELS.info;
 const isProduction = process.env.NODE_ENV === "production";
 
 // File logging configuration
-const logToFile = process.env.LOG_TO_FILE !== "false";
-const logFilePath = resolve(process.env.LOG_FILE_PATH || "logs/application/app.log");
+const logToFile = getAppLogToFile();
+const logFilePath = resolve(getAppLogFilePath());
 
 // Ensure log directory exists once at module load
 if (logToFile) {

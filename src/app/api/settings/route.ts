@@ -19,14 +19,12 @@ export async function GET() {
       setCliCompatProviders(settings.cliCompatProviders as string[]);
     }
 
-    const enableRequestLogs = process.env.ENABLE_REQUEST_LOGS === "true";
     const runtimePorts = getRuntimePorts();
     const cloudUrl = process.env.CLOUD_URL || process.env.NEXT_PUBLIC_CLOUD_URL || null;
     const machineId = await getConsistentMachineId();
 
     return NextResponse.json({
       ...safeSettings,
-      enableRequestLogs,
       hasPassword: !!password || !!process.env.INITIAL_PASSWORD,
       runtimePorts,
       apiPort: runtimePorts.apiPort,
@@ -112,11 +110,6 @@ export async function PATCH(request) {
     // Sync CLI fingerprint providers to runtime cache
     if ("cliCompatProviders" in body) {
       setCliCompatProviders(body.cliCompatProviders || []);
-    }
-
-    if ("maxCallLogs" in body) {
-      const { invalidateCallLogsMaxCache } = await import("@/lib/usage/callLogs");
-      invalidateCallLogsMaxCache();
     }
 
     // Sync cache control settings to runtime cache

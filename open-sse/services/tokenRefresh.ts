@@ -207,17 +207,21 @@ export async function refreshKimiCodingToken(refreshToken, log) {
  */
 export async function refreshClaudeOAuthToken(refreshToken, log) {
   try {
+    // Standard OAuth2 token refresh uses form-urlencoded (not JSON)
+    const params = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: PROVIDERS.claude.clientId,
+    });
+
     const response = await fetch(OAUTH_ENDPOINTS.anthropic.token, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
+        "anthropic-beta": "oauth-2025-04-20",
       },
-      body: JSON.stringify({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: PROVIDERS.claude.clientId,
-      }),
+      body: params.toString(),
     });
 
     if (!response.ok) {

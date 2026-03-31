@@ -173,7 +173,9 @@ const SCHEMA_SQL = `
     combo_name TEXT,
     request_body TEXT,
     response_body TEXT,
-    error TEXT
+    error TEXT,
+    artifact_relpath TEXT,
+    has_pipeline_details INTEGER DEFAULT 0
   );
   CREATE INDEX IF NOT EXISTS idx_cl_timestamp ON call_logs(timestamp);
   CREATE INDEX IF NOT EXISTS idx_cl_status ON call_logs(status);
@@ -376,6 +378,27 @@ function ensureUsageHistoryColumns(db: SqliteDatabase) {
   }
 }
 
+function ensureCallLogsColumns(db: SqliteDatabase) {
+  try {
+    const columns = db.prepare("PRAGMA table_info(call_logs)").all() as Array<{
+      name?: string;
+    }>;
+    const columnNames = new Set(columns.map((column) => String(column.name ?? "")));
+
+    if (!columnNames.has("artifact_relpath")) {
+      db.exec("ALTER TABLE call_logs ADD COLUMN artifact_relpath TEXT");
+      console.log("[DB] Added call_logs.artifact_relpath column");
+    }
+    if (!columnNames.has("has_pipeline_details")) {
+      db.exec("ALTER TABLE call_logs ADD COLUMN has_pipeline_details INTEGER DEFAULT 0");
+      console.log("[DB] Added call_logs.has_pipeline_details column");
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("[DB] Failed to verify call_logs schema:", message);
+  }
+}
+
 export function getDbInstance(): SqliteDatabase {
   const existing = getDb();
   if (existing) return existing;
@@ -468,6 +491,7 @@ export function getDbInstance(): SqliteDatabase {
   db.exec(SCHEMA_SQL);
   ensureProviderConnectionsColumns(db);
   ensureUsageHistoryColumns(db);
+  ensureCallLogsColumns(db);
 
   // ── Versioned Migrations ──
   // Auto-seed 001 as applied (the inline SCHEMA_SQL already created these tables)

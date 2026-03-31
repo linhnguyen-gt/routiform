@@ -210,12 +210,16 @@ export default function ProviderLimits() {
     setCountdown(120);
     try {
       const conns = await fetchConnections();
+
+      // Show table layout immediately once connections are loaded (Issue #784)
+      setInitialLoading(false);
+
       const usageConnections = conns.filter(
         (conn) =>
           USAGE_SUPPORTED_PROVIDERS.includes(conn.provider) &&
           (conn.authType === "oauth" || conn.authType === "apikey")
       );
-      // Fix Issue #784: Fetch quotas in chunks of 5 to avoid spamming the backend/provider APIs and hanging the UI.
+      // Fix: Fetch quotas in chunks of 5 to avoid spamming the backend/provider APIs and hanging the UI.
       const chunkSize = 5;
       for (let i = 0; i < usageConnections.length; i += chunkSize) {
         const chunk = usageConnections.slice(i, i + chunkSize);
@@ -225,14 +229,15 @@ export default function ProviderLimits() {
       console.error("Error refreshing all:", error);
     } finally {
       setRefreshingAll(false);
+      setInitialLoading(false); // Fallback to ensure skeleton is cleared
     }
   }, [refreshingAll, fetchConnections, fetchQuota]);
 
   useEffect(() => {
     const init = async () => {
       setInitialLoading(true);
-      await refreshAll();
-      setInitialLoading(false);
+      // No longer await refreshAll here so we don't block the UI
+      refreshAll();
     };
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

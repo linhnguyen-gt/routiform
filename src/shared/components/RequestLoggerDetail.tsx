@@ -92,27 +92,21 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
   const pipelinePayloads = detail?.pipelinePayloads || null;
   const payloadSections = pipelinePayloads
     ? [
-        {
-          key: "client-request",
-          title: "Client Request",
-          json: toPrettyJson(pipelinePayloads.clientRequest),
-        },
-        {
-          key: "provider-request",
-          title: "Provider Request",
-          json: toPrettyJson(pipelinePayloads.providerRequest),
-        },
-        {
-          key: "provider-response",
-          title: "Provider Response",
-          json: toPrettyJson(pipelinePayloads.providerResponse),
-        },
-        {
-          key: "client-response",
-          title: "Client Response",
-          json: toPrettyJson(pipelinePayloads.clientResponse),
-        },
-      ].filter((section) => section.json)
+        ["clientRawRequest", "Client Raw Request"],
+        ["clientRequest", "Client Request"],
+        ["sourceRequest", "Source Request"],
+        ["openaiRequest", "OpenAI Request"],
+        ["providerRequest", "Provider Request"],
+        ["providerResponse", "Provider Response"],
+        ["clientResponse", "Client Response"],
+        ["error", "Pipeline Error"],
+      ]
+        .map(([key, title]) => ({
+          key,
+          title,
+          json: toPrettyJson(pipelinePayloads[key]),
+        }))
+        .filter((section) => section.json)
     : [];
   const requestJson = detail?.requestBody ? toPrettyJson(detail.requestBody) : null;
   const responseJson = detail?.responseBody ? toPrettyJson(detail.responseBody) : null;

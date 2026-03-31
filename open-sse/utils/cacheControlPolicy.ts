@@ -90,10 +90,19 @@ export function isClaudeCodeClient(userAgent: string | null | undefined): boolea
 
 /**
  * Check if a provider supports prompt caching
+ * Supports caching if:
+ * 1. Provider is in the known caching providers list, OR
+ * 2. Provider uses Claude protocol (detected via targetFormat)
  */
-export function providerSupportsCaching(provider: string | null | undefined): boolean {
+export function providerSupportsCaching(
+  provider: string | null | undefined,
+  targetFormat?: string | null
+): boolean {
   if (!provider) return false;
-  return CACHING_PROVIDERS.has(provider.toLowerCase());
+  if (CACHING_PROVIDERS.has(provider.toLowerCase())) return true;
+  // All Claude-protocol providers support prompt caching
+  if (targetFormat === "claude") return true;
+  return false;
 }
 
 /**
@@ -121,12 +130,14 @@ export function shouldPreserveCacheControl({
   isCombo,
   comboStrategy,
   targetProvider,
+  targetFormat,
   settings,
 }: {
   userAgent: string | null | undefined;
   isCombo: boolean;
   comboStrategy?: RoutingStrategyValue | null;
   targetProvider: string | null | undefined;
+  targetFormat?: string | null;
   settings?: CacheControlSettings;
 }): boolean {
   // User override takes precedence
@@ -144,7 +155,7 @@ export function shouldPreserveCacheControl({
   }
 
   // Target provider must support caching
-  if (!providerSupportsCaching(targetProvider)) {
+  if (!providerSupportsCaching(targetProvider, targetFormat)) {
     return false;
   }
 

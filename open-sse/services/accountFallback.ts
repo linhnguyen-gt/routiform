@@ -229,6 +229,39 @@ function parseDelayString(value) {
   return isNaN(num) ? null : num * 1000;
 }
 
+/**
+ * T07: Parse retry time from error text body with combined "XhYmZs" format.
+ * Examples: "Your quota will reset after 2h30m14s", "reset after 45m", "reset after 30s"
+ * Returns milliseconds or null if not parseable.
+ *
+ * @param {string} errorText - Error message text from response body
+ * @returns {number|null} Retry duration in milliseconds
+ */
+export function parseRetryFromErrorText(errorText) {
+  if (!errorText || typeof errorText !== "string") return null;
+
+  const match = errorText.match(/reset after (\d+h)?(\d+m)?(\d+s)?/i);
+  if (!match) {
+    // Also try the variant without "reset after": "will reset after XhYmZs"
+    const altMatch = errorText.match(/will reset after (\d+h)?(\d+m)?(\d+s)?/i);
+    if (!altMatch) return null;
+    return computeDurationMs(altMatch);
+  }
+
+  return computeDurationMs(match);
+}
+
+/**
+ * Compute total milliseconds from regex match groups (Xh)(Ym)(Zs)
+ */
+function computeDurationMs(match) {
+  let totalMs = 0;
+  if (match[1]) totalMs += parseInt(match[1], 10) * 3600 * 1000; // hours
+  if (match[2]) totalMs += parseInt(match[2], 10) * 60 * 1000; // minutes
+  if (match[3]) totalMs += parseInt(match[3], 10) * 1000; // seconds
+  return totalMs > 0 ? totalMs : null;
+}
+
 // ─── Error Classification ───────────────────────────────────────────────────
 
 /**
@@ -241,6 +274,8 @@ export function classifyErrorText(errorText) {
   if (
     lower.includes("quota exceeded") ||
     lower.includes("quota depleted") ||
+    lower.includes("quota will reset") ||
+    lower.includes("your quota will reset") ||
     lower.includes("billing")
   ) {
     return RateLimitReason.QUOTA_EXHAUSTED;
@@ -428,6 +463,9 @@ export function checkFallbackError(
       lowerError.includes("rate limit") ||
       lowerError.includes("too many requests") ||
       lowerError.includes("quota exceeded") ||
+      lowerError.includes("quota will reset") ||
+      lowerError.includes("exhausted your capacity") ||
+      lowerError.includes("quota exhausted") ||
       lowerError.includes("capacity") ||
       lowerError.includes("overloaded")
     ) {
@@ -442,6 +480,15 @@ export function checkFallbackError(
             reason: RateLimitReason.RATE_LIMIT_EXCEEDED,
           };
         }
+      }
+      const retryFromBody = parseRetryFromErrorText(errorStr);
+      if (retryFromBody && retryFromBody > 60_000) {
+        return {
+          shouldFallback: true,
+          cooldownMs: retryFromBody,
+          newBackoffLevel: 0,
+          reason: RateLimitReason.RATE_LIMIT_EXCEEDED,
+        };
       }
       const newLevel = Math.min(backoffLevel + 1, BACKOFF_CONFIG.maxLevel);
       const reason = classifyErrorText(errorStr);

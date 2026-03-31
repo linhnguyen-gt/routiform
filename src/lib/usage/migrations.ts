@@ -1,42 +1,47 @@
 /**
  * Usage Migrations — extracted from usageDb.js (T-15)
  *
- * Handles legacy file migration (.data → data/) and JSON → SQLite migration.
- * Runs automatically on module load when shouldPersistToDisk is true.
+ * Handles legacy file migration (.data → data/), JSON → SQLite migration,
+ * and one-time archival of legacy request log layouts into a zip backup.
  *
  * @module lib/usage/migrations
  */
 
-import path from "path";
 import fs from "fs";
+import path from "path";
+import { ZipFile } from "yazl";
 import { getDbInstance, isCloud, isBuildPhase, DATA_DIR } from "../db/core";
 import { getLegacyDotDataDir, isSamePath } from "../dataPaths";
 
 export const shouldPersistToDisk = !isCloud && !isBuildPhase;
 
-// ──────────────── File Paths ────────────────
-
 const LEGACY_DATA_DIR = isCloud ? null : getLegacyDotDataDir();
 
-export const LOG_FILE = isCloud ? null : path.join(DATA_DIR, "log.txt");
 export const CALL_LOGS_DIR = isCloud ? null : path.join(DATA_DIR, "call_logs");
+export const LOG_ARCHIVES_DIR = isCloud ? null : path.join(DATA_DIR, "log_archives");
+
+const LEGACY_LAYOUT_MARKER =
+  isCloud || !LOG_ARCHIVES_DIR ? null : path.join(LOG_ARCHIVES_DIR, "legacy-request-logs.json");
+
+const CURRENT_REQUEST_LOGS_DIR = isCloud ? null : path.join(DATA_DIR, "logs");
+const CURRENT_REQUEST_SUMMARY_FILE = isCloud ? null : path.join(DATA_DIR, "log.txt");
 
 // Legacy paths
 const LEGACY_DB_FILE =
   isCloud || !LEGACY_DATA_DIR ? null : path.join(LEGACY_DATA_DIR, "usage.json");
-const LEGACY_LOG_FILE = isCloud || !LEGACY_DATA_DIR ? null : path.join(LEGACY_DATA_DIR, "log.txt");
 const LEGACY_CALL_LOGS_DB_FILE =
   isCloud || !LEGACY_DATA_DIR ? null : path.join(LEGACY_DATA_DIR, "call_logs.json");
-const LEGACY_CALL_LOGS_DIR =
-  isCloud || !LEGACY_DATA_DIR ? null : path.join(LEGACY_DATA_DIR, "call_logs");
-
 // Current-location JSON files (for migration into SQLite)
 const USAGE_JSON_FILE = isCloud ? null : path.join(DATA_DIR, "usage.json");
 const CALL_LOGS_JSON_FILE = isCloud ? null : path.join(DATA_DIR, "call_logs.json");
 
-// ──────────────── Legacy File Migration ────────────────
+type ArchiveTarget = {
+  sourcePath: string;
+  archiveRoot: string;
+  deleteAfterArchive: boolean;
+};
 
-function copyIfMissing(fromPath, toPath, label) {
+function copyIfMissing(fromPath: string | null, toPath: string | null, label: string) {
   if (!fromPath || !toPath) return;
   if (!fs.existsSync(fromPath) || fs.existsSync(toPath)) return;
 
@@ -48,27 +53,185 @@ function copyIfMissing(fromPath, toPath, label) {
   console.log(`[usageDb] Migrated ${label}: ${fromPath} -> ${toPath}`);
 }
 
+function containsLegacyCallLogLayout(dirPath: string | null): boolean {
+  if (!dirPath || !fs.existsSync(dirPath)) return false;
+
+  try {
+    const topLevelEntries = fs.readdirSync(dirPath);
+    for (const topLevelEntry of topLevelEntries) {
+      const topLevelPath = path.join(dirPath, topLevelEntry);
+      const stat = fs.statSync(topLevelPath);
+      if (stat.isFile() && /^\d{6}_.+_\d{3}\.json$/i.test(topLevelEntry)) {
+        return true;
+      }
+      if (!stat.isDirectory()) {
+        continue;
+      }
+
+      const nestedEntries = fs.readdirSync(topLevelPath);
+      for (const nestedEntry of nestedEntries) {
+        if (/^\d{6}_.+_\d{3}\.json$/i.test(nestedEntry)) {
+          return true;
+        }
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+function ensureArchiveDir() {
+  if (!LOG_ARCHIVES_DIR) return;
+  fs.mkdirSync(LOG_ARCHIVES_DIR, { recursive: true });
+}
+
+function listArchiveTargets(): ArchiveTarget[] {
+  const targets: ArchiveTarget[] = [];
+
+  if (CURRENT_REQUEST_LOGS_DIR && fs.existsSync(CURRENT_REQUEST_LOGS_DIR)) {
+    targets.push({
+      sourcePath: CURRENT_REQUEST_LOGS_DIR,
+      archiveRoot: "data/logs",
+      deleteAfterArchive: true,
+    });
+  }
+
+  if (CURRENT_REQUEST_SUMMARY_FILE && fs.existsSync(CURRENT_REQUEST_SUMMARY_FILE)) {
+    targets.push({
+      sourcePath: CURRENT_REQUEST_SUMMARY_FILE,
+      archiveRoot: "data/log.txt",
+      deleteAfterArchive: true,
+    });
+  }
+
+  if (CALL_LOGS_DIR && containsLegacyCallLogLayout(CALL_LOGS_DIR)) {
+    targets.push({
+      sourcePath: CALL_LOGS_DIR,
+      archiveRoot: "data/call_logs",
+      deleteAfterArchive: true,
+    });
+  }
+
+  return targets;
+}
+
+function addPathToZip(zipFile: ZipFile, sourcePath: string, archivePath: string) {
+  const stat = fs.statSync(sourcePath);
+  if (stat.isDirectory()) {
+    const entries = fs.readdirSync(sourcePath);
+    if (entries.length === 0) {
+      zipFile.addEmptyDirectory(archivePath);
+      return;
+    }
+
+    for (const entry of entries) {
+      addPathToZip(zipFile, path.join(sourcePath, entry), path.posix.join(archivePath, entry));
+    }
+    return;
+  }
+
+  zipFile.addFile(sourcePath, archivePath);
+}
+
+function createLegacyArchive(targets: ArchiveTarget[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!LOG_ARCHIVES_DIR) {
+      reject(new Error("LOG_ARCHIVES_DIR is not configured"));
+      return;
+    }
+
+    ensureArchiveDir();
+
+    const timestamp = new Date().toISOString().replace(/[:]/g, "-");
+    const archiveFilename = `${timestamp}_legacy-request-logs.zip`;
+    const archivePath = path.join(LOG_ARCHIVES_DIR, archiveFilename);
+    const zipFile = new ZipFile();
+    const output = fs.createWriteStream(archivePath);
+
+    output.on("close", () => resolve(archiveFilename));
+    output.on("error", (error) => {
+      fs.rmSync(archivePath, { force: true });
+      reject(error);
+    });
+    zipFile.outputStream.pipe(output);
+
+    try {
+      for (const target of targets) {
+        addPathToZip(zipFile, target.sourcePath, target.archiveRoot);
+      }
+      zipFile.end();
+    } catch (error) {
+      fs.rmSync(archivePath, { force: true });
+      zipFile.end();
+      reject(error);
+    }
+  });
+}
+
+function writeLegacyLayoutMarker(archiveFilename: string) {
+  if (!LEGACY_LAYOUT_MARKER) return;
+  ensureArchiveDir();
+  fs.writeFileSync(
+    LEGACY_LAYOUT_MARKER,
+    JSON.stringify(
+      {
+        migratedAt: new Date().toISOString(),
+        archiveFilename,
+      },
+      null,
+      2
+    )
+  );
+}
+
+function deleteArchivedTargets(targets: ArchiveTarget[]) {
+  for (const target of targets) {
+    if (!target.deleteAfterArchive || !fs.existsSync(target.sourcePath)) {
+      continue;
+    }
+
+    const stat = fs.statSync(target.sourcePath);
+    if (stat.isDirectory()) {
+      fs.rmSync(target.sourcePath, { recursive: true, force: true });
+    } else {
+      fs.rmSync(target.sourcePath, { force: true });
+    }
+  }
+}
+
 export function migrateLegacyUsageFiles() {
   if (!shouldPersistToDisk || !LEGACY_DATA_DIR) return;
   if (isSamePath(DATA_DIR, LEGACY_DATA_DIR)) return;
 
   try {
     copyIfMissing(LEGACY_DB_FILE, USAGE_JSON_FILE, "usage history");
-    copyIfMissing(LEGACY_LOG_FILE, LOG_FILE, "request log");
     copyIfMissing(LEGACY_CALL_LOGS_DB_FILE, CALL_LOGS_JSON_FILE, "call log index");
-    copyIfMissing(LEGACY_CALL_LOGS_DIR, CALL_LOGS_DIR, "call log files");
   } catch (error) {
-    console.error("[usageDb] Legacy migration failed:", error.message);
+    console.error("[usageDb] Legacy migration failed:", (error as Error).message);
   }
 }
 
-// ──────────────── JSON → SQLite Migration ────────────────
+export async function archiveLegacyRequestLogs() {
+  if (!shouldPersistToDisk) return null;
+  if (LEGACY_LAYOUT_MARKER && fs.existsSync(LEGACY_LAYOUT_MARKER)) return null;
+
+  const targets = listArchiveTargets();
+  if (targets.length === 0) return null;
+
+  const archiveFilename = await createLegacyArchive(targets);
+  deleteArchivedTargets(targets);
+  writeLegacyLayoutMarker(archiveFilename);
+
+  console.log(`[usageDb] Archived legacy request logs to ${archiveFilename}`);
+  return archiveFilename;
+}
 
 export function migrateUsageJsonToSqlite() {
   if (!shouldPersistToDisk) return;
   const db = getDbInstance();
 
-  // 1. Migrate usage.json
   if (USAGE_JSON_FILE && fs.existsSync(USAGE_JSON_FILE)) {
     try {
       const raw = fs.readFileSync(USAGE_JSON_FILE, "utf-8");
@@ -118,13 +281,12 @@ export function migrateUsageJsonToSqlite() {
         console.log(`[usageDb] ✓ Migrated ${history.length} usage entries`);
       }
 
-      fs.renameSync(USAGE_JSON_FILE, USAGE_JSON_FILE + ".migrated");
-    } catch (err) {
-      console.error("[usageDb] Failed to migrate usage.json:", err.message);
+      fs.renameSync(USAGE_JSON_FILE, `${USAGE_JSON_FILE}.migrated`);
+    } catch (error) {
+      console.error("[usageDb] Failed to migrate usage.json:", (error as Error).message);
     }
   }
 
-  // 2. Migrate call_logs.json
   if (CALL_LOGS_JSON_FILE && fs.existsSync(CALL_LOGS_JSON_FILE)) {
     try {
       const raw = fs.readFileSync(CALL_LOGS_JSON_FILE, "utf-8");
@@ -137,10 +299,12 @@ export function migrateUsageJsonToSqlite() {
         const insert = db.prepare(`
           INSERT OR IGNORE INTO call_logs (id, timestamp, method, path, status, model, provider,
             account, connection_id, duration, tokens_in, tokens_out, source_format, target_format,
-            api_key_id, api_key_name, combo_name, request_body, response_body, error)
+            api_key_id, api_key_name, combo_name, request_body, response_body, error,
+            artifact_relpath, has_pipeline_details)
           VALUES (@id, @timestamp, @method, @path, @status, @model, @provider,
             @account, @connectionId, @duration, @tokensIn, @tokensOut, @sourceFormat, @targetFormat,
-            @apiKeyId, @apiKeyName, @comboName, @requestBody, @responseBody, @error)
+            @apiKeyId, @apiKeyName, @comboName, @requestBody, @responseBody, @error,
+            NULL, 0)
         `);
 
         const tx = db.transaction(() => {
@@ -173,21 +337,25 @@ export function migrateUsageJsonToSqlite() {
         console.log(`[usageDb] ✓ Migrated ${logs.length} call log entries`);
       }
 
-      fs.renameSync(CALL_LOGS_JSON_FILE, CALL_LOGS_JSON_FILE + ".migrated");
-    } catch (err) {
-      console.error("[usageDb] Failed to migrate call_logs.json:", err.message);
+      fs.renameSync(CALL_LOGS_JSON_FILE, `${CALL_LOGS_JSON_FILE}.migrated`);
+    } catch (error) {
+      console.error("[usageDb] Failed to migrate call_logs.json:", (error as Error).message);
     }
   }
 }
-
-// ──────────────── Run on load ────────────────
 
 migrateLegacyUsageFiles();
 
 if (shouldPersistToDisk) {
   try {
+    await archiveLegacyRequestLogs();
+  } catch (error) {
+    console.error("[usageDb] Failed to archive legacy request logs:", (error as Error).message);
+  }
+
+  try {
     migrateUsageJsonToSqlite();
   } catch {
-    /* ok */
+    // Best-effort startup migration.
   }
 }

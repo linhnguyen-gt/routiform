@@ -96,11 +96,10 @@
  * @property {boolean} hasPassword - Whether a password has been set
  * @property {string} [theme] - UI theme
  * @property {string} [language] - UI language
- * @property {boolean} [enableRequestLogs] - Whether request logging is enabled
  * @property {boolean} [enableSocks5Proxy] - Whether SOCKS5 proxy is allowed
  * @property {string} [instanceName] - Instance display name
  * @property {string} [corsOrigins] - Allowed CORS origins
- * @property {number} [logRetentionDays] - Log retention in days
+ * @property {boolean} [call_log_pipeline_enabled] - Whether per-request pipeline capture is enabled
  * @property {string[]} [hiddenSidebarItems] - Sidebar entry ids hidden for visual decluttering
  */
 

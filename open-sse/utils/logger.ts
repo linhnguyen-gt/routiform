@@ -2,7 +2,7 @@
  * Structured console logger utility for omniroute.
  *
  * Provides consistent, machine-parseable log output across the codebase.
- * Supports two output formats controlled by LOG_FORMAT env var:
+ * Supports two output formats controlled by APP_LOG_FORMAT env var:
  *   - "text" (default): [LEVEL] [TAG] message {metadata}
  *   - "json": Single-line JSON objects for log aggregators
  *
@@ -18,17 +18,16 @@
  *   reqLog.info("AUTH", "Token refreshed", { provider: "claude" });
  *
  * Environment variables:
- *   LOG_LEVEL  — minimum level: debug | info | warn | error (default: info)
- *   LOG_FORMAT — output format: text | json (default: text)
+ *   APP_LOG_LEVEL  — minimum level: debug | info | warn | error (default: info)
+ *   APP_LOG_FORMAT — output format: text | json (default: text)
  */
+import { getAppLogFormat, getAppLogLevel } from "../../src/lib/logEnv";
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
 
-const currentLevel =
-  LEVELS[((typeof process !== "undefined" && process.env?.LOG_LEVEL) || "info").toLowerCase()] ??
-  LEVELS.info;
+const currentLevel = LEVELS[getAppLogLevel("info").toLowerCase()] ?? LEVELS.info;
 
-const jsonFormat = typeof process !== "undefined" && process.env?.LOG_FORMAT === "json";
+const jsonFormat = getAppLogFormat("text") === "json";
 
 let requestCounter = 0;
 

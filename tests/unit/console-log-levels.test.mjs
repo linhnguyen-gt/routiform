@@ -7,16 +7,16 @@ import path from "node:path";
 const TEST_LOG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-console-log-levels-"));
 const TEST_LOG_PATH = path.join(TEST_LOG_DIR, "app.log");
 
-const originalLogFilePath = process.env.LOG_FILE_PATH;
-process.env.LOG_FILE_PATH = TEST_LOG_PATH;
+const originalLogFilePath = process.env.APP_LOG_FILE_PATH;
+process.env.APP_LOG_FILE_PATH = TEST_LOG_PATH;
 
 const route = await import("../../src/app/api/logs/console/route.ts");
 
 test.after(() => {
   if (originalLogFilePath === undefined) {
-    delete process.env.LOG_FILE_PATH;
+    delete process.env.APP_LOG_FILE_PATH;
   } else {
-    process.env.LOG_FILE_PATH = originalLogFilePath;
+    process.env.APP_LOG_FILE_PATH = originalLogFilePath;
   }
   fs.rmSync(TEST_LOG_DIR, { recursive: true, force: true });
 });

@@ -2,7 +2,8 @@ import crypto from "crypto";
 import { BaseExecutor, mergeUpstreamExtraHeaders } from "./base.ts";
 import { PROVIDERS, OAUTH_ENDPOINTS, HTTP_STATUS } from "../config/constants.ts";
 
-const MAX_RETRY_AFTER_MS = 10000;
+const MAX_RETRY_AFTER_MS = 60_000;
+const LONG_RETRY_THRESHOLD_MS = 60_000;
 
 /**
  * Strip provider prefixes (e.g. "antigravity/model" → "model").
@@ -224,12 +225,15 @@ export class AntigravityExecutor extends BaseExecutor {
           signal,
         });
 
+        // Parse retry time for 429/503 responses
+        let retryMs = null;
+
         if (
           response.status === HTTP_STATUS.RATE_LIMITED ||
           response.status === HTTP_STATUS.SERVICE_UNAVAILABLE
         ) {
           // Try to get retry time from headers first
-          let retryMs = this.parseRetryHeaders(response.headers);
+          retryMs = this.parseRetryHeaders(response.headers);
 
           // If no retry time in headers, try to parse from error message body
           if (!retryMs) {
@@ -243,12 +247,13 @@ export class AntigravityExecutor extends BaseExecutor {
             }
           }
 
-          if (retryMs && retryMs <= MAX_RETRY_AFTER_MS) {
+          if (retryMs && retryMs <= LONG_RETRY_THRESHOLD_MS) {
+            const effectiveRetryMs = Math.min(retryMs, MAX_RETRY_AFTER_MS);
             log?.debug?.(
               "RETRY",
-              `${response.status} with Retry-After: ${Math.ceil(retryMs / 1000)}s, waiting...`
+              `${response.status} with Retry-After: ${Math.ceil(effectiveRetryMs / 1000)}s, waiting...`
             );
-            await new Promise((resolve) => setTimeout(resolve, retryMs));
+            await new Promise((resolve) => setTimeout(resolve, effectiveRetryMs));
             urlIndex--;
             continue;
           }
@@ -289,6 +294,33 @@ export class AntigravityExecutor extends BaseExecutor {
           log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
           lastStatus = response.status;
           continue;
+        }
+
+        // If we have a 429 with long retry time, embed it in response body
+        if (
+          response.status === HTTP_STATUS.RATE_LIMITED &&
+          retryMs &&
+          retryMs > LONG_RETRY_THRESHOLD_MS
+        ) {
+          try {
+            const respBody = await response.clone().text();
+            let obj;
+            try {
+              obj = JSON.parse(respBody);
+            } catch {
+              obj = {};
+            }
+            obj.retryAfterMs = retryMs;
+            const modifiedBody = JSON.stringify(obj);
+            const modifiedResponse = new Response(modifiedBody, {
+              status: response.status,
+              headers: response.headers,
+            });
+            return { response: modifiedResponse, url, headers, transformedBody };
+          } catch (err) {
+            log?.warn?.("RETRY", `Failed to embed retryAfterMs: ${err}`);
+            // Fall back to original response
+          }
         }
 
         return { response, url, headers, transformedBody };

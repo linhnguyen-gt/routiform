@@ -23,7 +23,7 @@ import {
 import { HTTP_STATUS, PROVIDER_MAX_TOKENS } from "../config/constants.ts";
 import { classifyProviderError, PROVIDER_ERROR_TYPES } from "../services/errorClassifier.ts";
 import { updateProviderConnection } from "@/lib/db/providers";
-import { isDetailedLoggingEnabled, saveRequestDetailLog } from "@/lib/db/detailedLogs";
+import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
 import { logAuditEvent } from "@/lib/compliance";
 import { handleBypassRequest } from "../utils/bypassHandler.ts";
 import {
@@ -47,7 +47,10 @@ import {
 } from "@/lib/localDb";
 import { getExecutor } from "../executors/index.ts";
 import { getCacheControlSettings } from "@/lib/cacheControlSettings";
-import { shouldPreserveCacheControl } from "../utils/cacheControlPolicy.ts";
+import {
+  shouldPreserveCacheControl,
+  providerSupportsCaching,
+} from "../utils/cacheControlPolicy.ts";
 import { getCacheMetrics } from "@/lib/db/settings.ts";
 
 import {
@@ -533,6 +536,24 @@ export async function handleChatCore({
     claudeCacheUsageMeta?: Record<string, unknown>;
   }) => {
     const callLogId = generateRequestId();
+    const pipelinePayloads = detailedLoggingEnabled ? reqLogger?.getPipelinePayloads?.() : null;
+
+    if (pipelinePayloads) {
+      if (providerResponse !== undefined) {
+        pipelinePayloads.providerResponse = providerResponse as Record<string, unknown>;
+      }
+      if (clientResponse !== undefined) {
+        pipelinePayloads.clientResponse = clientResponse as Record<string, unknown>;
+      }
+      if (error) {
+        pipelinePayloads.error = {
+          ...(typeof pipelinePayloads.error === "object" && pipelinePayloads.error
+            ? (pipelinePayloads.error as Record<string, unknown>)
+            : {}),
+          message: error,
+        };
+      }
+    }
 
     saveCallLog({
       id: callLogId,
@@ -565,31 +586,8 @@ export async function handleChatCore({
       apiKeyId: apiKeyInfo?.id || null,
       apiKeyName: apiKeyInfo?.name || null,
       noLog: noLogEnabled,
+      pipelinePayloads,
     }).catch(() => {});
-
-    if (!detailedLoggingEnabled) {
-      return;
-    }
-
-    try {
-      saveRequestDetailLog({
-        call_log_id: callLogId,
-        client_request: clientRawRequest?.body ?? body,
-        translated_request: providerRequest ?? null,
-        provider_response: providerResponse ?? null,
-        client_response: clientResponse ?? null,
-        provider,
-        model,
-        source_format: sourceFormat,
-        target_format: targetFormat,
-        duration_ms: Date.now() - startTime,
-        api_key_id: apiKeyInfo?.id || null,
-        no_log: noLogEnabled,
-      });
-    } catch (err) {
-      const errMessage = err instanceof Error ? err.message : String(err);
-      log?.debug?.("DETAIL_LOG", `Failed to save detailed log: ${errMessage}`);
-    }
   };
 
   // Primary path: merge client model id + alias target so config on either key applies; resolved
@@ -697,6 +695,7 @@ export async function handleChatCore({
     isCombo,
     comboStrategy,
     targetProvider: provider,
+    targetFormat,
     settings: { alwaysPreserveClientCache: cacheControlMode },
   });
 
@@ -711,6 +710,15 @@ export async function handleChatCore({
     if (nativeCodexPassthrough) {
       translatedBody = { ...body, _nativeCodexPassthrough: true };
       log?.debug?.("FORMAT", "native codex passthrough enabled");
+    } else if (isClaudePassthrough && preserveCacheControl) {
+      // Pure passthrough: when preserveCacheControl is true, forward the body
+      // as-is without any normalization. The OpenAI round-trip would strip
+      // cache_control markers; even prepareClaudeRequest can alter structure.
+      // Claude Code sends well-formed Messages API payloads — trust it.
+      translatedBody = { ...body };
+      translatedBody._disableToolPrefix = true;
+
+      log?.debug?.("FORMAT", "claude passthrough with cache_control preservation");
     } else if (isClaudePassthrough) {
       // Claude OAuth expects the same Claude Code prompt + structural normalization
       // as the OpenAI-compatible chat path. Round-trip through OpenAI to reuse the
@@ -955,9 +963,10 @@ export async function handleChatCore({
           ? translatedBody
           : { ...translatedBody, model: modelToCall };
 
-      // Inject prompt_cache_key for OpenAI providers if not already set
+      // Inject prompt_cache_key only for providers that support it
       if (
         targetFormat === FORMATS.OPENAI &&
+        providerSupportsCaching(provider) &&
         !bodyToSend.prompt_cache_key &&
         Array.isArray(bodyToSend.messages) &&
         !["nvidia", "codex", "xai"].includes(provider)
@@ -1189,6 +1198,31 @@ export async function handleChatCore({
           });
           console.warn(
             `[provider] Node ${connectionId} banned (${statusCode}) — disabling permanently`
+          );
+        } else if (errorType === PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED) {
+          await updateProviderConnection(connectionId, {
+            isActive: false,
+            testStatus: "deactivated",
+            lastErrorType: errorType,
+            lastError: message,
+            errorCode: statusCode,
+          });
+          console.warn(
+            `[provider] Node ${connectionId} account deactivated (${statusCode}) — disabling permanently`
+          );
+        } else if (errorType === PROVIDER_ERROR_TYPES.RATE_LIMITED) {
+          const rateLimitedUntil = new Date(Date.now() + retryAfterMs).toISOString();
+          await updateProviderConnection(connectionId, {
+            rateLimitedUntil: rateLimitedUntil,
+            testStatus: "credits_exhausted",
+            lastErrorType: errorType,
+            lastError: message,
+            errorCode: statusCode,
+            healthCheckInterval: null,
+            lastHealthCheckAt: null,
+          });
+          console.warn(
+            `[provider] Node ${connectionId} rate limited (${statusCode}) - Next available at ${rateLimitedUntil}`
           );
         } else if (errorType === PROVIDER_ERROR_TYPES.QUOTA_EXHAUSTED) {
           await updateProviderConnection(connectionId, {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProviderConnectionById } from "@/models";
-import { replaceCustomModels } from "@/lib/db/models";
+import { getCustomModels, replaceCustomModels } from "@/lib/db/models";
 import {
   syncManagedAvailableModelAliases,
   usesManagedAvailableModels,
@@ -13,11 +13,108 @@ import {
 } from "@/shared/services/modelSyncScheduler";
 import { getModelsByProviderId } from "@/shared/constants/models";
 
+type JsonRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeModelForComparison(model: unknown) {
+  const record = asRecord(model);
+  const id = toNonEmptyString(record.id) || "";
+  const name = toNonEmptyString(record.name) || id;
+  const source = toNonEmptyString(record.source) || "auto-sync";
+  const apiFormat = toNonEmptyString(record.apiFormat) || "chat-completions";
+  const supportedEndpoints = Array.isArray(record.supportedEndpoints)
+    ? Array.from(
+        new Set(
+          record.supportedEndpoints
+            .map((endpoint) => toNonEmptyString(endpoint))
+            .filter((endpoint): endpoint is string => Boolean(endpoint))
+        )
+      ).sort()
+    : ["chat"];
+
+  return {
+    id,
+    name,
+    source,
+    apiFormat,
+    supportedEndpoints,
+  };
+}
+
+function summarizeModelChanges(previousModels: unknown, nextModels: unknown) {
+  const previousList = Array.isArray(previousModels) ? previousModels : [];
+  const nextList = Array.isArray(nextModels) ? nextModels : [];
+
+  const previousMap = new Map(
+    previousList
+      .map((model) => normalizeModelForComparison(model))
+      .filter((model) => model.id)
+      .map((model) => [model.id, JSON.stringify(model)])
+  );
+  const nextMap = new Map(
+    nextList
+      .map((model) => normalizeModelForComparison(model))
+      .filter((model) => model.id)
+      .map((model) => [model.id, JSON.stringify(model)])
+  );
+
+  let added = 0;
+  let removed = 0;
+  let updated = 0;
+
+  for (const [id, nextValue] of nextMap.entries()) {
+    const previousValue = previousMap.get(id);
+    if (!previousValue) {
+      added += 1;
+      continue;
+    }
+    if (previousValue !== nextValue) {
+      updated += 1;
+    }
+  }
+
+  for (const id of previousMap.keys()) {
+    if (!nextMap.has(id)) {
+      removed += 1;
+    }
+  }
+
+  return {
+    added,
+    removed,
+    updated,
+    total: added + removed + updated,
+  };
+}
+
+function getModelSyncChannelLabel(connection: unknown) {
+  const record = asRecord(connection);
+  const providerSpecificData = asRecord(record.providerSpecificData);
+
+  return (
+    toNonEmptyString(record.displayName) ||
+    toNonEmptyString(record.email) ||
+    toNonEmptyString(providerSpecificData.tag) ||
+    toNonEmptyString(record.name) ||
+    toNonEmptyString(record.provider) ||
+    (toNonEmptyString(record.id) ? `connection:${String(record.id).slice(0, 8)}` : null) ||
+    "unknown"
+  );
+}
+
 /**
  * POST /api/providers/[id]/sync-models
  *
  * Fetches the model list from a provider's /models endpoint and replaces the
- * full custom models list for that provider. Logs the operation to call_logs.
+ * full custom models list for that provider. Successful syncs only write a
+ * call log when the fetched channel actually changes the stored model list.
  *
  * Used by:
  * - modelSyncScheduler (auto-sync on interval)
@@ -40,8 +137,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    // Use a human-readable provider name for logs
-    const providerLabel = connection.name || connection.provider || "unknown";
+    const providerLabel = getModelSyncChannelLabel(connection);
 
     // Fetch models from the existing /api/providers/[id]/models endpoint
     const origin = new URL(request.url).origin;
@@ -92,7 +188,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }))
       .filter((m: any) => m.id && !registryIds.has(m.id));
 
+    const previousModels = await getCustomModels(connection.provider);
     const replaced = await replaceCustomModels(connection.provider, models);
+    const modelChanges = summarizeModelChanges(previousModels, replaced);
 
     let syncedAliases = 0;
     if (usesManagedAvailableModels(connection.provider)) {
@@ -103,29 +201,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       syncedAliases = aliasSync.assignedAliases.length;
     }
 
-    // Log the successful sync
-    await saveCallLog({
-      method: "GET",
-      path: `/api/providers/${id}/models`,
-      status: 200,
-      model: "model-sync",
-      provider: providerLabel,
-      sourceFormat: "-",
-      connectionId: id,
-      duration: Date.now() - start,
-      requestType: "model-sync",
-      responseBody: {
-        syncedModels: models.length,
-        syncedAliases,
-        provider: connection.provider,
-      },
-    });
+    if (modelChanges.total > 0) {
+      await saveCallLog({
+        method: "GET",
+        path: `/api/providers/${id}/models`,
+        status: 200,
+        model: "model-sync",
+        provider: providerLabel,
+        sourceFormat: "-",
+        connectionId: id,
+        duration: Date.now() - start,
+        requestType: "model-sync",
+        responseBody: {
+          syncedModels: models.length,
+          syncedAliases,
+          provider: connection.provider,
+          channel: providerLabel,
+          modelChanges,
+        },
+      });
+    }
 
     return NextResponse.json({
       ok: true,
       provider: connection.provider,
       syncedModels: replaced.length,
       syncedAliases,
+      modelChanges,
+      logged: modelChanges.total > 0,
       models: replaced,
     });
   } catch (error: any) {

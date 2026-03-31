@@ -12,8 +12,8 @@ const localDb = await import("../../src/lib/localDb.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const usageHistory = await import("../../src/lib/usage/usageHistory.ts");
 const usageStats = await import("../../src/lib/usage/usageStats.ts");
+const callLogs = await import("../../src/lib/usage/callLogs.ts");
 const { calculateCost } = await import("../../src/lib/usage/costCalculator.ts");
-const { LOG_FILE } = await import("../../src/lib/usage/migrations.ts");
 
 function clearPendingRequests() {
   const pending = usageHistory.getPendingRequests();
@@ -263,7 +263,7 @@ test("getUsageStats aggregates totals, buckets, pending requests, and cost break
   assert.equal(recentBucketTotal, 1);
 });
 
-test("request log appends readable entries and trims to the most recent 200 lines", async () => {
+test("recent request summaries are generated from SQLite call logs", async () => {
   const connection = await providersDb.createProviderConnection({
     provider: "log-provider",
     authType: "apikey",
@@ -272,19 +272,23 @@ test("request log appends readable entries and trims to the most recent 200 line
   });
 
   for (let i = 0; i < 205; i++) {
-    await usageHistory.appendRequestLog({
+    await callLogs.saveCallLog({
+      id: `log-${i}`,
+      timestamp: new Date(Date.now() + i).toISOString(),
+      method: "POST",
+      path: "/v1/chat/completions",
+      status: 200,
       model: `model-${i}`,
       provider: "log-provider",
       connectionId: connection.id,
       tokens: { input: i + 1, output: i + 2 },
-      status: 200,
+      requestBody: { index: i },
+      responseBody: { ok: true, index: i },
     });
   }
 
   const recent = await usageHistory.getRecentLogs(3);
-  const lines = fs.readFileSync(LOG_FILE, "utf8").trim().split("\n");
 
-  assert.equal(lines.length, 200);
   assert.equal(recent.length, 3);
   assert.match(recent[0], /model-204/);
   assert.match(recent[0], /LOG-PROVIDER/);

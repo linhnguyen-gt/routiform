@@ -18,11 +18,6 @@ export default function SystemStorageTab() {
   const [importStatus, setImportStatus] = useState({ type: "", message: "" });
   const [confirmImport, setConfirmImport] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
-  const [maxCallLogs, setMaxCallLogs] = useState(10000);
-  const [maxCallLogsDraft, setMaxCallLogsDraft] = useState("10000");
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [maxCallLogsSaving, setMaxCallLogsSaving] = useState(false);
-  const [maxCallLogsStatus, setMaxCallLogsStatus] = useState({ type: "", message: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const locale = useLocale();
   const t = useTranslations("settings");
@@ -31,7 +26,10 @@ export default function SystemStorageTab() {
     driver: "sqlite",
     dbPath: "~/.omniroute/storage.sqlite",
     sizeBytes: 0,
-    retentionDays: 90,
+    retentionDays: {
+      app: 7,
+      call: 7,
+    },
     lastBackupAt: null,
   });
 
@@ -56,27 +54,6 @@ export default function SystemStorageTab() {
       setStorageHealth((prev) => ({ ...prev, ...data }));
     } catch (err) {
       console.error("Failed to fetch storage health:", err);
-    }
-  };
-
-  const loadSettings = async () => {
-    setSettingsLoading(true);
-    try {
-      const res = await fetch("/api/settings");
-      if (!res.ok) return;
-      const data = await res.json();
-      const value =
-        typeof data.maxCallLogs === "number" &&
-        Number.isInteger(data.maxCallLogs) &&
-        data.maxCallLogs > 0
-          ? data.maxCallLogs
-          : 10000;
-      setMaxCallLogs(value);
-      setMaxCallLogsDraft(String(value));
-    } catch (err) {
-      console.error("Failed to fetch settings:", err);
-    } finally {
-      setSettingsLoading(false);
     }
   };
 
@@ -145,46 +122,7 @@ export default function SystemStorageTab() {
 
   useEffect(() => {
     loadStorageHealth();
-    loadSettings();
   }, []);
-
-  const handleSaveMaxCallLogs = async () => {
-    const parsed = Number.parseInt(maxCallLogsDraft, 10);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      setMaxCallLogsStatus({
-        type: "error",
-        message: "Enter a positive integer for the call log limit.",
-      });
-      return;
-    }
-
-    setMaxCallLogsSaving(true);
-    setMaxCallLogsStatus({ type: "", message: "" });
-    try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxCallLogs: parsed }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save call log limit");
-      }
-      setMaxCallLogs(parsed);
-      setMaxCallLogsDraft(String(parsed));
-      setMaxCallLogsStatus({
-        type: "success",
-        message: "Call log retention limit saved.",
-      });
-    } catch (err) {
-      setMaxCallLogsStatus({
-        type: "error",
-        message: (err as Error).message || "Failed to save call log limit",
-      });
-    } finally {
-      setMaxCallLogsSaving(false);
-    }
-  };
 
   const handleExport = async () => {
     setExportLoading(true);
@@ -345,53 +283,23 @@ export default function SystemStorageTab() {
       </div>
 
       <div className="p-3 rounded-lg bg-bg border border-border mb-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-sm font-medium text-text-main">Call log retention limit</p>
+            <p className="text-sm font-medium text-text-main">Log retention policy</p>
             <p className="text-xs text-text-muted">
-              Keep only the most recent call log entries in SQLite. Older entries are pruned
-              automatically after each new request log is saved.
+              Request logs follow <code>CALL_LOG_RETENTION_DAYS</code>. Application and audit logs
+              follow <code>APP_LOG_RETENTION_DAYS</code>.
             </p>
           </div>
-          <Badge variant="default" size="sm">
-            {maxCallLogs.toLocaleString()}
-          </Badge>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={maxCallLogsDraft}
-            onChange={(e) => setMaxCallLogsDraft(e.target.value)}
-            disabled={settingsLoading || maxCallLogsSaving}
-            className="w-40 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-primary/40"
-            aria-label="Call log retention limit"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveMaxCallLogs}
-            loading={maxCallLogsSaving}
-            disabled={settingsLoading}
-          >
-            Save limit
-          </Button>
-        </div>
-
-        {maxCallLogsStatus.message && (
-          <div
-            className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
-              maxCallLogsStatus.type === "success"
-                ? "border-green-500/20 bg-green-500/10 text-green-500"
-                : "border-red-500/20 bg-red-500/10 text-red-500"
-            }`}
-            role="alert"
-          >
-            {maxCallLogsStatus.message}
+          <div className="flex items-center gap-2">
+            <Badge variant="default" size="sm">
+              Call {storageHealth.retentionDays.call}d
+            </Badge>
+            <Badge variant="default" size="sm">
+              App {storageHealth.retentionDays.app}d
+            </Badge>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Export / Import */}

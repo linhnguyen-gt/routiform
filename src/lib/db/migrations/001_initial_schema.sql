@@ -109,8 +109,8 @@ CREATE INDEX IF NOT EXISTS idx_uh_provider ON usage_history(provider);
 CREATE INDEX IF NOT EXISTS idx_uh_model ON usage_history(model);
 
 CREATE TABLE IF NOT EXISTS call_logs (
-  id TEXT PRIMARY KEY,
-  timestamp TEXT NOT NULL,
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
   method TEXT,
   path TEXT,
   status INTEGER,
@@ -124,11 +124,13 @@ CREATE TABLE IF NOT EXISTS call_logs (
   source_format TEXT,
   target_format TEXT,
   api_key_id TEXT,
-  api_key_name TEXT,
-  combo_name TEXT,
-  request_body TEXT,
-  response_body TEXT,
-  error TEXT
+    api_key_name TEXT,
+    combo_name TEXT,
+    request_body TEXT,
+    response_body TEXT,
+    error TEXT,
+    artifact_relpath TEXT,
+    has_pipeline_details INTEGER DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_cl_timestamp ON call_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_cl_status ON call_logs(status);

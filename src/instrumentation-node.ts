@@ -65,6 +65,9 @@ async function ensureSecrets(): Promise<void> {
 export async function registerNodejs(): Promise<void> {
   await ensureSecrets();
 
+  // Trigger request-log layout migration during startup, before any request hits usageDb.
+  await import("@/lib/usage/migrations");
+
   const { initConsoleInterceptor } = await import("@/lib/consoleInterceptor");
   initConsoleInterceptor();
 
@@ -127,7 +130,14 @@ export async function registerNodejs(): Promise<void> {
     console.log("[COMPLIANCE] Audit log table initialized");
 
     const cleanup = cleanupExpiredLogs();
-    if (cleanup.deletedUsage || cleanup.deletedCallLogs || cleanup.deletedAuditLogs) {
+    if (
+      cleanup.deletedUsage ||
+      cleanup.deletedCallLogs ||
+      cleanup.deletedProxyLogs ||
+      cleanup.deletedRequestDetailLogs ||
+      cleanup.deletedAuditLogs ||
+      cleanup.deletedMcpAuditLogs
+    ) {
       console.log("[COMPLIANCE] Expired log cleanup:", cleanup);
     }
   } catch (err: unknown) {

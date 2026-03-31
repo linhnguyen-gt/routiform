@@ -591,9 +591,13 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     authPrefix: "Bearer",
     defaultContextLength: 200000,
     models: [
-      { id: "minimax-m2.5-free", name: "MiniMax M2.5 Free" },
-      { id: "big-pickle", name: "Big Pickle" },
-      { id: "gpt-5-nano", name: "GPT 5 Nano" },
+      { id: "minimax-m2.5-free", name: "MiniMax M2.5 Free", contextLength: 204800 },
+      { id: "big-pickle", name: "Big Pickle", contextLength: 200000 },
+      { id: "gpt-5-nano", name: "GPT 5 Nano", contextLength: 400000 },
+      { id: "mimo-v2-omni-free", name: "MiMo V2 Omni Free", contextLength: 262144 },
+      { id: "mimo-v2-pro-free", name: "MiMo V2 Pro Free", contextLength: 1048576 },
+      { id: "nemotron-3-super-free", name: "Nemotron 3 Super Free", contextLength: 1000000 },
+      { id: "qwen3.6-plus-free", name: "Qwen 3.6 Plus Free", contextLength: 1048576 },
     ],
   },
 

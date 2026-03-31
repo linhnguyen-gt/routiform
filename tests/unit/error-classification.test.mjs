@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { checkFallbackError, getProviderProfile } =
+const { checkFallbackError, getProviderProfile, parseRetryFromErrorText } =
   await import("../../open-sse/services/accountFallback.ts");
 
 const { getProviderCategory } = await import("../../open-sse/config/providerRegistry.ts");
@@ -126,4 +126,65 @@ test("401 auth error: still uses flat cooldown, no backoff", () => {
 test("400 bad request: still returns shouldFallback false", () => {
   const result = checkFallbackError(400, "", 0, null, "groq");
   assert.equal(result.shouldFallback, false);
+});
+
+// ─── T07: Retry Time Parsing from Error Text ─────────────────────────────────
+
+test("parseRetryFromErrorText: parses 27h41m36s format", () => {
+  const result = parseRetryFromErrorText("Your quota will reset after 27h41m36s");
+  assert.equal(result, 27 * 3600 * 1000 + 41 * 60 * 1000 + 36 * 1000);
+});
+
+test("parseRetryFromErrorText: parses 2h30m format", () => {
+  const result = parseRetryFromErrorText("quota will reset after 2h30m");
+  assert.equal(result, 2 * 3600 * 1000 + 30 * 60 * 1000);
+});
+
+test("parseRetryFromErrorText: parses 45m format", () => {
+  const result = parseRetryFromErrorText("reset after 45m");
+  assert.equal(result, 45 * 60 * 1000);
+});
+
+test("parseRetryFromErrorText: parses 30s format", () => {
+  const result = parseRetryFromErrorText("reset after 30s");
+  assert.equal(result, 30 * 1000);
+});
+
+test("parseRetryFromErrorText: returns null for invalid format", () => {
+  const result = parseRetryFromErrorText("invalid error message");
+  assert.equal(result, null);
+});
+
+test("parseRetryFromErrorText: parses will reset after variant", () => {
+  const result = parseRetryFromErrorText("quota will reset after 5h");
+  assert.equal(result, 5 * 3600 * 1000);
+});
+
+// ─── T06: Keyword Matching for Long Cooldowns ────────────────────────────────
+
+test("quota will reset keyword triggers long cooldown from body", () => {
+  const result = checkFallbackError(
+    429,
+    "Your quota will reset after 27h41m36s",
+    0,
+    null,
+    "antigravity",
+    null
+  );
+  assert.equal(result.shouldFallback, true);
+  assert.ok(result.cooldownMs > 60_000, "cooldownMs should be > 60s");
+  assert.equal(result.newBackoffLevel, 0, "backoffLevel should reset to 0");
+});
+
+test("exhausted your capacity keyword triggers long cooldown", () => {
+  const result = checkFallbackError(
+    429,
+    "You have exhausted your capacity. Your quota will reset after 2h",
+    0,
+    null,
+    "antigravity",
+    null
+  );
+  assert.equal(result.shouldFallback, true);
+  assert.ok(result.cooldownMs > 60_000);
 });

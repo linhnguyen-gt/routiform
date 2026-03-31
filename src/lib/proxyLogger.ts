@@ -11,7 +11,7 @@ import { getDbInstance, isCloud, isBuildPhase } from "./db/core";
 
 const shouldPersistToDisk = !isCloud && !isBuildPhase;
 
-const MAX_ENTRIES = parseInt(process.env.PROXY_LOG_MAX_ENTRIES || "200", 10);
+const MAX_IN_MEMORY_ENTRIES = 200;
 
 interface ProxyInfo {
   type: string;
@@ -56,7 +56,7 @@ function loadFromDb() {
     const db = getDbInstance();
     const rows = db
       .prepare("SELECT * FROM proxy_logs ORDER BY timestamp DESC LIMIT ?")
-      .all(MAX_ENTRIES) as any[];
+      .all(MAX_IN_MEMORY_ENTRIES) as any[];
 
     for (const row of rows) {
       proxyLogs.push({
@@ -113,8 +113,8 @@ export function logProxyEvent(entry: Partial<ProxyLogEntry>) {
 
   // 1. In-memory ring buffer (newest first)
   proxyLogs.unshift(log);
-  if (proxyLogs.length > MAX_ENTRIES) {
-    proxyLogs.length = MAX_ENTRIES;
+  if (proxyLogs.length > MAX_IN_MEMORY_ENTRIES) {
+    proxyLogs.length = MAX_IN_MEMORY_ENTRIES;
   }
 
   // 2. Persist to SQLite
@@ -147,16 +147,6 @@ export function logProxyEvent(entry: Partial<ProxyLogEntry>) {
         account: log.account,
         tlsFingerprint: log.tlsFingerprint ? 1 : 0,
       });
-
-      // Trim old entries
-      const count = (db.prepare("SELECT COUNT(*) as cnt FROM proxy_logs").get() as any)?.cnt || 0;
-      if (count > MAX_ENTRIES) {
-        db.prepare(
-          `DELETE FROM proxy_logs WHERE id IN (
-            SELECT id FROM proxy_logs ORDER BY timestamp ASC LIMIT ?
-          )`
-        ).run(count - MAX_ENTRIES);
-      }
     } catch (err: any) {
       console.warn("[proxyLogger] Failed to persist:", err.message);
     }

@@ -378,31 +378,18 @@ export async function getModelLatencyStats(
   return stats;
 }
 
-// ──────────────── Request Log (log.txt) ────────────────
-
-import fs from "fs";
-import { LOG_FILE } from "./migrations";
-
-function formatLogDate(date = new Date()) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const d = pad(date.getDate());
-  const m = pad(date.getMonth() + 1);
-  const y = date.getFullYear();
-  const h = pad(date.getHours());
-  const min = pad(date.getMinutes());
-  const s = pad(date.getSeconds());
-  return `${d}-${m}-${y} ${h}:${min}:${s}`;
-}
+// ──────────────── Request Log Compatibility Shim ────────────────
 
 /**
- * Append to log.txt.
+ * Legacy compatibility shim.
+ * Request summary lines are no longer written to data/log.txt.
  */
 export async function appendRequestLog({
-  model,
-  provider,
-  connectionId,
-  tokens,
-  status,
+  model: _model,
+  provider: _provider,
+  connectionId: _connectionId,
+  tokens: _tokens,
+  status: _status,
 }: {
   model?: string;
   provider?: string;
@@ -410,55 +397,39 @@ export async function appendRequestLog({
   tokens?: any;
   status?: string | number;
 }) {
-  if (!shouldPersistToDisk) return;
-
-  try {
-    const timestamp = formatLogDate();
-    const p = provider?.toUpperCase() || "-";
-    const m = model || "-";
-
-    let account = connectionId ? connectionId.slice(0, 8) : "-";
-    try {
-      const { getProviderConnections } = await import("@/lib/localDb");
-      const connections = await getProviderConnections();
-      const connRaw = connections.find((c) => asRecord(c).id === connectionId);
-      if (connRaw) {
-        const conn = asRecord(connRaw);
-        account = toStringOrNull(conn.name) || toStringOrNull(conn.email) || account;
-      }
-    } catch {}
-
-    const sent = tokens ? getLoggedInputTokens(tokens) : "-";
-    const received = tokens ? getLoggedOutputTokens(tokens) : "-";
-
-    const line = `${timestamp} | ${m} | ${p} | ${account} | ${sent} | ${received} | ${status}\n`;
-    fs.appendFileSync(LOG_FILE, line);
-
-    const content = fs.readFileSync(LOG_FILE, "utf-8");
-    const lines = content.trim().split("\n");
-    if (lines.length > 200) {
-      fs.writeFileSync(LOG_FILE, lines.slice(-200).join("\n") + "\n");
-    }
-  } catch (error: any) {
-    console.error("Failed to append to log.txt:", error.message);
-  }
+  // Deprecated: request summaries now come from SQLite call_logs.
 }
 
 /**
- * Get last N lines of log.txt.
+ * Return recent request summaries generated from SQLite call_logs rows.
  */
 export async function getRecentLogs(limit = 200) {
-  if (!shouldPersistToDisk) return [];
-  if (!fs || typeof fs.existsSync !== "function") return [];
-  if (!LOG_FILE) return [];
-  if (!fs.existsSync(LOG_FILE)) return [];
-
   try {
-    const content = fs.readFileSync(LOG_FILE, "utf-8");
-    const lines = content.trim().split("\n");
-    return lines.slice(-limit).reverse();
+    const db = getDbInstance();
+    const rows = db
+      .prepare(
+        `
+        SELECT timestamp, model, provider, account, tokens_in, tokens_out, status
+        FROM call_logs
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `
+      )
+      .all(limit) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => {
+      const timestamp =
+        typeof row.timestamp === "string" ? row.timestamp : new Date().toISOString();
+      const provider = typeof row.provider === "string" ? row.provider.toUpperCase() : "-";
+      const model = typeof row.model === "string" ? row.model : "-";
+      const account = typeof row.account === "string" ? row.account : "-";
+      const tokensIn = toNumber(row.tokens_in);
+      const tokensOut = toNumber(row.tokens_out);
+      const status = typeof row.status === "number" ? row.status : String(row.status || "-");
+      return `${timestamp} | ${model} | ${provider} | ${account} | ${tokensIn} | ${tokensOut} | ${status}`;
+    });
   } catch (error: any) {
-    console.error("[usageDb] Failed to read log.txt:", error.message);
+    console.error("[usageDb] Failed to read recent call logs:", error.message);
     return [];
   }
 }

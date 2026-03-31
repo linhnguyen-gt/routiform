@@ -135,3 +135,6 @@ vscode-extension/
 
 # Compiled npm-package build artifact (not source, should not be in git)
 /app
+
+# IDEA
+.idea/

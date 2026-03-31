@@ -122,6 +122,17 @@ export async function parseUpstreamError(response, provider = null) {
     retryAfterMs = parseAntigravityRetryTime(messageStr);
   }
 
+  // Also parse retry time for other providers (Qwen, etc.) with "quota will reset after XhYmZs" format
+  if (response.status === 429 && !retryAfterMs) {
+    retryAfterMs = parseAntigravityRetryTime(messageStr);
+  }
+
+  // Cap maximum retry time at 24 hours to prevent infinite wait
+  const MAX_RETRY_MS = 24 * 60 * 60 * 1000;
+  if (retryAfterMs && retryAfterMs > MAX_RETRY_MS) {
+    retryAfterMs = MAX_RETRY_MS;
+  }
+
   return {
     statusCode: response.status,
     message: messageStr,

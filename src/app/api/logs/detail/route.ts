@@ -1,6 +1,6 @@
 /**
- * GET  /api/logs/detail  — List detailed request logs + current enabled flag
- * POST /api/logs/detail — Enable/disable detailed logging
+ * GET  /api/logs/detail  — List legacy detailed request logs + current enabled flag
+ * POST /api/logs/detail — Enable/disable pipeline capture for unified call log artifacts
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const enabled = body.enabled === true || body.enabled === "1";
 
-  await updateSettings({ detailed_logs_enabled: enabled });
+  await updateSettings({ call_log_pipeline_enabled: enabled });
 
   return NextResponse.json({
     success: true,
     enabled,
     message: enabled
-      ? "Detailed logging enabled. Pipeline bodies will be captured for new requests."
-      : "Detailed logging disabled.",
+      ? "Pipeline capture enabled. New request artifacts will include per-stage payloads."
+      : "Pipeline capture disabled.",
   });
 }

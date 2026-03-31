@@ -315,7 +315,7 @@ export default function RequestLoggerV2() {
               ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
               : "bg-bg-subtle border-border text-text-muted"
           }`}
-          title="Capture four-stage pipeline payloads for new requests"
+          title="Capture per-request pipeline payloads inside the unified call log artifact"
         >
           <span
             className={`w-2 h-2 rounded-full ${detailLoggingEnabled ? "bg-amber-500" : "bg-text-muted"}`}
@@ -769,8 +769,8 @@ export default function RequestLoggerV2() {
       </Card>
 
       <div className="text-[10px] text-text-muted italic">
-        Call logs are also saved as JSON files to <code>{`{DATA_DIR}/call_logs/`}</code> with 7-day
-        rotation.
+        Each request is also saved as a single JSON artifact in{" "}
+        <code>{`{DATA_DIR}/call_logs/`}</code>.
       </div>
 
       {/* Detail Modal */}

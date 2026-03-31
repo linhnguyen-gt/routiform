@@ -60,8 +60,6 @@ export const settingsSchema = z
     requireLogin: z.boolean().optional(),
     password: z.string().min(6, "Password must be at least 6 characters").optional(),
     defaultModel: z.string().optional(),
-    enableRequestLogs: z.boolean().optional(),
-    maxLogRetention: z.number().int().min(1).max(365).optional(),
     rateLimitEnabled: z.boolean().optional(),
     rateLimitPerMinute: z.number().int().min(0).optional(),
   })

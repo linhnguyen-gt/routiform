@@ -46,6 +46,9 @@ export function classifyProviderError(statusCode: number, responseBody: unknown)
   }
 
   if (statusCode === 402) return PROVIDER_ERROR_TYPES.QUOTA_EXHAUSTED;
+  if (statusCode === 403 && accountDeactivated) {
+    return PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED;
+  }
   if (statusCode === 403) return PROVIDER_ERROR_TYPES.FORBIDDEN;
   if (statusCode >= 500) return PROVIDER_ERROR_TYPES.SERVER_ERROR;
 

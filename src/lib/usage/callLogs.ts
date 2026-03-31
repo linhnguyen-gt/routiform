@@ -2,23 +2,56 @@
  * Call Logs — extracted from usageDb.js (T-15)
  *
  * Structured call log management: save, query, rotate, and
- * full-payload disk storage for the Logger UI.
+ * unified single-artifact disk storage for the Logger UI.
  *
  * @module lib/usage/callLogs
  */
 
-import path from "path";
 import fs from "fs";
+import path from "path";
+import type { RequestPipelinePayloads } from "@omniroute/open-sse/utils/requestLogger.ts";
 import { getDbInstance } from "../db/core";
-import { getSettings } from "../db/settings";
 import { getRequestDetailLogByCallLogId } from "../db/detailedLogs";
 import { shouldPersistToDisk, CALL_LOGS_DIR } from "./migrations";
 import { getLoggedInputTokens, getLoggedOutputTokens } from "./tokenAccounting";
 import { isNoLog } from "../compliance";
 import { sanitizePII } from "../piiSanitizer";
-import { protectPayloadForLog, parseStoredPayload } from "../logPayloads";
+import {
+  protectPayloadForLog,
+  parseStoredPayload,
+  serializePayloadForStorage,
+} from "../logPayloads";
+import { getCallLogRetentionDays } from "../logEnv";
 
 type JsonRecord = Record<string, unknown>;
+
+type CallLogArtifact = {
+  schemaVersion: 2;
+  summary: {
+    id: string;
+    timestamp: string;
+    method: string;
+    path: string;
+    status: number;
+    model: string;
+    requestedModel: string | null;
+    provider: string;
+    account: string;
+    connectionId: string | null;
+    duration: number;
+    tokens: { in: number; out: number };
+    requestType: string | null;
+    sourceFormat: string | null;
+    targetFormat: string | null;
+    apiKeyId: string | null;
+    apiKeyName: string | null;
+    comboName: string | null;
+  };
+  requestBody: unknown;
+  responseBody: unknown;
+  error: unknown;
+  pipeline?: RequestPipelinePayloads;
+};
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
@@ -34,7 +67,7 @@ function toNumber(value: unknown): number {
 }
 
 function toStringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 function hasTruncatedFlag(value: unknown): boolean {
@@ -42,74 +75,224 @@ function hasTruncatedFlag(value: unknown): boolean {
   return (value as Record<string, unknown>)._truncated === true;
 }
 
-const DEFAULT_MAX_CALL_LOGS = 10000;
-const CALL_LOGS_MAX_CACHE_TTL_MS = 30_000;
-
-const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || "7", 10);
-const CALL_LOG_PAYLOAD_MODE = (() => {
-  const value = (process.env.CALL_LOG_PAYLOAD_MODE || "full").toLowerCase();
-  return value === "full" || value === "metadata" || value === "none" ? value : "full";
-})();
-const shouldLogPayloadInDb = CALL_LOG_PAYLOAD_MODE !== "none";
-const shouldLogPayloadOnDisk = CALL_LOG_PAYLOAD_MODE === "full";
-
-let callLogsMaxCache = {
-  value: resolveCallLogsMaxValue(process.env.CALL_LOGS_MAX) ?? DEFAULT_MAX_CALL_LOGS,
-  expiresAt: 0,
-};
-
-function resolveCallLogsMaxValue(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value) && value > 0) return value;
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number.parseInt(value, 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+function sanitizeErrorForLog(error: unknown): unknown {
+  if (error === null || error === undefined) return null;
+  if (typeof error === "string") return sanitizePII(error).text;
+  if (error instanceof Error) {
+    return {
+      message: sanitizePII(error.message).text,
+      stack: sanitizePII(error.stack || "").text || undefined,
+      name: error.name,
+    };
   }
-  return null;
+  return protectPayloadForLog(error);
 }
 
-async function getMaxCallLogs(): Promise<number> {
-  const now = Date.now();
-  if (callLogsMaxCache.expiresAt > now) {
-    return callLogsMaxCache.value;
-  }
-
-  let value = resolveCallLogsMaxValue(process.env.CALL_LOGS_MAX) ?? DEFAULT_MAX_CALL_LOGS;
-
+function toStoredErrorString(error: unknown): string | null {
+  const sanitized = sanitizeErrorForLog(error);
+  if (sanitized === null || sanitized === undefined) return null;
+  if (typeof sanitized === "string") return sanitized;
   try {
-    const { getSettings } = await import("@/lib/localDb");
-    const settings = await getSettings();
-    const configured =
-      resolveCallLogsMaxValue(settings.maxCallLogs) ??
-      resolveCallLogsMaxValue(settings.MAX_CALL_LOGS);
-    if (configured !== null) {
-      value = configured;
-    }
+    return JSON.stringify(sanitized);
   } catch {
-    // Fall back to env/default cap when settings are unavailable.
+    return String(sanitized);
+  }
+}
+
+function protectPipelinePayloads(payloads: unknown): RequestPipelinePayloads | null {
+  if (!payloads || typeof payloads !== "object") return null;
+
+  const protectedPayloads: RequestPipelinePayloads = {};
+  for (const [key, value] of Object.entries(payloads as JsonRecord)) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    if (key === "streamChunks" && value && typeof value === "object") {
+      const chunks = value as Record<string, unknown>;
+      const compacted = Object.fromEntries(
+        Object.entries(chunks).filter(
+          ([, chunkValue]) => Array.isArray(chunkValue) && chunkValue.length > 0
+        )
+      );
+      if (Object.keys(compacted).length > 0) {
+        protectedPayloads.streamChunks = protectPayloadForLog(
+          compacted
+        ) as RequestPipelinePayloads["streamChunks"];
+      }
+      continue;
+    }
+
+    protectedPayloads[key as keyof RequestPipelinePayloads] = protectPayloadForLog(value) as never;
   }
 
-  callLogsMaxCache = {
-    value,
-    expiresAt: now + CALL_LOGS_MAX_CACHE_TTL_MS,
-  };
-  return value;
+  return Object.keys(protectedPayloads).length > 0 ? protectedPayloads : null;
 }
 
-export function invalidateCallLogsMaxCache(): void {
-  callLogsMaxCache = {
-    value: resolveCallLogsMaxValue(process.env.CALL_LOGS_MAX) ?? DEFAULT_MAX_CALL_LOGS,
-    expiresAt: 0,
-  };
-}
 let logIdCounter = 0;
 function generateLogId() {
   logIdCounter++;
   return `${Date.now()}-${logIdCounter}`;
 }
 
-/**
- * Save a structured call log entry.
- */
+async function resolveAccountName(connectionId: string | null | undefined) {
+  let account = connectionId ? connectionId.slice(0, 8) : "-";
+
+  if (!connectionId) {
+    return account;
+  }
+
+  try {
+    const { getProviderConnections } = await import("@/lib/localDb");
+    const connections = await getProviderConnections();
+    const conn = connections.find((item) => item.id === connectionId);
+    if (conn) {
+      account = conn.name || conn.email || account;
+    }
+  } catch {
+    // Best-effort lookup only.
+  }
+
+  return account;
+}
+
+function buildArtifactRelativePath(timestamp: string, id: string) {
+  const parsed = new Date(timestamp);
+  const safeTimestamp = (
+    Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
+  ).replace(/[:]/g, "-");
+  const dateFolder = safeTimestamp.slice(0, 10);
+  return path.posix.join(dateFolder, `${safeTimestamp}_${id}.json`);
+}
+
+function buildArtifact(
+  logEntry: {
+    id: string;
+    timestamp: string;
+    method: string;
+    path: string;
+    status: number;
+    model: string;
+    requestedModel: string | null;
+    provider: string;
+    account: string;
+    connectionId: string | null;
+    duration: number;
+    tokensIn: number;
+    tokensOut: number;
+    requestType: string | null;
+    sourceFormat: string | null;
+    targetFormat: string | null;
+    apiKeyId: string | null;
+    apiKeyName: string | null;
+    comboName: string | null;
+  },
+  requestBody: unknown,
+  responseBody: unknown,
+  error: unknown,
+  pipelinePayloads: RequestPipelinePayloads | null
+): CallLogArtifact {
+  return {
+    schemaVersion: 2,
+    summary: {
+      id: logEntry.id,
+      timestamp: logEntry.timestamp,
+      method: logEntry.method,
+      path: logEntry.path,
+      status: logEntry.status,
+      model: logEntry.model,
+      requestedModel: logEntry.requestedModel,
+      provider: logEntry.provider,
+      account: logEntry.account,
+      connectionId: logEntry.connectionId,
+      duration: logEntry.duration,
+      tokens: { in: logEntry.tokensIn, out: logEntry.tokensOut },
+      requestType: logEntry.requestType,
+      sourceFormat: logEntry.sourceFormat,
+      targetFormat: logEntry.targetFormat,
+      apiKeyId: logEntry.apiKeyId,
+      apiKeyName: logEntry.apiKeyName,
+      comboName: logEntry.comboName,
+    },
+    requestBody: requestBody ?? null,
+    responseBody: responseBody ?? null,
+    error: error ?? null,
+    ...(pipelinePayloads ? { pipeline: pipelinePayloads } : {}),
+  };
+}
+
+function writeCallArtifact(artifact: CallLogArtifact): string | null {
+  if (!CALL_LOGS_DIR) return null;
+
+  const relPath = buildArtifactRelativePath(artifact.summary.timestamp, artifact.summary.id);
+  const absPath = path.join(CALL_LOGS_DIR, relPath);
+
+  try {
+    fs.mkdirSync(path.dirname(absPath), { recursive: true });
+    fs.writeFileSync(absPath, JSON.stringify(artifact, null, 2));
+    return relPath;
+  } catch (error) {
+    console.error("[callLogs] Failed to write request artifact:", (error as Error).message);
+    return null;
+  }
+}
+
+function readArtifactFromDisk(relativePath: string | null) {
+  if (!CALL_LOGS_DIR || !relativePath) return null;
+
+  try {
+    const absPath = path.join(CALL_LOGS_DIR, relativePath);
+    if (!fs.existsSync(absPath)) return null;
+    return JSON.parse(fs.readFileSync(absPath, "utf8")) as CallLogArtifact;
+  } catch (error) {
+    console.error("[callLogs] Failed to read request artifact:", (error as Error).message);
+    return null;
+  }
+}
+
+function readLegacyLogFromDisk(entry: {
+  timestamp: string | null;
+  model: string | null;
+  status: number;
+}) {
+  if (!CALL_LOGS_DIR || !entry.timestamp) return null;
+
+  try {
+    const date = new Date(entry.timestamp);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const dateFolder = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(date.getDate()).padStart(2, "0")}`;
+    const dir = path.join(CALL_LOGS_DIR, dateFolder);
+    if (!fs.existsSync(dir)) return null;
+
+    const time = `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(
+      2,
+      "0"
+    )}${String(date.getSeconds()).padStart(2, "0")}`;
+    const safeModel = (entry.model || "unknown").replace(/[/:]/g, "-");
+    const expectedName = `${time}_${safeModel}_${entry.status}.json`;
+
+    const exactPath = path.join(dir, expectedName);
+    if (fs.existsSync(exactPath)) {
+      return JSON.parse(fs.readFileSync(exactPath, "utf8"));
+    }
+
+    const files = fs
+      .readdirSync(dir)
+      .filter((file) => file.startsWith(time) && file.endsWith(`_${entry.status}.json`));
+    if (files.length > 0) {
+      return JSON.parse(fs.readFileSync(path.join(dir, files[0]), "utf8"));
+    }
+  } catch (error) {
+    console.error("[callLogs] Failed to read legacy disk log:", (error as Error).message);
+  }
+
+  return null;
+}
+
 export async function saveCallLog(entry: any) {
   if (!shouldPersistToDisk) return;
 
@@ -117,44 +300,23 @@ export async function saveCallLog(entry: any) {
     const apiKeyId = entry.apiKeyId || null;
     const noLogEnabled = Boolean(entry.noLog) || (apiKeyId ? isNoLog(apiKeyId) : false);
 
-    const protectedRequestBody =
-      noLogEnabled || !shouldLogPayloadInDb ? null : protectPayloadForLog(entry.requestBody);
-    const protectedResponseBody =
-      noLogEnabled || !shouldLogPayloadInDb ? null : protectPayloadForLog(entry.responseBody);
+    const protectedRequestBody = noLogEnabled ? null : protectPayloadForLog(entry.requestBody);
+    const protectedResponseBody = noLogEnabled ? null : protectPayloadForLog(entry.responseBody);
+    const protectedPipelinePayloads = noLogEnabled
+      ? null
+      : protectPipelinePayloads(entry.pipelinePayloads ?? entry.pipeline ?? null);
+    const protectedError = sanitizeErrorForLog(entry.error);
 
-    // Resolve account name
-    let account = entry.connectionId ? entry.connectionId.slice(0, 8) : "-";
-    try {
-      const { getProviderConnections } = await import("@/lib/localDb");
-      const connections = await getProviderConnections();
-      const conn = connections.find((c) => c.id === entry.connectionId);
-      if (conn) account = conn.name || conn.email || account;
-    } catch {}
-
-    // Truncate large payloads for DB storage (keep under 8KB each)
-    const truncatePayload = (obj: any) => {
-      if (!obj) return null;
-      const str = JSON.stringify(obj);
-      if (str.length <= 8192) return str;
-      try {
-        return JSON.stringify({
-          _truncated: true,
-          _originalSize: str.length,
-          _preview: str.slice(0, 8192) + "...",
-        });
-      } catch {
-        return JSON.stringify({ _truncated: true });
-      }
-    };
+    const account = await resolveAccountName(entry.connectionId || null);
 
     const logEntry = {
       id: typeof entry.id === "string" && entry.id.length > 0 ? entry.id : generateLogId(),
-      timestamp: new Date().toISOString(),
+      timestamp: typeof entry.timestamp === "string" ? entry.timestamp : new Date().toISOString(),
       method: entry.method || "POST",
       path: entry.path || "/v1/chat/completions",
       status: entry.status || 0,
       model: entry.model || "-",
-      requestedModel: entry.requestedModel || null, // T01: model the client asked for
+      requestedModel: entry.requestedModel || null,
       provider: entry.provider || "-",
       account,
       connectionId: entry.connectionId || null,
@@ -167,119 +329,82 @@ export async function saveCallLog(entry: any) {
       apiKeyId,
       apiKeyName: entry.apiKeyName || null,
       comboName: entry.comboName || null,
-      requestBody: truncatePayload(protectedRequestBody),
-      responseBody: truncatePayload(protectedResponseBody),
-      error: typeof entry.error === "string" ? sanitizePII(entry.error).text : entry.error || null,
+      requestBody: serializePayloadForStorage(protectedRequestBody, 8192),
+      responseBody: serializePayloadForStorage(protectedResponseBody, 8192),
+      error: toStoredErrorString(protectedError),
     };
 
-    // 1. Insert into SQLite
     const db = getDbInstance();
     db.prepare(
       `
-      INSERT INTO call_logs (id, timestamp, method, path, status, model, requested_model, provider,
-        account, connection_id, duration, tokens_in, tokens_out, request_type, source_format, target_format,
-        api_key_id, api_key_name, combo_name, request_body, response_body, error)
-      VALUES (@id, @timestamp, @method, @path, @status, @model, @requestedModel, @provider,
-        @account, @connectionId, @duration, @tokensIn, @tokensOut, @requestType, @sourceFormat, @targetFormat,
-        @apiKeyId, @apiKeyName, @comboName, @requestBody, @responseBody, @error)
+      INSERT INTO call_logs (
+        id, timestamp, method, path, status, model, requested_model, provider,
+        account, connection_id, duration, tokens_in, tokens_out, request_type, source_format,
+        target_format, api_key_id, api_key_name, combo_name, request_body, response_body, error,
+        artifact_relpath, has_pipeline_details
+      )
+      VALUES (
+        @id, @timestamp, @method, @path, @status, @model, @requestedModel, @provider,
+        @account, @connectionId, @duration, @tokensIn, @tokensOut, @requestType, @sourceFormat,
+        @targetFormat, @apiKeyId, @apiKeyName, @comboName, @requestBody, @responseBody, @error,
+        NULL, 0
+      )
     `
     ).run(logEntry);
 
-    // 2. Trim old entries beyond max
-    const maxLogs = await getMaxCallLogs();
-    const countRow = asRecord(db.prepare("SELECT COUNT(*) as cnt FROM call_logs").get());
-    const count = toNumber(countRow.cnt);
-    if (count > maxLogs) {
-      db.prepare(
-        `
-        DELETE FROM call_logs WHERE id IN (
-          SELECT id FROM call_logs ORDER BY timestamp ASC LIMIT ?
-        )
-      `
-      ).run(count - maxLogs);
-    }
-
-    // 3. Write full payload to disk file (untruncated)
-    // Disabled when no-log is active or payload mode is metadata/none.
-    if (
-      shouldLogPayloadOnDisk &&
-      !noLogEnabled &&
-      (protectedRequestBody !== null || protectedResponseBody !== null)
-    ) {
-      writeCallLogToDisk(
-        { ...logEntry, tokens: { in: logEntry.tokensIn, out: logEntry.tokensOut } },
+    if (!noLogEnabled) {
+      const artifact = buildArtifact(
+        logEntry,
         protectedRequestBody,
-        protectedResponseBody
+        protectedResponseBody,
+        protectedError,
+        protectedPipelinePayloads
       );
+      const artifactRelPath = writeCallArtifact(artifact);
+
+      if (artifactRelPath) {
+        db.prepare(
+          `
+          UPDATE call_logs
+          SET artifact_relpath = ?, has_pipeline_details = ?
+          WHERE id = ?
+        `
+        ).run(artifactRelPath, protectedPipelinePayloads ? 1 : 0, logEntry.id);
+      }
     }
-  } catch (error: any) {
-    console.error("[callLogs] Failed to save call log:", error.message);
+  } catch (error) {
+    console.error("[callLogs] Failed to save call log:", (error as Error).message);
   }
 }
 
-/**
- * Write call log as JSON file to disk (full payloads, not truncated).
- */
-function writeCallLogToDisk(logEntry: any, requestBody: any, responseBody: any) {
-  if (!CALL_LOGS_DIR) return;
-
-  try {
-    const now = new Date();
-    const dateFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const dir = path.join(CALL_LOGS_DIR, dateFolder);
-
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const safeModel = (logEntry.model || "unknown").replace(/[/:]/g, "-");
-    const time = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-    const filename = `${time}_${safeModel}_${logEntry.status}.json`;
-
-    const fullEntry = {
-      ...logEntry,
-      requestBody: requestBody || null,
-      responseBody: responseBody || null,
-    };
-
-    fs.writeFileSync(path.join(dir, filename), JSON.stringify(fullEntry, null, 2));
-  } catch (err: any) {
-    console.error("[callLogs] Failed to write disk log:", err.message);
-  }
-}
-
-/**
- * Rotate old call log directories (keep last 7 days).
- */
 export function rotateCallLogs() {
   if (!CALL_LOGS_DIR || !fs.existsSync(CALL_LOGS_DIR)) return;
 
   try {
     const entries = fs.readdirSync(CALL_LOGS_DIR);
     const now = Date.now();
-    const retentionMs = LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const retentionMs = getCallLogRetentionDays() * 24 * 60 * 60 * 1000;
 
     for (const entry of entries) {
       const entryPath = path.join(CALL_LOGS_DIR, entry);
       const stat = fs.statSync(entryPath);
       if (stat.isDirectory() && now - stat.mtimeMs > retentionMs) {
         fs.rmSync(entryPath, { recursive: true, force: true });
-        console.log(`[callLogs] Rotated old logs: ${entry}`);
       }
     }
-  } catch (err: any) {
-    console.error("[callLogs] Failed to rotate logs:", err.message);
+  } catch (error) {
+    console.error("[callLogs] Failed to rotate request artifacts:", (error as Error).message);
   }
 }
 
-// Run rotation on startup
 if (shouldPersistToDisk) {
   try {
     rotateCallLogs();
-  } catch {}
+  } catch {
+    // Best-effort startup cleanup.
+  }
 }
 
-/**
- * Get call logs with optional filtering.
- */
 export async function getCallLogs(filter: any = {}) {
   const db = getDbInstance();
   let sql = "SELECT * FROM call_logs";
@@ -292,8 +417,8 @@ export async function getCallLogs(filter: any = {}) {
     } else if (filter.status === "ok") {
       conditions.push("status >= 200 AND status < 300");
     } else {
-      const statusCode = parseInt(filter.status);
-      if (!isNaN(statusCode)) {
+      const statusCode = parseInt(filter.status, 10);
+      if (!Number.isNaN(statusCode)) {
         conditions.push("status = @statusCode");
         params.statusCode = statusCode;
       }
@@ -347,7 +472,7 @@ export async function getCallLogs(filter: any = {}) {
       path: toStringOrNull(l.path),
       status: toNumber(l.status),
       model: toStringOrNull(l.model),
-      requestedModel: toStringOrNull(l.requested_model), // T01: original model from client
+      requestedModel: toStringOrNull(l.requested_model),
       provider: toStringOrNull(l.provider),
       account: toStringOrNull(l.account),
       duration: toNumber(l.duration),
@@ -360,19 +485,30 @@ export async function getCallLogs(filter: any = {}) {
       apiKeyName: toStringOrNull(l.api_key_name),
       hasRequestBody: typeof l.request_body === "string" && l.request_body.length > 0,
       hasResponseBody: typeof l.response_body === "string" && l.response_body.length > 0,
+      hasPipelineDetails: toNumber(l.has_pipeline_details) === 1,
     };
   });
 }
 
-/**
- * Get a single call log by ID (with full payloads from disk when available).
- */
+function buildLegacyPipelinePayloads(id: string) {
+  const detailed = getRequestDetailLogByCallLogId(id);
+  if (!detailed) return null;
+
+  return {
+    clientRequest: detailed.client_request ?? null,
+    providerRequest: detailed.translated_request ?? null,
+    providerResponse: detailed.provider_response ?? null,
+    clientResponse: detailed.client_response ?? null,
+  };
+}
+
 export async function getCallLogById(id: string) {
   const db = getDbInstance();
   const row = db.prepare("SELECT * FROM call_logs WHERE id = ?").get(id);
   if (!row) return null;
-  const entryRow = asRecord(row);
 
+  const entryRow = asRecord(row);
+  const artifactRelPath = toStringOrNull(entryRow.artifact_relpath);
   const entry = {
     id: toStringOrNull(entryRow.id),
     timestamp: toStringOrNull(entryRow.timestamp),
@@ -394,72 +530,47 @@ export async function getCallLogById(id: string) {
     requestBody: parseStoredPayload(entryRow.request_body),
     responseBody: parseStoredPayload(entryRow.response_body),
     error: toStringOrNull(entryRow.error),
+    artifactRelPath,
+    hasPipelineDetails: toNumber(entryRow.has_pipeline_details) === 1,
   };
 
-  // If payloads were truncated, try to read full version from disk
-  const needsDisk = hasTruncatedFlag(entry.requestBody) || hasTruncatedFlag(entry.responseBody);
-  if (needsDisk && CALL_LOGS_DIR) {
-    try {
-      const diskEntry = readFullLogFromDisk(entry);
-      if (diskEntry) {
-        return {
-          ...entry,
-          requestBody: diskEntry.requestBody ?? entry.requestBody,
-          responseBody: diskEntry.responseBody ?? entry.responseBody,
-        };
-      }
-    } catch (err: any) {
-      console.error("[callLogs] Failed to read full log from disk:", err.message);
+  const artifact = readArtifactFromDisk(artifactRelPath);
+  if (artifact) {
+    return {
+      ...entry,
+      requestBody: artifact.requestBody ?? entry.requestBody,
+      responseBody: artifact.responseBody ?? entry.responseBody,
+      error: artifact.error ?? entry.error,
+      pipelinePayloads: artifact.pipeline ?? null,
+      hasPipelineDetails: Boolean(artifact.pipeline) || entry.hasPipelineDetails,
+    };
+  }
+
+  const needsLegacyDisk =
+    hasTruncatedFlag(entry.requestBody) || hasTruncatedFlag(entry.responseBody) || !artifactRelPath;
+  if (needsLegacyDisk) {
+    const legacyEntry = readLegacyLogFromDisk(entry);
+    if (legacyEntry) {
+      const legacyPipeline = buildLegacyPipelinePayloads(id);
+      return {
+        ...entry,
+        requestBody: legacyEntry.requestBody ?? entry.requestBody,
+        responseBody: legacyEntry.responseBody ?? entry.responseBody,
+        error: legacyEntry.error ?? entry.error,
+        pipelinePayloads: legacyPipeline,
+        hasPipelineDetails: Boolean(legacyPipeline),
+      };
     }
   }
 
-  const detailed = getRequestDetailLogByCallLogId(id);
-  if (!detailed) {
-    return entry;
+  const legacyPipeline = buildLegacyPipelinePayloads(id);
+  if (legacyPipeline) {
+    return {
+      ...entry,
+      pipelinePayloads: legacyPipeline,
+      hasPipelineDetails: true,
+    };
   }
 
-  return {
-    ...entry,
-    pipelinePayloads: {
-      clientRequest: detailed.client_request ?? null,
-      providerRequest: detailed.translated_request ?? null,
-      providerResponse: detailed.provider_response ?? null,
-      clientResponse: detailed.client_response ?? null,
-    },
-  };
-}
-
-/**
- * Read the full (untruncated) log entry from disk.
- */
-function readFullLogFromDisk(entry: any) {
-  if (!CALL_LOGS_DIR || !entry.timestamp) return null;
-
-  try {
-    const date = new Date(entry.timestamp);
-    const dateFolder = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const dir = path.join(CALL_LOGS_DIR, dateFolder);
-
-    if (!fs.existsSync(dir)) return null;
-
-    const time = `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
-    const safeModel = (entry.model || "unknown").replace(/[/:]/g, "-");
-    const expectedName = `${time}_${safeModel}_${entry.status}.json`;
-
-    const exactPath = path.join(dir, expectedName);
-    if (fs.existsSync(exactPath)) {
-      return JSON.parse(fs.readFileSync(exactPath, "utf8"));
-    }
-
-    const files = fs
-      .readdirSync(dir)
-      .filter((f) => f.startsWith(time) && f.endsWith(`_${entry.status}.json`));
-    if (files.length > 0) {
-      return JSON.parse(fs.readFileSync(path.join(dir, files[0]), "utf8"));
-    }
-  } catch (err: any) {
-    console.error("[callLogs] Disk log read error:", err.message);
-  }
-
-  return null;
+  return entry;
 }

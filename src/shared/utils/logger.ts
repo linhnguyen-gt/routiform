@@ -10,17 +10,18 @@
  * In development, output is pretty-printed via pino-pretty.
  * In production, output is structured JSON for log aggregation.
  *
- * When LOG_TO_FILE is enabled (default: true), logs are also written
- * as JSON lines to the file specified by LOG_FILE_PATH.
+ * When APP_LOG_TO_FILE is enabled (default: true), logs are also written
+ * as JSON lines to the file specified by APP_LOG_FILE_PATH.
  */
 import pino from "pino";
 import { resolve } from "path";
 import { getLogConfig, initLogRotation } from "@/lib/logRotation";
+import { getAppLogLevel } from "@/lib/logEnv";
 
 const isDev = process.env.NODE_ENV !== "production";
 
 const baseConfig: pino.LoggerOptions = {
-  level: process.env.LOG_LEVEL || (isDev ? "debug" : "info"),
+  level: getAppLogLevel(isDev ? "debug" : "info"),
   base: { service: "omniroute" },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {

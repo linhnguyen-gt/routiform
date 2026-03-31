@@ -5,6 +5,9 @@ import { initAuditLog, cleanupExpiredLogs, logAuditEvent } from "./lib/complianc
 import { initConsoleInterceptor } from "./lib/consoleInterceptor";
 
 async function startServer() {
+  // Trigger request-log layout migration during startup, before serving requests.
+  await import("./lib/usage/migrations");
+
   // Console interceptor: capture all console output to log file (must be first)
   initConsoleInterceptor();
 
@@ -22,7 +25,14 @@ async function startServer() {
   // Compliance: One-time cleanup of expired logs
   try {
     const cleanup = cleanupExpiredLogs();
-    if (cleanup.deletedUsage || cleanup.deletedCallLogs || cleanup.deletedAuditLogs) {
+    if (
+      cleanup.deletedUsage ||
+      cleanup.deletedCallLogs ||
+      cleanup.deletedProxyLogs ||
+      cleanup.deletedRequestDetailLogs ||
+      cleanup.deletedAuditLogs ||
+      cleanup.deletedMcpAuditLogs
+    ) {
       console.log("[COMPLIANCE] Expired log cleanup:", cleanup);
     }
   } catch (err) {

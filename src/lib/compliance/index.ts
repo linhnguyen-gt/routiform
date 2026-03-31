@@ -2,7 +2,7 @@
  * Compliance Controls — T-43
  *
  * Implements compliance features:
- * - LOG_RETENTION_DAYS: automatic log cleanup
+ * - APP_LOG_RETENTION_DAYS / CALL_LOG_RETENTION_DAYS: automatic log cleanup
  * - noLog opt-out per API key
  * - audit_log table for administrative actions
  *
@@ -10,6 +10,7 @@
  */
 
 import { getDbInstance } from "../db/core";
+import { getAppLogRetentionDays, getCallLogRetentionDays } from "../logEnv";
 
 /** @returns {import("better-sqlite3").Database | null} */
 function getDb() {
@@ -19,8 +20,6 @@ function getDb() {
     return null;
   }
 }
-
-const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || "90", 10);
 
 /**
  * Initialize the audit_log table.
@@ -212,60 +211,122 @@ export function isNoLog(apiKeyId: string) {
 // ─── Log Retention / Cleanup ────────────────
 
 /**
- * Get the configured retention period.
- * @returns {number} Days
+ * Get the configured retention periods.
  */
 export function getRetentionDays() {
-  return LOG_RETENTION_DAYS;
+  return {
+    app: getAppLogRetentionDays(),
+    call: getCallLogRetentionDays(),
+  };
 }
 
 /**
- * Clean up logs older than LOG_RETENTION_DAYS.
+ * Clean up logs using split APP/CALL retention windows.
  * Should be called periodically (e.g. daily cron or on startup).
  *
- * @returns {{ deletedUsage: number, deletedCallLogs: number, deletedAuditLogs: number }}
+ * @returns {{
+ *   deletedUsage: number,
+ *   deletedCallLogs: number,
+ *   deletedProxyLogs: number,
+ *   deletedRequestDetailLogs: number,
+ *   deletedAuditLogs: number,
+ *   deletedMcpAuditLogs: number,
+ *   appRetentionDays: number,
+ *   callRetentionDays: number
+ * }}
  */
 export function cleanupExpiredLogs() {
   const db = getDb();
-  if (!db) return { deletedUsage: 0, deletedCallLogs: 0, deletedAuditLogs: 0 };
+  const appRetentionDays = getAppLogRetentionDays();
+  const callRetentionDays = getCallLogRetentionDays();
 
-  const cutoff = new Date(Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  if (!db) {
+    return {
+      deletedUsage: 0,
+      deletedCallLogs: 0,
+      deletedProxyLogs: 0,
+      deletedRequestDetailLogs: 0,
+      deletedAuditLogs: 0,
+      deletedMcpAuditLogs: 0,
+      appRetentionDays,
+      callRetentionDays,
+    };
+  }
+
+  const callCutoff = new Date(Date.now() - callRetentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const appCutoff = new Date(Date.now() - appRetentionDays * 24 * 60 * 60 * 1000).toISOString();
 
   let deletedUsage = 0;
   let deletedCallLogs = 0;
+  let deletedProxyLogs = 0;
+  let deletedRequestDetailLogs = 0;
   let deletedAuditLogs = 0;
+  let deletedMcpAuditLogs = 0;
 
   try {
-    // Clean usage_history
-    const r1 = db.prepare("DELETE FROM usage_history WHERE timestamp < ?").run(cutoff);
+    const r1 = db.prepare("DELETE FROM usage_history WHERE timestamp < ?").run(callCutoff);
     deletedUsage = r1.changes;
   } catch {
     /* table may not exist */
   }
 
   try {
-    // Clean call_logs
-    const r2 = db.prepare("DELETE FROM call_logs WHERE timestamp < ?").run(cutoff);
+    const r2 = db.prepare("DELETE FROM call_logs WHERE timestamp < ?").run(callCutoff);
     deletedCallLogs = r2.changes;
   } catch {
     /* table may not exist */
   }
 
   try {
-    // Clean audit_log (keep longer, 2x retention)
-    const auditCutoff = new Date(
-      Date.now() - LOG_RETENTION_DAYS * 2 * 24 * 60 * 60 * 1000
-    ).toISOString();
-    const r3 = db.prepare("DELETE FROM audit_log WHERE timestamp < ?").run(auditCutoff);
-    deletedAuditLogs = r3.changes;
+    const r3 = db.prepare("DELETE FROM proxy_logs WHERE timestamp < ?").run(callCutoff);
+    deletedProxyLogs = r3.changes;
+  } catch {
+    /* table may not exist */
+  }
+
+  try {
+    const r4 = db.prepare("DELETE FROM request_detail_logs WHERE timestamp < ?").run(callCutoff);
+    deletedRequestDetailLogs = r4.changes;
+  } catch {
+    /* legacy table may not exist */
+  }
+
+  try {
+    const r5 = db.prepare("DELETE FROM audit_log WHERE timestamp < ?").run(appCutoff);
+    deletedAuditLogs = r5.changes;
+  } catch {
+    /* table may not exist */
+  }
+
+  try {
+    const r6 = db.prepare("DELETE FROM mcp_tool_audit WHERE created_at < ?").run(appCutoff);
+    deletedMcpAuditLogs = r6.changes;
   } catch {
     /* table may not exist */
   }
 
   logAuditEvent({
     action: "compliance.cleanup",
-    details: { deletedUsage, deletedCallLogs, deletedAuditLogs, retentionDays: LOG_RETENTION_DAYS },
+    details: {
+      deletedUsage,
+      deletedCallLogs,
+      deletedProxyLogs,
+      deletedRequestDetailLogs,
+      deletedAuditLogs,
+      deletedMcpAuditLogs,
+      appRetentionDays,
+      callRetentionDays,
+    },
   });
 
-  return { deletedUsage, deletedCallLogs, deletedAuditLogs };
+  return {
+    deletedUsage,
+    deletedCallLogs,
+    deletedProxyLogs,
+    deletedRequestDetailLogs,
+    deletedAuditLogs,
+    deletedMcpAuditLogs,
+    appRetentionDays,
+    callRetentionDays,
+  };
 }
