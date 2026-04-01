@@ -435,7 +435,7 @@ function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = nu
           } else if (block.type === "image" && block.source) {
             parts.push({
               inlineData: {
-                mimeType: block.source.media_type,
+                mime_type: block.source.media_type,
                 data: block.source.data,
               },
             });
