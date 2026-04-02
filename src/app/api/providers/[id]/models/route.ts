@@ -127,7 +127,7 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     parseResponse: (data) => data.data || [],
   },
   gemini: {
-    url: "https://generativelanguage.googleapis.com/v1beta/models",
+    url: "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
     method: "GET",
     headers: { "Content-Type": "application/json" },
     authQuery: "key", // Use query param for API key
@@ -678,7 +678,7 @@ export async function GET(
     // Build request URL
     let url = config.url;
     if (config.authQuery) {
-      url += `?${config.authQuery}=${token}`;
+      url += `${url.includes("?") ? "&" : "?"}${config.authQuery}=${token}`;
     }
 
     // Build headers
@@ -687,7 +687,7 @@ export async function GET(
       headers[config.authHeader] = (config.authPrefix || "") + token;
     }
 
-    // Make request
+    // Make request (with pagination for providers that use nextPageToken, e.g. Gemini)
     const fetchOptions: any = {
       method: config.method,
       headers,
@@ -697,24 +697,44 @@ export async function GET(
       fetchOptions.body = JSON.stringify(config.body);
     }
 
-    const response = await fetch(url, fetchOptions);
+    let allModels: any[] = [];
+    let pageUrl = url;
+    let pageCount = 0;
+    const MAX_PAGES = 20; // Safety limit
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Error fetching models from ${provider}:`, errorText);
-      return NextResponse.json(
-        { error: `Failed to fetch models: ${response.status}` },
-        { status: response.status }
-      );
+    while (pageUrl && pageCount < MAX_PAGES) {
+      pageCount++;
+      const response = await fetch(pageUrl, fetchOptions);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Error fetching models from ${provider}:`, errorText);
+        return NextResponse.json(
+          { error: `Failed to fetch models: ${response.status}` },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      const pageModels = config.parseResponse(data);
+      allModels = allModels.concat(pageModels);
+
+      const nextPageToken = data.nextPageToken;
+      if (!nextPageToken) break;
+      pageUrl = `${config.url}${config.url.includes("?") ? "&" : "?"}pageToken=${encodeURIComponent(nextPageToken)}`;
+      if (config.authQuery) {
+        pageUrl += `&${config.authQuery}=${token}`;
+      }
     }
 
-    const data = await response.json();
-    const models = config.parseResponse(data);
+    if (pageCount > 1) {
+      console.log(`[models] ${provider}: fetched ${allModels.length} models across ${pageCount} pages`);
+    }
 
     return buildResponse({
       provider,
       connectionId,
-      models,
+      models: allModels,
     });
   } catch (error) {
     console.log("Error fetching provider models:", error);
