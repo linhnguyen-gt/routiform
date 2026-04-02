@@ -506,6 +506,74 @@ export async function removeCustomModel(providerId: string, modelId: string) {
   return true;
 }
 
+// ──────────────── Synced Available Models ────────────────
+
+export interface SyncedAvailableModel {
+  id: string;
+  name: string;
+  source: "api-sync";
+  supportedEndpoints?: string[];
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  description?: string;
+  supportsThinking?: boolean;
+}
+
+/**
+ * Get synced available models for a provider.
+ */
+export async function getSyncedAvailableModels(providerId: string): Promise<SyncedAvailableModel[]> {
+  const db = getDbInstance();
+  const row = db
+    .prepare("SELECT value FROM key_value WHERE namespace = 'syncedAvailableModels' AND key = ?")
+    .get(providerId);
+  const value = getKeyValue(row).value;
+  return value ? JSON.parse(value) : [];
+}
+
+/**
+ * Get all synced available models across all providers.
+ */
+export async function getAllSyncedAvailableModels(): Promise<Record<string, SyncedAvailableModel[]>> {
+  const db = getDbInstance();
+  const rows = db
+    .prepare("SELECT key, value FROM key_value WHERE namespace = 'syncedAvailableModels'")
+    .all();
+  const result: Record<string, SyncedAvailableModel[]> = {};
+  for (const row of rows) {
+    const { key, value } = getKeyValue(row);
+    if (!key || value === null) continue;
+    result[key] = JSON.parse(value);
+  }
+  return result;
+}
+
+/**
+ * Union new models into the existing synced available models for a provider.
+ * Models are matched by ID. New models are added; existing models get their
+ * metadata updated from the new data.
+ */
+export async function unionSyncedAvailableModels(
+  providerId: string,
+  newModels: SyncedAvailableModel[]
+): Promise<SyncedAvailableModel[]> {
+  const existing = await getSyncedAvailableModels(providerId);
+  const map = new Map<string, SyncedAvailableModel>();
+  for (const m of existing) {
+    if (m.id) map.set(m.id, m);
+  }
+  for (const m of newModels) {
+    if (m.id) map.set(m.id, m);
+  }
+  const merged = Array.from(map.values());
+  const db = getDbInstance();
+  db.prepare(
+    "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('syncedAvailableModels', ?, ?)"
+  ).run(providerId, JSON.stringify(merged));
+  backupDbFile("pre-write");
+  return merged;
+}
+
 export async function updateCustomModel(
   providerId: string,
   modelId: string,
