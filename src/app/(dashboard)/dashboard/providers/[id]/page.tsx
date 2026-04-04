@@ -2949,11 +2949,15 @@ function PassthroughModelsSection({
     (model as string).startsWith(`${providerAlias}/`)
   );
 
-  const allModels = providerAliases.map(([alias, fullModel]: [string, any]) => ({
-    modelId: (fullModel as string).replace(`${providerAlias}/`, ""),
-    fullModel,
-    alias,
-  }));
+  const allModels = providerAliases.map(([alias, fullModel]: [string, any]) => {
+    const fmStr = fullModel as string;
+    const prefix = `${providerAlias}/`;
+    return {
+      modelId: fmStr.startsWith(prefix) ? fmStr.slice(prefix.length) : fmStr,
+      fullModel,
+      alias,
+    };
+  });
 
   // Generate default alias from modelId (last part after /)
   const generateDefaultAlias = (modelId) => {
@@ -3640,10 +3644,14 @@ function CompatibleModelsSection({
   );
 
   const allModels = useMemo(() => {
-    const rows = providerAliases.map(([alias, fullModel]: [string, any]) => ({
-      modelId: (fullModel as string).replace(`${providerStorageAlias}/`, ""),
-      alias,
-    }));
+    const rows = providerAliases.map(([alias, fullModel]: [string, any]) => {
+      const fmStr = fullModel as string;
+      const prefix = `${providerStorageAlias}/`;
+      return {
+        modelId: fmStr.startsWith(prefix) ? fmStr.slice(prefix.length) : fmStr,
+        alias,
+      };
+    });
 
     const seenModelIds = new Set(rows.map((row) => row.modelId));
     for (const model of fallbackModels) {

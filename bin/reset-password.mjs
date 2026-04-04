@@ -17,7 +17,7 @@ import { createInterface } from "node:readline";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import { createHash } from "node:crypto";
+import bcrypt from "bcryptjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,9 +35,9 @@ function ask(question) {
 }
 
 function generateSecretDigest(input) {
-  return createHash("sha256")
-    .update(input) /* lgtm[js/insufficient-password-hash] */
-    .digest("hex");
+  // Use bcrypt with a salt round of 10 to match login/route.ts expectations
+  // and resolve CodeQL js/insufficient-password-hash warning.
+  return bcrypt.hashSync(input, 10);
 }
 
 console.log("\n🔑 OmniRoute — Password Reset\n");

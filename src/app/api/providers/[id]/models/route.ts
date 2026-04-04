@@ -669,6 +669,21 @@ export async function GET(
       });
     }
 
+    // Qwen OAuth Fallback: The Dashscope /models API rejects OAuth tokens with 401
+    if (provider === "qwen" && connection.authType === "oauth") {
+      const qwenModels = PROVIDER_MODELS["qwen"] || [];
+      return buildResponse({
+        provider,
+        connectionId,
+        models: qwenModels.map((m: any) => ({
+          id: m.id,
+          name: m.name || m.id,
+          owned_by: "qwen",
+        })),
+        source: "local_catalog",
+      });
+    }
+
     const config =
       provider in PROVIDER_MODELS_CONFIG
         ? PROVIDER_MODELS_CONFIG[provider as keyof typeof PROVIDER_MODELS_CONFIG]
