@@ -27,6 +27,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import { useTranslations } from "next-intl";
 import {
+  buildMergedApiKeyProviderEntries,
   buildMergedOAuthProviderEntries,
   buildProviderEntries,
   filterConfiguredProviderEntries,
@@ -345,7 +346,7 @@ export default function ProvidersPage() {
   );
 
   const apiKeyProviderEntries = filterConfiguredProviderEntries(
-    buildProviderEntries(APIKEY_PROVIDERS, "apikey", "apikey", getProviderStats),
+    buildMergedApiKeyProviderEntries(APIKEY_PROVIDERS, FREE_PROVIDERS, getProviderStats),
     showConfiguredOnly
   );
 

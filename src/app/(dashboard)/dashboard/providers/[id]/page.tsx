@@ -287,6 +287,9 @@ interface ModelRowProps {
   saveModelCompatFlags: (modelId: string, patch: ModelCompatSavePatch) => void;
   getUpstreamHeadersRecord: (protocol: string) => Record<string, string>;
   compatDisabled?: boolean;
+  testStatus?: "ok" | "error";
+  onTest?: () => void;
+  isTesting?: boolean;
 }
 
 interface PassthroughModelRowProps {
@@ -302,6 +305,9 @@ interface PassthroughModelRowProps {
   saveModelCompatFlags: (modelId: string, patch: ModelCompatSavePatch) => void;
   getUpstreamHeadersRecord: (protocol: string) => Record<string, string>;
   compatDisabled?: boolean;
+  testStatus?: "ok" | "error";
+  onTest?: () => void;
+  isTesting?: boolean;
 }
 
 interface PassthroughModelsSectionProps {
@@ -324,6 +330,10 @@ interface PassthroughModelsSectionProps {
     }
   ) => Promise<void>;
   compatSavingModelId?: string;
+  modelTestResults?: Record<string, "ok" | "error">;
+  testingModelKey?: string | null;
+  onTestModel?: (fullModel: string) => void;
+  canTestModels?: boolean;
 }
 
 interface CustomModelsSectionProps {
@@ -367,6 +377,10 @@ interface CompatibleModelsSectionProps {
   ) => Promise<void>;
   compatSavingModelId?: string;
   onModelsChanged?: () => void;
+  modelTestResults?: Record<string, "ok" | "error">;
+  testingModelKey?: string | null;
+  onTestModel?: (fullModel: string) => void;
+  canTestModels?: boolean;
 }
 
 interface CooldownTimerProps {
@@ -419,6 +433,9 @@ interface ConnectionRowProps {
   isApplyingCodexAuthLocal?: boolean;
   onExportCodexAuthFile?: () => void;
   isExportingCodexAuthFile?: boolean;
+  showBulkSelect?: boolean;
+  bulkSelected?: boolean;
+  onToggleBulkSelect?: () => void;
 }
 
 interface AddApiKeyModalProps {
@@ -808,6 +825,8 @@ export default function ProviderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [providerNode, setProviderNode] = useState(null);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  /** Server-backed: Qoder browser OAuth only when QODER_OAUTH_* is fully configured */
+  const [qoderBrowserOAuthEnabled, setQoderBrowserOAuthEnabled] = useState<null | boolean>(null);
   const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditNodeModal, setShowEditNodeModal] = useState(false);
@@ -825,6 +844,13 @@ export default function ProviderDetailPage() {
   const [connProxyMap, setConnProxyMap] = useState<
     Record<string, { proxy: any; level: string } | null>
   >({});
+  const [modelTestResults, setModelTestResults] = useState<Record<string, "ok" | "error">>({});
+  const [testingModelKey, setTestingModelKey] = useState<string | null>(null);
+  const [modelTestBannerError, setModelTestBannerError] = useState("");
+  const modelTestInFlightRef = useRef(false);
+  const selectAllConnectionsRef = useRef<HTMLInputElement>(null);
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
+  const [bulkDeletingConnections, setBulkDeletingConnections] = useState(false);
   const [importingModels, setImportingModels] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importProgress, setImportProgress] = useState({
@@ -882,6 +908,7 @@ export default function ProviderDetailPage() {
     !!(FREE_PROVIDERS as any)[providerId] || !!(OAUTH_PROVIDERS as any)[providerId];
   const providerSupportsPat = supportsApiKeyOnFreeProvider(providerId);
   const isOAuth = providerSupportsOAuth && !providerSupportsPat;
+  const allowQoderOAuthUi = providerId !== "qoder" || qoderBrowserOAuthEnabled === true;
   const registryModels = getModelsByProviderId(providerId);
   // For Gemini: always use synced API models (empty if no keys added yet)
   const models = providerId === "gemini" ? syncedAvailableModels : registryModels;
@@ -892,6 +919,18 @@ export default function ProviderDetailPage() {
 
   const providerStorageAlias = isCompatible ? providerId : providerAlias;
   const providerDisplayAlias = isCompatible ? providerNode?.prefix || providerId : providerAlias;
+
+  const sortedConnectionIds = useMemo(
+    () =>
+      [...connections]
+        .sort(
+          (a: { priority?: number }, b: { priority?: number }) =>
+            (a.priority || 0) - (b.priority || 0)
+        )
+        .map((c: { id?: string }) => c.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    [connections]
+  );
 
   // Define callbacks BEFORE the useEffect that uses them
   const fetchAliases = useCallback(async () => {
@@ -1004,6 +1043,36 @@ export default function ProviderDetailPage() {
       .catch(() => {});
   }, [fetchConnections, fetchAliases]);
 
+  useEffect(() => {
+    if (providerId !== "qoder") {
+      setQoderBrowserOAuthEnabled(null);
+      return;
+    }
+    let cancelled = false;
+    void fetch("/api/oauth/feature-flags", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data && typeof data.qoderBrowserOAuthEnabled === "boolean") {
+          setQoderBrowserOAuthEnabled(data.qoderBrowserOAuthEnabled);
+        } else {
+          setQoderBrowserOAuthEnabled(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setQoderBrowserOAuthEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [providerId]);
+
+  useEffect(() => {
+    if (providerId === "qoder" && qoderBrowserOAuthEnabled === false && showOAuthModal) {
+      setShowOAuthModal(false);
+    }
+  }, [providerId, qoderBrowserOAuthEnabled, showOAuthModal]);
+
   const loadConnProxies = useCallback(async (conns: { id?: string }[]) => {
     if (!conns.length) return;
     try {
@@ -1077,6 +1146,7 @@ export default function ProviderDetailPage() {
       const res = await fetch(`/api/providers/${id}`, { method: "DELETE" });
       if (res.ok) {
         setConnections(connections.filter((c) => c.id !== id));
+        setSelectedConnectionIds((prev) => prev.filter((x) => x !== id));
         // Refresh model list after connection deletion (synced models may change)
         if (providerId === "gemini") {
           await fetchProviderModelMeta();
@@ -1087,10 +1157,127 @@ export default function ProviderDetailPage() {
     }
   };
 
+  const toggleConnectionBulkSelect = useCallback((id: string) => {
+    setSelectedConnectionIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const toggleSelectAllConnections = useCallback(() => {
+    setSelectedConnectionIds((prev) => {
+      if (sortedConnectionIds.length === 0) return [];
+      const allSelected = sortedConnectionIds.every((sid) => prev.includes(sid));
+      if (allSelected) return [];
+      return [...sortedConnectionIds];
+    });
+  }, [sortedConnectionIds]);
+
+  useEffect(() => {
+    const valid = new Set(
+      connections
+        .map((c: { id?: string }) => c.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    );
+    setSelectedConnectionIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [connections]);
+
+  useEffect(() => {
+    const el = selectAllConnectionsRef.current;
+    if (!el) return;
+    const some = selectedConnectionIds.some((id) => sortedConnectionIds.includes(id));
+    const all =
+      sortedConnectionIds.length > 0 &&
+      sortedConnectionIds.every((id) => selectedConnectionIds.includes(id));
+    el.indeterminate = some && !all;
+  }, [selectedConnectionIds, sortedConnectionIds]);
+
+  const handleBulkDeleteConnections = useCallback(async () => {
+    const ids = selectedConnectionIds.filter((id) => sortedConnectionIds.includes(id));
+    if (!ids.length) return;
+    if (!confirm(t("bulkDeleteConnectionsConfirm", { count: ids.length }))) return;
+    setBulkDeletingConnections(true);
+    const deleted: string[] = [];
+    try {
+      for (const id of ids) {
+        try {
+          const res = await fetch(`/api/providers/${id}`, { method: "DELETE" });
+          if (res.ok) deleted.push(id);
+        } catch {
+          // continue with other ids
+        }
+      }
+      setConnections((prev) => prev.filter((c: { id?: string }) => !deleted.includes(c.id!)));
+      setSelectedConnectionIds((prev) => prev.filter((id) => !deleted.includes(id)));
+      if (providerId === "gemini" && deleted.length > 0) {
+        try {
+          await fetchProviderModelMeta();
+        } catch {
+          /* non-critical */
+        }
+      }
+      if (deleted.length === ids.length) {
+        notify.success(t("bulkDeleteConnectionsSuccess", { count: deleted.length }));
+      } else if (deleted.length > 0) {
+        notify.error(
+          t("bulkDeleteConnectionsPartial", { removed: deleted.length, total: ids.length })
+        );
+      } else {
+        notify.error(t("bulkDeleteConnectionsNone"));
+      }
+    } finally {
+      setBulkDeletingConnections(false);
+    }
+  }, [selectedConnectionIds, sortedConnectionIds, t, notify, providerId, fetchProviderModelMeta]);
+
   const handleOAuthSuccess = useCallback(() => {
     fetchConnections();
     setShowOAuthModal(false);
   }, [fetchConnections]);
+
+  const handleTestModel = useCallback(
+    async (fullModel: string) => {
+      if (modelTestInFlightRef.current) return;
+      if (!connections.length) {
+        notify.error(t("addConnectionToImport"));
+        return;
+      }
+      modelTestInFlightRef.current = true;
+      setTestingModelKey(fullModel);
+      setModelTestBannerError("");
+      try {
+        const res = await fetch("/api/models/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: fullModel }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          latencyMs?: number;
+          error?: string;
+        };
+        const ok = Boolean(data.ok);
+        setModelTestResults((prev) => ({ ...prev, [fullModel]: ok ? "ok" : "error" }));
+        if (ok) {
+          const ms = typeof data.latencyMs === "number" ? data.latencyMs : null;
+          notify.success(ms != null ? t("modelTestOk", { ms }) : t("testSuccess"));
+        } else {
+          const err =
+            typeof data.error === "string" && data.error.length > 0 ? data.error : t("testFailed");
+          setModelTestBannerError(err);
+          notify.error(err);
+        }
+      } catch {
+        setModelTestResults((prev) => ({ ...prev, [fullModel]: "error" }));
+        const netErr = t("errorTypeNetworkError");
+        setModelTestBannerError(netErr);
+        notify.error(netErr);
+      } finally {
+        modelTestInFlightRef.current = false;
+        setTestingModelKey(null);
+      }
+    },
+    [connections.length, notify, t]
+  );
 
   const openPrimaryAddFlow = useCallback(() => {
     if (isOAuth) {
@@ -1928,6 +2115,10 @@ export default function ProviderDetailPage() {
   };
 
   const renderModelsSection = () => {
+    const modelTestBanner = modelTestBannerError ? (
+      <p className="mb-3 break-words text-xs text-red-500">{modelTestBannerError}</p>
+    ) : null;
+
     const autoSyncToggle = compatibleSupportsModelImport && canImportModels && (
       <button
         onClick={handleToggleAutoSync}
@@ -1979,6 +2170,7 @@ export default function ProviderDetailPage() {
 
       return (
         <div>
+          {modelTestBanner}
           <div className="flex items-center gap-2 mb-4">
             {autoSyncToggle}
             {clearAllButton}
@@ -2006,6 +2198,10 @@ export default function ProviderDetailPage() {
             compatSavingModelId={compatSavingModelId}
             onModelsChanged={fetchProviderModelMeta}
             allowImport={compatibleSupportsModelImport}
+            modelTestResults={modelTestResults}
+            testingModelKey={testingModelKey}
+            onTestModel={handleTestModel}
+            canTestModels={connections.length > 0}
           />
         </div>
       );
@@ -2014,6 +2210,7 @@ export default function ProviderDetailPage() {
     if (providerInfo.passthroughModels) {
       return (
         <div>
+          {modelTestBanner}
           <div className="flex items-center gap-2 mb-4">
             <Button
               size="sm"
@@ -2043,6 +2240,10 @@ export default function ProviderDetailPage() {
             getUpstreamHeadersRecord={getUpstreamHeadersRecordForModel}
             saveModelCompatFlags={saveModelCompatFlags}
             compatSavingModelId={compatSavingModelId}
+            modelTestResults={modelTestResults}
+            testingModelKey={testingModelKey}
+            onTestModel={handleTestModel}
+            canTestModels={connections.length > 0}
           />
         </div>
       );
@@ -2070,6 +2271,7 @@ export default function ProviderDetailPage() {
     if (models.length === 0) {
       return (
         <div>
+          {modelTestBanner}
           {importButton}
           <p className="text-sm text-text-muted">{t("noModelsConfigured")}</p>
         </div>
@@ -2077,14 +2279,16 @@ export default function ProviderDetailPage() {
     }
     return (
       <div>
+        {modelTestBanner}
         {importButton}
         <div className="flex flex-wrap gap-3">
           {models.map((model) => {
+            const fullModel = `${providerDisplayAlias}/${model.id}`;
             return (
               <ModelRow
                 key={model.id}
                 model={model}
-                fullModel={`${providerDisplayAlias}/${model.id}`}
+                fullModel={fullModel}
                 copied={copied}
                 onCopy={copy}
                 t={t}
@@ -2094,6 +2298,9 @@ export default function ProviderDetailPage() {
                 getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecordForModel(model.id, p)}
                 saveModelCompatFlags={saveModelCompatFlags}
                 compatDisabled={compatSavingModelId === model.id}
+                testStatus={modelTestResults[fullModel]}
+                onTest={connections.length > 0 ? () => handleTestModel(fullModel) : undefined}
+                isTesting={testingModelKey === fullModel}
               />
             );
           })}
@@ -2328,9 +2535,9 @@ export default function ProviderDetailPage() {
               <Button size="sm" icon="add" onClick={openPrimaryAddFlow}>
                 {providerSupportsPat ? "Add PAT" : t("add")}
               </Button>
-              {providerId === "qoder" && (
+              {providerId === "qoder" && qoderBrowserOAuthEnabled === true && (
                 <Button size="sm" variant="secondary" onClick={() => setShowOAuthModal(true)}>
-                  Experimental OAuth
+                  Browser OAuth
                 </Button>
               )}
             </div>
@@ -2342,6 +2549,38 @@ export default function ProviderDetailPage() {
             )
           )}
         </div>
+
+        {connections.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5 dark:bg-zinc-900/30">
+            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-text-main">
+              <input
+                ref={selectAllConnectionsRef}
+                type="checkbox"
+                checked={
+                  sortedConnectionIds.length > 0 &&
+                  sortedConnectionIds.every((id) => selectedConnectionIds.includes(id))
+                }
+                onChange={toggleSelectAllConnections}
+                className="rounded border-border"
+                aria-label={t("selectAllConnections")}
+              />
+              <span>{t("selectAllConnections")}</span>
+            </label>
+            <span className="text-xs text-text-muted">
+              {t("selectedConnectionsCount", { count: selectedConnectionIds.length })}
+            </span>
+            <Button
+              size="sm"
+              variant="danger"
+              icon="delete"
+              disabled={selectedConnectionIds.length === 0 || bulkDeletingConnections}
+              loading={bulkDeletingConnections}
+              onClick={handleBulkDeleteConnections}
+            >
+              {t("deleteSelectedConnections")}
+            </Button>
+          </div>
+        )}
 
         {connections.length === 0 ? (
           <div className="text-center py-12">
@@ -2357,9 +2596,9 @@ export default function ProviderDetailPage() {
                 <Button icon="add" onClick={openPrimaryAddFlow}>
                   {providerSupportsPat ? "Add PAT" : t("addConnection")}
                 </Button>
-                {providerId === "qoder" && (
+                {providerId === "qoder" && qoderBrowserOAuthEnabled === true && (
                   <Button variant="secondary" onClick={() => setShowOAuthModal(true)}>
-                    Experimental OAuth
+                    Browser OAuth
                   </Button>
                 )}
               </div>
@@ -2400,8 +2639,19 @@ export default function ProviderDetailPage() {
                         setShowEditModal(true);
                       }}
                       onDelete={() => handleDelete(conn.id)}
+                      showBulkSelect
+                      bulkSelected={
+                        typeof conn.id === "string" && selectedConnectionIds.includes(conn.id)
+                      }
+                      onToggleBulkSelect={
+                        typeof conn.id === "string"
+                          ? () => toggleConnectionBulkSelect(conn.id)
+                          : undefined
+                      }
                       onReauth={
-                        conn.authType === "oauth" ? () => setShowOAuthModal(true) : undefined
+                        conn.authType === "oauth" && allowQoderOAuthUi
+                          ? () => setShowOAuthModal(true)
+                          : undefined
                       }
                       onRefreshToken={
                         conn.authType === "oauth" ? () => handleRefreshToken(conn.id) : undefined
@@ -2507,8 +2757,19 @@ export default function ProviderDetailPage() {
                               setShowEditModal(true);
                             }}
                             onDelete={() => handleDelete(conn.id)}
+                            showBulkSelect
+                            bulkSelected={
+                              typeof conn.id === "string" && selectedConnectionIds.includes(conn.id)
+                            }
+                            onToggleBulkSelect={
+                              typeof conn.id === "string"
+                                ? () => toggleConnectionBulkSelect(conn.id)
+                                : undefined
+                            }
                             onReauth={
-                              conn.authType === "oauth" ? () => setShowOAuthModal(true) : undefined
+                              conn.authType === "oauth" && allowQoderOAuthUi
+                                ? () => setShowOAuthModal(true)
+                                : undefined
                             }
                             onRefreshToken={
                               conn.authType === "oauth"
@@ -2609,7 +2870,7 @@ export default function ProviderDetailPage() {
         />
       ) : (
         <OAuthModal
-          isOpen={showOAuthModal}
+          isOpen={showOAuthModal && (providerId !== "qoder" || qoderBrowserOAuthEnabled === true)}
           provider={providerId}
           providerInfo={providerInfo}
           onSuccess={handleOAuthSuccess}
@@ -2875,16 +3136,53 @@ function ModelRow({
   getUpstreamHeadersRecord,
   saveModelCompatFlags,
   compatDisabled,
+  testStatus,
+  onTest,
+  isTesting,
 }: ModelRowProps) {
+  const borderColor =
+    testStatus === "ok"
+      ? "border-green-500/40"
+      : testStatus === "error"
+        ? "border-red-500/40"
+        : "border-border";
+  const statusIcon =
+    testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy";
+  const statusColor =
+    testStatus === "ok" ? "#22c55e" : testStatus === "error" ? "#ef4444" : undefined;
+
   return (
-    <div className="flex min-w-[220px] max-w-md items-center gap-2 rounded-lg border border-border px-3 py-2 hover:bg-sidebar/50">
+    <div
+      className={`group flex min-w-[220px] max-w-md items-center gap-2 rounded-lg border px-3 py-2 hover:bg-sidebar/50 ${borderColor}`}
+    >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <span className="material-symbols-outlined shrink-0 text-base text-text-muted">
-          smart_toy
+        <span
+          className="material-symbols-outlined shrink-0 text-base"
+          style={statusColor ? { color: statusColor } : { color: "var(--color-text-muted)" }}
+        >
+          {statusIcon}
         </span>
         <code className="rounded bg-sidebar px-1.5 py-0.5 font-mono text-xs text-text-muted">
           {fullModel}
         </code>
+        {onTest && (
+          <div className="relative flex items-center group/btn-test">
+            <button
+              type="button"
+              onClick={onTest}
+              disabled={isTesting}
+              className={`rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary disabled:opacity-100 ${isTesting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              title={isTesting ? t("testingModel") : t("testModel")}
+              aria-label={isTesting ? t("testingModel") : t("testModel")}
+            >
+              <span
+                className={`material-symbols-outlined text-sm ${isTesting ? "animate-spin" : ""}`}
+              >
+                {isTesting ? "progress_activity" : "science"}
+              </span>
+            </button>
+          </div>
+        )}
         <button
           onClick={() => onCopy(fullModel, `model-${model.id}`)}
           className="rounded p-0.5 text-text-muted hover:bg-sidebar hover:text-primary"
@@ -2926,6 +3224,9 @@ ModelRow.propTypes = {
   getUpstreamHeadersRecord: PropTypes.func.isRequired,
   saveModelCompatFlags: PropTypes.func.isRequired,
   compatDisabled: PropTypes.bool,
+  testStatus: PropTypes.oneOf(["ok", "error"]),
+  onTest: PropTypes.func,
+  isTesting: PropTypes.bool,
 };
 
 function PassthroughModelsSection({
@@ -2941,6 +3242,10 @@ function PassthroughModelsSection({
   getUpstreamHeadersRecord,
   saveModelCompatFlags,
   compatSavingModelId,
+  modelTestResults = {},
+  testingModelKey = null,
+  onTestModel,
+  canTestModels = false,
 }: PassthroughModelsSectionProps) {
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
@@ -3015,23 +3320,29 @@ function PassthroughModelsSection({
       {/* Models list */}
       {allModels.length > 0 && (
         <div className="flex flex-col gap-3">
-          {allModels.map(({ modelId, fullModel, alias }) => (
-            <PassthroughModelRow
-              key={fullModel as string}
-              modelId={modelId}
-              fullModel={fullModel}
-              copied={copied}
-              onCopy={onCopy}
-              onDeleteAlias={() => onDeleteAlias(alias)}
-              t={t}
-              showDeveloperToggle
-              effectiveModelNormalize={effectiveModelNormalize}
-              effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-              getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
-              saveModelCompatFlags={saveModelCompatFlags}
-              compatDisabled={compatSavingModelId === modelId}
-            />
-          ))}
+          {allModels.map(({ modelId, fullModel, alias }) => {
+            const fm = fullModel as string;
+            return (
+              <PassthroughModelRow
+                key={fm}
+                modelId={modelId}
+                fullModel={fm}
+                copied={copied}
+                onCopy={onCopy}
+                onDeleteAlias={() => onDeleteAlias(alias)}
+                t={t}
+                showDeveloperToggle
+                effectiveModelNormalize={effectiveModelNormalize}
+                effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+                getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                saveModelCompatFlags={saveModelCompatFlags}
+                compatDisabled={compatSavingModelId === modelId}
+                testStatus={modelTestResults[fm]}
+                onTest={canTestModels && onTestModel ? () => onTestModel(fm) : undefined}
+                isTesting={testingModelKey === fm}
+              />
+            );
+          })}
         </div>
       )}
     </div>
@@ -3051,6 +3362,10 @@ PassthroughModelsSection.propTypes = {
   getUpstreamHeadersRecord: PropTypes.func.isRequired,
   saveModelCompatFlags: PropTypes.func.isRequired,
   compatSavingModelId: PropTypes.string,
+  modelTestResults: PropTypes.object,
+  testingModelKey: PropTypes.string,
+  onTestModel: PropTypes.func,
+  canTestModels: PropTypes.bool,
 };
 
 function PassthroughModelRow({
@@ -3066,12 +3381,29 @@ function PassthroughModelRow({
   getUpstreamHeadersRecord,
   saveModelCompatFlags,
   compatDisabled,
+  testStatus,
+  onTest,
+  isTesting,
 }: PassthroughModelRowProps) {
+  const borderColor =
+    testStatus === "ok"
+      ? "border-green-500/40"
+      : testStatus === "error"
+        ? "border-red-500/40"
+        : "border-border";
+  const statusIcon =
+    testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy";
+  const statusColor =
+    testStatus === "ok" ? "#22c55e" : testStatus === "error" ? "#ef4444" : undefined;
+
   return (
-    <div className="flex gap-0 rounded-lg border border-border p-3 hover:bg-sidebar/50">
+    <div className={`group flex gap-0 rounded-lg border p-3 hover:bg-sidebar/50 ${borderColor}`}>
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <span className="material-symbols-outlined shrink-0 text-base text-text-muted">
-          smart_toy
+        <span
+          className="material-symbols-outlined shrink-0 text-base"
+          style={statusColor ? { color: statusColor } : { color: "var(--color-text-muted)" }}
+        >
+          {statusIcon}
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{modelId}</p>
@@ -3079,6 +3411,22 @@ function PassthroughModelRow({
             <code className="rounded bg-sidebar px-1.5 py-0.5 font-mono text-xs text-text-muted">
               {fullModel}
             </code>
+            {onTest && (
+              <button
+                type="button"
+                onClick={onTest}
+                disabled={isTesting}
+                className={`rounded p-0.5 text-text-muted transition-opacity hover:bg-sidebar hover:text-primary disabled:opacity-100 ${isTesting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                title={isTesting ? t("testingModel") : t("testModel")}
+                aria-label={isTesting ? t("testingModel") : t("testModel")}
+              >
+                <span
+                  className={`material-symbols-outlined text-sm ${isTesting ? "animate-spin" : ""}`}
+                >
+                  {isTesting ? "progress_activity" : "science"}
+                </span>
+              </button>
+            )}
             <button
               onClick={() => onCopy(fullModel, `model-${modelId}`)}
               className="rounded p-0.5 text-text-muted hover:bg-sidebar hover:text-primary"
@@ -3128,6 +3476,9 @@ PassthroughModelRow.propTypes = {
   getUpstreamHeadersRecord: PropTypes.func.isRequired,
   saveModelCompatFlags: PropTypes.func.isRequired,
   compatDisabled: PropTypes.bool,
+  testStatus: PropTypes.oneOf(["ok", "error"]),
+  onTest: PropTypes.func,
+  isTesting: PropTypes.bool,
 };
 
 // ============ Custom Models Section (for ALL providers) ============
@@ -3629,6 +3980,10 @@ function CompatibleModelsSection({
   compatSavingModelId,
   onModelsChanged,
   allowImport,
+  modelTestResults = {},
+  testingModelKey = null,
+  onTestModel,
+  canTestModels = false,
 }: CompatibleModelsSectionProps) {
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
@@ -3843,23 +4198,29 @@ function CompatibleModelsSection({
 
       {allModels.length > 0 && (
         <div className="flex flex-col gap-3">
-          {allModels.map(({ modelId, alias }) => (
-            <PassthroughModelRow
-              key={`${providerStorageAlias}:${modelId}`}
-              modelId={modelId}
-              fullModel={`${providerDisplayAlias}/${modelId}`}
-              copied={copied}
-              onCopy={onCopy}
-              onDeleteAlias={() => handleDeleteModel(modelId, alias)}
-              t={t}
-              showDeveloperToggle={!isAnthropic}
-              effectiveModelNormalize={effectiveModelNormalize}
-              effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-              getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
-              saveModelCompatFlags={saveModelCompatFlags}
-              compatDisabled={compatSavingModelId === modelId}
-            />
-          ))}
+          {allModels.map(({ modelId, alias }) => {
+            const fullModel = `${providerDisplayAlias}/${modelId}`;
+            return (
+              <PassthroughModelRow
+                key={`${providerStorageAlias}:${modelId}`}
+                modelId={modelId}
+                fullModel={fullModel}
+                copied={copied}
+                onCopy={onCopy}
+                onDeleteAlias={() => handleDeleteModel(modelId, alias)}
+                t={t}
+                showDeveloperToggle={!isAnthropic}
+                effectiveModelNormalize={effectiveModelNormalize}
+                effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+                getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                saveModelCompatFlags={saveModelCompatFlags}
+                compatDisabled={compatSavingModelId === modelId}
+                testStatus={modelTestResults[fullModel]}
+                onTest={canTestModels && onTestModel ? () => onTestModel(fullModel) : undefined}
+                isTesting={testingModelKey === fullModel}
+              />
+            );
+          })}
         </div>
       )}
     </div>
@@ -3894,6 +4255,10 @@ CompatibleModelsSection.propTypes = {
   compatSavingModelId: PropTypes.string,
   onModelsChanged: PropTypes.func,
   allowImport: PropTypes.bool.isRequired,
+  modelTestResults: PropTypes.object,
+  testingModelKey: PropTypes.string,
+  onTestModel: PropTypes.func,
+  canTestModels: PropTypes.bool,
 };
 
 function CooldownTimer({ until }: CooldownTimerProps) {
@@ -4148,6 +4513,9 @@ function ConnectionRow({
   isApplyingCodexAuthLocal,
   onExportCodexAuthFile,
   isExportingCodexAuthFile,
+  showBulkSelect,
+  bulkSelected,
+  onToggleBulkSelect,
 }: ConnectionRowProps) {
   const t = useTranslations("providers");
   const displayName = isOAuth
@@ -4222,6 +4590,16 @@ function ConnectionRow({
       className={`group flex items-center justify-between p-3 rounded-lg hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${connection.isActive === false ? "opacity-60" : ""}`}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
+        {showBulkSelect && onToggleBulkSelect && (
+          <input
+            type="checkbox"
+            checked={!!bulkSelected}
+            onChange={onToggleBulkSelect}
+            className="h-4 w-4 shrink-0 rounded border-border"
+            aria-label={t("selectConnection")}
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
         {/* Priority arrows */}
         <div className="flex flex-col">
           <button
@@ -4503,6 +4881,9 @@ ConnectionRow.propTypes = {
   isApplyingCodexAuthLocal: PropTypes.bool,
   onExportCodexAuthFile: PropTypes.func,
   isExportingCodexAuthFile: PropTypes.bool,
+  showBulkSelect: PropTypes.bool,
+  bulkSelected: PropTypes.bool,
+  onToggleBulkSelect: PropTypes.func,
 };
 
 function AddApiKeyModal({

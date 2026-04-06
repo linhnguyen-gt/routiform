@@ -7,7 +7,7 @@ const providerPageStorage =
   await import("../../src/app/(dashboard)/dashboard/providers/providerPageStorage.ts");
 const providers = await import("../../src/shared/constants/providers.ts");
 
-test("merged OAuth providers keep free-tier providers in the OAuth section", () => {
+test("merged OAuth providers include free-tier OAuth only (PAT-only free providers excluded)", () => {
   const statsCalls = [];
   const getProviderStats = (providerId, authType) => {
     statsCalls.push({ providerId, authType });
@@ -21,7 +21,9 @@ test("merged OAuth providers keep free-tier providers in the OAuth section", () 
   );
 
   const oauthIds = Object.keys(providers.OAUTH_PROVIDERS);
-  const freeIds = Object.keys(providers.FREE_PROVIDERS);
+  const freeOAuthIds = Object.keys(providers.FREE_PROVIDERS).filter(
+    (id) => !providers.FREE_APIKEY_PROVIDER_IDS.has(id)
+  );
 
   assert.deepEqual(
     entries.slice(0, oauthIds.length).map((entry) => entry.providerId),
@@ -29,16 +31,29 @@ test("merged OAuth providers keep free-tier providers in the OAuth section", () 
   );
   assert.deepEqual(
     entries.slice(oauthIds.length).map((entry) => entry.providerId),
-    freeIds
+    freeOAuthIds
   );
 
-  const freeEntry = entries.find((entry) => entry.providerId === freeIds[0]);
+  const freeEntry = entries.find((entry) => entry.providerId === freeOAuthIds[0]);
   assert.equal(freeEntry.displayAuthType, "oauth");
   assert.equal(freeEntry.toggleAuthType, "free");
   assert.equal(
-    statsCalls.some((call) => call.providerId === freeIds[0] && call.authType === "free"),
+    statsCalls.some((call) => call.providerId === freeOAuthIds[0] && call.authType === "free"),
     true
   );
+});
+
+test("merged API key providers include PAT-based free providers (e.g. Qoder)", () => {
+  const getProviderStats = () => ({ total: 0 });
+  const entries = providerPageUtils.buildMergedApiKeyProviderEntries(
+    providers.APIKEY_PROVIDERS,
+    providers.FREE_PROVIDERS,
+    getProviderStats
+  );
+  const qoder = entries.find((e) => e.providerId === "qoder");
+  assert.ok(qoder, "Qoder should appear under API key merged list");
+  assert.equal(qoder.displayAuthType, "apikey");
+  assert.equal(qoder.toggleAuthType, "apikey");
 });
 
 test("configured-only filter keeps only providers with saved connections", () => {

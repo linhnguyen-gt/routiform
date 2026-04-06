@@ -3,6 +3,8 @@ export interface ProviderStatsSnapshot {
   [key: string]: unknown;
 }
 
+import { FREE_APIKEY_PROVIDER_IDS } from "@/shared/constants/providers";
+
 export interface ProviderEntry<TProvider = Record<string, unknown>> {
   providerId: string;
   provider: TProvider;
@@ -33,14 +35,42 @@ export function buildProviderEntries<TProvider = Record<string, unknown>>(
   }));
 }
 
+/** Free providers that use PAT/API key (not browser OAuth) — shown under API Key section. */
+function pickFreePatProviders<TProvider>(freeProviders: ProviderRecord<TProvider>) {
+  return Object.fromEntries(
+    Object.entries(freeProviders).filter(([id]) => FREE_APIKEY_PROVIDER_IDS.has(id))
+  ) as ProviderRecord<TProvider>;
+}
+
+/** Remaining free-tier providers that still use OAuth-style connect (e.g. Qwen device flow). */
+function pickFreeOAuthProviders<TProvider>(freeProviders: ProviderRecord<TProvider>) {
+  return Object.fromEntries(
+    Object.entries(freeProviders).filter(([id]) => !FREE_APIKEY_PROVIDER_IDS.has(id))
+  ) as ProviderRecord<TProvider>;
+}
+
 export function buildMergedOAuthProviderEntries<TProvider = Record<string, unknown>>(
   oauthProviders: ProviderRecord<TProvider>,
   freeProviders: ProviderRecord<TProvider>,
   getProviderStats: GetProviderStats
 ): ProviderEntry<TProvider>[] {
+  const freeOAuthOnly = pickFreeOAuthProviders(freeProviders);
   return [
     ...buildProviderEntries(oauthProviders, "oauth", "oauth", getProviderStats),
-    ...buildProviderEntries(freeProviders, "oauth", "free", getProviderStats),
+    ...buildProviderEntries(freeOAuthOnly, "oauth", "free", getProviderStats),
+  ];
+}
+
+/** API key providers plus free PAT providers (e.g. Qoder AI). */
+export function buildMergedApiKeyProviderEntries<TProvider = Record<string, unknown>>(
+  apikeyProviders: ProviderRecord<TProvider>,
+  freeProviders: ProviderRecord<TProvider>,
+  getProviderStats: GetProviderStats
+): ProviderEntry<TProvider>[] {
+  const freePat = pickFreePatProviders(freeProviders);
+  return [
+    ...buildProviderEntries(apikeyProviders, "apikey", "apikey", getProviderStats),
+    ...buildProviderEntries(freePat, "apikey", "apikey", getProviderStats),
   ];
 }
 
