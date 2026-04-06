@@ -1,5 +1,5 @@
 /**
- * E2E Test Suite — OmniRoute Ecosystem
+ * E2E Test Suite — Routiform Ecosystem
  *
  * 6 scenarios covering MCP, A2A, Auto-Combo, Extension, Stress, and Security.
  * Run with: npm run test:ecosystem

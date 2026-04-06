@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Smoke — Static Pages", () => {
   test("landing page renders", async ({ page }) => {
     await page.goto("/landing");
-    await expect(page).toHaveTitle(/OmniRoute/i);
+    await expect(page).toHaveTitle(/Routiform/i);
     const hero = page.locator("h1").first();
     await expect(hero).toBeVisible();
   });
