@@ -1,6 +1,6 @@
 # 🚀 Routiform — The Free AI Gateway
 
-_Fork maintained at [linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform); upstream: [linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform)._
+_Fork maintained at [linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform); upstream: [diegosouzapw/OmniRoute](https://github.com/diegosouzapw/OmniRoute)._
 
 ### Never stop coding. Smart routing to **FREE & low-cost AI models** with automatic fallback.
 
@@ -12,15 +12,15 @@ _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now wi
 
 <div align="center">
 
-[![npm version](https://img.shields.io/npm/v/omniroute?color=cb3837&logo=npm)](https://www.npmjs.com/package/omniroute)
-[![Docker Hub](https://img.shields.io/docker/v/diegosouzapw/omniroute?label=Docker%20Hub&logo=docker&color=2496ED)](https://hub.docker.com/r/diegosouzapw/omniroute)
+[![npm version](https://img.shields.io/npm/v/routiform?color=cb3837&logo=npm)](https://www.npmjs.com/package/routiform)
+[![Docker Hub](https://img.shields.io/docker/v/linhnguyen-gt/routiform?label=Docker%20Hub&logo=docker&color=2496ED)](https://hub.docker.com/r/linhnguyen-gt/routiform)
 
-![NPM Downloads](https://img.shields.io/npm/dw/omniroute?label=npm%20down%20week&color=red)
-![NPM Downloads](https://img.shields.io/npm/dm/omniroute?label=npm%20down%20month&color=red)
+![NPM Downloads](https://img.shields.io/npm/dw/routiform?label=npm%20down%20week&color=red)
+![NPM Downloads](https://img.shields.io/npm/dm/routiform?label=npm%20down%20month&color=red)
 
-![NPM Downloads](https://img.shields.io/npm/d18m/omniroute?label=npm%20down%20year&color=red)
-![Docker Pulls](https://img.shields.io/docker/pulls/diegosouzapw/omniroute)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/diegosouzapw/omniroute/total?style=flat&label=eletron%20donwloads&color=blue)
+![NPM Downloads](https://img.shields.io/npm/d18m/routiform?label=npm%20down%20year&color=red)
+![Docker Pulls](https://img.shields.io/docker/pulls/linhnguyen-gt/routiform)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/linhnguyen-gt/routiform/total?style=flat&label=eletron%20donwloads&color=blue)
 
 [![stars](https://custom-icon-badges.demolab.com/github/stars/linhnguyen-gt/Routiform?logo=star&style=flat)](https://github.com/linhnguyen-gt/Routiform/stargazers)
 [![open issues](https://custom-icon-badges.demolab.com/github/issues-raw/linhnguyen-gt/Routiform?logo=issue)](https://github.com/linhnguyen-gt/Routiform/issues)
@@ -36,10 +36,10 @@ _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now wi
 [![watch](https://custom-icon-badges.demolab.com/github/watchers/linhnguyen-gt/Routiform?logo=eye)](https://github.com/linhnguyen-gt/Routiform/watchers)
 
 [![License](https://img.shields.io/github/license/linhnguyen-gt/Routiform)](https://github.com/linhnguyen-gt/Routiform/blob/main/LICENSE)
-[![Website](https://img.shields.io/badge/Website-omniroute.online-blue?logo=google-chrome&logoColor=white)](https://omniroute.online)
+[![Website](https://img.shields.io/badge/Website-github.com/linhnguyen-gt/Routiform-blue?logo=google-chrome&logoColor=white)](https://github.com/linhnguyen-gt/Routiform)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-Community-25D366?logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)
 
-[🌐 Website](https://omniroute.online) • [🚀 Quick Start](#-quick-start) • [💡 Features](#-key-features) • [📖 Docs](#-documentation) • [💰 Pricing](#-pricing-at-a-glance) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)
+[🌐 Website](https://github.com/linhnguyen-gt/Routiform) • [🚀 Quick Start](#-quick-start) • [💡 Features](#-key-features) • [📖 Docs](#-documentation) • [💰 Pricing](#-pricing-at-a-glance) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)
 
 </div>
 
@@ -50,7 +50,7 @@ _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now wi
 ## 🖼️ Main Dashboard
 
 <div align="center">
-  <img src="./docs/screenshots/MainOmniRoute.png" alt="OmniRoute Dashboard" width="800"/>
+  <img src="./docs/screenshots/MainRoutiform.png" alt="Routiform Dashboard" width="800"/>
 </div>
 
 ---
@@ -78,7 +78,7 @@ _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now wi
 
 ### 🤖 Free AI Provider for your favorite coding agents
 
-_Connect any AI-powered IDE or CLI tool through OmniRoute — free API gateway for unlimited coding._
+_Connect any AI-powered IDE or CLI tool through Routiform — free API gateway for unlimited coding._
 
   <table>
     <tr>
@@ -157,11 +157,11 @@ _Connect any AI-powered IDE or CLI tool through OmniRoute — free API gateway f
     </tr>
   </table>
 
-<sub>📡 All agents connect via <code>http://localhost:20128/v1</code> or <code>http://cloud.omniroute.online/v1</code> — one config, unlimited models and quota</sub>
+<sub>📡 All agents connect via <code>http://localhost:20128/v1</code> or <code>http://localhost:20128/v1</code> — one config, unlimited models and quota</sub>
 
 ---
 
-## 🤔 Why OmniRoute?
+## 🤔 Why Routiform?
 
 **Stop wasting money and hitting limits:**
 
@@ -170,7 +170,7 @@ _Connect any AI-powered IDE or CLI tool through OmniRoute — free API gateway f
 - <img src="https://img.shields.io/badge/✗-e74c3c?style=flat-square" height="16"/> Expensive APIs ($20-50/month per provider)
 - <img src="https://img.shields.io/badge/✗-e74c3c?style=flat-square" height="16"/> Manual switching between providers
 
-**OmniRoute solves this:**
+**Routiform solves this:**
 
 - ✅ **Maximize subscriptions** - Track quota, use every bit before reset
 - ✅ **Auto fallback** - Subscription → API Key → Cheap → Free, zero downtime
@@ -183,7 +183,7 @@ _Connect any AI-powered IDE or CLI tool through OmniRoute — free API gateway f
 
 > 💬 **Join our community!** [WhatsApp Group](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t) — Get help, share tips, and stay updated.
 
-- **Website**: [omniroute.online](https://omniroute.online)
+- **Website**: [github.com/linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform)
 - **GitHub**: [github.com/linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform)
 - **Issues**: [github.com/linhnguyen-gt/Routiform/issues](https://github.com/linhnguyen-gt/Routiform/issues)
 - **WhatsApp**: [Community Group](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)
@@ -198,7 +198,7 @@ When opening an issue, please run the system-info command and attach the generat
 npm run system-info
 ```
 
-This generates a `system-info.txt` with your Node.js version, OmniRoute version, OS details, installed CLI tools (qoder, gemini, claude, codex, antigravity, droid, etc.), Docker/PM2 status, and system packages — everything we need to reproduce your issue quickly. Attach the file directly to your GitHub issue.
+This generates a `system-info.txt` with your Node.js version, Routiform version, OS details, installed CLI tools (qoder, gemini, claude, codex, antigravity, droid, etc.), Docker/PM2 status, and system packages — everything we need to reproduce your issue quickly. Attach the file directly to your GitHub issue.
 
 ---
 
@@ -212,7 +212,7 @@ This generates a `system-info.txt` with your Node.js version, OmniRoute version,
        │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────┐
-│           OmniRoute (Smart Router)        │
+│           Routiform (Smart Router)        │
 │  • Format translation (OpenAI ↔ Claude) │
 │  • Quota tracking + Embeddings + Images │
 │  • Auto token refresh                   │
@@ -231,16 +231,16 @@ Result: Never stop coding, minimal cost
 
 ---
 
-## 🎯 What OmniRoute Solves — 30 Real Pain Points & Use Cases
+## 🎯 What Routiform Solves — 30 Real Pain Points & Use Cases
 
-> **Every developer using AI tools faces these problems daily.** OmniRoute was built to solve them all — from cost overruns to regional blocks, from broken OAuth flows to protocol operations and enterprise observability.
+> **Every developer using AI tools faces these problems daily.** Routiform was built to solve them all — from cost overruns to regional blocks, from broken OAuth flows to protocol operations and enterprise observability.
 
 <details>
 <summary><b>💸 1. "I pay for an expensive subscription but still get interrupted by limits"</b></summary>
 
 Developers pay $20–200/month for Claude Pro, Codex Pro, or GitHub Copilot. Even paying, quota has a ceiling — 5h of usage, weekly limits, or per-minute rate limits. Mid-coding session, the provider stops responding and the developer loses flow and productivity.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Smart 4-Tier Fallback** — If subscription quota runs out, automatically redirects to API Key → Cheap → Free with zero manual intervention
 - **Provider Limits Tracking** — Cached quota snapshots refresh on a server-side schedule (default `PROVIDER_LIMITS_SYNC_INTERVAL_MINUTES=70`) with manual refresh available in the UI
@@ -255,7 +255,7 @@ Developers pay $20–200/month for Claude Pro, Codex Pro, or GitHub Copilot. Eve
 
 OpenAI uses one format, Claude (Anthropic) uses another, Gemini yet another. If a dev wants to test models from different providers or fallback between them, they need to reconfigure SDKs, change endpoints, deal with incompatible formats. Custom providers (FriendLI, NIM) have non-standard model endpoints.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Unified Endpoint** — A single `http://localhost:20128/v1` serves as proxy for all 60+ providers
 - **Format Translation** — Automatic and transparent: OpenAI ↔ Claude ↔ Gemini ↔ Responses API
@@ -272,7 +272,7 @@ OpenAI uses one format, Claude (Anthropic) uses another, Gemini yet another. If 
 
 Providers like OpenAI/Codex block access from certain geographic regions. Users get errors like `unsupported_country_region_territory` during OAuth and API connections. This is especially frustrating for developers from developing countries.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **3-Level Proxy Config** — Configurable proxy at 3 levels: global (all traffic), per-provider (one provider only), and per-connection/key
 - **Color-Coded Proxy Badges** — Visual indicators: 🟢 global proxy, 🟡 provider proxy, 🔵 connection proxy, always showing the IP
@@ -289,7 +289,7 @@ Providers like OpenAI/Codex block access from certain geographic regions. Users 
 
 Not everyone can pay $20–200/month for AI subscriptions. Students, devs from emerging countries, hobbyists, and freelancers need access to quality models at zero cost.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Free Tier Providers Built-in** — Native support for 100% free providers: Qoder (5 unlimited models via OAuth: kimi-k2-thinking, qwen3-coder-plus, deepseek-r1, minimax-m2, kimi-k2), Qwen (4 unlimited models: qwen3-coder-plus, qwen3-coder-flash, qwen3-coder-next, vision-model), Kiro (Claude + AWS Builder ID for free), Gemini CLI (180K tokens/month free)
 - **Ollama Cloud** — Cloud-hosted Ollama models at `api.ollama.com` with free "Light usage" tier; use `ollamacloud/<model>` prefix
@@ -304,7 +304,7 @@ Not everyone can pay $20–200/month for AI subscriptions. Students, devs from e
 
 When exposing an AI gateway to the network (LAN, VPS, Docker), anyone with the address can consume the developer's tokens/quota. Without protection, APIs are vulnerable to misuse, prompt injection, and abuse.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **API Key Management** — Generation, rotation, and scoping per provider with a dedicated `/dashboard/api-manager` page
 - **Model-Level Permissions** — Restrict API keys to specific models (`openai/*`, wildcard patterns), with Allow All/Restrict toggle
@@ -322,7 +322,7 @@ When exposing an AI gateway to the network (LAN, VPS, Docker), anyone with the a
 
 AI providers can become unstable, return 5xx errors, or hit temporary rate limits. If a dev depends on a single provider, they're interrupted. Without circuit breakers, repeated retries can crash the application.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Circuit Breaker per-model** — Auto-open/close with configurable thresholds and cooldown (Closed/Open/Half-Open), scoped per-model to avoid cascading blocks
 - **Exponential Backoff** — Progressive retry delays
@@ -338,7 +338,7 @@ AI providers can become unstable, return 5xx errors, or hit temporary rate limit
 
 Developers use Cursor, Claude Code, Codex CLI, OpenClaw, Gemini CLI, Kilo Code... Each tool needs a different config (API endpoint, key, model). Reconfiguring when switching providers or models is a waste of time.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **CLI Tools Dashboard** — Dedicated page with one-click setup for Claude Code, Codex CLI, OpenClaw, Kilo Code, Antigravity, Cline
 - **GitHub Copilot Config Generator** — Generates `chatLanguageModels.json` for VS Code with bulk model selection
@@ -352,7 +352,7 @@ Developers use Cursor, Claude Code, Codex CLI, OpenClaw, Gemini CLI, Kilo Code..
 
 Claude Code, Codex, Gemini CLI, Copilot — all use OAuth 2.0 with expiring tokens. Developers need to re-authenticate constantly, deal with `client_secret is missing`, `redirect_uri_mismatch`, and failures on remote servers. OAuth on LAN/VPS is particularly problematic.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Auto Token Refresh** — OAuth tokens refresh in background before expiration
 - **OAuth 2.0 (PKCE) Built-in** — Automatic flow for Claude Code, Codex, Gemini CLI, Copilot, Kiro, Qwen, Qoder
@@ -368,7 +368,7 @@ Claude Code, Codex, Gemini CLI, Copilot — all use OAuth 2.0 with expiring toke
 
 Developers use multiple paid providers but have no unified view of spending. Each provider has its own billing dashboard, but there's no consolidated view. Unexpected costs can pile up.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Cost Analytics Dashboard** — Per-token cost tracking and budget management per provider
 - **Budget Limits per Tier** — Spending ceiling per tier that triggers automatic fallback
@@ -383,7 +383,7 @@ Developers use multiple paid providers but have no unified view of spending. Eac
 
 When a call fails, the dev doesn't know if it was a rate limit, expired token, wrong format, or provider error. Fragmented logs across different terminals. Without observability, debugging is trial-and-error.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Unified Logs Dashboard** — 4 tabs: Request Logs, Proxy Logs, Audit Logs, Console
 - **Console Log Viewer** — Real-time terminal-style viewer with color-coded levels, auto-scroll, search, filter
@@ -391,7 +391,7 @@ When a call fails, the dev doesn't know if it was a rate limit, expired token, w
 - **Translator Playground** — 4 debugging modes: Playground (format translation), Chat Tester (round-trip), Test Bench (batch), Live Monitor (real-time)
 - **Request Telemetry** — p50/p95/p99 latency + X-Request-Id tracing
 - **File-Based Logging with Rotation** — App logs rotate by size, retention days, and archive count; call log artifacts rotate by retention days and file count
-- **System Info Report** — `npm run system-info` generates `system-info.txt` with your full environment (Node version, OmniRoute version, OS, CLI tools, Docker/PM2 status). Attach it when reporting issues for instant triage.
+- **System Info Report** — `npm run system-info` generates `system-info.txt` with your full environment (Node version, Routiform version, OS, CLI tools, Docker/PM2 status). Attach it when reporting issues for instant triage.
 
 </details>
 
@@ -400,9 +400,9 @@ When a call fails, the dev doesn't know if it was a rate limit, expired token, w
 
 Installing, configuring, and maintaining an AI proxy across different environments (local, VPS, Docker, cloud) is labor-intensive. Problems like hardcoded paths, `EACCES` on directories, port conflicts, and cross-platform builds add friction.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
-- **npm global install** — `npm install -g omniroute && omniroute` — done
+- **npm global install** — `npm install -g routiform && routiform` — done
 - **Docker Multi-Platform** — AMD64 + ARM64 native (Apple Silicon, AWS Graviton, Raspberry Pi)
 - **Docker Compose Profiles** — `base` (no CLI tools) and `cli` (with Claude Code, Codex, OpenClaw)
 - **Electron Desktop App** — Native app for Windows/macOS/Linux with system tray, auto-start, offline mode
@@ -417,7 +417,7 @@ Installing, configuring, and maintaining an AI proxy across different environmen
 
 Teams in non-English-speaking countries, especially in Latin America, Asia, and Europe, struggle with English-only interfaces. Language barriers reduce adoption and increase configuration errors.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Dashboard i18n — 30 Languages** — All 500+ keys translated including Arabic, Bulgarian, Danish, German, Spanish, Finnish, French, Hebrew, Hindi, Hungarian, Indonesian, Italian, Japanese, Korean, Malay, Dutch, Norwegian, Polish, Portuguese (PT/BR), Romanian, Russian, Slovak, Swedish, Thai, Ukrainian, Vietnamese, Chinese, Filipino, English
 - **RTL Support** — Right-to-left support for Arabic and Hebrew
@@ -431,7 +431,7 @@ Teams in non-English-speaking countries, especially in Latin America, Asia, and 
 
 AI isn't just chat completion. Devs need to generate images, transcribe audio, create embeddings for RAG, rerank documents, and moderate content. Each API has a different endpoint and format.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Embeddings** — `/v1/embeddings` with 6 providers and 9+ models
 - **Image Generation** — `/v1/images/generations` with 10 providers and 20+ models (OpenAI, xAI, Together, Fireworks, Nebius, Hyperbolic, NanoBanana, Antigravity, SD WebUI, ComfyUI)
@@ -450,7 +450,7 @@ AI isn't just chat completion. Devs need to generate images, transcribe audio, c
 
 Developers want to know which model is best for their use case — code, translation, reasoning — but comparing manually is slow. No integrated eval tools exist.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **LLM Evaluations** — Golden set testing with 10 pre-loaded cases covering greetings, math, geography, code generation, JSON compliance, translation, markdown, safety refusal
 - **4 Match Strategies** — `exact`, `contains`, `regex`, `custom` (JS function)
@@ -465,7 +465,7 @@ Developers want to know which model is best for their use case — code, transla
 
 As request volume grows, without caching the same questions generate duplicate costs. Without idempotency, duplicate requests waste processing. Per-provider rate limits must be respected.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **Semantic Cache** — Two-tier cache (signature + semantic) reduces cost and latency
 - **Request Idempotency** — 5s deduplication window for identical requests
@@ -481,7 +481,7 @@ As request volume grows, without caching the same questions generate duplicate c
 
 Developers who want all responses in a specific language, with a specific tone, or want to limit reasoning tokens. Configuring this in every tool/request is impractical.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - **System Prompt Injection** — Global prompt applied to all requests
 - **Thinking Budget Validation** — Reasoning token allocation control per request (passthrough, auto, custom, adaptive)
@@ -498,11 +498,11 @@ Developers who want all responses in a specific language, with a specific tone, 
 
 Many AI gateways expose MCP only as a hidden implementation detail. Teams need a visible, manageable operation layer.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - MCP appears in the dashboard navigation and endpoint protocol tab
 - Dedicated MCP management page with process, tools, scopes, and audit
-- Built-in quick-start for `omniroute --mcp` and client onboarding
+- Built-in quick-start for `routiform --mcp` and client onboarding
 
 </details>
 
@@ -511,7 +511,7 @@ Many AI gateways expose MCP only as a hidden implementation detail. Teams need a
 
 Agent workflows need both direct replies and long-running streamed execution with lifecycle control.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - A2A JSON-RPC endpoint (`POST /a2a`) with `message/send` and `message/stream`
 - SSE streaming with terminal state propagation
@@ -524,7 +524,7 @@ Agent workflows need both direct replies and long-running streamed execution wit
 
 Operational teams need to know if MCP is actually alive, not just whether an API is reachable.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Runtime heartbeat file with PID, timestamps, transport, tool count, and scope mode
 - MCP status API combining heartbeat + recent activity
@@ -537,7 +537,7 @@ Operational teams need to know if MCP is actually alive, not just whether an API
 
 When tools mutate config or trigger ops actions, teams need forensic traceability.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - SQLite-backed audit logging for MCP tool calls
 - Filters by tool, success/failure, API key, and pagination
@@ -550,7 +550,7 @@ When tools mutate config or trigger ops actions, teams need forensic traceabilit
 
 Different clients should have least-privilege access to tool categories.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - 10 granular MCP scopes for controlled tool access
 - Scope enforcement and visibility in MCP management UI
@@ -563,7 +563,7 @@ Different clients should have least-privilege access to tool categories.
 
 Teams need quick runtime changes during incidents or cost events.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Switch combo activation directly from MCP dashboard
 - Apply resilience profiles from pre-defined policy packs
@@ -576,7 +576,7 @@ Teams need quick runtime changes during incidents or cost events.
 
 Without lifecycle visibility, task incidents become hard to triage.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Task listing/filtering by state/skill with pagination
 - Drill-down on task metadata, events, and artifacts
@@ -589,7 +589,7 @@ Without lifecycle visibility, task incidents become hard to triage.
 
 Streaming workflows require operational insight into concurrency and live connections.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Active stream counters integrated into A2A status
 - Last task timestamp and per-state counts
@@ -602,7 +602,7 @@ Streaming workflows require operational insight into concurrency and live connec
 
 External clients and orchestrators need machine-readable metadata for onboarding.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Agent Card exposed at `/.well-known/agent.json`
 - Capabilities and skills shown in management UI
@@ -615,7 +615,7 @@ External clients and orchestrators need machine-readable metadata for onboarding
 
 If users cannot discover protocol surfaces, adoption and support quality drop.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Consolidated **Endpoints** page with tabs for Proxy, MCP, A2A, and API Endpoints
 - Inline service status toggles (Online/Offline) for MCP and A2A
@@ -628,7 +628,7 @@ If users cannot discover protocol surfaces, adoption and support quality drop.
 
 Mock tests are not enough to validate protocol compatibility before release.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - E2E suite that boots app and uses real MCP SDK client transport
 - A2A client tests for discovery, send, stream, get, and cancel flows
@@ -641,7 +641,7 @@ Mock tests are not enough to validate protocol compatibility before release.
 
 Splitting observability by protocol creates blind spots and longer MTTR.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Unified dashboards/logs/analytics in one product
 - Health + audit + request telemetry across OpenAI, MCP, and A2A layers
@@ -654,7 +654,7 @@ Splitting observability by protocol creates blind spots and longer MTTR.
 
 Running many separate services increases operational cost and failure modes.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - OpenAI-compatible proxy, MCP server, and A2A server in one stack
 - Shared auth, resilience, data store, and observability
@@ -667,7 +667,7 @@ Running many separate services increases operational cost and failure modes.
 
 Teams lose velocity when stitching multiple ad-hoc services and scripts.
 
-**How OmniRoute solves it:**
+**How Routiform solves it:**
 
 - Unified endpoint strategy for clients and agents
 - Built-in protocol management UIs and smoke validation paths
@@ -717,7 +717,7 @@ Outcome: deep fallback depth for deadline-critical workloads
 **Playbook D: Agent ops with MCP + A2A**
 
 ```txt
-1) Start MCP transport (`omniroute --mcp`) for tool-driven operations
+1) Start MCP transport (`routiform --mcp`) for tool-driven operations
 2) Run A2A tasks via `message/send` and `message/stream`
 3) Observe via /dashboard/endpoint (MCP and A2A tabs)
 4) Toggle services via inline status controls
@@ -746,32 +746,32 @@ Outcome: deep fallback depth for deadline-critical workloads
 ### 1) Install and run
 
 ```bash
-npm install -g omniroute
-omniroute
+npm install -g routiform
+routiform
 ```
 
 > **pnpm users:** Run `pnpm approve-builds -g` after install to enable native build scripts required by `better-sqlite3` and `@swc/core`:
 >
 > ```bash
-> pnpm install -g omniroute
+> pnpm install -g routiform
 > pnpm approve-builds -g   # Select all packages → approve
-> omniroute
+> routiform
 > ```
 
 Dashboard opens at `http://localhost:20128` and API base URL is `http://localhost:20128/v1`.
 
 | Command                 | Description                                                 |
 | ----------------------- | ----------------------------------------------------------- |
-| `omniroute`             | Start server (`PORT=20128`, API and dashboard on same port) |
-| `omniroute --port 3000` | Set canonical/API port to 3000                              |
-| `omniroute --mcp`       | Start MCP server (stdio transport)                          |
-| `omniroute --no-open`   | Don't auto-open browser                                     |
-| `omniroute --help`      | Show help                                                   |
+| `routiform`             | Start server (`PORT=20128`, API and dashboard on same port) |
+| `routiform --port 3000` | Set canonical/API port to 3000                              |
+| `routiform --mcp`       | Start MCP server (stdio transport)                          |
+| `routiform --no-open`   | Don't auto-open browser                                     |
+| `routiform --help`      | Show help                                                   |
 
 Optional split-port mode:
 
 ```bash
-PORT=20128 DASHBOARD_PORT=20129 omniroute
+PORT=20128 DASHBOARD_PORT=20129 routiform
 # API:       http://localhost:20128/v1
 # Dashboard: http://localhost:20129
 ```
@@ -783,7 +783,7 @@ For most deployments, you only need:
 | Variable                 | Default                       | Purpose                                                                                                                     |
 | ------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `REQUEST_TIMEOUT_MS`     | `600000`                      | Shared baseline for upstream fetch, hidden Undici timeouts, TLS fingerprint requests, and API bridge request/proxy timeouts |
-| `STREAM_IDLE_TIMEOUT_MS` | inherits `REQUEST_TIMEOUT_MS` | Maximum gap between streaming chunks before OmniRoute aborts the SSE stream                                                 |
+| `STREAM_IDLE_TIMEOUT_MS` | inherits `REQUEST_TIMEOUT_MS` | Maximum gap between streaming chunks before Routiform aborts the SSE stream                                                 |
 
 Backward compatibility is preserved: existing `FETCH_TIMEOUT_MS`, `API_BRIDGE_PROXY_TIMEOUT_MS`, and other per-layer timeout vars still work and override the shared baseline.
 
@@ -803,8 +803,8 @@ Advanced overrides are available if you need finer control:
 | `API_BRIDGE_SERVER_KEEPALIVE_TIMEOUT_MS` | `5000`                                     | Keep-alive timeout on the API bridge server                          |
 | `API_BRIDGE_SERVER_SOCKET_TIMEOUT_MS`    | `0`                                        | Socket inactivity timeout on the API bridge server (`0` disables it) |
 
-If you run OmniRoute behind Nginx, Caddy, Cloudflare, or another reverse proxy, make sure the proxy
-timeouts are also higher than your OmniRoute stream/fetch timeouts.
+If you run Routiform behind Nginx, Caddy, Cloudflare, or another reverse proxy, make sure the proxy
+timeouts are also higher than your Routiform stream/fetch timeouts.
 
 ### 2) Connect providers and create your API key
 
@@ -812,7 +812,7 @@ timeouts are also higher than your OmniRoute stream/fetch timeouts.
 2. Open Dashboard → `Endpoints` and create an API key.
 3. (Optional) Open Dashboard → `Combos` and set your fallback chain.
 
-### 3) Point your coding tool to OmniRoute
+### 3) Point your coding tool to Routiform
 
 ```txt
 Base URL: http://localhost:20128/v1
@@ -827,7 +827,7 @@ Works with Claude Code, Codex CLI, Gemini CLI, Cursor, Cline, OpenClaw, OpenCode
 **MCP (for tool-driven operations):**
 
 ```bash
-omniroute --mcp
+routiform --mcp
 ```
 
 Then connect your MCP client over `stdio` and test tools like:
@@ -866,11 +866,11 @@ PORT=20128 DASHBOARD_PORT=20129 NEXT_PUBLIC_BASE_URL=http://localhost:20129 npm 
 <details>
 <summary><b>Void Linux (`xbps-src` template)</b></summary>
 
-For Void Linux users, you can build a native package using `xbps-src`. Save this block as `srcpkgs/omniroute/template`:
+For Void Linux users, you can build a native package using `xbps-src`. Save this block as `srcpkgs/routiform/template`:
 
 ```bash
-# Template file for 'omniroute'
-pkgname=omniroute
+# Template file for 'routiform'
+pkgname=routiform
 version=3.4.1
 revision=1
 hostmakedepends="nodejs python3 make"
@@ -882,7 +882,7 @@ homepage="https://github.com/linhnguyen-gt/Routiform"
 distfiles="https://github.com/linhnguyen-gt/Routiform/archive/refs/tags/v${version}.tar.gz"
 checksum=009400afee90a9f32599d8fe734145cfd84098140b7287990183dde45ae2245b
 system_accounts="_omniroute"
-omniroute_homedir="/var/lib/omniroute"
+omniroute_homedir="/var/lib/routiform"
 export NODE_ENV=production
 export npm_config_engine_strict=false
 export npm_config_loglevel=error
@@ -940,27 +940,27 @@ do_check() {
 }
 
 do_install() {
-	vmkdir usr/lib/omniroute/.next
+	vmkdir usr/lib/routiform/.next
 
-	vcopy .next/standalone/. usr/lib/omniroute/.next/standalone
+	vcopy .next/standalone/. usr/lib/routiform/.next/standalone
 
 	# Prevent removal of empty Next.js app router dirs by the post-install hook
 	for _d in \
 		.next/standalone/.next/server/app/dashboard \
 		.next/standalone/.next/server/app/dashboard/settings \
 		.next/standalone/.next/server/app/dashboard/providers; do
-		touch "${DESTDIR}/usr/lib/omniroute/${_d}/.keep"
+		touch "${DESTDIR}/usr/lib/routiform/${_d}/.keep"
 	done
 
-	cat > "${WRKDIR}/omniroute" <<'EOF'
+	cat > "${WRKDIR}/routiform" <<'EOF'
 #!/bin/sh
 export PORT="${PORT:-20128}"
-export DATA_DIR="${DATA_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/omniroute}"
+export DATA_DIR="${DATA_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/routiform}"
 export LOG_TO_FILE="${LOG_TO_FILE:-false}"
 mkdir -p "${DATA_DIR}"
-exec node /usr/lib/omniroute/.next/standalone/server.js "$@"
+exec node /usr/lib/routiform/.next/standalone/server.js "$@"
 EOF
-	vbin "${WRKDIR}/omniroute"
+	vbin "${WRKDIR}/routiform"
 }
 
 post_install() {
@@ -974,18 +974,18 @@ post_install() {
 
 ## 🐳 Docker
 
-OmniRoute is available as a public Docker image on [Docker Hub](https://hub.docker.com/r/diegosouzapw/omniroute).
+Routiform is available as a public Docker image on [Docker Hub](https://hub.docker.com/r/linhnguyen-gt/routiform).
 
 **Quick run:**
 
 ```bash
 docker run -d \
-  --name omniroute \
+  --name routiform \
   --restart unless-stopped \
   --stop-timeout 40 \
   -p 20128:20128 \
-  -v omniroute-data:/app/data \
-  diegosouzapw/omniroute:latest
+  -v routiform-data:/app/data \
+  linhnguyen-gt/routiform:latest
 ```
 
 **With environment file:**
@@ -995,13 +995,13 @@ docker run -d \
 cp .env.example .env
 
 docker run -d \
-  --name omniroute \
+  --name routiform \
   --restart unless-stopped \
   --stop-timeout 40 \
   --env-file .env \
   -p 20128:20128 \
-  -v omniroute-data:/app/data \
-  diegosouzapw/omniroute:latest
+  -v routiform-data:/app/data \
+  linhnguyen-gt/routiform:latest
 ```
 
 **Using Docker Compose:**
@@ -1019,26 +1019,26 @@ Dashboard support for Docker deployments now includes a one-click **Cloudflare Q
 Notes:
 
 - Quick Tunnel URLs are temporary and change after every restart.
-- Quick Tunnels are not auto-restored after an OmniRoute or container restart. Re-enable them from the dashboard when needed.
+- Quick Tunnels are not auto-restored after an Routiform or container restart. Re-enable them from the dashboard when needed.
 - Managed install currently supports Linux, macOS, and Windows on `x64` / `arm64`.
 - Managed Quick Tunnels default to HTTP/2 transport to avoid noisy QUIC UDP buffer warnings in constrained container environments. Set `CLOUDFLARED_PROTOCOL=quic` or `auto` if you want a different transport.
 - Docker images bundle system CA roots and pass them to managed `cloudflared`, which avoids TLS trust failures when the tunnel bootstraps inside the container.
-- SQLite runs in WAL mode. `docker stop` should be allowed to finish so OmniRoute can checkpoint the latest changes back into `storage.sqlite`.
+- SQLite runs in WAL mode. `docker stop` should be allowed to finish so Routiform can checkpoint the latest changes back into `storage.sqlite`.
 - The bundled Compose files already set a 40s stop grace period. If you run the image directly, keep `--stop-timeout 40` (or similar) so manual stops do not cut off shutdown cleanup.
-- Set `CLOUDFLARED_BIN=/absolute/path/to/cloudflared` if you want OmniRoute to use an existing binary instead of downloading one.
+- Set `CLOUDFLARED_BIN=/absolute/path/to/cloudflared` if you want Routiform to use an existing binary instead of downloading one.
 
 **Using Docker Compose with Caddy (HTTPS Auto-TLS):**
 
-OmniRoute can be securely exposed using Caddy's automatic SSL provisioning. Ensure your domain's DNS A record points to your server's IP.
+Routiform can be securely exposed using Caddy's automatic SSL provisioning. Ensure your domain's DNS A record points to your server's IP.
 
 ```yaml
 services:
-  omniroute:
-    image: diegosouzapw/omniroute:latest
-    container_name: omniroute
+  routiform:
+    image: linhnguyen-gt/routiform:latest
+    container_name: routiform
     restart: unless-stopped
     volumes:
-      - omniroute-data:/app/data
+      - routiform-data:/app/data
     environment:
       - PORT=20128
       - NEXT_PUBLIC_BASE_URL=https://your-domain.com
@@ -1050,27 +1050,27 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    command: caddy reverse-proxy --from https://your-domain.com --to http://omniroute:20128
+    command: caddy reverse-proxy --from https://your-domain.com --to http://routiform:20128
 
 volumes:
-  omniroute-data:
+  routiform-data:
 ```
 
 | Image                    | Tag      | Size   | Description           |
 | ------------------------ | -------- | ------ | --------------------- |
-| `diegosouzapw/omniroute` | `latest` | ~250MB | Latest stable release |
-| `diegosouzapw/omniroute` | `1.0.3`  | ~250MB | Current version       |
+| `linhnguyen-gt/routiform` | `latest` | ~250MB | Latest stable release |
+| `linhnguyen-gt/routiform` | `1.0.3`  | ~250MB | Current version       |
 
 ---
 
 ## 🖥️ Desktop App — Offline & Always-On
 
-> 🆕 **NEW!** OmniRoute is now available as a **native desktop application** for Windows, macOS, and Linux.
+> 🆕 **NEW!** Routiform is now available as a **native desktop application** for Windows, macOS, and Linux.
 
-Run OmniRoute as a standalone desktop app — no terminal, no browser, no internet required for local models. The Electron-based app includes:
+Run Routiform as a standalone desktop app — no terminal, no browser, no internet required for local models. The Electron-based app includes:
 
 - 🖥️ **Native Window** — Dedicated app window with system tray integration
-- 🔄 **Auto-Start** — Launch OmniRoute on system login
+- 🔄 **Auto-Start** — Launch Routiform on system login
 - 🔔 **Native Notifications** — Get alerts for quota exhaustion or provider issues
 - ⚡ **One-Click Install** — NSIS (Windows), DMG (macOS), AppImage (Linux)
 - 🌐 **Offline Mode** — Works fully offline with bundled server
@@ -1090,7 +1090,7 @@ npm run electron:build:linux   # Linux (.AppImage)
 
 ### System Tray
 
-When minimized, OmniRoute lives in your system tray with quick actions:
+When minimized, Routiform lives in your system tray with quick actions:
 
 - Open dashboard
 - Change server port
@@ -1149,7 +1149,7 @@ NVIDIA NIM (nvidia/)   → 70+ open models — 40 RPM forever
 Cerebras (cerebras/)   → Llama/Qwen world-fastest — 1M tok/day
 ```
 
-**Zero cost. Never stops coding.** Configure this as one OmniRoute combo and all fallbacks happen automatically — no manual switching ever.
+**Zero cost. Never stops coding.** Configure this as one Routiform combo and all fallbacks happen automatically — no manual switching ever.
 
 ---
 
@@ -1157,7 +1157,7 @@ Cerebras (cerebras/)   → Llama/Qwen world-fastest — 1M tok/day
 
 ## 🆓 Free Models — What You Actually Get
 
-> All models below are **100% free with zero credit card required**. OmniRoute auto-routes between them when one quota runs out — combine them all for an unbreakable $0 combo.
+> All models below are **100% free with zero credit card required**. Routiform auto-routes between them when one quota runs out — combine them all for an unbreakable $0 combo.
 
 ### 🔵 CLAUDE MODELS (via Kiro — AWS Builder ID)
 
@@ -1306,7 +1306,7 @@ Then in `/dashboard/media` → **Transcription** tab: upload any audio or video 
 
 ## 💡 Key Features
 
-OmniRoute v2.0 is built as an operational platform, not just a relay proxy.
+Routiform v2.0 is built as an operational platform, not just a relay proxy.
 
 ### 🆕 New — ClawRouter-Inspired Improvements (Mar 2026)
 
@@ -1450,7 +1450,7 @@ Combo: "my-coding-stack"
   4. if/kimi-k2-thinking
 ```
 
-When quota, rate, or health fails, OmniRoute automatically moves to the next candidate without manual switching.
+When quota, rate, or health fails, Routiform automatically moves to the next candidate without manual switching.
 
 #### Protocol management that is visible and operable
 
@@ -1475,11 +1475,11 @@ Plus protocol validation with real clients via `npm run test:protocols:e2e`.
 
 ## 🧪 Evaluations (Evals)
 
-OmniRoute includes a built-in evaluation framework to test LLM response quality against a golden set. Access it via **Analytics → Evals** in the dashboard.
+Routiform includes a built-in evaluation framework to test LLM response quality against a golden set. Access it via **Analytics → Evals** in the dashboard.
 
 ### Built-in Golden Set
 
-The pre-loaded "OmniRoute Golden Set" contains test cases for:
+The pre-loaded "Routiform Golden Set" contains test cases for:
 
 - Greetings, math, geography, code generation
 - JSON format compliance, translation, markdown generation
@@ -1506,7 +1506,7 @@ The pre-loaded "OmniRoute Golden Set" contains test cases for:
 Start MCP transport in stdio mode:
 
 ```bash
-omniroute --mcp
+routiform --mcp
 ```
 
 Recommended validation flow:
@@ -1588,7 +1588,7 @@ Models:
   cc/claude-haiku-4-5-20251001
 ```
 
-**Pro Tip:** Use Opus for complex tasks, Sonnet for speed. OmniRoute tracks quota per model!
+**Pro Tip:** Use Opus for complex tasks, Sonnet for speed. Routiform tracks quota per model!
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -1609,7 +1609,7 @@ Each Codex account now has policy toggles in `Dashboard -> Providers`:
 - `5h` (ON/OFF): enforce the 5-hour window threshold policy.
 - `Weekly` (ON/OFF): enforce the weekly window threshold policy.
 - Threshold behavior: when an enabled window reaches >=90% usage, that account is skipped.
-- Rotation behavior: OmniRoute routes to the next eligible Codex account automatically.
+- Rotation behavior: Routiform routes to the next eligible Codex account automatically.
 - Reset behavior: when the provider `resetAt` time passes, the account becomes eligible again automatically.
 
 Scenarios:
@@ -1660,7 +1660,7 @@ Models:
 
 **Models:** `nvidia/llama-3.3-70b-instruct`, `nvidia/mistral-7b-instruct`, and 50+ more
 
-**Pro Tip:** OpenAI-compatible API — works seamlessly with OmniRoute's format translation!
+**Pro Tip:** OpenAI-compatible API — works seamlessly with Routiform's format translation!
 
 ### DeepSeek
 
@@ -1812,7 +1812,7 @@ Cost: $0 forever!
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
-  OpenAI API Key: [from OmniRoute dashboard]
+  OpenAI API Key: [from Routiform dashboard]
   Model: cc/claude-opus-4-6
 ```
 
@@ -1824,7 +1824,7 @@ Use the **CLI Tools** page in the dashboard for one-click configuration, or edit
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:20128"
-export OPENAI_API_KEY="your-omniroute-api-key"
+export OPENAI_API_KEY="your-routiform-api-key"
 
 codex "your prompt"
 ```
@@ -1843,9 +1843,9 @@ Dashboard → CLI Tools → OpenClaw → Select Model → Apply
 {
   "models": {
     "providers": {
-      "omniroute": {
+      "routiform": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_omniroute",
+        "apiKey": "sk_routiform",
         "api": "openai-completions"
       }
     }
@@ -1853,7 +1853,7 @@ Dashboard → CLI Tools → OpenClaw → Select Model → Apply
 }
 ```
 
-> **Note:** OpenClaw only works with local OmniRoute. Use `127.0.0.1` instead of `localhost` to avoid IPv6 resolution issues.
+> **Note:** OpenClaw only works with local Routiform. Use `127.0.0.1` instead of `localhost` to avoid IPv6 resolution issues.
 
 ### Cline / Continue / RooCode
 
@@ -1861,18 +1861,18 @@ Dashboard → CLI Tools → OpenClaw → Select Model → Apply
 Settings → API Configuration:
   Provider: OpenAI Compatible
   Base URL: http://localhost:20128/v1
-  API Key: [from OmniRoute dashboard]
+  API Key: [from Routiform dashboard]
   Model: if/kimi-k2-thinking
 ```
 
 ### OpenCode
 
-**Step 1:** Add OmniRoute as a custom provider:
+**Step 1:** Add Routiform as a custom provider:
 
 ```bash
 opencode
 /connect
-# Select "Other" → Enter ID: "omniroute" → Enter your OmniRoute API key
+# Select "Other" → Enter ID: "routiform" → Enter your Routiform API key
 ```
 
 **Step 2:** Create/edit `opencode.json` in your project root:
@@ -1881,9 +1881,9 @@ opencode
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "omniroute": {
+    "routiform": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "OmniRoute",
+      "name": "Routiform",
       "options": {
         "baseURL": "http://localhost:20128/v1"
       },
@@ -1901,10 +1901,10 @@ opencode
 
 ```bash
 /models
-# Select any OmniRoute model from the list
+# Select any Routiform model from the list
 ```
 
-> **Tip:** Add any model available in your OmniRoute `/v1/models` endpoint to the `models` section. Use the format `provider/model-id` from your OmniRoute dashboard.
+> **Tip:** Add any model available in your Routiform `/v1/models` endpoint to the `models` section. Use the format `provider/model-id` from your Routiform dashboard.
 
 </details>
 
@@ -1927,7 +1927,7 @@ opencode
 
 **OAuth token expired**
 
-- Auto-refreshed by OmniRoute
+- Auto-refreshed by Routiform
 - If issues persist: Dashboard → Provider → Reconnect
 
 **High costs**
@@ -1964,7 +1964,7 @@ opencode
 **Connection test shows "Invalid" for OpenAI-compatible providers**
 
 - Many providers don't expose a `/models` endpoint
-- OmniRoute v1.0.6+ includes fallback validation via chat completions
+- Routiform v1.0.6+ includes fallback validation via chat completions
 - Ensure base URL includes `/v1` suffix
 
 ### 🔐 OAuth on a Remote Server
@@ -1972,13 +1972,13 @@ opencode
 <a name="oauth-on-a-remote-server"></a>
 <a name="oauth-em-servidor-remoto"></a>
 
-> **⚠️ Important for users running OmniRoute on a VPS, Docker, or any remote server**
+> **⚠️ Important for users running Routiform on a VPS, Docker, or any remote server**
 
 #### Why does Antigravity / Gemini CLI OAuth fail on remote servers?
 
 The **Antigravity** and **Gemini CLI** providers use **Google OAuth 2.0**. Google requires the `redirect_uri` in the OAuth flow to exactly match one of the pre-registered URIs in the app's Google Cloud Console.
 
-The OAuth credentials bundled in OmniRoute are registered **for `localhost` only**. When you access OmniRoute on a remote server (e.g. `https://omniroute.myserver.com`), Google rejects the authentication with:
+The OAuth credentials bundled in Routiform are registered **for `localhost` only**. When you access Routiform on a remote server (e.g. `https://routiform.myserver.com`), Google rejects the authentication with:
 
 ```
 Error 400: redirect_uri_mismatch
@@ -1998,7 +1998,7 @@ Go to: [https://console.cloud.google.com/apis/credentials](https://console.cloud
 
 - Click **"+ Create Credentials"** → **"OAuth client ID"**
 - Application type: **"Web application"**
-- Name: anything you like (e.g. `OmniRoute Remote`)
+- Name: anything you like (e.g. `Routiform Remote`)
 
 **3. Add Authorized Redirect URIs**
 
@@ -2029,14 +2029,14 @@ GEMINI_OAUTH_CLIENT_SECRET=GOCSPX-your-secret
 GEMINI_CLI_OAUTH_CLIENT_SECRET=GOCSPX-your-secret
 ```
 
-**6. Restart OmniRoute**
+**6. Restart Routiform**
 
 ```bash
 # npm:
 npm run dev
 
 # Docker:
-docker restart omniroute
+docker restart routiform
 ```
 
 **7. Try connecting again**
@@ -2051,10 +2051,10 @@ Google will now redirect correctly to `https://your-server.com/callback`.
 
 If you don't want to set up your own credentials right now, you can still use the **manual URL flow**:
 
-1. OmniRoute opens the Google authorization URL
+1. Routiform opens the Google authorization URL
 2. After authorizing, Google tries to redirect to `localhost` (which fails on the remote server)
 3. **Copy the full URL** from your browser's address bar (even if the page doesn't load)
-4. Paste that URL into the field shown in the OmniRoute connection modal
+4. Paste that URL into the field shown in the Routiform connection modal
 5. Click **"Connect"**
 
 > This works because the authorization code in the URL is valid regardless of whether the redirect page loaded.
@@ -2068,7 +2068,7 @@ If you don't want to set up your own credentials right now, you can still use th
 
 Os provedores **Antigravity** e **Gemini CLI** usam **Google OAuth 2.0** para autenticação. O Google exige que a `redirect_uri` usada no fluxo OAuth seja **exatamente** uma das URIs pré-cadastradas no Google Cloud Console do aplicativo.
 
-As credenciais OAuth embutidas no OmniRoute estão cadastradas **apenas para `localhost`**. Quando você acessa o OmniRoute em um servidor remoto (ex: `https://omniroute.meuservidor.com`), o Google rejeita a autenticação com:
+As credenciais OAuth embutidas no Routiform estão cadastradas **apenas para `localhost`**. Quando você acessa o Routiform em um servidor remoto (ex: `https://routiform.meuservidor.com`), o Google rejeita a autenticação com:
 
 ```
 Error 400: redirect_uri_mismatch
@@ -2088,7 +2088,7 @@ Abra: [https://console.cloud.google.com/apis/credentials](https://console.cloud.
 
 - Clique em **"+ Create Credentials"** → **"OAuth client ID"**
 - Tipo de aplicativo: **"Web application"**
-- Nome: escolha qualquer nome (ex: `OmniRoute Remote`)
+- Nome: escolha qualquer nome (ex: `Routiform Remote`)
 
 **3. Adicione as Authorized Redirect URIs**
 
@@ -2119,14 +2119,14 @@ GEMINI_OAUTH_CLIENT_SECRET=GOCSPX-seu-secret
 GEMINI_CLI_OAUTH_CLIENT_SECRET=GOCSPX-seu-secret
 ```
 
-**6. Reinicie o OmniRoute**
+**6. Reinicie o Routiform**
 
 ```bash
 # Se usando npm:
 npm run dev
 
 # Se usando Docker:
-docker restart omniroute
+docker restart routiform
 ```
 
 **7. Tente conectar novamente**
@@ -2141,10 +2141,10 @@ Agora o Google redirecionará corretamente para `https://seu-servidor.com/callba
 
 Se não quiser criar credenciais próprias agora, ainda é possível usar o fluxo **manual de URL**:
 
-1. O OmniRoute abrirá a URL de autorização do Google
+1. O Routiform abrirá a URL de autorização do Google
 2. Após você autorizar, o Google tentará redirecionar para `localhost` (que falha no servidor remoto)
 3. **Copie a URL completa** da barra de endereço do seu browser (mesmo que a página não carregue)
-4. Cole essa URL no campo que aparece no modal de conexão do OmniRoute
+4. Cole essa URL no campo que aparece no modal de conexão do Routiform
 5. Clique em **"Connect"**
 
 > Este workaround funciona porque o código de autorização na URL é válido independente do redirect ter carregado ou não.
@@ -2160,7 +2160,7 @@ Se não quiser criar credenciais próprias agora, ainda é possível usar o flux
 <details>
 <summary><b>Click to expand tech stack details</b></summary>
 
-- **Runtime**: Node.js 18–22 LTS (⚠️ Node.js 24+ is **not supported** — `better-sqlite3` native binaries are incompatible)
+- **Runtime**: Node.js 18–24 (`package.json` engines: `>=18 <25`); **22 LTS** recommended for production
 - **Language**: TypeScript 5.9 — **100% TypeScript** across `src/` and `open-sse/` (zero `any` in core modules since v2.0)
 - **Framework**: Next.js 16 + React 19 + Tailwind CSS 4
 - **Database**: LowDB (JSON) + SQLite (domain state + proxy logs + MCP audit + routing decisions)
@@ -2170,9 +2170,9 @@ Se não quiser criar credenciais próprias agora, ainda é possível usar o flux
 - **Auth**: OAuth 2.0 (PKCE) + JWT + API Keys + MCP Scoped Authorization
 - **Testing**: Node.js test runner + Vitest (900+ tests including unit, integration, E2E)
 - **CI/CD**: GitHub Actions (auto npm publish + Docker Hub on release)
-- **Website**: [omniroute.online](https://omniroute.online)
-- **Package**: [npmjs.com/package/omniroute](https://www.npmjs.com/package/omniroute)
-- **Docker**: [hub.docker.com/r/diegosouzapw/omniroute](https://hub.docker.com/r/diegosouzapw/omniroute)
+- **Website**: [github.com/linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform)
+- **Package**: [npmjs.com/package/routiform](https://www.npmjs.com/package/routiform)
+- **Docker**: [hub.docker.com/r/linhnguyen-gt/routiform](https://hub.docker.com/r/linhnguyen-gt/routiform)
 - **Resilience**: Circuit breaker, exponential backoff, anti-thundering herd, TLS spoofing, auto-combo self-healing
 
 </details>
@@ -2201,7 +2201,7 @@ Se não quiser criar credenciais próprias agora, ainda é possível usar o flux
 
 ## 🗺️ Roadmap
 
-OmniRoute has **210+ features planned** across multiple development phases. Here are the key areas:
+Routiform has **210+ features planned** across multiple development phases. Here are the key areas:
 
 | Category                      | Planned Features | Highlights                                                                             |
 | ----------------------------- | ---------------- | -------------------------------------------------------------------------------------- |
@@ -2255,7 +2255,7 @@ gh release create v2.0.0 --title "v2.0.0" --generate-notes
 
 ## 🙏 Acknowledgments
 
-Special thanks to **[9router](https://github.com/decolua/9router)** by **[decolua](https://github.com/decolua)** — the original project that inspired this fork. OmniRoute builds upon that incredible foundation with additional features, multi-modal APIs, and a full TypeScript rewrite.
+Special thanks to **[9router](https://github.com/decolua/9router)** by **[decolua](https://github.com/decolua)** — the original project that inspired this fork. Routiform builds upon that incredible foundation with additional features, multi-modal APIs, and a full TypeScript rewrite.
 
 Special thanks to **[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)** — the original Go implementation that inspired this JavaScript port.
 
@@ -2270,6 +2270,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 <div align="center">
   <sub>Built with ❤️ for developers who code 24/7</sub>
   <br/>
-  <sub><a href="https://omniroute.online">omniroute.online</a></sub>
+  <sub><a href="https://github.com/linhnguyen-gt/Routiform">github.com/linhnguyen-gt/Routiform</a></sub>
 </div>
 <!-- GitHub Discussions enabled for community Q&A -->

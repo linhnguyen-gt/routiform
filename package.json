@@ -4,8 +4,8 @@
   "description": "Routiform — Smart AI Router with auto fallback — route to FREE & cheap models, zero downtime. Works with Cursor, Cline, Claude Desktop, Codex, and any OpenAI-compatible tool.",
   "type": "module",
   "bin": {
-    "routiform": "bin/omniroute.mjs",
-    "omniroute": "bin/omniroute.mjs",
+    "routiform": "bin/routiform.mjs",
+    "omniroute": "bin/routiform.mjs",
     "omniroute-reset-password": "bin/reset-password.mjs",
     "routiform-reset-password": "bin/reset-password.mjs"
   },
@@ -23,7 +23,7 @@
     "open-sse"
   ],
   "engines": {
-    "node": ">=18.0.0 <24.0.0"
+    "node": ">=18.0.0 <25.0.0"
   },
   "keywords": [
     "routiform",

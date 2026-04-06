@@ -136,9 +136,9 @@ export default function ClaudeToolCard({
       const env: any = { ANTHROPIC_BASE_URL: getEffectiveBaseUrl() };
 
       // (#523) Prefer keyId lookup so the backend writes the real key to disk.
-      // Fall back to sk_omniroute for localhost-only setups without a key.
+      // Fall back to sk_routiform for localhost-only setups without a key.
       const selectedKeyId = selectedApiKey?.trim() || (apiKeys?.length > 0 ? apiKeys[0].id : null);
-      const skOmnirouteFallback = !cloudEnabled ? "sk_omniroute" : null;
+      const skOmnirouteFallback = !cloudEnabled ? "sk_routiform" : null;
 
       if (!selectedKeyId && skOmnirouteFallback) {
         env.ANTHROPIC_AUTH_TOKEN = skOmnirouteFallback;
@@ -212,7 +212,7 @@ export default function ClaudeToolCard({
       selectedApiKey && selectedApiKey.trim()
         ? selectedApiKey
         : !cloudEnabled
-          ? "sk_omniroute"
+          ? "sk_routiform"
           : "<API_KEY_FROM_DASHBOARD>";
     const env = { ANTHROPIC_BASE_URL: getEffectiveBaseUrl(), ANTHROPIC_AUTH_TOKEN: keyToUse };
     tool.defaultModels.forEach((model) => {
@@ -425,7 +425,7 @@ export default function ClaudeToolCard({
                     </select>
                   ) : (
                     <span className="flex-1 text-xs text-text-muted px-2 py-1.5">
-                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultOmnirouteKey")}
+                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultRoutiformKey")}
                     </span>
                   )}
                 </div>
@@ -492,7 +492,7 @@ export default function ClaudeToolCard({
                   variant="outline"
                   size="sm"
                   onClick={handleResetSettings}
-                  disabled={!claudeStatus?.hasOmniRoute}
+                  disabled={!claudeStatus?.hasRoutiform}
                   loading={restoring}
                 >
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>

@@ -2,7 +2,7 @@ import { assignProxyToScope, getProxyAssignments, resolveProxyForConnection } fr
 import { proxyAssignmentSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { createErrorResponse, createErrorResponseFromUnknown } from "@/lib/api/errorResponse";
-import { clearDispatcherCache } from "@omniroute/open-sse/utils/proxyDispatcher";
+import { clearDispatcherCache } from "@routiform/open-sse/utils/proxyDispatcher";
 
 export async function GET(request: Request) {
   try {

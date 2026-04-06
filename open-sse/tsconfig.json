@@ -15,8 +15,8 @@
     "baseUrl": "..",
     "paths": {
       "@/*": ["./src/*"],
-      "@omniroute/open-sse": ["./open-sse"],
-      "@omniroute/open-sse/*": ["./open-sse/*"]
+      "@routiform/open-sse": ["./open-sse"],
+      "@routiform/open-sse/*": ["./open-sse/*"]
     }
   },
   "include": ["**/*.ts", "**/*.js"]

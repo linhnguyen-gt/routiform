@@ -5,7 +5,7 @@ import {
   parseModel,
   resolveModelAliasFromMap,
   getModelInfoCore,
-} from "@omniroute/open-sse/services/model.ts";
+} from "@routiform/open-sse/services/model.ts";
 
 export { parseModel };
 

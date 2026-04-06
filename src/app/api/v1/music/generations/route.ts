@@ -1,5 +1,5 @@
 import { CORS_ORIGIN } from "@/shared/utils/cors";
-import { handleMusicGeneration } from "@omniroute/open-sse/handlers/musicGeneration.ts";
+import { handleMusicGeneration } from "@routiform/open-sse/handlers/musicGeneration.ts";
 import {
   getProviderCredentials,
   clearRecoveredProviderState,
@@ -10,9 +10,9 @@ import {
   parseMusicModel,
   getAllMusicModels,
   getMusicProvider,
-} from "@omniroute/open-sse/config/musicRegistry.ts";
-import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
-import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
+} from "@routiform/open-sse/config/musicRegistry.ts";
+import { errorResponse } from "@routiform/open-sse/utils/error.ts";
+import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
 import * as log from "@/sse/utils/logger";
 import { toJsonErrorPayload } from "@/shared/utils/upstreamError";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";

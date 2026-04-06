@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/utils/cn";
 import { APP_CONFIG } from "@/shared/constants/config";
-import OmniRouteLogo from "./OmniRouteLogo";
+import RoutiformLogo from "./RoutiformLogo";
 import Button from "./Button";
 import { ConfirmModal } from "./Modal";
 import CloudSyncStatus from "./CloudSyncStatus";
@@ -242,7 +242,7 @@ export default function Sidebar({
                   className="size-5 object-contain"
                 />
               ) : (
-                <OmniRouteLogo size={20} className="text-white" />
+                <RoutiformLogo size={20} className="text-white" />
               )}
             </div>
             {!collapsed && (

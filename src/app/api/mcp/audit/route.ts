@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { queryAuditEntries } from "@omniroute/open-sse/mcp-server/audit";
+import { queryAuditEntries } from "@routiform/open-sse/mcp-server/audit";
 
 function parseBooleanParam(value: string | null): boolean | undefined {
   if (value === "true" || value === "1") return true;

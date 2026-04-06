@@ -20,9 +20,9 @@ export async function GET() {
   try {
     // Dynamic imports for open-sse modules
     const { getAllCircuitBreakerStatuses } = await import("@/shared/utils/circuitBreaker");
-    const { getAllRateLimitStatus } = await import("@omniroute/open-sse/services/rateLimitManager");
+    const { getAllRateLimitStatus } = await import("@routiform/open-sse/services/rateLimitManager");
     const { PROVIDER_PROFILES, DEFAULT_API_LIMITS } =
-      await import("@omniroute/open-sse/config/constants");
+      await import("@routiform/open-sse/config/constants");
 
     const settings = await getSettings();
     const circuitBreakers = getAllCircuitBreakerStatuses();

@@ -1,4 +1,4 @@
-import { getModelsByProviderId } from "@omniroute/open-sse/config/providerModels.ts";
+import { getModelsByProviderId } from "@routiform/open-sse/config/providerModels.ts";
 import { safePercentage } from "@/shared/utils/formatting";
 
 const PROVIDER_PLAN_FALLBACKS = new Set([

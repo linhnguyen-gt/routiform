@@ -29,10 +29,11 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has OmniRoute config
-const hasOmniRouteConfig = (settings: any) => {
+// Check if settings has Routiform config (legacy `omniroute` key still counts)
+const hasRoutiformConfig = (settings: any) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
-  return !!settings.models.providers["omniroute"];
+  const p = settings.models.providers;
+  return !!(p["routiform"] || p["omniroute"]);
 };
 
 // GET - Check openclaw CLI and read current settings
@@ -66,7 +67,7 @@ export async function GET() {
       runtimeMode: runtime.runtimeMode,
       reason: runtime.reason,
       settings,
-      hasOmniRoute: hasOmniRouteConfig(settings),
+      hasRoutiform: hasRoutiformConfig(settings),
       settingsPath: getOpenClawSettingsPath(),
     });
   } catch (error) {
@@ -75,7 +76,7 @@ export async function GET() {
   }
 }
 
-// POST - Update OmniRoute settings (merge with existing settings)
+// POST - Update Routiform settings (merge with existing settings)
 export async function POST(request: Request) {
   let rawBody;
   try {
@@ -144,10 +145,11 @@ export async function POST(request: Request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 
     // Update agents.defaults.model.primary
-    settings.agents.defaults.model.primary = `omniroute/${model}`;
+    settings.agents.defaults.model.primary = `routiform/${model}`;
 
-    // Update models.providers.omniroute
-    settings.models.providers["omniroute"] = {
+    // Update models.providers.routiform
+    delete settings.models.providers["omniroute"];
+    settings.models.providers["routiform"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
       api: "openai-completions",
@@ -180,7 +182,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE - Remove OmniRoute settings only (keep other settings)
+// DELETE - Remove Routiform settings only (keep other settings)
 export async function DELETE() {
   try {
     const writeGuard = ensureCliConfigWriteAllowed();
@@ -208,8 +210,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove OmniRoute from models.providers
+    // Remove Routiform from models.providers
     if (settings.models && settings.models.providers) {
+      delete settings.models.providers["routiform"];
       delete settings.models.providers["omniroute"];
 
       // Remove providers object if empty
@@ -218,8 +221,12 @@ export async function DELETE() {
       }
     }
 
-    // Reset agents.defaults.model.primary if it uses omniroute
-    if (settings.agents?.defaults?.model?.primary?.startsWith("omniroute/")) {
+    // Reset agents.defaults.model.primary if it uses routiform or legacy omniroute
+    const primary = settings.agents?.defaults?.model?.primary;
+    if (
+      typeof primary === "string" &&
+      (primary.startsWith("routiform/") || primary.startsWith("omniroute/"))
+    ) {
       delete settings.agents.defaults.model.primary;
     }
 

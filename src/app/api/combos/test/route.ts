@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { initTranslators } from "@omniroute/open-sse/translator/index.ts";
+import { initTranslators } from "@routiform/open-sse/translator/index.ts";
 import { handleChat } from "@/sse/handlers/chat";
 import {
   buildComboTestRequestBody,
@@ -61,7 +61,7 @@ async function testComboModel(modelStr, chatCompletionsUrl, request) {
         "Content-Type": "application/json",
         Accept: "application/json",
         "X-Internal-Test": "combo-health-check",
-        "X-OmniRoute-No-Cache": "true",
+        "X-Routiform-No-Cache": "true",
         "X-Request-Id": `combo-test-${randomUUID()}`,
         ...(cookie ? { Cookie: cookie } : {}),
         ...(authorization ? { Authorization: authorization } : {}),

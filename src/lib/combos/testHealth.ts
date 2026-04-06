@@ -1,5 +1,5 @@
-import { parseSSEToOpenAIResponse } from "@omniroute/open-sse/handlers/sseParser.ts";
-import { unwrapOpenAIChatCompletionRoot } from "@omniroute/open-sse/utils/chatCompletionEnvelope.ts";
+import { parseSSEToOpenAIResponse } from "@routiform/open-sse/handlers/sseParser.ts";
+import { unwrapOpenAIChatCompletionRoot } from "@routiform/open-sse/utils/chatCompletionEnvelope.ts";
 
 type JsonRecord = Record<string, unknown>;
 

@@ -1,4 +1,4 @@
-# Contributing to OmniRoute
+# Contributing to Routiform
 
 Thank you for your interest in contributing! This guide covers everything you need to get started.
 
@@ -8,15 +8,15 @@ Thank you for your interest in contributing! This guide covers everything you ne
 
 ### Prerequisites
 
-- **Node.js** >= 18 < 24 (recommended: 22 LTS)
+- **Node.js** >= 18 < 25 (recommended: 22 LTS)
 - **npm** 10+
 - **Git**
 
 ### Clone & Install
 
 ```bash
-git clone https://github.com/diegosouzapw/OmniRoute.git
-cd OmniRoute
+git clone https://github.com/linhnguyen-gt/Routiform.git
+cd Routiform
 npm install
 ```
 
@@ -201,7 +201,7 @@ src/                        # TypeScript (.ts / .tsx)
 │   └── validation/         # Zod v4 schemas
 └── sse/                    # SSE proxy pipeline
 
-open-sse/                   # @omniroute/open-sse workspace
+open-sse/                   # @routiform/open-sse workspace
 ├── executors/              # 14 provider-specific request executors
 ├── handlers/               # 11 request handlers (chat, responses, embeddings, images, etc.)
 ├── mcp-server/             # MCP server (25 tools, 3 transports, 10 scopes)
@@ -291,5 +291,5 @@ Releases are managed via the `/generate-release` workflow. When a new GitHub Rel
 
 - **Architecture**: See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - **API Reference**: See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
-- **Issues**: [github.com/diegosouzapw/OmniRoute/issues](https://github.com/diegosouzapw/OmniRoute/issues)
+- **Issues**: [github.com/linhnguyen-gt/Routiform/issues](https://github.com/linhnguyen-gt/Routiform/issues)
 - **ADRs**: See `docs/adr/` for architectural decision records

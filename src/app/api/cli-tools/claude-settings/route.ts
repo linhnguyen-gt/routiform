@@ -64,7 +64,7 @@ export async function GET() {
 
     const { data: settings, parseError } = await readSettings();
     const env = settings?.env as Record<string, unknown> | undefined;
-    const hasOmniRoute = !!env?.ANTHROPIC_BASE_URL;
+    const hasRoutiform = !!env?.ANTHROPIC_BASE_URL;
 
     return NextResponse.json({
       installed: runtime.installed,
@@ -75,7 +75,7 @@ export async function GET() {
       reason: runtime.reason,
       settings: settings,
       settingsParseError: parseError ?? null,
-      hasOmniRoute: hasOmniRoute,
+      hasRoutiform: hasRoutiform,
       settingsPath: getClaudeSettingsPath(),
     });
   } catch (error) {
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
           env.ANTHROPIC_AUTH_TOKEN = keyRecord.key as string;
         }
       } catch {
-        // Non-critical: fall back to whatever value was in env (e.g. sk_omniroute)
+        // Non-critical: fall back to whatever value was in env (e.g. sk_routiform)
       }
     }
 

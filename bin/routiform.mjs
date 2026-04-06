@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * OmniRoute CLI — Smart AI Router with Auto Fallback
+ * Routiform CLI — Smart AI Router with Auto Fallback
+ * (`omniroute` remains a global npm alias for this entry.)
  *
  * Usage:
- *   omniroute              Start the server (default port 20128)
- *   omniroute --port 3000  Start on custom port
- *   omniroute --no-open    Start without opening browser
- *   omniroute --mcp        Start MCP server (stdio transport for IDEs)
- *   omniroute --help       Show help
- *   omniroute --version    Show version
+ *   routiform              Start the server (default port 20128)
+ *   routiform --port 3000  Start on custom port
+ *   routiform --no-open    Start without opening browser
+ *   routiform --mcp        Start MCP server (stdio transport for IDEs)
+ *   routiform --help       Show help
+ *   routiform --version    Show version
  */
 
 import { spawn } from "node:child_process";
@@ -33,13 +34,15 @@ function loadEnvFile() {
     envPaths.push(join(process.env.DATA_DIR, ".env"));
   }
 
-  // 2. ~/.omniroute/.env (default data dir)
+  // 2. Default data dirs: ~/.routiform/.env (then legacy ~/.omniroute/.env)
   const home = homedir();
   if (home) {
     if (platform() === "win32") {
       const appData = process.env.APPDATA || join(home, "AppData", "Roaming");
+      envPaths.push(join(appData, "routiform", ".env"));
       envPaths.push(join(appData, "omniroute", ".env"));
     } else {
+      envPaths.push(join(home, ".routiform", ".env"));
       envPaths.push(join(home, ".omniroute", ".env"));
     }
   }
@@ -82,26 +85,26 @@ const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-  \x1b[1m\x1b[36m⚡ OmniRoute\x1b[0m — Smart AI Router with Auto Fallback
+  \x1b[1m\x1b[36m⚡ Routiform\x1b[0m — Smart AI Router with Auto Fallback
 
   \x1b[1mUsage:\x1b[0m
-    omniroute                 Start the server
-    omniroute --port <port>   Use custom API port (default: 20128)
-    omniroute --no-open       Don't open browser automatically
-    omniroute --mcp           Start MCP server (stdio transport for IDEs)
-    omniroute --help          Show this help
-    omniroute --version       Show version
+    routiform                 Start the server
+    routiform --port <port>   Use custom API port (default: 20128)
+    routiform --no-open       Don't open browser automatically
+    routiform --mcp           Start MCP server (stdio transport for IDEs)
+    routiform --help          Show this help
+    routiform --version       Show version
 
   \x1b[1mMCP Integration:\x1b[0m
-    The --mcp flag starts an MCP server over stdio, exposing OmniRoute
+    The --mcp flag starts an MCP server over stdio, exposing Routiform
     tools for AI agents in VS Code, Cursor, Claude Desktop, and Copilot.
 
-    Available tools: omniroute_get_health, omniroute_list_combos,
-    omniroute_check_quota, omniroute_route_request, and more.
+    Available tools: routiform_get_health, routiform_list_combos,
+    routiform_check_quota, routiform_route_request, and more.
 
   \x1b[1mConfig:\x1b[0m
-    Loads .env from: ~/.omniroute/.env or ./.env
-    Memory limit: OMNIROUTE_MEMORY_MB (default: 512)
+    Loads .env from: ~/.routiform/.env (or legacy ~/.omniroute/.env) or ./.env
+    Memory limit: ROUTIFORM_MEMORY_MB or OMNIROUTE_MEMORY_MB (default: 512)
 
   \x1b[1mAfter starting:\x1b[0m
     Dashboard:  http://localhost:<dashboard-port>
@@ -172,7 +175,7 @@ console.log(`
 const nodeMajor = parseInt(process.versions.node.split(".")[0], 10);
 if (nodeMajor >= 24) {
   console.warn(`\x1b[33m  ⚠  Warning: You are running Node.js ${process.versions.node}.
-     OmniRoute uses better-sqlite3, a native addon that does not yet
+     Routiform uses better-sqlite3, a native addon that does not yet
      have compatible prebuilt binaries for Node.js 24+.
      You may experience errors like "is not a valid Win32 application"
      or "NODE_MODULE_VERSION mismatch".
@@ -195,18 +198,18 @@ if (!existsSync(serverJs)) {
   const isNvm = nodeExec.includes(".nvm") || nodeExec.includes("nvm");
   if (isMise) {
     console.error(
-      "  \x1b[33m⚠ mise detected:\x1b[0m If you installed via `npm install -g omniroute`,"
+      "  \x1b[33m⚠ mise detected:\x1b[0m If you installed via `npm install -g routiform`,"
     );
-    console.error("    try: \x1b[36mnpx omniroute@latest\x1b[0m  (downloads a fresh copy)");
-    console.error("    or:  \x1b[36mmise exec -- npx omniroute\x1b[0m");
+    console.error("    try: \x1b[36mnpx routiform@latest\x1b[0m  (downloads a fresh copy)");
+    console.error("    or:  \x1b[36mmise exec -- npx routiform\x1b[0m");
   } else if (isNvm) {
     console.error(
       "  \x1b[33m⚠ nvm detected:\x1b[0m Try reinstalling after loading the correct Node version:"
     );
-    console.error("    \x1b[36mnvm use --lts && npm install -g omniroute\x1b[0m");
+    console.error("    \x1b[36mnvm use --lts && npm install -g routiform\x1b[0m");
   } else {
-    console.error("  Try: \x1b[36mnpm install -g omniroute\x1b[0m  (reinstall)");
-    console.error("  Or:  \x1b[36mnpx omniroute@latest\x1b[0m");
+    console.error("  Try: \x1b[36mnpm install -g routiform\x1b[0m  (reinstall)");
+    console.error("  Or:  \x1b[36mnpx routiform@latest\x1b[0m");
   }
   process.exit(1);
 }
@@ -238,7 +241,10 @@ if (existsSync(sqliteBinary) && !isNativeBinaryCompatible(sqliteBinary)) {
 console.log(`  \x1b[2m⏳ Starting server...\x1b[0m\n`);
 
 // Sanitize memory limit — parseInt to prevent command injection (#150)
-const rawMemory = parseInt(process.env.OMNIROUTE_MEMORY_MB || "512", 10);
+const rawMemory = parseInt(
+  process.env.ROUTIFORM_MEMORY_MB || process.env.OMNIROUTE_MEMORY_MB || "512",
+  10
+);
 const memoryLimit =
   Number.isFinite(rawMemory) && rawMemory >= 64 && rawMemory <= 16384 ? rawMemory : 512;
 
@@ -293,7 +299,7 @@ server.on("exit", (code) => {
 
 // ── Graceful shutdown ──────────────────────────────────────
 function shutdown() {
-  console.log("\n\x1b[33m⏹ Shutting down OmniRoute...\x1b[0m");
+  console.log("\n\x1b[33m⏹ Shutting down Routiform...\x1b[0m");
   server.kill("SIGTERM");
   setTimeout(() => {
     server.kill("SIGKILL");
@@ -310,7 +316,7 @@ async function onReady() {
   const apiUrl = `http://localhost:${apiPort}`;
 
   console.log(`
-  \x1b[32m✔ OmniRoute is running!\x1b[0m
+  \x1b[32m✔ Routiform is running!\x1b[0m
 
   \x1b[1m  Dashboard:\x1b[0m  ${dashboardUrl}
   \x1b[1m  API Base:\x1b[0m   ${apiUrl}/v1

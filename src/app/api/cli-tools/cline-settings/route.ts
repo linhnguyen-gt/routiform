@@ -38,7 +38,7 @@ const readSecrets = async () => {
 };
 
 // Check if OmniRoute is configured as OpenAI-compatible provider
-const hasOmniRouteConfig = (globalState: any) => {
+const hasRoutiformConfig = (globalState: any) => {
   if (!globalState) return false;
   const isOpenAi =
     globalState.actModeApiProvider === "openai" || globalState.planModeApiProvider === "openai";
@@ -89,7 +89,7 @@ export async function GET() {
         openAiModelId: globalState?.openAiModelId,
         planModeOpenAiModelId: globalState?.planModeOpenAiModelId,
       },
-      hasOmniRoute: hasOmniRouteConfig(globalState),
+      hasRoutiform: hasRoutiformConfig(globalState),
       globalStatePath: GLOBAL_STATE_PATH,
       secretsPath: SECRETS_PATH,
     });
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
       /* No existing secrets */
     }
 
-    secrets.openAiApiKey = apiKey || "sk_omniroute";
+    secrets.openAiApiKey = apiKey || "sk_routiform";
 
     await fs.writeFile(SECRETS_PATH, JSON.stringify(secrets, null, 2));
 

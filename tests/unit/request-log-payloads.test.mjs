@@ -106,8 +106,8 @@ test("builds compact OpenAI stream summary for detailed logs", () => {
   assert.equal(compact.object, "chat.completion");
   assert.equal(compact.choices[0].message.content, "Hello world");
   assert.equal(compact.choices[0].finish_reason, "stop");
-  assert.equal(compact._omniroute_stream.stage, "provider_response");
-  assert.equal(compact._omniroute_stream.eventCount, 3);
+  assert.equal(compact._routiform_stream.stage, "provider_response");
+  assert.equal(compact._routiform_stream.eventCount, 3);
   assert.equal("events" in compact, false);
 });
 
@@ -153,7 +153,7 @@ test("builds compact Claude stream summary for detailed logs", () => {
   assert.deepEqual(compact.content, [{ type: "text", text: "你好" }]);
   assert.equal(compact.usage.input_tokens, 11);
   assert.equal(compact.usage.output_tokens, 7);
-  assert.equal(compact._omniroute_stream.eventCount, 4);
+  assert.equal(compact._routiform_stream.eventCount, 4);
 });
 
 test("builds compact OpenAI summary with reasoning alias (delta.reasoning)", () => {

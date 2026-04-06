@@ -1,6 +1,6 @@
 # Routiform — Agent Guidelines
 
-*(Fork lineage: evolved from the OmniRoute codebase; default data dir may still be `~/.omniroute/`.)*
+*(Fork lineage: evolved from the OmniRoute codebase; default data dir is `~/.routiform/`, with automatic use of legacy `~/.omniroute/` when present and the new path does not exist yet.)*
 
 ## Project
 
@@ -11,9 +11,9 @@ with **MCP Server** (25 tools), **A2A v0.3 Protocol**, and **Electron desktop ap
 
 ## Stack
 
-- **Runtime**: Next.js 16 (App Router), Node.js ≥18 <24, ES Modules (`"type": "module"`)
+- **Runtime**: Next.js 16 (App Router), Node.js ≥18 <25, ES Modules (`"type": "module"`)
 - **Language**: TypeScript 5.9 (`src/`) + JavaScript (`open-sse/`, `electron/`)
-- **Database**: better-sqlite3 (SQLite) — `DATA_DIR` configurable, default `~/.omniroute/` — **backup/restore: copy whole `DATA_DIR` (includes `storage.sqlite` + `server.env` with `STORAGE_ENCRYPTION_KEY`); copying only the `.sqlite` file breaks encrypted API keys** — see `docs/BACKUP_AND_RESTORE.md`
+- **Database**: better-sqlite3 (SQLite) — `DATA_DIR` configurable, default `~/.routiform/` (legacy `~/.omniroute/` if upgrading) — **backup/restore: copy whole `DATA_DIR` (includes `storage.sqlite` + `server.env` with `STORAGE_ENCRYPTION_KEY`); copying only the `.sqlite` file breaks encrypted API keys** — see `docs/BACKUP_AND_RESTORE.md`
 - **Streaming**: SSE via `open-sse` internal workspace package
 - **Styling**: Tailwind CSS v4
 - **i18n**: next-intl with 30 languages
@@ -82,7 +82,7 @@ Always run `prettier --write` on changed files.
 
 - **Target**: ES2022 · **Module**: `esnext` · **Resolution**: `bundler`
 - `strict: false` — prefer explicit types, don't rely on inference
-- Path aliases: `@/*` → `src/`, `@omniroute/open-sse` → `open-sse/`, `@omniroute/open-sse/*` → `open-sse/*`
+- Path aliases: `@/*` → `src/`, `@routiform/open-sse` → `open-sse/`, `@routiform/open-sse/*` → `open-sse/*`
 
 ### ESLint Rules
 
@@ -103,7 +103,7 @@ Always run `prettier --write` on changed files.
 
 ### Imports
 
-- **Order**: external → internal (`@/`, `@omniroute/open-sse`) → relative (`./`, `../`)
+- **Order**: external → internal (`@/`, `@routiform/open-sse`) → relative (`./`, `../`)
 - **No barrel imports** from `localDb.ts` — import from the specific `db/` module instead
 
 ### Error Handling

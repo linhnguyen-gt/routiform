@@ -7,8 +7,8 @@ import {
 } from "@/shared/constants/providers";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { getModelIsHidden, resolveProxyForProvider } from "@/lib/localDb";
-import { getStaticQoderModels } from "@omniroute/open-sse/services/qoderCli.ts";
-import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
+import { getStaticQoderModels } from "@routiform/open-sse/services/qoderCli.ts";
+import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 
 type JsonRecord = Record<string, unknown>;
 

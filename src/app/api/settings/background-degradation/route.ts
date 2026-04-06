@@ -3,7 +3,7 @@ import {
   getBackgroundDegradationConfig,
   setBackgroundDegradationConfig,
   resetStats,
-} from "@omniroute/open-sse/services/backgroundTaskDetector.ts";
+} from "@routiform/open-sse/services/backgroundTaskDetector.ts";
 import { updateSettings } from "@/lib/db/settings";
 import { jsonObjectSchema, resetStatsActionSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";

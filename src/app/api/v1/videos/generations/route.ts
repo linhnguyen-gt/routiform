@@ -1,5 +1,5 @@
 import { CORS_ORIGIN } from "@/shared/utils/cors";
-import { handleVideoGeneration } from "@omniroute/open-sse/handlers/videoGeneration.ts";
+import { handleVideoGeneration } from "@routiform/open-sse/handlers/videoGeneration.ts";
 import {
   getProviderCredentials,
   clearRecoveredProviderState,
@@ -10,9 +10,9 @@ import {
   parseVideoModel,
   getAllVideoModels,
   getVideoProvider,
-} from "@omniroute/open-sse/config/videoRegistry.ts";
-import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
-import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
+} from "@routiform/open-sse/config/videoRegistry.ts";
+import { errorResponse } from "@routiform/open-sse/utils/error.ts";
+import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
 import * as log from "@/sse/utils/logger";
 import { toJsonErrorPayload } from "@/shared/utils/upstreamError";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";

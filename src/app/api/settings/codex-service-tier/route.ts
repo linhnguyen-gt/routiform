@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSettings, updateSettings } from "@/lib/localDb";
-import { setDefaultFastServiceTierEnabled } from "@omniroute/open-sse/executors/codex.ts";
+import { setDefaultFastServiceTierEnabled } from "@routiform/open-sse/executors/codex.ts";
 import { updateCodexServiceTierSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 

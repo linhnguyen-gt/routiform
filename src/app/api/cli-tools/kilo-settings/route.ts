@@ -27,7 +27,7 @@ const readAuth = async () => {
 };
 
 // Check if OmniRoute OpenAI-compatible provider is configured
-const hasOmniRouteConfig = (auth) => {
+const hasRoutiformConfig = (auth) => {
   if (!auth) return false;
   const routerEntry = auth["openai-compatible"] || auth["omniroute"];
   if (!routerEntry) return false;
@@ -98,7 +98,7 @@ export async function GET() {
         auth: auth ? Object.keys(auth) : [],
         extensionSettings,
       },
-      hasOmniRoute: hasOmniRouteConfig(auth),
+      hasRoutiform: hasRoutiformConfig(auth),
       authPath: AUTH_PATH,
     });
   } catch (error) {
@@ -171,7 +171,7 @@ export async function POST(request) {
     // Add/update OmniRoute as openai-compatible provider
     auth["openai-compatible"] = {
       type: "api-key",
-      apiKey: apiKey || "sk_omniroute",
+      apiKey: apiKey || "sk_routiform",
       baseUrl: normalizedBaseUrl,
       model: model,
     };
@@ -199,7 +199,7 @@ export async function POST(request) {
       vscodeSettings["kilocode.customProvider"] = {
         name: "OmniRoute",
         baseURL: normalizedBaseUrl,
-        apiKey: apiKey || "sk_omniroute",
+        apiKey: apiKey || "sk_routiform",
       };
       vscodeSettings["kilocode.defaultModel"] = model;
 

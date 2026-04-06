@@ -6,7 +6,7 @@ import {
   setCustomAliases,
   addCustomAlias,
   removeCustomAlias,
-} from "@omniroute/open-sse/services/modelDeprecation.ts";
+} from "@routiform/open-sse/services/modelDeprecation.ts";
 import { getSettings, updateSettings } from "@/lib/db/settings";
 import {
   addModelAliasSchema,

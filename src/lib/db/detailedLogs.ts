@@ -14,7 +14,7 @@ import {
   serializePayloadForStorage,
   parseStoredPayload,
 } from "../logPayloads";
-import { compactStructuredStreamPayload } from "@omniroute/open-sse/utils/streamPayloadCollector.ts";
+import { compactStructuredStreamPayload } from "@routiform/open-sse/utils/streamPayloadCollector.ts";
 
 export interface RequestDetailLog {
   id?: string;

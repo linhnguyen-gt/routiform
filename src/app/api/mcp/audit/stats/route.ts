@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuditStats } from "@omniroute/open-sse/mcp-server/audit";
+import { getAuditStats } from "@routiform/open-sse/mcp-server/audit";
 
 export async function GET() {
   try {

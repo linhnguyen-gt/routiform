@@ -16,13 +16,13 @@ import {
   isModelLocked,
   lockModel,
   hasPerModelQuota,
-} from "@omniroute/open-sse/services/accountFallback.ts";
+} from "@routiform/open-sse/services/accountFallback.ts";
 import {
   isLocalProvider,
   getPassthroughProviders,
-} from "@omniroute/open-sse/config/providerRegistry.ts";
-import { COOLDOWN_MS } from "@omniroute/open-sse/config/constants.ts";
-import { getCodexModelScope } from "@omniroute/open-sse/executors/codex.ts";
+} from "@routiform/open-sse/config/providerRegistry.ts";
+import { COOLDOWN_MS } from "@routiform/open-sse/config/constants.ts";
+import { getCodexModelScope } from "@routiform/open-sse/executors/codex.ts";
 import { getProviderAlias, resolveProviderId } from "@/shared/constants/providers";
 import * as log from "../utils/logger";
 import { fisherYatesShuffle, getNextFromDeckSync } from "@/shared/utils/shuffleDeck";

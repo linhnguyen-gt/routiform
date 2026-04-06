@@ -96,7 +96,7 @@ export default function AntigravityToolCard({
       const keyToUse =
         selectedApiKey?.trim() ||
         (apiKeys?.length > 0 ? apiKeys[0].key : null) ||
-        (!cloudEnabled ? "sk_omniroute" : null);
+        (!cloudEnabled ? "sk_routiform" : null);
 
       const res = await fetch("/api/cli-tools/antigravity-mitm", {
         method: "POST",
@@ -301,7 +301,7 @@ export default function AntigravityToolCard({
                   </select>
                 ) : (
                   <span className="flex-1 text-xs text-text-muted px-2 py-1.5">
-                    {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultOmnirouteKey")}
+                    {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultRoutiformKey")}
                   </span>
                 )}
               </div>

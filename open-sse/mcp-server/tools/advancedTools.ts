@@ -3,16 +3,16 @@
  * OmniRoute from all other AI gateways.
  *
  * Tools:
- *   1. omniroute_simulate_route     — Dry-run routing simulation
- *   2. omniroute_set_budget_guard   — Session budget with degrade/block/alert
- *   3. omniroute_set_routing_strategy — Runtime strategy switch for combos
- *   4. omniroute_set_resilience_profile — Circuit breaker/retry profiles
- *   5. omniroute_test_combo         — Live test each provider in a combo
- *   6. omniroute_get_provider_metrics — Detailed per-provider metrics
- *   7. omniroute_best_combo_for_task — AI-powered combo recommendation
- *   8. omniroute_explain_route      — Post-hoc routing decision explainer
- *   9. omniroute_get_session_snapshot — Full session state snapshot
- *  10. omniroute_sync_pricing      — Sync provider pricing from external source
+ *   1. routiform_simulate_route     — Dry-run routing simulation
+ *   2. routiform_set_budget_guard   — Session budget with degrade/block/alert
+ *   3. routiform_set_routing_strategy — Runtime strategy switch for combos
+ *   4. routiform_set_resilience_profile — Circuit breaker/retry profiles
+ *   5. routiform_test_combo         — Live test each provider in a combo
+ *   6. routiform_get_provider_metrics — Detailed per-provider metrics
+ *   7. routiform_best_combo_for_task — AI-powered combo recommendation
+ *   8. routiform_explain_route      — Post-hoc routing decision explainer
+ *   9. routiform_get_session_snapshot — Full session state snapshot
+ *  10. routiform_sync_pricing      — Sync provider pricing from external source
  */
 
 import { logToolCall } from "../audit.ts";
@@ -278,11 +278,11 @@ export async function handleSimulateRoute(args: {
       },
     };
 
-    await logToolCall("omniroute_simulate_route", args, result, Date.now() - start, true);
+    await logToolCall("routiform_simulate_route", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_simulate_route", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_simulate_route", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -323,7 +323,7 @@ export async function handleSetBudgetGuard(args: {
     };
 
     await logToolCall(
-      "omniroute_set_budget_guard",
+      "routiform_set_budget_guard",
       { maxCost: args.maxCost, action: args.action },
       result,
       Date.now() - start,
@@ -332,7 +332,7 @@ export async function handleSetBudgetGuard(args: {
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_set_budget_guard", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_set_budget_guard", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -361,7 +361,7 @@ export async function handleSetRoutingStrategy(args: {
     if (!combo) {
       const msg = `Combo '${args.comboId}' not found`;
       await logToolCall(
-        "omniroute_set_routing_strategy",
+        "routiform_set_routing_strategy",
         args,
         null,
         Date.now() - start,
@@ -375,7 +375,7 @@ export async function handleSetRoutingStrategy(args: {
     if (!comboId) {
       const msg = "Matched combo has no id";
       await logToolCall(
-        "omniroute_set_routing_strategy",
+        "routiform_set_routing_strategy",
         args,
         null,
         Date.now() - start,
@@ -430,11 +430,11 @@ export async function handleSetRoutingStrategy(args: {
       },
     };
 
-    await logToolCall("omniroute_set_routing_strategy", args, result, Date.now() - start, true);
+    await logToolCall("routiform_set_routing_strategy", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_set_routing_strategy", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_set_routing_strategy", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -463,12 +463,12 @@ export async function handleSetResilienceProfile(args: {
 
     const result = { applied: true, profile: args.profile, settings };
 
-    await logToolCall("omniroute_set_resilience_profile", args, result, Date.now() - start, true);
+    await logToolCall("routiform_set_resilience_profile", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await logToolCall(
-      "omniroute_set_resilience_profile",
+      "routiform_set_resilience_profile",
       args,
       null,
       Date.now() - start,
@@ -572,7 +572,7 @@ export async function handleTestCombo(args: { comboId: string; testPrompt: strin
     };
 
     await logToolCall(
-      "omniroute_test_combo",
+      "routiform_test_combo",
       { comboId: args.comboId },
       result.summary,
       Date.now() - start,
@@ -581,7 +581,7 @@ export async function handleTestCombo(args: { comboId: string; testPrompt: strin
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_test_combo", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_test_combo", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -627,11 +627,11 @@ export async function handleGetProviderMetrics(args: { provider: string }) {
         : { used: 0, total: null, resetAt: null },
     };
 
-    await logToolCall("omniroute_get_provider_metrics", args, result, Date.now() - start, true);
+    await logToolCall("routiform_get_provider_metrics", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_get_provider_metrics", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_get_provider_metrics", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -705,7 +705,7 @@ export async function handleBestComboForTask(args: {
     };
 
     await logToolCall(
-      "omniroute_best_combo_for_task",
+      "routiform_best_combo_for_task",
       args,
       result.recommendedCombo,
       Date.now() - start,
@@ -714,7 +714,7 @@ export async function handleBestComboForTask(args: {
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_best_combo_for_task", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_best_combo_for_task", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -768,7 +768,7 @@ export async function handleExplainRoute(args: { requestId: string }) {
         };
 
     await logToolCall(
-      "omniroute_explain_route",
+      "routiform_explain_route",
       args,
       { requestId: args.requestId },
       Date.now() - start,
@@ -777,7 +777,7 @@ export async function handleExplainRoute(args: { requestId: string }) {
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_explain_route", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_explain_route", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -795,11 +795,11 @@ export async function handleSyncPricing(args: { sources?: string[]; dryRun?: boo
       })
     );
 
-    await logToolCall("omniroute_sync_pricing", args, result, Date.now() - start, true);
+    await logToolCall("routiform_sync_pricing", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_sync_pricing", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_sync_pricing", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -843,7 +843,7 @@ export async function handleGetSessionSnapshot() {
     };
 
     await logToolCall(
-      "omniroute_get_session_snapshot",
+      "routiform_get_session_snapshot",
       {},
       { requestCount: result.requestCount },
       Date.now() - start,
@@ -852,7 +852,7 @@ export async function handleGetSessionSnapshot() {
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_get_session_snapshot", {}, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_get_session_snapshot", {}, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }

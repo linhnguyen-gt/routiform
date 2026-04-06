@@ -3,7 +3,7 @@ import {
   getActiveSessions,
   getActiveSessionCount,
   getAllActiveSessionCountsByKey,
-} from "@omniroute/open-sse/services/sessionManager.ts";
+} from "@routiform/open-sse/services/sessionManager.ts";
 
 export async function GET() {
   try {

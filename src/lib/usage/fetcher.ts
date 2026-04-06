@@ -3,7 +3,7 @@
  */
 
 import { GITHUB_CONFIG, GEMINI_CONFIG, ANTIGRAVITY_CONFIG } from "@/lib/oauth/constants/oauth";
-import { getKiroUsage as getKiroUsageFromOpenSse } from "@omniroute/open-sse/services/usage.ts";
+import { getKiroUsage as getKiroUsageFromOpenSse } from "@routiform/open-sse/services/usage.ts";
 
 /**
  * Get usage data for a provider connection
@@ -159,7 +159,7 @@ async function getAntigravityUsage(accessToken) {
 
 /**
  * Claude Usage (legacy fallback)
- * Real Claude OAuth quota windows are fetched in @omniroute/open-sse/services/usage.ts.
+ * Real Claude OAuth quota windows are fetched in @routiform/open-sse/services/usage.ts.
  */
 async function getClaudeUsage(_accessToken?: string) {
   try {

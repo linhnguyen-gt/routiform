@@ -37,7 +37,7 @@ async function checkToolConfigStatus(toolId: string): Promise<string> {
         // Generic check: look for OmniRoute-specific markers in the config
         const configStr = JSON.stringify(config).toLowerCase();
         return configStr.includes("omniroute") ||
-          configStr.includes("sk_omniroute") ||
+          configStr.includes("sk_routiform") ||
           configStr.includes(`localhost:${apiPort}`) ||
           configStr.includes(`127.0.0.1:${apiPort}`)
           ? "configured"

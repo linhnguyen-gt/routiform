@@ -192,7 +192,7 @@ test("combo live test bypasses semantic cache and forces a fresh upstream reques
     const liveResponse = await chatRoute.POST(
       makeRequest({
         "X-Internal-Test": "combo-health-check",
-        "X-OmniRoute-No-Cache": "true",
+        "X-Routiform-No-Cache": "true",
         "X-Request-Id": "combo-test-cache-bypass",
       })
     );

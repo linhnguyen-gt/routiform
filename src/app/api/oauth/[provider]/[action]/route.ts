@@ -17,7 +17,7 @@ import {
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
 import { startLocalServer } from "@/lib/oauth/utils/server";
-import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
+import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 import {
   jsonObjectSchema,
   oauthExchangeSchema,

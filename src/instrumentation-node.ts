@@ -64,7 +64,7 @@ async function ensureSecrets(): Promise<void> {
 
 export async function registerNodejs(): Promise<void> {
   // Initialize proxy fetch patch FIRST (before any HTTP requests)
-  await import("@omniroute/open-sse/index.ts");
+  await import("@routiform/open-sse/index.ts");
   console.log("[STARTUP] Global fetch proxy patch initialized");
 
   await ensureSecrets();
@@ -98,8 +98,8 @@ export async function registerNodejs(): Promise<void> {
 
   try {
     const [{ setCustomAliases }, { setDefaultFastServiceTierEnabled }] = await Promise.all([
-      import("@omniroute/open-sse/services/modelDeprecation.ts"),
-      import("@omniroute/open-sse/executors/codex.ts"),
+      import("@routiform/open-sse/services/modelDeprecation.ts"),
+      import("@routiform/open-sse/executors/codex.ts"),
     ]);
     const settings = await getSettings();
 

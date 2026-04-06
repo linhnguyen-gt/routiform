@@ -92,7 +92,7 @@ const readConfig = async () => {
 };
 
 // Check if config has OmniRoute settings
-const hasOmniRouteConfig = (config: string | null) => {
+const hasRoutiformConfig = (config: string | null) => {
   if (!config) return false;
   return (
     config.includes('model_provider = "omniroute"') ||
@@ -131,7 +131,7 @@ export async function GET() {
       runtimeMode: runtime.runtimeMode,
       reason: runtime.reason,
       config,
-      hasOmniRoute: hasOmniRouteConfig(config),
+      hasRoutiform: hasRoutiformConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {

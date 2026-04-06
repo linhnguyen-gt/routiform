@@ -7,24 +7,24 @@ import {
   isValidApiKey,
 } from "../services/auth";
 import { getModelInfo, getComboForModel } from "../services/model";
-import { parseModel } from "@omniroute/open-sse/services/model.ts";
+import { parseModel } from "@routiform/open-sse/services/model.ts";
 import {
   detectFormatFromEndpoint,
   getTargetFormat,
-} from "@omniroute/open-sse/services/provider.ts";
-import { handleChatCore } from "@omniroute/open-sse/handlers/chatCore.ts";
-import { errorResponse, unavailableResponse } from "@omniroute/open-sse/utils/error.ts";
-import { handleComboChat } from "@omniroute/open-sse/services/combo.ts";
-import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
+} from "@routiform/open-sse/services/provider.ts";
+import { handleChatCore } from "@routiform/open-sse/handlers/chatCore.ts";
+import { errorResponse, unavailableResponse } from "@routiform/open-sse/utils/error.ts";
+import { handleComboChat } from "@routiform/open-sse/services/combo.ts";
+import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
 import {
   getModelTargetFormat,
   PROVIDER_ID_TO_ALIAS,
-} from "@omniroute/open-sse/config/providerModels.ts";
+} from "@routiform/open-sse/config/providerModels.ts";
 import {
   runWithProxyContext,
   runWithTlsTracking,
   isTlsFingerprintActive,
-} from "@omniroute/open-sse/utils/proxyFetch.ts";
+} from "@routiform/open-sse/utils/proxyFetch.ts";
 import * as log from "../utils/logger";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh";
 import { getSettings, getCombos } from "@/lib/localDb";
@@ -49,7 +49,7 @@ import { cloneLogPayload } from "@/lib/logPayloads";
 import {
   applyTaskAwareRouting,
   getTaskRoutingConfig,
-} from "@omniroute/open-sse/services/taskAwareRouter.ts";
+} from "@routiform/open-sse/services/taskAwareRouter.ts";
 import {
   generateSessionId as generateStableSessionId,
   touchSession,
@@ -57,11 +57,11 @@ import {
   checkSessionLimit,
   registerKeySession,
   isSessionRegisteredForKey,
-} from "@omniroute/open-sse/services/sessionManager.ts";
+} from "@routiform/open-sse/services/sessionManager.ts";
 import {
   isFallbackDecision,
   shouldUseFallback,
-} from "@omniroute/open-sse/services/emergencyFallback.ts";
+} from "@routiform/open-sse/services/emergencyFallback.ts";
 
 /**
  * Handle chat completion request

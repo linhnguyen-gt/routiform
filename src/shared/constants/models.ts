@@ -8,14 +8,14 @@ export {
   getModelTargetFormat,
   PROVIDER_ID_TO_ALIAS,
   getModelsByProviderId,
-} from "@omniroute/open-sse/config/providerModels.ts";
+} from "@routiform/open-sse/config/providerModels.ts";
 
 import {
   AI_PROVIDERS,
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "./providers";
-import { PROVIDER_MODELS as MODELS } from "@omniroute/open-sse/config/providerModels.ts";
+import { PROVIDER_MODELS as MODELS } from "@routiform/open-sse/config/providerModels.ts";
 
 // Providers that accept any model (passthrough)
 const PASSTHROUGH_PROVIDERS = new Set(

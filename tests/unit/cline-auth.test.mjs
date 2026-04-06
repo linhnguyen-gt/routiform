@@ -14,5 +14,5 @@ test("buildClineHeaders sets Bearer workos: and client headers", () => {
   assert.equal(h.Authorization, "Bearer workos:tok");
   assert.equal(h.Accept, "text/event-stream");
   assert.equal(h["HTTP-Referer"], "https://cline.bot");
-  assert.equal(h["X-CLIENT-TYPE"], "omniroute");
+  assert.equal(h["X-CLIENT-TYPE"], "routiform");
 });

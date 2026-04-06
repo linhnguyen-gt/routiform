@@ -30,7 +30,7 @@ const readSettings = async () => {
 };
 
 // Check if settings has OmniRoute customModels
-const hasOmniRouteConfig = (settings: any) => {
+const hasRoutiformConfig = (settings: any) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some((m) => m.id === "custom:OmniRoute-0");
 };
@@ -66,7 +66,7 @@ export async function GET() {
       runtimeMode: runtime.runtimeMode,
       reason: runtime.reason,
       settings,
-      hasOmniRoute: hasOmniRouteConfig(settings),
+      hasRoutiform: hasRoutiformConfig(settings),
       settingsPath: getDroidSettingsPath(),
     });
   } catch (error) {

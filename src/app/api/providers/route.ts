@@ -15,7 +15,7 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
 import { createProviderSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
-import { normalizeQoderPatProviderData } from "@omniroute/open-sse/services/qoderCli.ts";
+import { normalizeQoderPatProviderData } from "@routiform/open-sse/services/qoderCli.ts";
 
 // GET /api/providers - List all connections
 export async function GET() {

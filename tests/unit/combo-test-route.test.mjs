@@ -84,7 +84,7 @@ test("combo test route marks a model healthy only when it returns assistant text
   assert.equal(fetchCalls.length, 1);
   assert.equal(fetchCalls[0].url, "http://localhost/api/v1/chat/completions");
   assert.equal(fetchCalls[0].init.headers["X-Internal-Test"], "combo-health-check");
-  assert.equal(fetchCalls[0].init.headers["X-OmniRoute-No-Cache"], "true");
+  assert.equal(fetchCalls[0].init.headers["X-Routiform-No-Cache"], "true");
   assert.match(fetchCalls[0].init.headers["X-Request-Id"], /^combo-test-/);
   assert.equal(forwardedBody.model, "openrouter/openai/gpt-5.4");
   assert.equal(forwardedBody.messages[0].content, "Reply with OK only.");

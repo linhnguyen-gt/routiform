@@ -1134,7 +1134,7 @@ export default function APIPageClient({ machineId }) {
                   </li>
                   <li>
                     {t("mcpQuickStartStep3") ||
-                      "Invoke tools such as `omniroute_get_health` and `omniroute_list_combos`."}
+                      "Invoke tools such as `routiform_get_health` and `routiform_list_combos`."}
                   </li>
                 </ol>
               </div>

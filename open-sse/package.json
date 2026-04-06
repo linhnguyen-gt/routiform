@@ -1,7 +1,7 @@
 {
-  "name": "@omniroute/open-sse",
+  "name": "@routiform/open-sse",
   "version": "3.5.2",
-  "description": "Express SSE sidecar for OmniRoute — handles streaming, protocol translation, and provider orchestration",
+  "description": "Express SSE sidecar for Routiform — handles streaming, protocol translation, and provider orchestration",
   "type": "module",
   "main": "index.js",
   "types": "types.d.ts",

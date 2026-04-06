@@ -42,7 +42,7 @@ export async function POST(request, { params }) {
       case "continue":
         return await saveContinueConfig({ baseUrl, apiKey, model });
       case "opencode":
-        // OpenCode reads opencode.json (see getOpenCodeConfigPath); merge provider.omniroute + top-level model.
+        // OpenCode reads opencode.json (see getOpenCodeConfigPath); merge provider.routiform + top-level model.
         return await saveOpenCodeConfig({ baseUrl, apiKey, model });
       default:
         return NextResponse.json(
@@ -76,7 +76,7 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
     // No existing config or invalid JSON — start fresh
   }
 
-  // Build the OmniRoute model entry
+  // Build the Routiform model entry
   const normalizedBaseUrl = String(baseUrl || "")
     .trim()
     .replace(/\/+$/, "");
@@ -85,8 +85,8 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
     title: model,
     model: model,
     provider: "openai",
-    apiKey: apiKey || "sk_omniroute",
-    omnirouteManaged: true,
+    apiKey: apiKey || "sk_routiform",
+    routiformManaged: true,
   };
 
   // Merge into existing models array
@@ -99,18 +99,20 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
       .toLowerCase();
   }
 
-  // Check if OmniRoute entry already exists and update it, or add new
+  // Check if Routiform entry already exists and update it, or add new
   const existingIdx = models.findIndex(
     (m) =>
       m &&
-      (m.omnirouteManaged === true ||
+      (m.routiformManaged === true ||
+        m.omnirouteManaged === true ||
         normalizeApiBase(m.apiBase) === normalizedBaseUrl.toLowerCase() ||
+        normalizeApiBase(m.apiBase).includes("routiform") ||
         normalizeApiBase(m.apiBase).includes("omniroute") ||
         normalizeApiBase(m.apiBase).includes(`localhost:${apiPort}`) ||
         normalizeApiBase(m.apiBase).includes(`127.0.0.1:${apiPort}`) ||
         String(m.apiKey || "")
           .toLowerCase()
-          .includes("sk_omniroute"))
+          .includes("sk_routiform"))
   );
 
   if (existingIdx >= 0) {

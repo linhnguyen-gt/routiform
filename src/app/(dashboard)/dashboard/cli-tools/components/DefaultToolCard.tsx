@@ -49,7 +49,7 @@ export default function DefaultToolCard({
       selectedApiKey && selectedApiKey.trim()
         ? selectedApiKey
         : !cloudEnabled
-          ? "sk_omniroute"
+          ? "sk_routiform"
           : t("yourApiKeyPlaceholder");
     const normalizedBaseUrl = baseUrl || "http://localhost:20128";
     const baseUrlWithV1 = normalizedBaseUrl.endsWith("/v1")
@@ -64,9 +64,12 @@ export default function DefaultToolCard({
 
   // Persist and restore model selection per tool via localStorage
   useEffect(() => {
-    const savedModel = localStorage.getItem(`omniroute-cli-model-${toolId}`);
+    const legacyModel = localStorage.getItem(`omniroute-cli-model-${toolId}`);
+    const savedModel =
+      localStorage.getItem(`routiform-cli-model-${toolId}`) || legacyModel;
     if (savedModel) setModelValue(savedModel);
-    const savedKey = localStorage.getItem(`omniroute-cli-key-${toolId}`);
+    const legacyKey = localStorage.getItem(`omniroute-cli-key-${toolId}`);
+    const savedKey = localStorage.getItem(`routiform-cli-key-${toolId}`) || legacyKey;
     if (savedKey && apiKeys?.some((k) => k.key === savedKey)) setSelectedApiKey(savedKey);
   }, [toolId, apiKeys]);
 
@@ -74,9 +77,9 @@ export default function DefaultToolCard({
     (value) => {
       setModelValue(value);
       if (value) {
-        localStorage.setItem(`omniroute-cli-model-${toolId}`, value);
+        localStorage.setItem(`routiform-cli-model-${toolId}`, value);
       } else {
-        localStorage.removeItem(`omniroute-cli-model-${toolId}`);
+        localStorage.removeItem(`routiform-cli-model-${toolId}`);
       }
     },
     [toolId]
@@ -86,7 +89,7 @@ export default function DefaultToolCard({
     (value) => {
       setSelectedApiKey(value);
       if (value) {
-        localStorage.setItem(`omniroute-cli-key-${toolId}`, value);
+        localStorage.setItem(`routiform-cli-key-${toolId}`, value);
       }
     },
     [toolId]
@@ -152,7 +155,7 @@ export default function DefaultToolCard({
         selectedApiKey && selectedApiKey.trim()
           ? selectedApiKey
           : !cloudEnabled
-            ? "sk_omniroute"
+            ? "sk_routiform"
             : "";
 
       const normalizedBaseUrl = baseUrl || "http://localhost:20128";
@@ -212,7 +215,7 @@ export default function DefaultToolCard({
           </>
         ) : (
           <span className="text-sm text-text-muted">
-            {cloudEnabled ? t("noApiKeysCreateOne") : "sk_omniroute"}
+            {cloudEnabled ? t("noApiKeysCreateOne") : "sk_routiform"}
           </span>
         )}
       </div>

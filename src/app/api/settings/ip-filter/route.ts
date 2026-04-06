@@ -8,7 +8,7 @@ import {
   removeFromWhitelist,
   tempBanIP,
   removeTempBan,
-} from "@omniroute/open-sse/services/ipFilter.ts";
+} from "@routiform/open-sse/services/ipFilter.ts";
 import { updateIpFilterSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 

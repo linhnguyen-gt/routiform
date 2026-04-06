@@ -16,10 +16,10 @@ const normalizeValue = (value: unknown) =>
     .trim()
     .replace(/^\/+/, "");
 
-const OPENCODE_PROVIDER_KEY = "omniroute";
+const OPENCODE_PROVIDER_KEY = "routiform";
 
 /**
- * OpenCode expects `model` at the root of opencode.json, e.g. `omniroute/alias/model-id`
+ * OpenCode expects `model` at the root of opencode.json, e.g. `routiform/alias/model-id`
  * (same prefix as the `provider` entry key). See OpenCode + @ai-sdk/openai-compatible docs.
  */
 export function toOpenCodeModelRef(model: string | undefined | null): string | undefined {
@@ -50,10 +50,10 @@ export const buildOpenCodeProviderConfig = ({
 
   return {
     npm: "@ai-sdk/openai-compatible",
-    name: "OmniRoute",
+    name: "Routiform",
     options: {
       baseURL: normalizedBaseUrl,
-      apiKey: apiKey || "sk_omniroute",
+      apiKey: apiKey || "sk_routiform",
     },
     models: modelsRecord,
   };

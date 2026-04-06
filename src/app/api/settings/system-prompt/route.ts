@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   setSystemPromptConfig,
   getSystemPromptConfig,
-} from "@omniroute/open-sse/services/systemPrompt.ts";
+} from "@routiform/open-sse/services/systemPrompt.ts";
 import { updateSettings } from "@/lib/localDb";
 import { updateSystemPromptSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";

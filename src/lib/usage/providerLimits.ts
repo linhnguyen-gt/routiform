@@ -14,9 +14,9 @@ import { syncToCloud } from "@/lib/cloudSync";
 import { setQuotaCache } from "@/domain/quotaCache";
 import { getMachineId } from "@/shared/utils/machine";
 import { USAGE_SUPPORTED_PROVIDERS } from "@/shared/constants/providers";
-import { getExecutor } from "@omniroute/open-sse/executors/index.ts";
-import { getUsageForProvider } from "@omniroute/open-sse/services/usage.ts";
-import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
+import { getExecutor } from "@routiform/open-sse/executors/index.ts";
+import { getUsageForProvider } from "@routiform/open-sse/services/usage.ts";
+import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 
 type JsonRecord = Record<string, unknown>;
 

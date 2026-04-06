@@ -124,7 +124,7 @@ export async function PATCH(request) {
     // Sync usage token buffer to runtime cache
     if ("usageTokenBuffer" in body) {
       const { invalidateBufferTokensCache } =
-        await import("@omniroute/open-sse/utils/usageTracking.ts");
+        await import("@routiform/open-sse/utils/usageTracking.ts");
       invalidateBufferTokensCache();
     }
 

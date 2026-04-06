@@ -116,12 +116,12 @@ export async function fetchLiteLLMPricing(): Promise<Record<string, LiteLLMModel
 }
 
 /**
- * Transform LiteLLM raw data → OmniRoute PricingByProvider format.
+ * Transform LiteLLM raw data → Routiform PricingByProvider format.
  *
- * Conversion: cost_per_token × 1_000_000 → $/1M tokens (OmniRoute format)
+ * Conversion: cost_per_token × 1_000_000 → $/1M tokens (Routiform format)
  * Filters: only chat/completion modes (skip image/audio/embedding)
  */
-export function transformToOmniRoute(raw: Record<string, LiteLLMModelInfo>): PricingByProvider {
+export function transformToRoutiform(raw: Record<string, LiteLLMModelInfo>): PricingByProvider {
   const result: PricingByProvider = {};
 
   for (const [modelKey, info] of Object.entries(raw)) {
@@ -268,7 +268,7 @@ export async function syncPricingFromSources(opts?: {
     for (const source of validSources) {
       if (source === "litellm") {
         const raw = await fetchLiteLLMPricing();
-        const transformed = transformToOmniRoute(raw);
+        const transformed = transformToRoutiform(raw);
         for (const [provider, models] of Object.entries(transformed)) {
           if (!aggregated[provider]) aggregated[provider] = {};
           Object.assign(aggregated[provider], models);

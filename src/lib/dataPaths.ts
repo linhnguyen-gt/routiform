@@ -1,7 +1,10 @@
 import path from "path";
 import os from "os";
+import fs from "fs";
 
-export const APP_NAME = "omniroute";
+export const APP_NAME = "routiform";
+/** Prior default folder name; migrations and legacy paths still reference `~/.omniroute` (etc.). */
+export const LEGACY_APP_NAME = "omniroute";
 
 function safeHomeDir() {
   try {
@@ -19,7 +22,7 @@ function normalizeConfiguredPath(dir: unknown): string | null {
 }
 
 export function getLegacyDotDataDir() {
-  return path.join(safeHomeDir(), `.${APP_NAME}`);
+  return path.join(safeHomeDir(), `.${LEGACY_APP_NAME}`);
 }
 
 export function getDefaultDataDir() {
@@ -27,16 +30,24 @@ export function getDefaultDataDir() {
 
   if (process.platform === "win32") {
     const appData = process.env.APPDATA || path.join(homeDir, "AppData", "Roaming");
-    return path.join(appData, APP_NAME);
+    const newPath = path.join(appData, APP_NAME);
+    const oldPath = path.join(appData, LEGACY_APP_NAME);
+    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) return oldPath;
+    return newPath;
   }
 
-  // Support XDG on Linux/macOS when explicitly configured.
   const xdgConfigHome = normalizeConfiguredPath(process.env.XDG_CONFIG_HOME);
   if (xdgConfigHome) {
-    return path.join(xdgConfigHome, APP_NAME);
+    const newPath = path.join(xdgConfigHome, APP_NAME);
+    const oldPath = path.join(xdgConfigHome, LEGACY_APP_NAME);
+    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) return oldPath;
+    return newPath;
   }
 
-  return getLegacyDotDataDir();
+  const newDot = path.join(homeDir, `.${APP_NAME}`);
+  const oldDot = path.join(homeDir, `.${LEGACY_APP_NAME}`);
+  if (!fs.existsSync(newDot) && fs.existsSync(oldDot)) return oldDot;
+  return newDot;
 }
 
 export function resolveDataDir({ isCloud = false }: { isCloud?: boolean } = {}): string {

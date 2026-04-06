@@ -10,7 +10,7 @@ import { bootstrapEnv } from "../../scripts/bootstrap-env.mjs";
 function withTempEnv(fn) {
   const originalCwd = process.cwd();
   const originalEnv = { ...process.env };
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-bootstrap-test-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-bootstrap-test-"));
   const tempCwd = path.join(tempRoot, "cwd");
   const tempHome = path.join(tempRoot, "home");
 
@@ -29,7 +29,7 @@ function withTempEnv(fn) {
   process.chdir(tempCwd);
 
   try {
-    fn({ tempRoot, tempCwd, tempHome, dataDir: path.join(tempHome, ".omniroute") });
+    fn({ tempRoot, tempCwd, tempHome, dataDir: path.join(tempHome, ".routiform") });
   } finally {
     process.chdir(originalCwd);
     for (const key of Object.keys(process.env)) {
@@ -42,7 +42,7 @@ function withTempEnv(fn) {
   }
 }
 
-test("bootstrapEnv prefers ~/.omniroute/.env over server.env", () => {
+test("bootstrapEnv prefers ~/.routiform/.env over server.env", () => {
   withTempEnv(({ dataDir }) => {
     process.env.DATA_DIR = dataDir;
     fs.mkdirSync(dataDir, { recursive: true });

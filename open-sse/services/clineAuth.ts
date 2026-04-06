@@ -32,7 +32,7 @@ export function buildClineHeaders(
     "User-Agent": `OmniRoute/${CLIENT_VERSION}`,
     "X-PLATFORM": typeof process !== "undefined" ? process.platform : "unknown",
     "X-PLATFORM-VERSION": typeof process !== "undefined" ? process.version : "unknown",
-    "X-CLIENT-TYPE": "omniroute",
+    "X-CLIENT-TYPE": "routiform",
     "X-CLIENT-VERSION": CLIENT_VERSION,
     "X-CORE-VERSION": CLIENT_VERSION,
     "X-IS-MULTIROOT": "false",

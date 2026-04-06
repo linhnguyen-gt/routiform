@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { detectFormat } from "@omniroute/open-sse/services/provider.ts";
+import { detectFormat } from "@routiform/open-sse/services/provider.ts";
 import { translatorDetectSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 

@@ -1,11 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { transformToOmniRoute } from "../../src/lib/pricingSync.ts";
+import { transformToRoutiform } from "../../src/lib/pricingSync.ts";
 
-// ─── transformToOmniRoute ────────────────────────────────
+// ─── transformToRoutiform ────────────────────────────────
 
-describe("transformToOmniRoute", () => {
-  test("converts LiteLLM per-token pricing to OmniRoute per-million format", () => {
+describe("transformToRoutiform", () => {
+  test("converts LiteLLM per-token pricing to Routiform per-million format", () => {
     const raw = {
       "openai/gpt-4o": {
         input_cost_per_token: 0.0000025,
@@ -15,7 +15,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.openai, "Should have openai provider");
     assert.ok(result.openai["gpt-4o"], "Should have gpt-4o model");
@@ -33,7 +33,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.cc, "Should map to cc alias");
     assert.ok(result.cc["claude-sonnet-4-20250514"]);
@@ -51,7 +51,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.gemini, "Should map to gemini alias");
     assert.ok(result["gemini-cli"], "Should map to gemini-cli alias");
@@ -75,7 +75,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     // openai key should not exist since all models were filtered
     const openaiModels = result.openai || {};
@@ -94,7 +94,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     const model = result.anthropic["claude-sonnet-4-20250514"];
     assert.ok(model, "Should have model");
@@ -111,7 +111,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     // deepseek maps to "if" alias
     assert.ok(result.if, "Should map deepseek to if alias");
@@ -126,7 +126,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
     const unknownModels = result.unknown || {};
     assert.strictEqual(Object.keys(unknownModels).length, 0);
   });
@@ -141,7 +141,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.groq, "Should have groq provider");
     assert.strictEqual(result.groq["llama-3.3-70b-versatile"].input, 0);
@@ -158,7 +158,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.newprovider, "Should use litellm_provider as-is");
     assert.ok(result.newprovider["some-model"]);
@@ -174,7 +174,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     assert.ok(result.openai["gpt-4o-mini"], "Should strip openai/ prefix");
     assert.strictEqual(result.openai["gpt-4o-mini"].input, 0.15);
@@ -190,7 +190,7 @@ describe("transformToOmniRoute", () => {
       },
     };
 
-    const result = transformToOmniRoute(raw);
+    const result = transformToRoutiform(raw);
 
     // 0.00000033333 * 1e6 = 0.33333 → rounded to 0.333
     assert.strictEqual(result.openai.model.input, 0.333);
@@ -214,7 +214,7 @@ describe("pricing merge precedence", () => {
       },
     };
 
-    const synced = transformToOmniRoute(raw);
+    const synced = transformToRoutiform(raw);
     const userOverride = { openai: { "gpt-4o": { input: 999 } } };
 
     // Simulate merge: synced then user

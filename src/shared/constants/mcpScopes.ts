@@ -28,25 +28,25 @@ export type McpScope = (typeof MCP_SCOPE_LIST)[number];
 /** Maps each MCP tool to its required scopes */
 export const MCP_TOOL_SCOPES: Record<string, readonly McpScope[]> = {
   // Phase 1: Essential Tools
-  omniroute_get_health: ["read:health"],
-  omniroute_list_combos: ["read:combos"],
-  omniroute_get_combo_metrics: ["read:combos"],
-  omniroute_switch_combo: ["write:combos"],
-  omniroute_check_quota: ["read:quota"],
-  omniroute_route_request: ["execute:completions"],
-  omniroute_web_search: ["execute:search"],
-  omniroute_cost_report: ["read:usage"],
-  omniroute_list_models_catalog: ["read:models"],
+  routiform_get_health: ["read:health"],
+  routiform_list_combos: ["read:combos"],
+  routiform_get_combo_metrics: ["read:combos"],
+  routiform_switch_combo: ["write:combos"],
+  routiform_check_quota: ["read:quota"],
+  routiform_route_request: ["execute:completions"],
+  routiform_web_search: ["execute:search"],
+  routiform_cost_report: ["read:usage"],
+  routiform_list_models_catalog: ["read:models"],
 
   // Phase 2: Advanced Tools
-  omniroute_simulate_route: ["read:health", "read:combos"],
-  omniroute_set_budget_guard: ["write:budget"],
-  omniroute_set_resilience_profile: ["write:resilience"],
-  omniroute_test_combo: ["execute:completions", "read:combos"],
-  omniroute_get_provider_metrics: ["read:health"],
-  omniroute_best_combo_for_task: ["read:combos", "read:health"],
-  omniroute_explain_route: ["read:health", "read:usage"],
-  omniroute_get_session_snapshot: ["read:usage"],
+  routiform_simulate_route: ["read:health", "read:combos"],
+  routiform_set_budget_guard: ["write:budget"],
+  routiform_set_resilience_profile: ["write:resilience"],
+  routiform_test_combo: ["execute:completions", "read:combos"],
+  routiform_get_provider_metrics: ["read:health"],
+  routiform_best_combo_for_task: ["read:combos", "read:health"],
+  routiform_explain_route: ["read:health", "read:usage"],
+  routiform_get_session_snapshot: ["read:usage"],
 } as const;
 
 // ============ Scope Groups ============

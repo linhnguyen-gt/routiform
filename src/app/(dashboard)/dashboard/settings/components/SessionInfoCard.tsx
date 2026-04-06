@@ -29,7 +29,7 @@ export default function SessionInfoCard() {
 
     async function loadSession() {
       // Build session info from client-side data
-      const loginTime = sessionStorage.getItem("omniroute_login_time");
+      const loginTime = sessionStorage.getItem("routiform_login_time");
       const now = Date.now();
 
       let sessionAge = t("unknown");
@@ -75,7 +75,7 @@ export default function SessionInfoCard() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      sessionStorage.removeItem("omniroute_login_time");
+      sessionStorage.removeItem("routiform_login_time");
       window.location.href = "/";
     } catch {
       window.location.href = "/";

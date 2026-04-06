@@ -10,14 +10,14 @@ import {
   getModelIsHidden,
 } from "@/lib/localDb";
 import { isAuthenticated } from "@/shared/utils/apiAuth";
-import { getAllEmbeddingModels } from "@omniroute/open-sse/config/embeddingRegistry.ts";
-import { getAllImageModels } from "@omniroute/open-sse/config/imageRegistry.ts";
-import { getAllRerankModels } from "@omniroute/open-sse/config/rerankRegistry.ts";
-import { getAllAudioModels } from "@omniroute/open-sse/config/audioRegistry.ts";
-import { getAllModerationModels } from "@omniroute/open-sse/config/moderationRegistry.ts";
-import { getAllVideoModels } from "@omniroute/open-sse/config/videoRegistry.ts";
-import { getAllMusicModels } from "@omniroute/open-sse/config/musicRegistry.ts";
-import { REGISTRY } from "@omniroute/open-sse/config/providerRegistry.ts";
+import { getAllEmbeddingModels } from "@routiform/open-sse/config/embeddingRegistry.ts";
+import { getAllImageModels } from "@routiform/open-sse/config/imageRegistry.ts";
+import { getAllRerankModels } from "@routiform/open-sse/config/rerankRegistry.ts";
+import { getAllAudioModels } from "@routiform/open-sse/config/audioRegistry.ts";
+import { getAllModerationModels } from "@routiform/open-sse/config/moderationRegistry.ts";
+import { getAllVideoModels } from "@routiform/open-sse/config/videoRegistry.ts";
+import { getAllMusicModels } from "@routiform/open-sse/config/musicRegistry.ts";
+import { REGISTRY } from "@routiform/open-sse/config/providerRegistry.ts";
 import { getSyncedAvailableModels } from "@/lib/db/models";
 import { getCompatibleFallbackModels } from "@/lib/providers/managedAvailableModels";
 

@@ -107,17 +107,17 @@ describe("Protocol clients E2E", () => {
       try {
         const listed = await client.listTools();
         const toolNames = listed.tools.map((tool) => tool.name);
-        expect(toolNames).toContain("omniroute_get_health");
-        expect(toolNames).toContain("omniroute_list_combos");
+        expect(toolNames).toContain("routiform_get_health");
+        expect(toolNames).toContain("routiform_list_combos");
 
         const healthResult = await client.callTool({
-          name: "omniroute_get_health",
+          name: "routiform_get_health",
           arguments: {},
         });
         expect(Array.isArray(healthResult.content)).toBe(true);
 
         const combosResult = await client.callTool({
-          name: "omniroute_list_combos",
+          name: "routiform_list_combos",
           arguments: { includeMetrics: false },
         });
         expect(Array.isArray(combosResult.content)).toBe(true);
@@ -125,14 +125,14 @@ describe("Protocol clients E2E", () => {
         await client.close();
       }
 
-      const auditRes = await apiFetch("/api/mcp/audit?limit=50&tool=omniroute_get_health");
+      const auditRes = await apiFetch("/api/mcp/audit?limit=50&tool=routiform_get_health");
       if (auditRes.status === 401) {
         console.warn("Skipping audit log verification (Auth required)");
       } else {
         expect(auditRes.ok).toBe(true);
         const auditJson = await auditRes.json();
         const entries = Array.isArray(auditJson?.entries) ? auditJson.entries : [];
-        expect(entries.some((entry: any) => entry.toolName === "omniroute_get_health")).toBe(true);
+        expect(entries.some((entry: any) => entry.toolName === "routiform_get_health")).toBe(true);
       }
     },
     TEST_TIMEOUT_MS * 2

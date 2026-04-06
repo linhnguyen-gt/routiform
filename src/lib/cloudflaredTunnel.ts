@@ -3,7 +3,7 @@ import { promisify } from "util";
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
-import proxyFetch from "@omniroute/open-sse/utils/proxyFetch.ts";
+import proxyFetch from "@routiform/open-sse/utils/proxyFetch.ts";
 import { resolveDataDir } from "@/lib/dataPaths";
 import { getRuntimePorts } from "@/lib/runtime/ports";
 

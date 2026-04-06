@@ -1847,7 +1847,7 @@ Dashboard → CLI Tools → OpenClaw → Select Model → Apply
     "providers": {
       "omniroute": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_omniroute",
+        "apiKey": "sk_routiform",
         "api": "openai-completions"
       }
     }

@@ -221,11 +221,11 @@ async function handleGetHealth() {
         : undefined,
     };
 
-    await logToolCall("omniroute_get_health", {}, result, Date.now() - start, true);
+    await logToolCall("routiform_get_health", {}, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_get_health", {}, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_get_health", {}, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -263,11 +263,11 @@ async function handleListCombos(args: { includeMetrics?: boolean }) {
       }),
     };
 
-    await logToolCall("omniroute_list_combos", args, result, Date.now() - start, true);
+    await logToolCall("routiform_list_combos", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_list_combos", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_list_combos", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -278,11 +278,11 @@ async function handleGetComboMetrics(args: { comboId: string }) {
     const result = await omniRouteFetch(
       `/api/combos/metrics?comboId=${encodeURIComponent(args.comboId)}`
     );
-    await logToolCall("omniroute_get_combo_metrics", args, result, Date.now() - start, true);
+    await logToolCall("routiform_get_combo_metrics", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_get_combo_metrics", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_get_combo_metrics", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -294,11 +294,11 @@ async function handleSwitchCombo(args: { comboId: string; active: boolean }) {
       method: "PUT",
       body: JSON.stringify({ isActive: args.active }),
     });
-    await logToolCall("omniroute_switch_combo", args, result, Date.now() - start, true);
+    await logToolCall("routiform_switch_combo", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_switch_combo", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_switch_combo", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -315,11 +315,11 @@ async function handleCheckQuota(args: { provider?: string; connectionId?: string
       connectionId: args.connectionId || null,
     });
 
-    await logToolCall("omniroute_check_quota", args, result, Date.now() - start, true);
+    await logToolCall("routiform_check_quota", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_check_quota", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_check_quota", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -375,7 +375,7 @@ async function handleRouteRequest(args: {
     };
 
     await logToolCall(
-      "omniroute_route_request",
+      "routiform_route_request",
       { model: args.model, messageCount: args.messages.length },
       result.routing,
       Date.now() - start,
@@ -385,7 +385,7 @@ async function handleRouteRequest(args: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await logToolCall(
-      "omniroute_route_request",
+      "routiform_route_request",
       { model: args.model },
       null,
       Date.now() - start,
@@ -429,11 +429,11 @@ async function handleCostReport(args: { period?: string }) {
       },
     };
 
-    await logToolCall("omniroute_cost_report", args, result, Date.now() - start, true);
+    await logToolCall("routiform_cost_report", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_cost_report", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_cost_report", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -487,7 +487,7 @@ async function handleListModelsCatalog(args: { provider?: string; capability?: s
     };
 
     await logToolCall(
-      "omniroute_list_models_catalog",
+      "routiform_list_models_catalog",
       args,
       { modelCount: result.models.length },
       Date.now() - start,
@@ -496,7 +496,7 @@ async function handleListModelsCatalog(args: { provider?: string; capability?: s
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_list_models_catalog", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_list_models_catalog", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -525,11 +525,11 @@ async function handleWebSearch(args: {
       method: "POST",
       body: JSON.stringify(body),
     });
-    await logToolCall("omniroute_web_search", args, result, Date.now() - start, true);
+    await logToolCall("routiform_web_search", args, result, Date.now() - start, true);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await logToolCall("omniroute_web_search", args, null, Date.now() - start, false, msg);
+    await logToolCall("routiform_web_search", args, null, Date.now() - start, false, msg);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
   }
 }
@@ -547,92 +547,92 @@ export function createMcpServer(): McpServer {
 
   // Register essential tools
   server.registerTool(
-    "omniroute_get_health",
+    "routiform_get_health",
     {
       description:
         "Returns OmniRoute health status including uptime, memory, circuit breakers, rate limits, and cache stats",
       inputSchema: getHealthInput,
     },
-    withScopeEnforcement("omniroute_get_health", async (args) => {
+    withScopeEnforcement("routiform_get_health", async (args) => {
       getHealthInput.parse(args ?? {});
       return handleGetHealth();
     })
   );
 
   server.registerTool(
-    "omniroute_list_combos",
+    "routiform_list_combos",
     {
       description:
         "Lists all configured combos (model chains) with strategies and optional metrics",
       inputSchema: listCombosInput,
     },
-    withScopeEnforcement("omniroute_list_combos", (args) =>
+    withScopeEnforcement("routiform_list_combos", (args) =>
       handleListCombos(listCombosInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_get_combo_metrics",
+    "routiform_get_combo_metrics",
     {
       description: "Returns detailed performance metrics for a specific combo",
       inputSchema: getComboMetricsInput,
     },
-    withScopeEnforcement("omniroute_get_combo_metrics", (args) =>
+    withScopeEnforcement("routiform_get_combo_metrics", (args) =>
       handleGetComboMetrics(getComboMetricsInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_switch_combo",
+    "routiform_switch_combo",
     {
       description: "Activates or deactivates a combo for routing",
       inputSchema: switchComboInput,
     },
-    withScopeEnforcement("omniroute_switch_combo", (args) =>
+    withScopeEnforcement("routiform_switch_combo", (args) =>
       handleSwitchCombo(switchComboInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_check_quota",
+    "routiform_check_quota",
     {
       description: "Checks remaining API quota for one or all providers",
       inputSchema: checkQuotaInput,
     },
-    withScopeEnforcement("omniroute_check_quota", (args) =>
+    withScopeEnforcement("routiform_check_quota", (args) =>
       handleCheckQuota(checkQuotaInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_route_request",
+    "routiform_route_request",
     {
       description: "Sends a chat completion request through OmniRoute intelligent routing",
       inputSchema: routeRequestInput,
     },
-    withScopeEnforcement("omniroute_route_request", (args) =>
+    withScopeEnforcement("routiform_route_request", (args) =>
       handleRouteRequest(routeRequestInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_cost_report",
+    "routiform_cost_report",
     {
       description: "Generates a cost report for the specified period",
       inputSchema: costReportInput,
     },
-    withScopeEnforcement("omniroute_cost_report", (args) =>
+    withScopeEnforcement("routiform_cost_report", (args) =>
       handleCostReport(costReportInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_list_models_catalog",
+    "routiform_list_models_catalog",
     {
       description: "Lists all available AI models across providers with capabilities and pricing",
       inputSchema: listModelsCatalogInput,
     },
-    withScopeEnforcement("omniroute_list_models_catalog", (args) =>
+    withScopeEnforcement("routiform_list_models_catalog", (args) =>
       handleListModelsCatalog(listModelsCatalogInput.parse(args))
     )
   );
@@ -640,133 +640,133 @@ export function createMcpServer(): McpServer {
   // ── Advanced Tools (Phase 3) ──────────────────────────────
 
   server.registerTool(
-    "omniroute_simulate_route",
+    "routiform_simulate_route",
     {
       description: "Simulates the routing path a request would take without executing it (dry-run)",
       inputSchema: simulateRouteInput,
     },
-    withScopeEnforcement("omniroute_simulate_route", (args) =>
+    withScopeEnforcement("routiform_simulate_route", (args) =>
       handleSimulateRoute(simulateRouteInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_set_budget_guard",
+    "routiform_set_budget_guard",
     {
       description:
         "Sets a session budget limit with configurable action when exceeded (degrade/block/alert)",
       inputSchema: setBudgetGuardInput,
     },
-    withScopeEnforcement("omniroute_set_budget_guard", (args) =>
+    withScopeEnforcement("routiform_set_budget_guard", (args) =>
       handleSetBudgetGuard(setBudgetGuardInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_set_routing_strategy",
+    "routiform_set_routing_strategy",
     {
       description:
         "Updates combo routing strategy at runtime (priority/weighted/round-robin/auto/etc.)",
       inputSchema: setRoutingStrategyInput,
     },
-    withScopeEnforcement("omniroute_set_routing_strategy", (args) =>
+    withScopeEnforcement("routiform_set_routing_strategy", (args) =>
       handleSetRoutingStrategy(setRoutingStrategyInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_set_resilience_profile",
+    "routiform_set_resilience_profile",
     {
       description:
         "Applies a resilience profile controlling circuit breakers, retries, timeouts, and fallback depth",
       inputSchema: setResilienceProfileInput,
     },
-    withScopeEnforcement("omniroute_set_resilience_profile", (args) =>
+    withScopeEnforcement("routiform_set_resilience_profile", (args) =>
       handleSetResilienceProfile(setResilienceProfileInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_test_combo",
+    "routiform_test_combo",
     {
       description:
         "Tests each provider in a combo with a real prompt, reporting latency, cost, and success per provider",
       inputSchema: testComboInput,
     },
-    withScopeEnforcement("omniroute_test_combo", (args) =>
+    withScopeEnforcement("routiform_test_combo", (args) =>
       handleTestCombo(testComboInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_get_provider_metrics",
+    "routiform_get_provider_metrics",
     {
       description:
         "Returns detailed metrics for a specific provider including latency percentiles and circuit breaker state",
       inputSchema: getProviderMetricsInput,
     },
-    withScopeEnforcement("omniroute_get_provider_metrics", (args) =>
+    withScopeEnforcement("routiform_get_provider_metrics", (args) =>
       handleGetProviderMetrics(getProviderMetricsInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_best_combo_for_task",
+    "routiform_best_combo_for_task",
     {
       description:
         "Recommends the best combo for a task type based on provider fitness and constraints",
       inputSchema: bestComboForTaskInput,
     },
-    withScopeEnforcement("omniroute_best_combo_for_task", (args) =>
+    withScopeEnforcement("routiform_best_combo_for_task", (args) =>
       handleBestComboForTask(bestComboForTaskInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_explain_route",
+    "routiform_explain_route",
     {
       description:
         "Explains why a request was routed to a specific provider, showing scoring factors and fallbacks",
       inputSchema: explainRouteInput,
     },
-    withScopeEnforcement("omniroute_explain_route", (args) =>
+    withScopeEnforcement("routiform_explain_route", (args) =>
       handleExplainRoute(explainRouteInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_get_session_snapshot",
+    "routiform_get_session_snapshot",
     {
       description:
         "Returns a full snapshot of the current working session: cost, tokens, top models, errors, budget status",
       inputSchema: getSessionSnapshotInput,
     },
-    withScopeEnforcement("omniroute_get_session_snapshot", async (args) => {
+    withScopeEnforcement("routiform_get_session_snapshot", async (args) => {
       getSessionSnapshotInput.parse(args ?? {});
       return handleGetSessionSnapshot();
     })
   );
 
   server.registerTool(
-    "omniroute_sync_pricing",
+    "routiform_sync_pricing",
     {
       description:
         "Syncs pricing data from external sources (LiteLLM) into OmniRoute without overwriting user-set prices",
       inputSchema: syncPricingInput,
     },
-    withScopeEnforcement("omniroute_sync_pricing", (args) =>
+    withScopeEnforcement("routiform_sync_pricing", (args) =>
       handleSyncPricing(syncPricingInput.parse(args))
     )
   );
 
   server.registerTool(
-    "omniroute_web_search",
+    "routiform_web_search",
     {
       description:
         "Performs a web search using OmniRoute's search gateway. Supports multiple providers (Serper, Brave, Perplexity, Exa, Tavily) with automatic failover. Returns search results with titles, URLs, snippets, and position data.",
       inputSchema: webSearchInput,
     },
-    withScopeEnforcement("omniroute_web_search", (args) =>
+    withScopeEnforcement("routiform_web_search", (args) =>
       handleWebSearch(webSearchInput.parse(args))
     )
   );

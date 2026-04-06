@@ -4,7 +4,7 @@ import {
   getComboMetrics,
   resetComboMetrics,
   resetAllComboMetrics,
-} from "@omniroute/open-sse/services/comboMetrics.ts";
+} from "@routiform/open-sse/services/comboMetrics.ts";
 
 // GET /api/combos/metrics - Get per-combo metrics
 export async function GET(request) {

@@ -115,12 +115,12 @@ export default function CodexToolCard({
     setApplying(true);
     setMessage(null);
     try {
-      // Use sk_omniroute for localhost if no key, otherwise use selected key
+      // Use sk_routiform for localhost if no key, otherwise use selected key
       const keyToUse =
         selectedApiKey && selectedApiKey.trim()
           ? selectedApiKey
           : !cloudEnabled
-            ? "sk_omniroute"
+            ? "sk_routiform"
             : selectedApiKey;
 
       const res = await fetch("/api/cli-tools/codex-settings", {
@@ -284,15 +284,15 @@ export default function CodexToolCard({
       selectedApiKey && selectedApiKey.trim()
         ? selectedApiKey
         : !cloudEnabled
-          ? "sk_omniroute"
+          ? "sk_routiform"
           : "<API_KEY_FROM_DASHBOARD>";
 
-    const configContent = `# OmniRoute Configuration for Codex CLI
+    const configContent = `# Routiform configuration for Codex CLI
 model = "${selectedModel}"
-model_provider = "omniroute"
+model_provider = "routiform"
 
-[model_providers.omniroute]
-name = "OmniRoute"
+[model_providers.routiform]
+name = "Routiform"
 base_url = "${getEffectiveBaseUrl()}"
 wire_api = "responses"
 `;
@@ -497,7 +497,7 @@ wire_api = "responses"
                     </select>
                   ) : (
                     <span className="flex-1 text-xs text-text-muted px-2 py-1.5">
-                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultOmnirouteKey")}
+                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultRoutiformKey")}
                     </span>
                   )}
                 </div>
@@ -562,7 +562,7 @@ wire_api = "responses"
                   variant="outline"
                   size="sm"
                   onClick={handleResetSettings}
-                  disabled={!codexStatus.hasOmniRoute}
+                  disabled={!codexStatus.hasRoutiform}
                   loading={restoring}
                 >
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>

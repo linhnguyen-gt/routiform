@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { syncPricingInput, syncPricingTool, MCP_TOOLS, MCP_TOOL_MAP } from "../schemas/tools.ts";
 
-describe("omniroute_sync_pricing MCP tool schema", () => {
+describe("routiform_sync_pricing MCP tool schema", () => {
   it("should be registered in MCP_TOOLS", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "omniroute_sync_pricing");
+    const tool = MCP_TOOLS.find((t) => t.name === "routiform_sync_pricing");
     expect(tool).toBeDefined();
     expect(tool?.phase).toBe(2);
   });
 
   it("should be in MCP_TOOL_MAP", () => {
-    expect(MCP_TOOL_MAP["omniroute_sync_pricing"]).toBeDefined();
+    expect(MCP_TOOL_MAP["routiform_sync_pricing"]).toBeDefined();
   });
 
   it("should require pricing:write scope", () => {

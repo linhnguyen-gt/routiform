@@ -6,15 +6,15 @@ import {
   setRoutingStrategyTool,
 } from "../schemas/tools.ts";
 
-describe("omniroute_set_routing_strategy MCP tool schema", () => {
+describe("routiform_set_routing_strategy MCP tool schema", () => {
   it("should be registered in MCP_TOOLS", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "omniroute_set_routing_strategy");
+    const tool = MCP_TOOLS.find((t) => t.name === "routiform_set_routing_strategy");
     expect(tool).toBeDefined();
     expect(tool?.phase).toBe(2);
   });
 
   it("should be available in MCP_TOOL_MAP", () => {
-    expect(MCP_TOOL_MAP["omniroute_set_routing_strategy"]).toBeDefined();
+    expect(MCP_TOOL_MAP["routiform_set_routing_strategy"]).toBeDefined();
   });
 
   it("should require write:combos scope", () => {
