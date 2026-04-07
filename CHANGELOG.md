@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.7.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.7.0...v3.7.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* **combo:** harden tool-choice compatibility fallback ([f7d71ce](https://github.com/linhnguyen-gt/Routiform/commit/f7d71ceea203994aa520e2b0fc97c89ac1b44bae))
+
 ## [3.7.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.6.4...v3.7.0) (2026-04-07)
 
 
