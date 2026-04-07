@@ -770,7 +770,9 @@ export async function handleChatCore({
     });
   }
 
-  if (maybeEnforceMediaToolForLocalImage(body)) {
+  // Cline often returns empty 200 responses on forced local-image tool routing.
+  // Keep this enforcement for other providers, but skip for Cline.
+  if (provider !== "cline" && maybeEnforceMediaToolForLocalImage(body)) {
     log?.info?.("TOOLS", "Enforced filesystem_read_media_file for local image analysis request");
   }
 
