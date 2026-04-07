@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -37,6 +37,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Ensure branch checkout
+        id: branch
+        run: |
+          TARGET_BRANCH="${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}"
+          git fetch origin "$TARGET_BRANCH"
+          git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+          echo "name=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Detect releasable commits
         id: check
@@ -60,7 +68,9 @@ jobs:
 
       - name: Push release commit and tag
         if: steps.check.outputs.should_release == 'true'
-        run: git push --follow-tags
+        run: |
+          git push origin "HEAD:${{ steps.branch.outputs.name }}"
+          git push origin --tags
 
       - name: Resolve release version
         if: steps.check.outputs.should_release == 'true'
