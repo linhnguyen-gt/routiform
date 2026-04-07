@@ -43,8 +43,10 @@ function extractOpenApiVersion(content) {
 }
 
 function extractChangelogSections(content) {
-  const headings = [...content.matchAll(/^##\s+\[([^\]]+)\](?:\s+[-—–].*)?$/gm)];
-  return headings.map((match) => match[1]);
+  const headings = [
+    ...content.matchAll(/^##\s+(?:\[([^\]]+)\]|(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?))(?:\s+.*)?$/gm),
+  ];
+  return headings.map((match) => match[1] || match[2]).filter(Boolean);
 }
 
 function isSemver(value) {

@@ -69,6 +69,59 @@ jobs:
         if: steps.check.outputs.should_release == 'true'
         run: npx --yes standard-version
 
+      - name: Sync docs/openapi.yaml version
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const version = require("./package.json").version;
+            const filePath = "docs/openapi.yaml";
+            const content = fs.readFileSync(filePath, "utf8");
+            const lines = content.split(/\r?\n/);
+
+            let inInfo = false;
+            let updated = false;
+            for (let i = 0; i < lines.length; i += 1) {
+              const line = lines[i];
+              const trimmed = line.trim();
+
+              if (!inInfo) {
+                if (trimmed === "info:") {
+                  inInfo = true;
+                }
+                continue;
+              }
+
+              if (line.length > 0 && !line.startsWith(" ")) {
+                break;
+              }
+
+              if (/^\s{2}version:\s*/.test(line)) {
+                lines[i] = `  version: ${version}`;
+                updated = true;
+                break;
+              }
+            }
+
+            if (!updated) {
+              process.exit(1);
+            }
+
+            fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
+          '
+
+      - name: Amend release commit with OpenAPI sync
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if git diff --quiet -- docs/openapi.yaml; then
+            exit 0
+          fi
+          git add docs/openapi.yaml
+          git commit --amend --no-edit
+          git tag -f "$TAG"
+
       - name: Push release commit and tag
         if: steps.check.outputs.should_release == 'true'
         run: |
