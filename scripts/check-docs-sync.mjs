@@ -82,10 +82,12 @@ try {
   if (changelogSections.length === 0) {
     fail("CHANGELOG.md has no version sections");
   } else {
-    if (changelogSections[0] !== "Unreleased") {
-      fail('CHANGELOG.md first section must be "## [Unreleased]"');
-    } else {
+    if (changelogSections[0] === "Unreleased") {
       console.log("[docs-sync] changelog has top Unreleased section");
+    } else if (isSemver(changelogSections[0])) {
+      console.log("[docs-sync] changelog uses release-first format (no Unreleased section)");
+    } else {
+      fail('CHANGELOG.md first section must be "## [Unreleased]" or a semver release');
     }
 
     const semverSections = changelogSections.filter((section) => isSemver(section));
