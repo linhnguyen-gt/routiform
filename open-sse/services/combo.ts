@@ -17,6 +17,7 @@ import { selectProvider as selectAutoProvider } from "./autoCombo/engine.ts";
 import { selectWithStrategy } from "./autoCombo/routerStrategy.ts";
 import { DEFAULT_WEIGHTS, scorePool } from "./autoCombo/scoring.ts";
 import { supportsToolCalling } from "./modelCapabilities.ts";
+import { isModelUnavailableError } from "./modelFamilyFallback.ts";
 import { getModelContextLimit } from "../../src/lib/modelsDevSync";
 
 // Status codes that should mark semaphore + record circuit breaker failures
@@ -388,6 +389,9 @@ function extractPromptForIntent(body) {
 export function shouldFallbackComboBadRequest(status, errorText, providerHint) {
   if (status !== 400 || !errorText) return false;
   const message = String(errorText);
+  if (isModelUnavailableError(status, message)) {
+    return true;
+  }
   if (COMBO_BAD_REQUEST_FALLBACK_PATTERNS.some((pattern) => pattern.test(message))) {
     return true;
   }
