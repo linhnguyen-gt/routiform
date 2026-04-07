@@ -188,7 +188,11 @@ test.describe("Combos flow", () => {
     await expect(modelDialog.getByRole("button", { name: /qa test model/i })).toBeVisible();
     await modelDialog.getByRole("button", { name: /qa test model/i }).click();
     // ModelSelectModal uses multiSelect: stays open until dismissed; backdrop blocks the combo form.
-    await modelDialog.getByRole("button", { name: /close|fechar/i }).click();
+    // Two "Close" controls share the same accessible name (header X + footer); use footer button.
+    await modelDialog
+      .getByRole("button", { name: /close|fechar/i })
+      .last()
+      .click();
     await expect(modelDialog).toBeHidden();
 
     await expect(saveBlockers).toHaveCount(0);
