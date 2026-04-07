@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.7.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.6.4...v3.7.0) (2026-04-07)
+
+
+### Features
+
+* **providers:** auto-sync and refresh available models ([1b2223f](https://github.com/linhnguyen-gt/Routiform/commit/1b2223f3f861d502093434283310795f03d904f5))
+
+
+### Bug Fixes
+
+* **combo:** improve fallback and provider model sync ([1a9d4ca](https://github.com/linhnguyen-gt/Routiform/commit/1a9d4cae653f3bcde7ecfc3ce6874c6c96ab3f09))
+
 ### [3.6.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.6.3...v3.6.4) (2026-04-07)
 
 
