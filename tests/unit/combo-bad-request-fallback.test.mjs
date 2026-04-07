@@ -9,6 +9,15 @@ test("combo bad-request fallback recognizes unsupported model responses", () => 
     true
   );
   assert.equal(shouldFallbackComboBadRequest(400, "Model gpt-x is not supported", "openai"), true);
+  assert.equal(shouldFallbackComboBadRequest(400, "Improperly formed request.", "kiro"), true);
+  assert.equal(
+    shouldFallbackComboBadRequest(
+      400,
+      "The tool_choice parameter does not support being set to required or object in thinking mode",
+      "qwen"
+    ),
+    true
+  );
 });
 
 test("combo bad-request fallback ignores unrelated 400 errors", () => {

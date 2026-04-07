@@ -29,6 +29,8 @@ const COMBO_BAD_REQUEST_FALLBACK_PATTERNS = [
   /unsupported .*message role/i,
   /requested model .* not supported/i,
   /model .* is not supported/i,
+  /improperly formed request/i,
+  /tool_choice parameter does not support being set to required or object/i,
   /no such tool available/i,
   /unsupported content part type/i,
   /tool(?:_call|_use)? .* not (?:available|found)/i,

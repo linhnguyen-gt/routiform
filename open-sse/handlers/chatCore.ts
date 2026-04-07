@@ -778,6 +778,22 @@ export async function handleChatCore({
     log?.info?.("TOOLS", "Enforced tool_choice=required for URL fetch request");
   }
 
+  // Qwen/Kiro/Cline often reject tool_choice="required" and named tool_choice objects
+  // on thinking/tool streams. Keep tool usage enabled but let upstream choose automatically.
+  if (
+    (provider === "qwen" || provider === "kiro" || provider === "cline") &&
+    (body.tool_choice === "required" ||
+      (body.tool_choice &&
+        typeof body.tool_choice === "object" &&
+        !Array.isArray(body.tool_choice)))
+  ) {
+    body.tool_choice = "auto";
+    log?.info?.(
+      "TOOLS",
+      `Downgraded tool_choice to auto for ${provider} thinking-mode compatibility`
+    );
+  }
+
   const memorySettings = apiKeyInfo?.id
     ? await getMemorySettings().catch(() => DEFAULT_MEMORY_SETTINGS)
     : null;
