@@ -152,6 +152,10 @@ jobs:
     name: Publish to npm
     needs: release
     if: needs.release.outputs.should_release == 'true'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     uses: ./.github/workflows/npm-publish.yml
     with:
       version: ${{ needs.release.outputs.version }}
@@ -163,6 +167,9 @@ jobs:
     name: Publish Docker images
     needs: release
     if: needs.release.outputs.should_release == 'true'
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
       version: ${{ needs.release.outputs.version }}
