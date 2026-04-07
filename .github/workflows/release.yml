@@ -166,16 +166,25 @@ jobs:
               process.exit(0);
             }
 
+            const semverHeadingRegex =
+              /^#{2,3}\s+(?:\[\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?\]|\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)(?:.*)?$/;
+
             let end = lines.length;
             for (let i = start + 1; i < lines.length; i += 1) {
-              if (/^#{2,3}\s+/.test(lines[i])) {
+              if (semverHeadingRegex.test(lines[i].trim())) {
                 end = i;
                 break;
               }
             }
 
             const section = lines.slice(start + 1, end).join("\n").trim();
-            fs.writeFileSync(".release-notes.md", section ? `${section}\n` : "");
+            const notes = section
+              .replace(/^###\s+/gm, "")
+              .replace(/^\*\s+/gm, "")
+              .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+              .trim();
+
+            fs.writeFileSync(".release-notes.md", notes ? `${notes}\n` : "");
           '
 
           if [ -s .release-notes.md ]; then
