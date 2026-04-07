@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ── Env vars ANTES dos imports dinâmicos ─────────────────────────
-const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-t08-"));
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-t08-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "t08-test-secret-key";
 

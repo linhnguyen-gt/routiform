@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Translation check script for OmniRoute.
+Translation check script for Routiform.
 Checks if all translation keys used in code exist in en.json.
 
 Usage:

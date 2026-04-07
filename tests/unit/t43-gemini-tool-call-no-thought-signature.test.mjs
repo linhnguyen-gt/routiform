@@ -1,7 +1,7 @@
 /**
  * T43: Gemini tool call parts must preserve thoughtSignature correctly.
  *
- * Regression test for HTTP 400 "invalid argument" when OmniRoute translates
+ * Regression test for HTTP 400 "invalid argument" when Routiform translates
  * OpenAI tool_calls to Gemini format. Gemini 3 requires the signature to live on
  * the first functionCall part for a tool-call batch, and replays fail if the
  * signature is stripped or emitted as a separate sibling part.

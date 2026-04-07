@@ -5,7 +5,7 @@
  * Two-tier: in-memory LRU (fast) + SQLite (persistent across restarts).
  *
  * Cache key = SHA-256(model + normalized messages + temperature + top_p)
- * Bypass: X-Routiform-No-Cache: true (legacy: X-OmniRoute-No-Cache)
+ * Bypass: X-Routiform-No-Cache: true (legacy: X-Routiform-No-Cache)
  *
  * @module lib/semanticCache
  */
@@ -379,7 +379,7 @@ export function getCacheStats() {
 export function isCacheable(body, headers) {
   const nc =
     (getHeaderValue(headers, "x-routiform-no-cache") || "").toLowerCase() === "true" ||
-    (getHeaderValue(headers, "x-omniroute-no-cache") || "").toLowerCase() === "true";
+    (getHeaderValue(headers, "x-routiform-no-cache") || "").toLowerCase() === "true";
   if (nc) {
     return false;
   }

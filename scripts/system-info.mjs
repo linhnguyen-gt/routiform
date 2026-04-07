@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * system-info.mjs — OmniRoute System Information Reporter (#280)
+ * system-info.mjs — Routiform System Information Reporter (#280)
  *
  * Collects system/environment info for bug reports.
  * Usage: node scripts/system-info.mjs [--output system-info.txt]
  *
  * Output includes:
  *   - Node.js version
- *   - OmniRoute version
+ *   - Routiform version
  *   - OS info
  *   - Relevant system packages (if apt available)
  *   - Agent CLI tools (qoder, gemini, claude, codex, antigravity, droid, etc.)
@@ -52,7 +52,7 @@ function section(title) {
 
 const lines = [];
 
-lines.push("OmniRoute System Information Report");
+lines.push("Routiform System Information Report");
 lines.push(`Generated: ${new Date().toISOString()}`);
 
 // ── Node.js & Runtime ────────────────────────────────────────────────────
@@ -67,9 +67,9 @@ lines.push(`CPUs:       ${os.cpus().length}x ${os.cpus()[0]?.model || "unknown"}
 lines.push(`Total RAM:  ${Math.round(os.totalmem() / 1024 / 1024)} MB`);
 lines.push(`Free RAM:   ${Math.round(os.freemem() / 1024 / 1024)} MB`);
 
-// ── OmniRoute Version ────────────────────────────────────────────────────
+// ── Routiform Version ────────────────────────────────────────────────────
 
-lines.push(section("OmniRoute"));
+lines.push(section("Routiform"));
 try {
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf-8"));
   lines.push(`Version:    ${pkg.version}`);
@@ -78,10 +78,10 @@ try {
   lines.push("Version:    unable to read package.json");
 }
 
-const installedGlobal = run("npm list -g omniroute --depth=0 2>/dev/null | grep omniroute");
+const installedGlobal = run("npm list -g routiform --depth=0 2>/dev/null | grep routiform");
 lines.push(`Global npm: ${installedGlobal || "not installed globally"}`);
 
-const pm2Status = run("pm2 list 2>/dev/null | grep omniroute | awk '{print $4, $10, $12}'");
+const pm2Status = run("pm2 list 2>/dev/null | grep routiform | awk '{print $4, $10, $12}'");
 lines.push(`PM2 status: ${pm2Status || "not running via PM2"}`);
 
 // ── Agent CLI Tools ──────────────────────────────────────────────────────

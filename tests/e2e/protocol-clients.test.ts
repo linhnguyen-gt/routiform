@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const BASE_URL = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
-const API_KEY = process.env.OMNIROUTE_API_KEY || "";
+const BASE_URL = process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
+const API_KEY = process.env.ROUTIFORM_API_KEY || "";
 const REQUEST_TIMEOUT_MS = Number(process.env.ECOSYSTEM_REQUEST_TIMEOUT_MS || 30000);
 const TEST_TIMEOUT_MS = Number(process.env.ECOSYSTEM_TEST_TIMEOUT_MS || 60000);
 
@@ -95,8 +95,8 @@ describe("Protocol clients E2E", () => {
         args: ["--import", "tsx/esm", "open-sse/mcp-server/server.ts"],
         env: {
           ...process.env,
-          OMNIROUTE_BASE_URL: BASE_URL,
-          OMNIROUTE_API_KEY: API_KEY,
+          ROUTIFORM_BASE_URL: BASE_URL,
+          ROUTIFORM_API_KEY: API_KEY,
         } as Record<string, string>,
         stderr: "pipe",
       });

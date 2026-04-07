@@ -2,8 +2,8 @@
 
 # project-specific directories
 .omnivscodeagent/
-omnirouteCloud/
-omnirouteSite/
+routiformCloud/
+routiformSite/
 
 # Root-level underscore-prefixed directories (private/draft — never commit)
 /_*/

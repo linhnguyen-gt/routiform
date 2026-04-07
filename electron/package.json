@@ -1,14 +1,14 @@
 {
-  "name": "omniroute-desktop",
+  "name": "routiform-desktop",
   "version": "3.5.2",
-  "description": "OmniRoute Desktop Application",
+  "description": "Routiform Desktop Application",
   "main": "main.js",
   "author": {
-    "name": "OmniRoute Team",
-    "email": "support@omniroute.online"
+    "name": "Routiform Team",
+    "email": "support@routiform.online"
   },
   "license": "MIT",
-  "homepage": "https://omniroute.online",
+  "homepage": "https://routiform.online",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --no-sandbox",
@@ -29,17 +29,17 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "online.omniroute.desktop",
-    "productName": "OmniRoute",
-    "copyright": "Copyright © 2025 OmniRoute",
+    "appId": "online.routiform.desktop",
+    "productName": "Routiform",
+    "copyright": "Copyright © 2025 Routiform",
     "directories": {
       "output": "dist-electron",
       "buildResources": "assets"
     },
     "publish": {
       "provider": "github",
-      "owner": "diegosouzapw",
-      "repo": "OmniRoute"
+      "owner": "linhnguyen-gt",
+      "repo": "Routiform"
     },
     "files": [
       "main.js",

@@ -1,5 +1,5 @@
 -- 001_initial_schema.sql
--- Initial schema for OmniRoute SQLite database.
+-- Initial schema for Routiform SQLite database.
 -- This migration is automatically marked as applied for existing databases
 -- since the schema was previously applied via CREATE TABLE IF NOT EXISTS.
 

@@ -5,11 +5,11 @@
         - complementary [ref=e5]:
             - link "Skip to content" [ref=e6] [cursor=pointer]:
                 - /url: "#main-content"
-            - link "OmniRoute v3.5.0" [ref=e12] [cursor=pointer]:
+            - link "Routiform v3.5.0" [ref=e12] [cursor=pointer]:
                 - /url: /dashboard
                 - img [ref=e14]
                 - generic [ref=e26]:
-                    - heading "OmniRoute" [level=1] [ref=e27]
+                    - heading "Routiform" [level=1] [ref=e27]
                     - generic [ref=e28]: v3.5.0
             - navigation "Main navigation" [ref=e29]:
                 - generic [ref=e30]:
@@ -100,7 +100,7 @@
                         - generic [ref=e95]: menu_book
                         - generic [ref=e96]: Docs
                     - link "bug_report Issues" [ref=e97] [cursor=pointer]:
-                        - /url: https://github.com/diegosouzapw/OmniRoute/issues
+                        - /url: https://github.com/linhnguyen-gt/Routiform/issues
                         - generic [ref=e98]: bug_report
                         - generic [ref=e99]: Issues
             - generic [ref=e100]:
@@ -195,7 +195,7 @@
                             - generic [ref=e205]: terminal
                             - text: CLI Tools
                         - link "bug_report Report issue" [ref=e206] [cursor=pointer]:
-                            - /url: https://github.com/diegosouzapw/OmniRoute/issues
+                            - /url: https://github.com/linhnguyen-gt/Routiform/issues
                             - generic [ref=e207]: bug_report
                             - text: Report issue
                 - generic [ref=e208]:

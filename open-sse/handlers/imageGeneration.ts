@@ -1027,7 +1027,7 @@ async function handleComfyUIImageGeneration({ model, provider, providerConfig, b
     },
     "9": {
       class_type: "SaveImage",
-      inputs: { filename_prefix: "omniroute", images: ["8", 0] },
+      inputs: { filename_prefix: "routiform", images: ["8", 0] },
     },
   };
 

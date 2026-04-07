@@ -17,7 +17,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypt
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 const KEY_LENGTH = 32;
-const KDF_SALT = "omniroute-field-encryption-v1";
+const KDF_SALT = "routiform-field-encryption-v1";
 
 /** Prefix for AES-GCM field blobs; exported to detect failed decrypt (wrong key / corrupted row). */
 export const FIELD_ENCRYPTED_VALUE_PREFIX = "enc:v1:" as const;

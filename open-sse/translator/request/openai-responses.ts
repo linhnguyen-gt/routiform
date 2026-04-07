@@ -54,7 +54,7 @@ export function openaiResponsesToOpenAIRequest(
       // Allow: function tools, and tools already in Chat format (have .function property)
       if (toolType && toolType !== "function" && !tool.function) {
         throw unsupportedFeature(
-          `Unsupported Responses API feature: ${toolType} tool type is not supported by omniroute`
+          `Unsupported Responses API feature: ${toolType} tool type is not supported by routiform`
         );
       }
     }
@@ -62,7 +62,7 @@ export function openaiResponsesToOpenAIRequest(
 
   if (root.background) {
     throw unsupportedFeature(
-      "Unsupported Responses API feature: background mode is not supported by omniroute"
+      "Unsupported Responses API feature: background mode is not supported by routiform"
     );
   }
 
@@ -260,7 +260,7 @@ export function openaiResponsesToOpenAIRequest(
     } else if (tcType && tcType !== "function" && tcType !== "allowed_tools") {
       // Built-in tool types (web_search_preview, file_search, etc.) have no Chat equivalent
       throw unsupportedFeature(
-        `Unsupported Responses API feature: tool_choice type '${tcType}' is not supported by omniroute`
+        `Unsupported Responses API feature: tool_choice type '${tcType}' is not supported by routiform`
       );
     }
   }

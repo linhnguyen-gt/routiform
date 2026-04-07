@@ -64,11 +64,10 @@ export default function DefaultToolCard({
 
   // Persist and restore model selection per tool via localStorage
   useEffect(() => {
-    const legacyModel = localStorage.getItem(`omniroute-cli-model-${toolId}`);
-    const savedModel =
-      localStorage.getItem(`routiform-cli-model-${toolId}`) || legacyModel;
+    const legacyModel = localStorage.getItem(`routiform-cli-model-${toolId}`);
+    const savedModel = localStorage.getItem(`routiform-cli-model-${toolId}`) || legacyModel;
     if (savedModel) setModelValue(savedModel);
-    const legacyKey = localStorage.getItem(`omniroute-cli-key-${toolId}`);
+    const legacyKey = localStorage.getItem(`routiform-cli-key-${toolId}`);
     const savedKey = localStorage.getItem(`routiform-cli-key-${toolId}`) || legacyKey;
     if (savedKey && apiKeys?.some((k) => k.key === savedKey)) setSelectedApiKey(savedKey);
   }, [toolId, apiKeys]);

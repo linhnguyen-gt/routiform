@@ -43,7 +43,7 @@
     "antigravity-manager-analysis",
     "app.__qa_backup",
     "vscode-extension",
-    "omnirouteCloud",
-    "omnirouteSite"
+    "routiformCloud",
+    "routiformSite"
   ]
 }

@@ -14,7 +14,7 @@
  * Priority (lowest → highest):
  *   1. Auto-generated defaults
  *   2. {DATA_DIR}/server.env  (persisted on first boot)
- *   3. Preferred config .env  (DATA_DIR/.env -> ~/.routiform/.env -> legacy ~/.omniroute/.env -> ./.env)
+ *   3. Preferred config .env  (DATA_DIR/.env -> ~/.routiform/.env -> ./.env)
  *   4. process.env            (shell / Docker -e flags, highest priority)
  */
 
@@ -44,25 +44,15 @@ function resolveDataDir(overridePath, env = process.env) {
 
   if (process.platform === "win32") {
     const appData = env.APPDATA || join(home, "AppData", "Roaming");
-    const newPath = join(appData, "routiform");
-    const oldPath = join(appData, "omniroute");
-    if (!existsSync(newPath) && existsSync(oldPath)) return oldPath;
-    return newPath;
+    return join(appData, "routiform");
   }
 
   const xdg = env.XDG_CONFIG_HOME?.trim();
   if (xdg) {
-    const base = resolve(xdg);
-    const newPath = join(base, "routiform");
-    const oldPath = join(base, "omniroute");
-    if (!existsSync(newPath) && existsSync(oldPath)) return oldPath;
-    return newPath;
+    return join(resolve(xdg), "routiform");
   }
 
-  const newDot = join(home, ".routiform");
-  const oldDot = join(home, ".omniroute");
-  if (!existsSync(newDot) && existsSync(oldDot)) return oldDot;
-  return newDot;
+  return join(home, ".routiform");
 }
 
 function getPreferredEnvFilePath(env = process.env) {
@@ -219,7 +209,7 @@ export function bootstrapEnv({ dataDirOverride, quiet = false } = {}) {
 
   // ── Mark as bootstrapped ───────────────────────────────────────────────────
   if (needsPersist) {
-    merged.OMNIROUTE_BOOTSTRAPPED = "true";
+    merged.ROUTIFORM_BOOTSTRAPPED = "true";
   }
 
   // ── Warn about missing optional OAuth secrets ──────────────────────────────

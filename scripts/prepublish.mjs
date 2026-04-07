@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * OmniRoute — Prepublish Build Script
+ * Routiform — Prepublish Build Script
  *
  * Builds the Next.js app in standalone mode and copies output
  * into the `app/` directory that gets published to npm.
@@ -29,7 +29,7 @@ const ROOT = join(__dirname, "..");
 
 const APP_DIR = join(ROOT, "app");
 
-console.log("🔨 OmniRoute — Building for npm publish...\n");
+console.log("🔨 Routiform — Building for npm publish...\n");
 
 // ── Step 1: Clean previous app/ directory ──────────────────
 if (existsSync(APP_DIR)) {

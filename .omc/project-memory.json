@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "lastScanned": 1775016362438,
-  "projectRoot": "/home/openclaw/omniroute-src",
+  "projectRoot": "/home/openclaw/routiform-src",
   "techStack": {
     "languages": [
       {
@@ -118,7 +118,7 @@
       "purpose": "Executable scripts",
       "fileCount": 3,
       "lastAccessed": 1775016362426,
-      "keyFiles": ["mcp-server.mjs", "omniroute.mjs", "reset-password.mjs"]
+      "keyFiles": ["mcp-server.mjs", "routiform.mjs", "reset-password.mjs"]
     },
     "docs": {
       "path": "docs",
@@ -145,7 +145,7 @@
       "purpose": null,
       "fileCount": 1,
       "lastAccessed": 1775016362434,
-      "keyFiles": ["omniroute.png"]
+      "keyFiles": ["routiform.png"]
     },
     "logs": {
       "path": "logs",

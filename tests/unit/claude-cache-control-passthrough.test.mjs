@@ -94,12 +94,12 @@ describe("Claude cache_control passthrough", () => {
 
     const result = prepareClaudeRequest(body, "claude", false);
 
-    // Original cache_control should be stripped and OmniRoute's strategy applied
+    // Original cache_control should be stripped and Routiform's strategy applied
     assert.equal(result.messages.length, 2);
     // User message should not have cache_control (only second-to-last user gets it)
     assert.equal(result.messages[0].content[0].cache_control, undefined);
     assert.equal(result.messages[0].content[1].cache_control, undefined);
-    // Last assistant should have cache_control added by OmniRoute
+    // Last assistant should have cache_control added by Routiform
     assert.deepEqual(result.messages[1].content[0].cache_control, { type: "ephemeral" });
   });
 

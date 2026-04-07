@@ -1,10 +1,10 @@
-# OmniRoute — Deployment Guide on VM with Cloudflare (हिन्दी (IN))
+# Routiform — Deployment Guide on VM with Cloudflare (हिन्दी (IN))
 
 🌐 **Languages:** 🇺🇸 [English](../../../../docs/VM_DEPLOYMENT_GUIDE.md) · 🇪🇸 [es](../../es/docs/VM_DEPLOYMENT_GUIDE.md) · 🇫🇷 [fr](../../fr/docs/VM_DEPLOYMENT_GUIDE.md) · 🇩🇪 [de](../../de/docs/VM_DEPLOYMENT_GUIDE.md) · 🇮🇹 [it](../../it/docs/VM_DEPLOYMENT_GUIDE.md) · 🇷🇺 [ru](../../ru/docs/VM_DEPLOYMENT_GUIDE.md) · 🇨🇳 [zh-CN](../../zh-CN/docs/VM_DEPLOYMENT_GUIDE.md) · 🇯🇵 [ja](../../ja/docs/VM_DEPLOYMENT_GUIDE.md) · 🇰🇷 [ko](../../ko/docs/VM_DEPLOYMENT_GUIDE.md) · 🇸🇦 [ar](../../ar/docs/VM_DEPLOYMENT_GUIDE.md) · 🇮🇳 [hi](../../hi/docs/VM_DEPLOYMENT_GUIDE.md) · 🇮🇳 [in](../../in/docs/VM_DEPLOYMENT_GUIDE.md) · 🇹🇭 [th](../../th/docs/VM_DEPLOYMENT_GUIDE.md) · 🇻🇳 [vi](../../vi/docs/VM_DEPLOYMENT_GUIDE.md) · 🇮🇩 [id](../../id/docs/VM_DEPLOYMENT_GUIDE.md) · 🇲🇾 [ms](../../ms/docs/VM_DEPLOYMENT_GUIDE.md) · 🇳🇱 [nl](../../nl/docs/VM_DEPLOYMENT_GUIDE.md) · 🇵🇱 [pl](../../pl/docs/VM_DEPLOYMENT_GUIDE.md) · 🇸🇪 [sv](../../sv/docs/VM_DEPLOYMENT_GUIDE.md) · 🇳🇴 [no](../../no/docs/VM_DEPLOYMENT_GUIDE.md) · 🇩🇰 [da](../../da/docs/VM_DEPLOYMENT_GUIDE.md) · 🇫🇮 [fi](../../fi/docs/VM_DEPLOYMENT_GUIDE.md) · 🇵🇹 [pt](../../pt/docs/VM_DEPLOYMENT_GUIDE.md) · 🇷🇴 [ro](../../ro/docs/VM_DEPLOYMENT_GUIDE.md) · 🇭🇺 [hu](../../hu/docs/VM_DEPLOYMENT_GUIDE.md) · 🇧🇬 [bg](../../bg/docs/VM_DEPLOYMENT_GUIDE.md) · 🇸🇰 [sk](../../sk/docs/VM_DEPLOYMENT_GUIDE.md) · 🇺🇦 [uk-UA](../../uk-UA/docs/VM_DEPLOYMENT_GUIDE.md) · 🇮🇱 [he](../../he/docs/VM_DEPLOYMENT_GUIDE.md) · 🇵🇭 [phi](../../phi/docs/VM_DEPLOYMENT_GUIDE.md) · 🇧🇷 [pt-BR](../../pt-BR/docs/VM_DEPLOYMENT_GUIDE.md) · 🇨🇿 [cs](../../cs/docs/VM_DEPLOYMENT_GUIDE.md) · 🇹🇷 [tr](../../tr/docs/VM_DEPLOYMENT_GUIDE.md)
 
 ---
 
-Complete guide to install and configure OmniRoute on a VM (VPS) with domain managed via Cloudflare.
+Complete guide to install and configure Routiform on a VM (VPS) with domain managed via Cloudflare.
 
 ---
 
@@ -82,18 +82,18 @@ ufw enable
 
 ---
 
-## 2. Install OmniRoute
+## 2. Install Routiform
 
 ### 2.1 Create configuration directory
 
 ```bash
-mkdir -p /opt/omniroute
+mkdir -p /opt/routiform
 ```
 
 ### 2.2 Create environment variables file
 
 ```bash
-cat > /opt/omniroute/.env << ‘EOF’
+cat > /opt/routiform/.env << ‘EOF’
 # === Security ===
 JWT_SECRET=CHANGE-TO-A-UNIQUE-64-CHAR-SECRET-KEY
 INITIAL_PASSWORD=YourSecurePassword123!
@@ -117,8 +117,8 @@ BASE_URL=https://llms.seudominio.com
 NEXT_PUBLIC_BASE_URL=https://llms.seudominio.com
 
 # === Cloud Sync (optional) ===
-# CLOUD_URL=https://cloud.omniroute.online
-# NEXT_PUBLIC_CLOUD_URL=https://cloud.omniroute.online
+# CLOUD_URL=https://cloud.routiform.online
+# NEXT_PUBLIC_CLOUD_URL=https://cloud.routiform.online
 EOF
 ```
 
@@ -127,22 +127,22 @@ EOF
 ### 2.3 Start the container
 
 ```bash
-docker pull diegosouzapw/omniroute:latest
+docker pull linhnguyen0944/routiform:latest
 
 docker run -d \
-  --name omniroute \
+  --name routiform \
   --restart unless-stopped \
-  --env-file /opt/omniroute/.env \
+  --env-file /opt/routiform/.env \
   -p 20128:20128 \
-  -v omniroute-data:/app/data \
-  diegosouzapw/omniroute:latest
+  -v routiform-data:/app/data \
+  linhnguyen0944/routiform:latest
 ```
 
 ### 2.4 Verify that it is running
 
 ```bash
-docker ps | grep omniroute
-docker logs omniroute --tail 20
+docker ps | grep routiform
+docker logs routiform --tail 20
 ```
 
 It should display: `[DB] SQLite database ready` and `listening on port 20128`.
@@ -175,7 +175,7 @@ chmod 600 /etc/nginx/ssl/origin.key
 ### 3.2 Nginx Configuration
 
 ```bash
-cat > /etc/nginx/sites-available/omniroute << ‘NGINX’
+cat > /etc/nginx/sites-available/routiform << ‘NGINX’
 # Default server — blocks direct access via IP
 server {
     listen 80 default_server;
@@ -188,7 +188,7 @@ server {
     return 444;
 }
 
-# OmniRoute — HTTPS
+# Routiform — HTTPS
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
@@ -230,7 +230,7 @@ server {
 NGINX
 ```
 
-Keep reverse-proxy stream timeouts aligned with your OmniRoute timeout env vars. If you raise
+Keep reverse-proxy stream timeouts aligned with your Routiform timeout env vars. If you raise
 `FETCH_TIMEOUT_MS` / `STREAM_IDLE_TIMEOUT_MS`, raise `proxy_read_timeout` / `proxy_send_timeout`
 above the same threshold.
 
@@ -240,8 +240,8 @@ above the same threshold.
 # Remove default configuration
 rm -f /etc/nginx/sites-enabled/default
 
-# Enable OmniRoute
-ln -sf /etc/nginx/sites-available/omniroute /etc/nginx/sites-enabled/omniroute
+# Enable Routiform
+ln -sf /etc/nginx/sites-available/routiform /etc/nginx/sites-enabled/routiform
 
 # Test and reload
 nginx -t && systemctl reload nginx
@@ -285,40 +285,40 @@ curl -sI https://llms.seudominio.com/health
 ### Upgrade to a new version
 
 ```bash
-docker pull diegosouzapw/omniroute:latest
-docker stop omniroute && docker rm omniroute
-docker run -d --name omniroute --restart unless-stopped \
-  --env-file /opt/omniroute/.env \
+docker pull linhnguyen0944/routiform:latest
+docker stop routiform && docker rm routiform
+docker run -d --name routiform --restart unless-stopped \
+  --env-file /opt/routiform/.env \
   -p 20128:20128 \
-  -v omniroute-data:/app/data \
-  diegosouzapw/omniroute:latest
+  -v routiform-data:/app/data \
+  linhnguyen0944/routiform:latest
 ```
 
 ### View logs
 
 ```bash
-docker logs -f omniroute          # Real-time stream
-docker logs omniroute --tail 50   # Last 50 lines
+docker logs -f routiform          # Real-time stream
+docker logs routiform --tail 50   # Last 50 lines
 ```
 
 ### Manual database backup
 
 ```bash
 # Copy data from the volume to the host
-docker cp omniroute:/app/data ./backup-$(date +%F)
+docker cp routiform:/app/data ./backup-$(date +%F)
 
 # Or compress the entire volume
-docker run --rm -v omniroute-data:/data -v $(pwd):/backup \
-  alpine tar czf /backup/omniroute-data-$(date +%F).tar.gz /data
+docker run --rm -v routiform-data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/routiform-data-$(date +%F).tar.gz /data
 ```
 
 ### Restore from backup
 
 ```bash
-docker stop omniroute
-docker run --rm -v omniroute-data:/data -v $(pwd):/backup \
-  alpine sh -c “rm -rf /data/* && tar xzf /backup/omniroute-data-YYYY-MM-DD.tar.gz -C /”
-docker start omniroute
+docker stop routiform
+docker run --rm -v routiform-data:/data -v $(pwd):/backup \
+  alpine sh -c “rm -rf /data/* && tar xzf /backup/routiform-data-YYYY-MM-DD.tar.gz -C /”
+docker start routiform
 ```
 
 ---
@@ -387,13 +387,13 @@ For remote access via Cloudflare Workers (without exposing the VM directly):
 
 ```bash
 # In the local repository
-cd omnirouteCloud
+cd routiformCloud
 npm install
 npx wrangler login
 npx wrangler deploy
 ```
 
-See the full documentation at [omnirouteCloud/README.md](../omnirouteCloud/README.md).
+See the full documentation at [routiformCloud/README.md](../routiformCloud/README.md).
 
 ---
 
@@ -404,4 +404,4 @@ See the full documentation at [omnirouteCloud/README.md](../omnirouteCloud/READM
 | 22    | SSH         | Public (with fail2ban)     |
 | 80    | nginx HTTP  | Redirect → HTTPS           |
 | 443   | nginx HTTPS | Via Cloudflare Proxy       |
-| 20128 | OmniRoute   | Localhost only (via nginx) |
+| 20128 | Routiform   | Localhost only (via nginx) |

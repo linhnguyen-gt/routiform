@@ -154,10 +154,10 @@ export function transformToRoutiform(raw: Record<string, LiteLLMModelInfo>): Pri
 
     // Map to Routiform providers
     const litellmProvider = info.litellm_provider || "";
-    const omniRouteProviders = LITELLM_PROVIDER_MAP[litellmProvider];
+    const mappedProviders = LITELLM_PROVIDER_MAP[litellmProvider];
 
-    if (omniRouteProviders) {
-      for (const provider of omniRouteProviders) {
+    if (mappedProviders) {
+      for (const provider of mappedProviders) {
         if (!result[provider]) result[provider] = {};
         result[provider][modelName] = entry;
       }

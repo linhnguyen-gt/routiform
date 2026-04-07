@@ -63,13 +63,13 @@ import { normalizeQuotaResponse } from "../../src/shared/contracts/quota.ts";
 // ============ Configuration ============
 
 const ROUTIFORM_BASE_URL =
-  process.env.ROUTIFORM_BASE_URL || process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
-const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.OMNIROUTE_API_KEY || "";
+  process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
+const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.ROUTIFORM_API_KEY || "";
 const MCP_ENFORCE_SCOPES =
   process.env.ROUTIFORM_MCP_ENFORCE_SCOPES === "true" ||
-  process.env.OMNIROUTE_MCP_ENFORCE_SCOPES === "true";
+  process.env.ROUTIFORM_MCP_ENFORCE_SCOPES === "true";
 const MCP_ALLOWED_SCOPES = new Set(
-  (process.env.ROUTIFORM_MCP_SCOPES || process.env.OMNIROUTE_MCP_SCOPES || "")
+  (process.env.ROUTIFORM_MCP_SCOPES || process.env.ROUTIFORM_MCP_SCOPES || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
@@ -827,7 +827,7 @@ export function createMcpServer(): McpServer {
 
 /**
  * Start the MCP server with stdio transport.
- * Called when `routiform --mcp` is used (legacy `omniroute --mcp` still works).
+ * Called when `routiform --mcp` is used.
  */
 export async function startMcpStdio(): Promise<void> {
   const server = createMcpServer();

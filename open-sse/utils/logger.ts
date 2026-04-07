@@ -1,5 +1,5 @@
 /**
- * Structured console logger utility for omniroute.
+ * Structured console logger utility for routiform.
  *
  * Provides consistent, machine-parseable log output across the codebase.
  * Supports two output formats controlled by APP_LOG_FORMAT env var:

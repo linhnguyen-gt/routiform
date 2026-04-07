@@ -36,30 +36,11 @@ function resolveMigrationsDir(): string {
 const MIGRATIONS_DIR = resolveMigrationsDir();
 
 const MIGRATIONS_TABLE = "_routiform_migrations";
-const LEGACY_MIGRATIONS_TABLE = "_omniroute_migrations";
-
-/** One-time rename after Routiform rebrand — existing installs keep applied versions. */
-function maybeRenameLegacyMigrationsTable(db: Database.Database): void {
-  try {
-    const hasLegacy = db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
-      .get(LEGACY_MIGRATIONS_TABLE) as { name?: string } | undefined;
-    const hasCurrent = db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
-      .get(MIGRATIONS_TABLE) as { name?: string } | undefined;
-    if (hasLegacy && !hasCurrent) {
-      db.exec(`ALTER TABLE ${LEGACY_MIGRATIONS_TABLE} RENAME TO ${MIGRATIONS_TABLE}`);
-    }
-  } catch {
-    /* ignore */
-  }
-}
 
 /**
  * Ensure the versioned migrations tracking table exists.
  */
 function ensureMigrationsTable(db: Database.Database): void {
-  maybeRenameLegacyMigrationsTable(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (
       version TEXT PRIMARY KEY,

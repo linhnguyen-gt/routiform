@@ -27,7 +27,7 @@ const parseToml = (content: string) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) return;
 
-    // Section header like [model_providers.omniroute]
+    // Section header like [model_providers.routiform]
     const sectionMatch = trimmed.match(/^\[(.+)\]$/);
     if (sectionMatch) {
       currentSection = sectionMatch[1];
@@ -95,8 +95,8 @@ const readConfig = async () => {
 const hasRoutiformConfig = (config: string | null) => {
   if (!config) return false;
   return (
-    config.includes('model_provider = "omniroute"') ||
-    config.includes("[model_providers.omniroute]")
+    config.includes('model_provider = "routiform"') ||
+    config.includes("[model_providers.routiform]")
   );
 };
 
@@ -212,12 +212,12 @@ export async function POST(request: Request) {
 
     // Update only Routiform related fields (api_key goes to auth.json, not config.toml)
     parsed._root.model = model;
-    parsed._root.model_provider = "omniroute";
+    parsed._root.model_provider = "routiform";
 
-    // Update or create omniroute provider section (no api_key - Codex reads from auth.json)
+    // Update or create routiform provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    parsed._sections["model_providers.omniroute"] = {
+    parsed._sections["model_providers.routiform"] = {
       name: "Routiform",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
@@ -285,14 +285,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Routiform related root fields only if they point to omniroute
-    if (parsed._root.model_provider === "omniroute") {
+    // Remove Routiform related root fields only if they point to routiform
+    if (parsed._root.model_provider === "routiform") {
       delete parsed._root.model;
       delete parsed._root.model_provider;
     }
 
-    // Remove omniroute provider section
-    delete parsed._sections["model_providers.omniroute"];
+    // Remove routiform provider section
+    delete parsed._sections["model_providers.routiform"];
 
     // Write updated config
     const configContent = toToml(parsed);

@@ -138,12 +138,12 @@ jobs:
               [ -f "$file" ] && cp "$file" ../../release-assets/
             done
           fi
-          # Windows: also copy portable standalone exe as OmniRoute.exe
+          # Windows: also copy portable standalone exe as Routiform.exe
           if [ "${{ matrix.platform }}" = "windows" ]; then
             for file in *.exe; do
               # Skip the NSIS installer (contains "Setup")
               case "$file" in *Setup*) continue ;; esac
-              [ -f "$file" ] && cp "$file" "../../release-assets/OmniRoute.exe" && break
+              [ -f "$file" ] && cp "$file" "../../release-assets/Routiform.exe" && break
             done
           fi
 
@@ -172,12 +172,12 @@ jobs:
       - name: Create source archives
         run: |
           # Create source code archives (excluding dev dependencies and build artifacts)
-          export TARBALL="OmniRoute-${{ needs.validate.outputs.version }}.source.tar.gz"
-          export ZIPBALL="OmniRoute-${{ needs.validate.outputs.version }}.source.zip"
+          export TARBALL="Routiform-${{ needs.validate.outputs.version }}.source.tar.gz"
+          export ZIPBALL="Routiform-${{ needs.validate.outputs.version }}.source.zip"
 
           # Use git archive for clean source export
-          git archive --format=tar.gz --prefix=OmniRoute-${{ needs.validate.outputs.version }}/ HEAD -o "release-assets/$TARBALL"
-          git archive --format=zip --prefix=OmniRoute-${{ needs.validate.outputs.version }}/ HEAD -o "release-assets/$ZIPBALL"
+          git archive --format=tar.gz --prefix=Routiform-${{ needs.validate.outputs.version }}/ HEAD -o "release-assets/$TARBALL"
+          git archive --format=zip --prefix=Routiform-${{ needs.validate.outputs.version }}/ HEAD -o "release-assets/$ZIPBALL"
 
           echo "✓ Created source archives:"
           ls -lh "release-assets/$TARBALL" "release-assets/$ZIPBALL"

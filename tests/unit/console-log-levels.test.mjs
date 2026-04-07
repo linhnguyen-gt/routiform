@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const TEST_LOG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-console-log-levels-"));
+const TEST_LOG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-console-log-levels-"));
 const TEST_LOG_PATH = path.join(TEST_LOG_DIR, "app.log");
 
 const originalLogFilePath = process.env.APP_LOG_FILE_PATH;

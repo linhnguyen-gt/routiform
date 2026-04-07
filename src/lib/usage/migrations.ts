@@ -11,11 +11,9 @@ import fs from "fs";
 import path from "path";
 import { ZipFile } from "yazl";
 import { getDbInstance, isCloud, isBuildPhase, DATA_DIR } from "../db/core";
-import { getLegacyDotDataDir, isSamePath } from "../dataPaths";
-
 export const shouldPersistToDisk = !isCloud && !isBuildPhase;
 
-const LEGACY_DATA_DIR = isCloud ? null : getLegacyDotDataDir();
+const LEGACY_DATA_DIR = null as string | null;
 
 export const CALL_LOGS_DIR = isCloud ? null : path.join(DATA_DIR, "call_logs");
 export const LOG_ARCHIVES_DIR = isCloud ? null : path.join(DATA_DIR, "log_archives");
@@ -203,7 +201,6 @@ function deleteArchivedTargets(targets: ArchiveTarget[]) {
 
 export function migrateLegacyUsageFiles() {
   if (!shouldPersistToDisk || !LEGACY_DATA_DIR) return;
-  if (isSamePath(DATA_DIR, LEGACY_DATA_DIR)) return;
 
   try {
     copyIfMissing(LEGACY_DB_FILE, USAGE_JSON_FILE, "usage history");

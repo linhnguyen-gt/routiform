@@ -29,11 +29,11 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has Routiform config (legacy `omniroute` key still counts)
+// Check if settings has Routiform config (legacy `routiform` key still counts)
 const hasRoutiformConfig = (settings: any) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
   const p = settings.models.providers;
-  return !!(p["routiform"] || p["omniroute"]);
+  return !!(p["routiform"] || p["routiform"]);
 };
 
 // GET - Check openclaw CLI and read current settings
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     settings.agents.defaults.model.primary = `routiform/${model}`;
 
     // Update models.providers.routiform
-    delete settings.models.providers["omniroute"];
+    delete settings.models.providers["routiform"];
     settings.models.providers["routiform"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
@@ -213,7 +213,7 @@ export async function DELETE() {
     // Remove Routiform from models.providers
     if (settings.models && settings.models.providers) {
       delete settings.models.providers["routiform"];
-      delete settings.models.providers["omniroute"];
+      delete settings.models.providers["routiform"];
 
       // Remove providers object if empty
       if (Object.keys(settings.models.providers).length === 0) {
@@ -221,11 +221,11 @@ export async function DELETE() {
       }
     }
 
-    // Reset agents.defaults.model.primary if it uses routiform or legacy omniroute
+    // Reset agents.defaults.model.primary if it uses routiform or legacy routiform
     const primary = settings.agents?.defaults?.model?.primary;
     if (
       typeof primary === "string" &&
-      (primary.startsWith("routiform/") || primary.startsWith("omniroute/"))
+      (primary.startsWith("routiform/") || primary.startsWith("routiform/"))
     ) {
       delete settings.agents.defaults.model.primary;
     }

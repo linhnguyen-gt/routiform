@@ -41,7 +41,7 @@ function ensureTranslatorsForComboTest() {
 function comboTestUsesHttpFetch() {
   return (
     process.env.ROUTIFORM_COMBO_TEST_USE_FETCH === "1" ||
-    process.env.OMNIROUTE_COMBO_TEST_USE_FETCH === "1"
+    process.env.ROUTIFORM_COMBO_TEST_USE_FETCH === "1"
   );
 }
 

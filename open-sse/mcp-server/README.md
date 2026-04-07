@@ -37,7 +37,7 @@ The MCP Server allows any AI agent (Claude Desktop, Cursor, VS Code Copilot, cus
 ### 1. Environment Variables
 
 ```bash
-# Required: Routiform base URL (OMNIROUTE_* names still work)
+# Required: Routiform base URL (ROUTIFORM_* names still work)
 export ROUTIFORM_BASE_URL="http://localhost:20128"
 
 # Optional: API key for authenticated access

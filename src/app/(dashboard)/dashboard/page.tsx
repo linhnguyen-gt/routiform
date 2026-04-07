@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   }
   const machineId = await getMachineId();
   const isBootstrapped =
-    process.env.ROUTIFORM_BOOTSTRAPPED === "true" || process.env.OMNIROUTE_BOOTSTRAPPED === "true";
+    process.env.ROUTIFORM_BOOTSTRAPPED === "true" || process.env.ROUTIFORM_BOOTSTRAPPED === "true";
   const serverEnvPath = path.join(DATA_DIR, "server.env");
   const showBootstrapBanner = isBootstrapped && shouldShowZeroConfigBanner();
   return (

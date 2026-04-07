@@ -4,27 +4,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-chat-combo-live-"));
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-chat-combo-live-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const chatRoute = await import("../../src/app/api/v1/chat/completions/route.ts");
-const {
-  generateSignature,
-  invalidateBySignature,
-  setCachedResponse,
-} = await import("../../src/lib/semanticCache.ts");
-const {
-  clearModelUnavailability,
-  resetAllAvailability,
-  setModelUnavailable,
-} = await import("../../src/domain/modelAvailability.ts");
-const {
-  getCircuitBreaker,
-  resetAllCircuitBreakers,
-  STATE,
-} = await import("../../src/shared/utils/circuitBreaker.ts");
+const { generateSignature, invalidateBySignature, setCachedResponse } =
+  await import("../../src/lib/semanticCache.ts");
+const { clearModelUnavailability, resetAllAvailability, setModelUnavailable } =
+  await import("../../src/domain/modelAvailability.ts");
+const { getCircuitBreaker, resetAllCircuitBreakers, STATE } =
+  await import("../../src/shared/utils/circuitBreaker.ts");
 
 const originalFetch = globalThis.fetch;
 

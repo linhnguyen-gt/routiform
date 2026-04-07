@@ -1,4 +1,4 @@
-# OmniRoute MCP Server Documentation (العربية)
+# Routiform MCP Server Documentation (العربية)
 
 🌐 **Languages:** 🇺🇸 [English](../../../../docs/MCP-SERVER.md) · 🇪🇸 [es](../../es/docs/MCP-SERVER.md) · 🇫🇷 [fr](../../fr/docs/MCP-SERVER.md) · 🇩🇪 [de](../../de/docs/MCP-SERVER.md) · 🇮🇹 [it](../../it/docs/MCP-SERVER.md) · 🇷🇺 [ru](../../ru/docs/MCP-SERVER.md) · 🇨🇳 [zh-CN](../../zh-CN/docs/MCP-SERVER.md) · 🇯🇵 [ja](../../ja/docs/MCP-SERVER.md) · 🇰🇷 [ko](../../ko/docs/MCP-SERVER.md) · 🇸🇦 [ar](../../ar/docs/MCP-SERVER.md) · 🇮🇳 [hi](../../hi/docs/MCP-SERVER.md) · 🇮🇳 [in](../../in/docs/MCP-SERVER.md) · 🇹🇭 [th](../../th/docs/MCP-SERVER.md) · 🇻🇳 [vi](../../vi/docs/MCP-SERVER.md) · 🇮🇩 [id](../../id/docs/MCP-SERVER.md) · 🇲🇾 [ms](../../ms/docs/MCP-SERVER.md) · 🇳🇱 [nl](../../nl/docs/MCP-SERVER.md) · 🇵🇱 [pl](../../pl/docs/MCP-SERVER.md) · 🇸🇪 [sv](../../sv/docs/MCP-SERVER.md) · 🇳🇴 [no](../../no/docs/MCP-SERVER.md) · 🇩🇰 [da](../../da/docs/MCP-SERVER.md) · 🇫🇮 [fi](../../fi/docs/MCP-SERVER.md) · 🇵🇹 [pt](../../pt/docs/MCP-SERVER.md) · 🇷🇴 [ro](../../ro/docs/MCP-SERVER.md) · 🇭🇺 [hu](../../hu/docs/MCP-SERVER.md) · 🇧🇬 [bg](../../bg/docs/MCP-SERVER.md) · 🇸🇰 [sk](../../sk/docs/MCP-SERVER.md) · 🇺🇦 [uk-UA](../../uk-UA/docs/MCP-SERVER.md) · 🇮🇱 [he](../../he/docs/MCP-SERVER.md) · 🇵🇭 [phi](../../phi/docs/MCP-SERVER.md) · 🇧🇷 [pt-BR](../../pt-BR/docs/MCP-SERVER.md) · 🇨🇿 [cs](../../cs/docs/MCP-SERVER.md) · 🇹🇷 [tr](../../tr/docs/MCP-SERVER.md)
 
@@ -8,17 +8,17 @@
 
 ## تثبيت
 
-OmniRoute MCP is built-in. Start it with:
+Routiform MCP is built-in. Start it with:
 
 ```bash
-omniroute --mcp
+routiform --mcp
 ```
 
 Or via the open-sse transport:
 
 ```bash
 # HTTP streamable transport (port 20130)
-omniroute --dev  # MCP auto-starts on /mcp endpoint
+routiform --dev  # MCP auto-starts on /mcp endpoint
 ```
 
 ## IDE Configuration
@@ -31,27 +31,27 @@ See [IDE Configs](integrations/ide-configs.md) for Antigravity, Cursor, Copilot,
 
 | Tool                            | Description                              |
 | :------------------------------ | :--------------------------------------- |
-| `omniroute_get_health`          | Gateway health, circuit breakers, uptime |
-| `omniroute_list_combos`         | All configured combos with models        |
-| `omniroute_get_combo_metrics`   | Performance metrics for a specific combo |
-| `omniroute_switch_combo`        | Switch active combo by ID/name           |
-| `omniroute_check_quota`         | Quota status per provider or all         |
-| `omniroute_route_request`       | Send a chat completion through OmniRoute |
-| `omniroute_cost_report`         | Cost analytics for a time period         |
-| `omniroute_list_models_catalog` | Full model catalog with capabilities     |
+| `routiform_get_health`          | Gateway health, circuit breakers, uptime |
+| `routiform_list_combos`         | All configured combos with models        |
+| `routiform_get_combo_metrics`   | Performance metrics for a specific combo |
+| `routiform_switch_combo`        | Switch active combo by ID/name           |
+| `routiform_check_quota`         | Quota status per provider or all         |
+| `routiform_route_request`       | Send a chat completion through Routiform |
+| `routiform_cost_report`         | Cost analytics for a time period         |
+| `routiform_list_models_catalog` | Full model catalog with capabilities     |
 
 ## Advanced Tools (8)
 
 | Tool                               | Description                                                 |
 | :--------------------------------- | :---------------------------------------------------------- |
-| `omniroute_simulate_route`         | Dry-run routing simulation with fallback tree               |
-| `omniroute_set_budget_guard`       | Session budget with degrade/block/alert actions             |
-| `omniroute_set_resilience_profile` | Apply conservative/balanced/aggressive preset               |
-| `omniroute_test_combo`             | Live-test all models in a combo via a real upstream request |
-| `omniroute_get_provider_metrics`   | Detailed metrics for one provider                           |
-| `omniroute_best_combo_for_task`    | Task-fitness recommendation with alternatives               |
-| `omniroute_explain_route`          | Explain a past routing decision                             |
-| `omniroute_get_session_snapshot`   | Full session state: costs, tokens, errors                   |
+| `routiform_simulate_route`         | Dry-run routing simulation with fallback tree               |
+| `routiform_set_budget_guard`       | Session budget with degrade/block/alert actions             |
+| `routiform_set_resilience_profile` | Apply conservative/balanced/aggressive preset               |
+| `routiform_test_combo`             | Live-test all models in a combo via a real upstream request |
+| `routiform_get_provider_metrics`   | Detailed metrics for one provider                           |
+| `routiform_best_combo_for_task`    | Task-fitness recommendation with alternatives               |
+| `routiform_explain_route`          | Explain a past routing decision                             |
+| `routiform_get_session_snapshot`   | Full session state: costs, tokens, errors                   |
 
 ## Authentication
 

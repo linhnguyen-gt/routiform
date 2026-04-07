@@ -242,7 +242,7 @@ export default function DocsPage() {
               <span className="font-semibold">{t("quickStartStep1Title")}</span>
               <p className="text-text-muted mt-1">
                 {t("quickStartStep1Prefix")}{" "}
-                <code className="px-1 rounded bg-bg-subtle">npx omniroute</code>{" "}
+                <code className="px-1 rounded bg-bg-subtle">npx routiform</code>{" "}
                 {t("quickStartStep1Middle")}{" "}
                 <code className="px-1 rounded bg-bg-subtle">npm start</code>.
               </p>
@@ -418,7 +418,7 @@ export default function DocsPage() {
                 <li>{t("protocolMcpStep3")}</li>
               </ol>
               <pre className="mt-3 p-3 rounded-lg border border-border bg-bg overflow-x-auto text-xs">
-                <code>{`omniroute --mcp`}</code>
+                <code>{`routiform --mcp`}</code>
               </pre>
             </article>
 

@@ -2,7 +2,7 @@
 
 ## Reporting Vulnerabilities
 
-If you discover a security vulnerability in OmniRoute, please report it responsibly:
+If you discover a security vulnerability in Routiform, please report it responsibly:
 
 1. **DO NOT** open a public GitHub issue
 2. Use [GitHub Security Advisories](https://github.com/linhnguyen-gt/Routiform/security/advisories/new)
@@ -28,7 +28,7 @@ If you discover a security vulnerability in OmniRoute, please report it responsi
 
 ## Security Architecture
 
-OmniRoute implements a multi-layered security model:
+Routiform implements a multi-layered security model:
 
 ```
 Request → CORS → API Key Auth → Prompt Injection Guard → Input Sanitizer → Rate Limiter → Circuit Breaker → Provider
@@ -153,15 +153,15 @@ The server actively rejects known-weak values like `changeme`, `secret`, or `pas
 
 ```bash
 docker run -d \
-  --name omniroute \
+  --name routiform \
   --restart unless-stopped \
   --read-only \
   -p 20128:20128 \
-  -v omniroute-data:/app/data \
+  -v routiform-data:/app/data \
   -e JWT_SECRET="$(openssl rand -base64 48)" \
   -e API_KEY_SECRET="$(openssl rand -hex 32)" \
   -e STORAGE_ENCRYPTION_KEY="$(openssl rand -hex 32)" \
-  diegosouzapw/omniroute:latest
+  linhnguyen0944/routiform:latest
 ```
 
 ---

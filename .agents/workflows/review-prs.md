@@ -160,7 +160,7 @@ Perform a **global impact assessment** to verify whether the PR changes are comp
   If `git push` fails because the PR comes from an external fork without write access, you MUST:
   1. Create a new branch ending in `-fix` (e.g., `checkout -b fix-pr-<NUMBER>`).
   2. Push your branch to the main repo (`git push origin fix-pr-<NUMBER>`).
-  3. Create a Pull Request targeting the contributor's repository and branch (use `gh pr create --repo <contributor-repo> --base <contributor-branch> --head diegosouzapw:fix-pr-<NUMBER>`).
+  3. Create a Pull Request targeting the contributor's repository and branch (use `gh pr create --repo <contributor-repo> --base <contributor-branch> --head linhnguyen-gt:fix-pr-<NUMBER>`).
   4. Once they accept our PR into their branch, their original PR to our `main` will automatically update and become green.
 
 - Run the project's test suite locally to verify nothing breaks:

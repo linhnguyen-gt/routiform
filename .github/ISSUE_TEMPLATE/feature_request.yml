@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or improvement for OmniRoute
+description: Suggest a new feature or improvement for Routiform
 title: "[Feature] "
 labels: ["enhancement"]
 body:
@@ -37,7 +37,7 @@ body:
     id: area
     attributes:
       label: Area
-      description: "Which part of OmniRoute does this relate to?"
+      description: "Which part of Routiform does this relate to?"
       multiple: true
       options:
         - Dashboard / UI

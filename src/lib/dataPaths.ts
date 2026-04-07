@@ -3,8 +3,6 @@ import os from "os";
 import fs from "fs";
 
 export const APP_NAME = "routiform";
-/** Prior default folder name; migrations and legacy paths still reference `~/.omniroute` (etc.). */
-export const LEGACY_APP_NAME = "omniroute";
 
 function safeHomeDir() {
   try {
@@ -21,33 +19,20 @@ function normalizeConfiguredPath(dir: unknown): string | null {
   return path.resolve(trimmed);
 }
 
-export function getLegacyDotDataDir() {
-  return path.join(safeHomeDir(), `.${LEGACY_APP_NAME}`);
-}
-
 export function getDefaultDataDir() {
   const homeDir = safeHomeDir();
 
   if (process.platform === "win32") {
     const appData = process.env.APPDATA || path.join(homeDir, "AppData", "Roaming");
-    const newPath = path.join(appData, APP_NAME);
-    const oldPath = path.join(appData, LEGACY_APP_NAME);
-    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) return oldPath;
-    return newPath;
+    return path.join(appData, APP_NAME);
   }
 
   const xdgConfigHome = normalizeConfiguredPath(process.env.XDG_CONFIG_HOME);
   if (xdgConfigHome) {
-    const newPath = path.join(xdgConfigHome, APP_NAME);
-    const oldPath = path.join(xdgConfigHome, LEGACY_APP_NAME);
-    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) return oldPath;
-    return newPath;
+    return path.join(xdgConfigHome, APP_NAME);
   }
 
-  const newDot = path.join(homeDir, `.${APP_NAME}`);
-  const oldDot = path.join(homeDir, `.${LEGACY_APP_NAME}`);
-  if (!fs.existsSync(newDot) && fs.existsSync(oldDot)) return oldDot;
-  return newDot;
+  return path.join(homeDir, `.${APP_NAME}`);
 }
 
 export function resolveDataDir({ isCloud = false }: { isCloud?: boolean } = {}): string {

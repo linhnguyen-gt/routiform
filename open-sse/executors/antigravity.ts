@@ -44,7 +44,7 @@ export class AntigravityExecutor extends BaseExecutor {
       Authorization: `Bearer ${credentials.accessToken}`,
       "User-Agent": this.config.headers?.["User-Agent"] || "antigravity/1.104.0 darwin/arm64",
       "X-Routiform-Source": "routiform",
-      "X-OmniRoute-Source": "omniroute",
+      "X-Routiform-Source": "routiform",
       Accept: "text/event-stream",
     };
   }
@@ -55,11 +55,11 @@ export class AntigravityExecutor extends BaseExecutor {
     // Antigravity accounts may have more stable project IDs, but the risk exists.
     const bodyProjectId = body?.project;
     const credentialsProjectId = credentials?.projectId;
-    const allowBodyProjectOverride = process.env.OMNIROUTE_ALLOW_BODY_PROJECT_OVERRIDE === "1";
+    const allowBodyProjectOverride = process.env.ROUTIFORM_ALLOW_BODY_PROJECT_OVERRIDE === "1";
 
     // Default: prefer OAuth-stored projectId over incoming body.project to avoid
     // stale/wrong client-side values causing 404/403 from Cloud Code endpoints.
-    // Opt-in escape hatch: set OMNIROUTE_ALLOW_BODY_PROJECT_OVERRIDE=1.
+    // Opt-in escape hatch: set ROUTIFORM_ALLOW_BODY_PROJECT_OVERRIDE=1.
     const projectId =
       allowBodyProjectOverride && bodyProjectId
         ? bodyProjectId

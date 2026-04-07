@@ -191,8 +191,18 @@ test.describe("Combos flow", () => {
     await expect(comboCreateButton).toBeEnabled();
 
     await comboCreateButton.scrollIntoViewIfNeeded();
-    await comboCreateButton.click({ force: true });
-    await expect(comboDialog).toBeHidden();
+    const createPost = page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/combos") &&
+        !res.url().includes("/metrics") &&
+        !res.url().includes("/test") &&
+        res.ok(),
+      { timeout: 30_000 }
+    );
+    await comboCreateButton.click();
+    await createPost;
+    await expect(comboDialog).toBeHidden({ timeout: 15_000 });
 
     const quickTestButton = page.getByRole("button", { name: /test now|testar agora/i });
     await expect(quickTestButton).toBeVisible();

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-OmniRoute i18n Auto-Translator
+Routiform i18n Auto-Translator
 This script scans all docs/i18n directory markdown files and uses an LLM
-API (like OmniRoute itself) to translate any English paragraphs into the 
+API (like Routiform itself) to translate any English paragraphs into the 
 target language.
 
 Usage:
@@ -43,7 +43,7 @@ def translate_block(text, target_language, api_url, api_key, model):
         return text
 
     prompt = (
-        f"You are a professional technical translator working on the OmniRoute proxy project documentation.\n"
+        f"You are a professional technical translator working on the Routiform proxy project documentation.\n"
         f"Translate the following Markdown text from English to {target_language}.\n"
         f"CRITICAL RULES:\n"
         f"- Do NOT translate code blocks (```...```).\n"
@@ -121,8 +121,8 @@ def process_file(file_path, target_language, api_url, api_key, model):
         print(f"  ⏩ {file_path.name} already fully translated or no English blocks found.")
 
 def main():
-    parser = argparse.ArgumentParser(description="OmniRoute Auto-Translator for i18n Markdown")
-    parser.add_argument("--api-url", default="http://localhost:20128/v1", help="Base URL of OmniRoute or target provider")
+    parser = argparse.ArgumentParser(description="Routiform Auto-Translator for i18n Markdown")
+    parser.add_argument("--api-url", default="http://localhost:20128/v1", help="Base URL of Routiform or target provider")
     parser.add_argument("--api-key", default="sk-test", help="API Key for the provider")
     parser.add_argument("--model", default="gc/gemini-3-flash", help="Model name to use")
     parser.add_argument("--lang", default=None, help="Process only a specific language code (e.g. pt-BR)")

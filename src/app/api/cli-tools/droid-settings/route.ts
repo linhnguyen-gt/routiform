@@ -31,9 +31,9 @@ const readSettings = async () => {
 
 const DROID_ROUTIFORM_CUSTOM_ID = "custom:Routiform-0";
 /** @deprecated kept for settings files created before rebrand */
-const DROID_LEGACY_CUSTOM_ID = "custom:OmniRoute-0";
+const DROID_LEGACY_CUSTOM_ID = "custom:Routiform-0";
 
-// Check if settings has Routiform (or legacy OmniRoute) customModels
+// Check if settings has Routiform (or legacy Routiform) customModels
 const hasRoutiformConfig = (settings: any) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some(
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       settings.customModels = [];
     }
 
-    // Remove existing Routiform / legacy OmniRoute config if any
+    // Remove existing Routiform / legacy Routiform config if any
     settings.customModels = settings.customModels.filter(
       (m) => m.id !== DROID_ROUTIFORM_CUSTOM_ID && m.id !== DROID_LEGACY_CUSTOM_ID
     );
@@ -219,7 +219,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Routiform / legacy OmniRoute customModels
+    // Remove Routiform / legacy Routiform customModels
     if (settings.customModels) {
       settings.customModels = settings.customModels.filter(
         (m) => m.id !== DROID_ROUTIFORM_CUSTOM_ID && m.id !== DROID_LEGACY_CUSTOM_ID

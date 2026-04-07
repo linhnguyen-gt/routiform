@@ -8,7 +8,7 @@ Use this workflow to automatically drive the `browser_subagent` to explore the n
 
 ## Prerequisites
 
-- OmniRoute must be actively running and accessible (e.g. locally at `http://localhost:20128` or on the Local VPS at `http://192.168.0.15:20128`).
+- Routiform must be actively running and accessible (e.g. locally at `http://localhost:20128` or on the Local VPS at `http://192.168.0.15:20128`).
 - The user must provide the target URL to be tested, or default to `http://192.168.0.15:20128`.
 
 ## Workflow Steps

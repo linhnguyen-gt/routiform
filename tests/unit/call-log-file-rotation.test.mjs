@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-call-log-files-"));
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-call-log-files-"));
 const ORIGINAL_DATA_DIR = process.env.DATA_DIR;
 const ORIGINAL_RETENTION_DAYS = process.env.CALL_LOG_RETENTION_DAYS;
 const ORIGINAL_MAX_ENTRIES = process.env.CALL_LOG_MAX_ENTRIES;

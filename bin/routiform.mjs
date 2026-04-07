@@ -2,7 +2,7 @@
 
 /**
  * Routiform CLI — Smart AI Router with Auto Fallback
- * (`omniroute` remains a global npm alias for this entry.)
+ * Global npm entry for the Routiform server CLI.
  *
  * Usage:
  *   routiform              Start the server (default port 20128)
@@ -34,16 +34,14 @@ function loadEnvFile() {
     envPaths.push(join(process.env.DATA_DIR, ".env"));
   }
 
-  // 2. Default data dirs: ~/.routiform/.env (then legacy ~/.omniroute/.env)
+  // 2. Default data dir: ~/.routiform/.env (Windows: %AppData%/routiform/.env)
   const home = homedir();
   if (home) {
     if (platform() === "win32") {
       const appData = process.env.APPDATA || join(home, "AppData", "Roaming");
       envPaths.push(join(appData, "routiform", ".env"));
-      envPaths.push(join(appData, "omniroute", ".env"));
     } else {
       envPaths.push(join(home, ".routiform", ".env"));
-      envPaths.push(join(home, ".omniroute", ".env"));
     }
   }
 
@@ -103,8 +101,8 @@ if (args.includes("--help") || args.includes("-h")) {
     routiform_check_quota, routiform_route_request, and more.
 
   \x1b[1mConfig:\x1b[0m
-    Loads .env from: ~/.routiform/.env (or legacy ~/.omniroute/.env) or ./.env
-    Memory limit: ROUTIFORM_MEMORY_MB or OMNIROUTE_MEMORY_MB (default: 512)
+    Loads .env from: ~/.routiform/.env or ./.env
+    Memory limit: ROUTIFORM_MEMORY_MB (default: 512)
 
   \x1b[1mAfter starting:\x1b[0m
     Dashboard:  http://localhost:<dashboard-port>
@@ -241,16 +239,13 @@ if (existsSync(sqliteBinary) && !isNativeBinaryCompatible(sqliteBinary)) {
 console.log(`  \x1b[2m⏳ Starting server...\x1b[0m\n`);
 
 // Sanitize memory limit — parseInt to prevent command injection (#150)
-const rawMemory = parseInt(
-  process.env.ROUTIFORM_MEMORY_MB || process.env.OMNIROUTE_MEMORY_MB || "512",
-  10
-);
+const rawMemory = parseInt(process.env.ROUTIFORM_MEMORY_MB || "512", 10);
 const memoryLimit =
   Number.isFinite(rawMemory) && rawMemory >= 64 && rawMemory <= 16384 ? rawMemory : 512;
 
 const env = {
   ...process.env,
-  OMNIROUTE_PORT: String(port),
+  ROUTIFORM_PORT: String(port),
   PORT: String(dashboardPort),
   DASHBOARD_PORT: String(dashboardPort),
   API_PORT: String(apiPort),

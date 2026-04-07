@@ -75,7 +75,7 @@ describe("Semantic Cache", () => {
     });
 
     it("returns false when no-cache header is set", () => {
-      const headersLegacy = new Headers({ "x-omniroute-no-cache": "true" });
+      const headersLegacy = new Headers({ "x-routiform-no-cache": "true" });
       assert.equal(isCacheable({ stream: false, temperature: 0 }, headersLegacy), false);
       const headersNew = new Headers({ "x-routiform-no-cache": "true" });
       assert.equal(isCacheable({ stream: false, temperature: 0 }, headersNew), false);

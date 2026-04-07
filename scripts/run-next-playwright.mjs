@@ -57,8 +57,8 @@ prepareAppDir();
 const runtimePorts = resolveRuntimePorts();
 const testServerEnv = {
   ...sanitizeColorEnv(process.env),
-  OMNIROUTE_DISABLE_TOKEN_HEALTHCHECK: process.env.OMNIROUTE_DISABLE_TOKEN_HEALTHCHECK || "1",
-  OMNIROUTE_HIDE_HEALTHCHECK_LOGS: process.env.OMNIROUTE_HIDE_HEALTHCHECK_LOGS || "1",
+  ROUTIFORM_DISABLE_TOKEN_HEALTHCHECK: process.env.ROUTIFORM_DISABLE_TOKEN_HEALTHCHECK || "1",
+  ROUTIFORM_HIDE_HEALTHCHECK_LOGS: process.env.ROUTIFORM_HIDE_HEALTHCHECK_LOGS || "1",
 };
 const args = [
   "./node_modules/next/dist/bin/next",

@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or unexpected behavior in OmniRoute
+description: Report a bug or unexpected behavior in Routiform
 title: "[BUG] "
 labels: ["bug"]
 body:
@@ -11,8 +11,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: OmniRoute Version
-      description: "Run `routiform --version` (or `omniroute --version` for legacy CLI) or check the left sidebar in the dashboard."
+      label: Routiform Version
+      description: "Run `routiform --version` (or `routiform --version` for legacy CLI) or check the left sidebar in the dashboard."
       placeholder: "e.g. 3.0.9"
     validations:
       required: true
@@ -78,7 +78,7 @@ body:
     id: client-tool
     attributes:
       label: Client Tool
-      description: "Which tool are you using OmniRoute with?"
+      description: "Which tool are you using Routiform with?"
       placeholder: "e.g. Claude Code, Cursor, Roo Code, OpenClaw, Gemini CLI, cURL"
     validations:
       required: false

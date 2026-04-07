@@ -161,7 +161,7 @@ git push origin release/v2.x.y
 
 ```bash
 gh pr create \
-  --repo diegosouzapw/OmniRoute \
+  --repo linhnguyen-gt/Routiform \
   --base main \
   --head release/v2.x.y \
   --title "chore(release): v2.x.y — summary" \
@@ -205,7 +205,7 @@ git pull origin main
 VERSION=$(node -p "require('./package.json').version")
 git tag -a "v$VERSION" -m "Release v$VERSION"
 git push origin --tags
-gh release create "v$VERSION" --title "v$VERSION" --notes "OmniRoute v$VERSION Release" --target main
+gh release create "v$VERSION" --title "v$VERSION" --notes "Routiform v$VERSION Release" --target main
 ```
 
 ### 14. 🐳 Trigger Docker Hub build (MANDATORY — keep npm and Docker in sync)
@@ -216,19 +216,19 @@ gh release create "v$VERSION" --title "v$VERSION" --notes "OmniRoute v$VERSION R
 
 ```bash
 # Verify the Docker workflow triggered
-gh run list --repo diegosouzapw/OmniRoute --workflow docker-publish.yml --limit 3
+gh run list --repo linhnguyen-gt/Routiform --workflow docker-publish.yml --limit 3
 
 # Wait for the Docker build to complete (usually 5–10 min)
-gh run watch --repo diegosouzapw/OmniRoute
+gh run watch --repo linhnguyen-gt/Routiform
 
 # After completion, verify on Docker Hub:
-# https://hub.docker.com/r/diegosouzapw/omniroute/tags
+# https://hub.docker.com/r/linhnguyen0944/routiform/tags
 ```
 
 If the Docker build was not triggered automatically, trigger it manually:
 
 ```bash
-gh workflow run docker-publish.yml --repo diegosouzapw/OmniRoute --ref v2.x.y
+gh workflow run docker-publish.yml --repo linhnguyen-gt/Routiform --ref v2.x.y
 ```
 
 ### 15. Deploy to BOTH VPS environments (MANDATORY)
@@ -238,15 +238,15 @@ gh workflow run docker-publish.yml --repo diegosouzapw/OmniRoute --ref v2.x.y
 
 ```bash
 # Build and pack locally
-cd /home/diegosouzapw/dev/proxys/9router && rm -f omniroute-*.tgz && rm -rf .next/cache app/.next/cache && npm run build:cli && rm -rf app/logs app/coverage app/.git app/.app-build-backup* && npm pack --ignore-scripts
+cd /home/linhnguyen-gt/dev/proxys/9router && rm -f routiform-*.tgz && rm -rf .next/cache app/.next/cache && npm run build:cli && rm -rf app/logs app/coverage app/.git app/.app-build-backup* && npm pack --ignore-scripts
 
 # Deploy to LOCAL VPS (192.168.0.15)
-scp omniroute-*.tgz root@192.168.0.15:/tmp/
-ssh root@192.168.0.15 "npm install -g /tmp/omniroute-*.tgz --ignore-scripts && cd /usr/lib/node_modules/omniroute/app && npm rebuild better-sqlite3 && pm2 delete omniroute 2>/dev/null; pm2 start /root/.omniroute/ecosystem.config.cjs --update-env && pm2 save && echo '✅ Local done'"
+scp routiform-*.tgz root@192.168.0.15:/tmp/
+ssh root@192.168.0.15 "npm install -g /tmp/routiform-*.tgz --ignore-scripts && cd /usr/lib/node_modules/routiform/app && npm rebuild better-sqlite3 && pm2 delete routiform 2>/dev/null; pm2 start /root/.routiform/ecosystem.config.cjs --update-env && pm2 save && echo '✅ Local done'"
 
 # Deploy to AKAMAI VPS (69.164.221.35)
-scp omniroute-*.tgz root@69.164.221.35:/tmp/
-ssh root@69.164.221.35 "npm install -g /tmp/omniroute-*.tgz --ignore-scripts && cd /usr/lib/node_modules/omniroute/app && npm rebuild better-sqlite3 && pm2 delete omniroute 2>/dev/null; pm2 start /root/.omniroute/ecosystem.config.cjs --update-env && pm2 save && echo '✅ Akamai done'"
+scp routiform-*.tgz root@69.164.221.35:/tmp/
+ssh root@69.164.221.35 "npm install -g /tmp/routiform-*.tgz --ignore-scripts && cd /usr/lib/node_modules/routiform/app && npm rebuild better-sqlite3 && pm2 delete routiform 2>/dev/null; pm2 start /root/.routiform/ecosystem.config.cjs --update-env && pm2 save && echo '✅ Akamai done'"
 
 # Verify both
 curl -s -o /dev/null -w "LOCAL:  HTTP %{http_code}\n" http://192.168.0.15:20128/
@@ -265,9 +265,9 @@ git branch -d release/v2.x.y
 
 - Always run `/update-docs` BEFORE this workflow (ensures CHANGELOG and README are current)
 - The `prepublishOnly` script runs `npm run build:cli` automatically during `npm publish`
-- After npm publish, verify with `npm info omniroute version`
+- After npm publish, verify with `npm info routiform version`
 - Lock file sync errors are caused by skipping `npm install` after version bump
-- Use `gh auth switch -u diegosouzapw` if git push fails with wrong account
+- Use `gh auth switch -u linhnguyen-gt` if git push fails with wrong account
 
 ## Known CI Pitfalls
 

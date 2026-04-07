@@ -58,7 +58,7 @@ class SandboxRunner {
       "run",
       "--rm",
       "--name",
-      `omniroute-sandbox-${sandboxId}`,
+      `routiform-sandbox-${sandboxId}`,
       "--cpus",
       `${this.config.cpuLimit / 1000}`,
       "--memory",
@@ -133,7 +133,7 @@ class SandboxRunner {
     if (proc) {
       proc.kill("SIGTERM");
       this.runningContainers.delete(sandboxId);
-      spawn("docker", ["kill", `omniroute-sandbox-${sandboxId}`], { stdio: "ignore" });
+      spawn("docker", ["kill", `routiform-sandbox-${sandboxId}`], { stdio: "ignore" });
       return true;
     }
     return false;
@@ -142,7 +142,7 @@ class SandboxRunner {
   killAll(): void {
     for (const [id, proc] of this.runningContainers) {
       proc.kill("SIGTERM");
-      spawn("docker", ["kill", `omniroute-sandbox-${id}`], { stdio: "ignore" });
+      spawn("docker", ["kill", `routiform-sandbox-${id}`], { stdio: "ignore" });
     }
     this.runningContainers.clear();
   }

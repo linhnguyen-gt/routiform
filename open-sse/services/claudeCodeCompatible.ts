@@ -133,7 +133,7 @@ export function resolveClaudeCodeCompatibleSessionId(headers?: HeaderLike): stri
     getHeader(headers, "x-session-id") ||
     getHeader(headers, "x_session_id") ||
     getHeader(headers, "x-routiform-session") ||
-    getHeader(headers, "x-omniroute-session") ||
+    getHeader(headers, "x-routiform-session") ||
     null;
 
   return (raw && raw.trim()) || randomUUID();

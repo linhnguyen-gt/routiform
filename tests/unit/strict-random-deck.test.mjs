@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 // ── Env vars BEFORE dynamic imports ──────────────────────────────────────────
-const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-strict-random-"));
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-strict-random-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "strict-random-test-secret";
 

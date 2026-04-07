@@ -892,7 +892,7 @@ function withSessionHeader(response: Response, sessionId: string | null): Respon
 
   try {
     response.headers.set("X-Routiform-Session-Id", sessionId);
-    response.headers.set("X-OmniRoute-Session-Id", sessionId);
+    response.headers.set("X-Routiform-Session-Id", sessionId);
     return response;
   } catch {
     const cloned = new Response(response.body, {
@@ -901,7 +901,7 @@ function withSessionHeader(response: Response, sessionId: string | null): Respon
       headers: response.headers,
     });
     cloned.headers.set("X-Routiform-Session-Id", sessionId);
-    cloned.headers.set("X-OmniRoute-Session-Id", sessionId);
+    cloned.headers.set("X-Routiform-Session-Id", sessionId);
     return cloned;
   }
 }

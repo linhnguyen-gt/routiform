@@ -7,8 +7,8 @@
 
 import { describe, it, expect } from "vitest";
 
-const BASE_URL = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
-const API_KEY = process.env.OMNIROUTE_API_KEY || "";
+const BASE_URL = process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
+const API_KEY = process.env.ROUTIFORM_API_KEY || "";
 const REQUEST_TIMEOUT_MS = Number(process.env.ECOSYSTEM_REQUEST_TIMEOUT_MS || 30000);
 const TEST_TIMEOUT_MS = Number(process.env.ECOSYSTEM_TEST_TIMEOUT_MS || 30000);
 const STRESS_TIMEOUT_MS = Number(process.env.ECOSYSTEM_STRESS_TIMEOUT_MS || 45000);

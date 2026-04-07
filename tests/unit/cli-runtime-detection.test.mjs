@@ -15,7 +15,7 @@ const { getCliRuntimeStatus, CLI_TOOL_IDS } =
 // ─── Helpers ──────────────────────────────────────────────────
 
 function createTempDir() {
-  const testRoot = path.join(os.tmpdir(), "omniroute-test-tmp");
+  const testRoot = path.join(os.tmpdir(), "routiform-test-tmp");
   if (!fs.existsSync(testRoot)) {
     fs.mkdirSync(testRoot, { recursive: true });
   }

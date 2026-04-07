@@ -100,5 +100,5 @@ export function createProgressTransform({
 export function wantsProgress(headers) {
   if (!headers) return false;
   const get = typeof headers.get === "function" ? (k) => headers.get(k) : (k) => headers[k];
-  return get("x-routiform-progress") === "true" || get("x-omniroute-progress") === "true";
+  return get("x-routiform-progress") === "true" || get("x-routiform-progress") === "true";
 }

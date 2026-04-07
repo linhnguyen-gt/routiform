@@ -47,7 +47,7 @@ const hasRoutiformConfig = (globalState: any) => {
     isOpenAi &&
     (baseUrl.includes("localhost") ||
       baseUrl.includes("127.0.0.1") ||
-      baseUrl.includes("omniroute"))
+      baseUrl.includes("routiform"))
   );
 };
 

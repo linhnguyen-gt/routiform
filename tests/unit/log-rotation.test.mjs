@@ -17,7 +17,7 @@ test("getLogConfig reads APP_LOG_* values", () => {
   };
 
   process.env.APP_LOG_TO_FILE = "false";
-  process.env.APP_LOG_FILE_PATH = "/tmp/omniroute-test-app.log";
+  process.env.APP_LOG_FILE_PATH = "/tmp/routiform-test-app.log";
   process.env.APP_LOG_MAX_FILE_SIZE = "64M";
   process.env.APP_LOG_RETENTION_DAYS = "14";
   process.env.APP_LOG_MAX_FILES = "12";
@@ -26,7 +26,7 @@ test("getLogConfig reads APP_LOG_* values", () => {
     const config = getLogConfig();
 
     assert.equal(config.logToFile, false);
-    assert.equal(config.logFilePath, "/tmp/omniroute-test-app.log");
+    assert.equal(config.logFilePath, "/tmp/routiform-test-app.log");
     assert.equal(config.maxFileSize, 64 * 1024 * 1024);
     assert.equal(config.retentionDays, 14);
     assert.equal(config.maxFiles, 12);
@@ -42,7 +42,7 @@ test("getLogConfig reads APP_LOG_* values", () => {
 });
 
 test("app log cleanup honors both retention days and file count", () => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-log-rotation-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-log-rotation-"));
   const logFilePath = path.join(tmpDir, "app.log");
 
   fs.writeFileSync(logFilePath, "", "utf8");

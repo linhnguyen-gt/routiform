@@ -1,7 +1,5 @@
 # Routiform — Agent Guidelines
 
-*(Fork lineage: evolved from the OmniRoute codebase; default data dir is `~/.routiform/`, with automatic use of legacy `~/.omniroute/` when present and the new path does not exist yet.)*
-
 ## Project
 
 Unified AI proxy/router — route any LLM through one endpoint. Multi-provider support
@@ -13,7 +11,7 @@ with **MCP Server** (25 tools), **A2A v0.3 Protocol**, and **Electron desktop ap
 
 - **Runtime**: Next.js 16 (App Router), Node.js ≥18 <25, ES Modules (`"type": "module"`)
 - **Language**: TypeScript 5.9 (`src/`) + JavaScript (`open-sse/`, `electron/`)
-- **Database**: better-sqlite3 (SQLite) — `DATA_DIR` configurable, default `~/.routiform/` (legacy `~/.omniroute/` if upgrading) — **backup/restore: copy whole `DATA_DIR` (includes `storage.sqlite` + `server.env` with `STORAGE_ENCRYPTION_KEY`); copying only the `.sqlite` file breaks encrypted API keys** — see `docs/BACKUP_AND_RESTORE.md`
+- **Database**: better-sqlite3 (SQLite) — `DATA_DIR` configurable, default `~/.routiform/` — **backup/restore: copy whole `DATA_DIR` (includes `storage.sqlite` + `server.env` with `STORAGE_ENCRYPTION_KEY`); copying only the `.sqlite` file breaks encrypted API keys** — see `docs/BACKUP_AND_RESTORE.md`
 - **Streaming**: SSE via `open-sse` internal workspace package
 - **Styling**: Tailwind CSS v4
 - **i18n**: next-intl with 30 languages

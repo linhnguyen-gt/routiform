@@ -33,7 +33,7 @@ export default function CopilotToolCard({
     try {
       const saved =
         localStorage.getItem(LS_COPILOT_MODELS) ||
-        localStorage.getItem("omniroute-copilot-selected-models");
+        localStorage.getItem("routiform-copilot-selected-models");
       return saved ? new Set<string>(JSON.parse(saved)) : new Set<string>();
     } catch {
       return new Set<string>();
@@ -42,7 +42,7 @@ export default function CopilotToolCard({
   const [selectedApiKey, setSelectedApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       const savedKey =
-        localStorage.getItem(LS_COPILOT_KEY) || localStorage.getItem("omniroute-cli-key-copilot");
+        localStorage.getItem(LS_COPILOT_KEY) || localStorage.getItem("routiform-cli-key-copilot");
       if (savedKey && apiKeys?.some((k: any) => k.key === savedKey)) return savedKey;
     }
     return apiKeys?.length > 0 ? apiKeys[0].key : "";

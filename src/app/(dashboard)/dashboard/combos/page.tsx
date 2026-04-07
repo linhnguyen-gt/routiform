@@ -172,7 +172,6 @@ const STRATEGY_RECOMMENDATIONS_FALLBACK = {
 };
 
 const COMBO_USAGE_GUIDE_STORAGE_KEY = "routiform:combos:hide-usage-guide";
-const COMBO_USAGE_GUIDE_STORAGE_KEY_LEGACY = "omniroute:combos:hide-usage-guide";
 
 const COMBO_TEMPLATE_FALLBACK = {
   title: "Quick templates",
@@ -379,10 +378,7 @@ export default function CombosPage() {
 
   useEffect(() => {
     try {
-      if (
-        globalThis.localStorage?.getItem(COMBO_USAGE_GUIDE_STORAGE_KEY) === "1" ||
-        globalThis.localStorage?.getItem(COMBO_USAGE_GUIDE_STORAGE_KEY_LEGACY) === "1"
-      ) {
+      if (globalThis.localStorage?.getItem(COMBO_USAGE_GUIDE_STORAGE_KEY) === "1") {
         setShowUsageGuide(false);
       }
     } catch {
@@ -426,10 +422,12 @@ export default function CombosPage() {
         body: JSON.stringify(data),
       });
       if (res.ok) {
-        await fetchData();
+        // Close modal and surface quick-test CTA immediately — do not block on fetchData().
+        // Otherwise a slow or stuck refresh keeps the dialog open and breaks E2E/UX.
         setShowCreateModal(false);
         setRecentlyCreatedCombo(data.name?.trim() || "");
         notify.success(t("comboCreated"));
+        await fetchData();
       } else {
         const err = await res.json();
         notify.error(err.error?.message || err.error || t("failedCreate"));
@@ -532,7 +530,6 @@ export default function CombosPage() {
     setShowUsageGuide(false);
     try {
       globalThis.localStorage?.setItem(COMBO_USAGE_GUIDE_STORAGE_KEY, "1");
-      globalThis.localStorage?.removeItem(COMBO_USAGE_GUIDE_STORAGE_KEY_LEGACY);
     } catch {}
   };
 
@@ -540,7 +537,6 @@ export default function CombosPage() {
     setShowUsageGuide(true);
     try {
       globalThis.localStorage?.removeItem(COMBO_USAGE_GUIDE_STORAGE_KEY);
-      globalThis.localStorage?.removeItem(COMBO_USAGE_GUIDE_STORAGE_KEY_LEGACY);
     } catch {}
   };
 

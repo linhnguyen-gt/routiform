@@ -1,12 +1,12 @@
-# OmniRoute A2A Server (Українська)
+# Routiform A2A Server (Українська)
 
 🌐 **Languages:** 🇺🇸 [English](../../../../../../src/lib/a2a/README.md) · 🇪🇸 [es](../../../../es/src/lib/a2a/README.md) · 🇫🇷 [fr](../../../../fr/src/lib/a2a/README.md) · 🇩🇪 [de](../../../../de/src/lib/a2a/README.md) · 🇮🇹 [it](../../../../it/src/lib/a2a/README.md) · 🇷🇺 [ru](../../../../ru/src/lib/a2a/README.md) · 🇨🇳 [zh-CN](../../../../zh-CN/src/lib/a2a/README.md) · 🇯🇵 [ja](../../../../ja/src/lib/a2a/README.md) · 🇰🇷 [ko](../../../../ko/src/lib/a2a/README.md) · 🇸🇦 [ar](../../../../ar/src/lib/a2a/README.md) · 🇮🇳 [hi](../../../../hi/src/lib/a2a/README.md) · 🇮🇳 [in](../../../../in/src/lib/a2a/README.md) · 🇹🇭 [th](../../../../th/src/lib/a2a/README.md) · 🇻🇳 [vi](../../../../vi/src/lib/a2a/README.md) · 🇮🇩 [id](../../../../id/src/lib/a2a/README.md) · 🇲🇾 [ms](../../../../ms/src/lib/a2a/README.md) · 🇳🇱 [nl](../../../../nl/src/lib/a2a/README.md) · 🇵🇱 [pl](../../../../pl/src/lib/a2a/README.md) · 🇸🇪 [sv](../../../../sv/src/lib/a2a/README.md) · 🇳🇴 [no](../../../../no/src/lib/a2a/README.md) · 🇩🇰 [da](../../../../da/src/lib/a2a/README.md) · 🇫🇮 [fi](../../../../fi/src/lib/a2a/README.md) · 🇵🇹 [pt](../../../../pt/src/lib/a2a/README.md) · 🇷🇴 [ro](../../../../ro/src/lib/a2a/README.md) · 🇭🇺 [hu](../../../../hu/src/lib/a2a/README.md) · 🇧🇬 [bg](../../../../bg/src/lib/a2a/README.md) · 🇸🇰 [sk](../../../../sk/src/lib/a2a/README.md) · 🇺🇦 [uk-UA](../../../../uk-UA/src/lib/a2a/README.md) · 🇮🇱 [he](../../../../he/src/lib/a2a/README.md) · 🇵🇭 [phi](../../../../phi/src/lib/a2a/README.md) · 🇧🇷 [pt-BR](../../../../pt-BR/src/lib/a2a/README.md) · 🇨🇿 [cs](../../../../cs/src/lib/a2a/README.md) · 🇹🇷 [tr](../../../../tr/src/lib/a2a/README.md)
 
 ---
 
-> **Agent-to-Agent Protocol v0.3** — Enables any AI agent to use OmniRoute as an intelligent routing agent via JSON-RPC 2.0.
+> **Agent-to-Agent Protocol v0.3** — Enables any AI agent to use Routiform as an intelligent routing agent via JSON-RPC 2.0.
 
-The A2A Server exposes OmniRoute as a **first-class agent** that other agents can discover, delegate tasks to, and collaborate with using the [A2A Protocol](https://google.github.io/A2A/).
+The A2A Server exposes Routiform as a **first-class agent** that other agents can discover, delegate tasks to, and collaborate with using the [A2A Protocol](https://google.github.io/A2A/).
 
 ---
 
@@ -21,7 +21,7 @@ The A2A Server exposes OmniRoute as a **first-class agent** that other agents ca
                        │  2. POST /a2a  (JSON-RPC 2.0)
                        ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                     OmniRoute A2A Server                         │
+│                     Routiform A2A Server                         │
 │  ┌────────────────┐  ┌────────────────┐  ┌───────────────────┐  │
 │  │  Task Manager  │  │  Skill Engine  │  │  SSE Streaming    │  │
 │  │  (lifecycle)   │──│  (registry)    │──│  (real-time)      │  │
@@ -33,7 +33,7 @@ The A2A Server exposes OmniRoute as a **first-class agent** that other agents ca
 │                                  └────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
                        │
-                       ▼  OmniRoute Gateway (internal)
+                       ▼  Routiform Gateway (internal)
               /v1/chat/completions, /api/combos, /api/usage/quota
 ```
 
@@ -53,7 +53,7 @@ curl http://localhost:20128/.well-known/agent.json
 
 ```json
 {
-  "name": "OmniRoute",
+  "name": "Routiform",
   "description": "Intelligent AI gateway with auto-routing across 50+ providers",
   "url": "http://localhost:20128/a2a",
   "version": "1.8.1",
@@ -65,7 +65,7 @@ curl http://localhost:20128/.well-known/agent.json
     {
       "id": "smart-routing",
       "name": "Smart Routing",
-      "description": "Routes prompts through OmniRoute intelligent pipeline",
+      "description": "Routes prompts through Routiform intelligent pipeline",
       "tags": ["routing", "llm", "multi-provider", "cost-optimization"],
       "examples": [
         "Write a hello world in Python",
@@ -188,7 +188,7 @@ curl -X POST http://localhost:20128/a2a \
 
 ### `smart-routing`
 
-Routes prompts through OmniRoute's intelligent pipeline with full observability.
+Routes prompts through Routiform's intelligent pipeline with full observability.
 
 **Parameters (in `metadata`):**
 
@@ -252,7 +252,7 @@ submitted ──→ working ──→ completed
 ```python
 """
 A2A Client — Python example.
-Discovers OmniRoute agent, sends a task, and processes the result.
+Discovers Routiform agent, sends a task, and processes the result.
 """
 import requests
 import json
@@ -403,14 +403,14 @@ while (true) {
 
 ```python
 """
-LangChain integration — Use OmniRoute A2A as a custom LLM.
+LangChain integration — Use Routiform A2A as a custom LLM.
 """
 from langchain.llms.base import BaseLLM
 from langchain.schema import LLMResult, Generation
 import requests
 from typing import List, Optional
 
-class OmniRouteA2A(BaseLLM):
+class RoutiformA2A(BaseLLM):
     base_url: str = "http://localhost:20128"
     api_key: str = ""
     model: str = "auto"
@@ -418,7 +418,7 @@ class OmniRouteA2A(BaseLLM):
 
     @property
     def _llm_type(self) -> str:
-        return "omniroute-a2a"
+        return "routiform-a2a"
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs) -> str:
         response = requests.post(
@@ -450,7 +450,7 @@ class OmniRouteA2A(BaseLLM):
         )
 
 # Usage
-llm = OmniRouteA2A(
+llm = RoutiformA2A(
     base_url="http://localhost:20128",
     api_key="your-key",
     model="auto",
@@ -541,17 +541,17 @@ func main() {
 
 ### 🤖 Use Case 1: Multi-Agent Coding Pipeline
 
-An orchestrator agent delegates code generation to OmniRoute, then passes the output to a review agent.
+An orchestrator agent delegates code generation to Routiform, then passes the output to a review agent.
 
 ```python
 def coding_pipeline(task: str):
-    # Step 1: Generate code via OmniRoute A2A
+    # Step 1: Generate code via Routiform A2A
     code_result = a2a_send("smart-routing", [
         {"role": "user", "content": f"Write production-quality code: {task}"}
     ], metadata={"model": "auto", "role": "coding"})
     code = code_result["artifacts"][0]["content"]
 
-    # Step 2: Review the code via OmniRoute A2A (different model)
+    # Step 2: Review the code via Routiform A2A (different model)
     review_result = a2a_send("smart-routing", [
         {"role": "user", "content": f"Review this code for bugs and improvements:\n\n{code}"}
     ], metadata={"model": "auto", "role": "review"})
@@ -566,7 +566,7 @@ def coding_pipeline(task: str):
 
 ### 💡 Use Case 2: Quota-Aware Agent Swarm
 
-Multiple agents share quota through OmniRoute, using the quota skill to coordinate.
+Multiple agents share quota through Routiform, using the quota skill to coordinate.
 
 ```python
 async def quota_aware_agent(agent_name: str, task: str):
@@ -704,10 +704,10 @@ def poll_task(task_id: str, timeout: int = 60):
 All `/a2a` requests require a Bearer token via the `Authorization` header:
 
 ```
-Authorization: Bearer YOUR_OMNIROUTE_API_KEY
+Authorization: Bearer YOUR_ROUTIFORM_API_KEY
 ```
 
-If no API key is configured on the server (`OMNIROUTE_API_KEY` is empty), authentication is bypassed.
+If no API key is configured on the server (`ROUTIFORM_API_KEY` is empty), authentication is bypassed.
 
 ---
 
@@ -749,4 +749,4 @@ open-sse/mcp-server/
 
 ## Ліцензія
 
-Part of [OmniRoute](https://github.com/linhnguyen-gt/Routiform) — MIT License.
+Part of [Routiform](https://github.com/linhnguyen-gt/Routiform) — MIT License.

@@ -116,7 +116,7 @@ jobs:
 
           echo "Configuring for GitHub Packages..."
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
-          npm pkg set name="@diegosouzapw/routiform"
+          npm pkg set name="@linhnguyen-gt/routiform"
 
           if [ "$TAG" = "latest" ]; then
             npm publish --registry=https://npm.pkg.github.com || echo "⚠️ Version ${VERSION} might already be published on GitHub."

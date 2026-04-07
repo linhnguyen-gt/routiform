@@ -16,10 +16,10 @@ export type RuntimePorts = {
 };
 
 export function getRuntimePorts(): RuntimePorts {
-  // ROUTIFORM_PORT / OMNIROUTE_PORT preserve the user's canonical PORT in wrapped runtimes
+  // ROUTIFORM_PORT / ROUTIFORM_PORT preserve the user's canonical PORT in wrapped runtimes
   // where Next.js requires process.env.PORT to be the dashboard listener port.
   const basePort = parsePort(
-    process.env.ROUTIFORM_PORT || process.env.OMNIROUTE_PORT || process.env.PORT,
+    process.env.ROUTIFORM_PORT || process.env.ROUTIFORM_PORT || process.env.PORT,
     DEFAULT_PORT
   );
   const apiPortExplicit = !!process.env.API_PORT;

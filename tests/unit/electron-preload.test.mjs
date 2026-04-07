@@ -239,7 +239,7 @@ describe("Preload openExternal Security", () => {
   const SAFE_URLS = [
     "https://github.com",
     "http://localhost:20128",
-    "https://omniroute.dev/docs",
+    "https://routiform.dev/docs",
     "https://example.com/path?q=1&p=2#section",
   ];
 

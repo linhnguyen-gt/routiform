@@ -22,7 +22,7 @@ export function withRuntimePortEnv(env, runtimePorts) {
 
   return {
     ...env,
-    OMNIROUTE_PORT: String(basePort),
+    ROUTIFORM_PORT: String(basePort),
     PORT: String(dashboardPort),
     DASHBOARD_PORT: String(dashboardPort),
     API_PORT: String(apiPort),

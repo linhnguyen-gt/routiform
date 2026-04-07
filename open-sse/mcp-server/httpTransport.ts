@@ -2,7 +2,7 @@
  * MCP HTTP Transport Layer — session-aware handlers for SSE and Streamable HTTP.
  *
  * Runs the MCP server **inside** the Next.js process so it can be toggled
- * from the dashboard without requiring `omniroute --mcp`.
+ * from the dashboard without requiring `routiform --mcp`.
  *
  * Transport modes:
  *   - SSE:             GET /api/mcp/sse (event stream)  +  POST /api/mcp/sse (messages)

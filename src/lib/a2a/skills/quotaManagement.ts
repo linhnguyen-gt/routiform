@@ -9,8 +9,8 @@ import type { A2ATask, TaskArtifact } from "../taskManager";
 import { normalizeQuotaResponse } from "@/shared/contracts/quota";
 
 const ROUTIFORM_BASE_URL =
-  process.env.ROUTIFORM_BASE_URL || process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
-const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.OMNIROUTE_API_KEY || "";
+  process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
+const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.ROUTIFORM_API_KEY || "";
 
 async function quotaFetch(path: string): Promise<any> {
   const url = `${ROUTIFORM_BASE_URL}${path}`;

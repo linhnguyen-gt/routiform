@@ -155,7 +155,7 @@ async function getDb(): Promise<AuditDatabase | null> {
       ? join(process.env.DATA_DIR, "storage.sqlite")
       : (() => {
           const newDot = join(home, ".routiform", "storage.sqlite");
-          const oldDot = join(home, ".omniroute", "storage.sqlite");
+          const oldDot = join(home, ".routiform", "storage.sqlite");
           if (existsSync(newDot)) return newDot;
           if (existsSync(oldDot)) return oldDot;
           return newDot;
@@ -200,7 +200,7 @@ export async function logToolCall(
 
     const inputHash = await hashInput(input);
     const outputSummary = summarizeOutput(output);
-    const apiKeyId = process.env.ROUTIFORM_API_KEY_ID || process.env.OMNIROUTE_API_KEY_ID || null;
+    const apiKeyId = process.env.ROUTIFORM_API_KEY_ID || process.env.ROUTIFORM_API_KEY_ID || null;
 
     database
       .prepare(

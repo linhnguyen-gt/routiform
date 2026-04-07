@@ -46,7 +46,7 @@ describe("resolveRuntimePorts", () => {
     delete process.env.PORT;
     delete process.env.API_PORT;
     delete process.env.DASHBOARD_PORT;
-    delete process.env.OMNIROUTE_PORT;
+    delete process.env.ROUTIFORM_PORT;
   });
 
   afterEach(() => {

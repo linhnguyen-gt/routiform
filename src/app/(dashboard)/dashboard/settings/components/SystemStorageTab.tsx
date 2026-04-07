@@ -33,7 +33,7 @@ export default function SystemStorageTab() {
   const tc = useTranslations("common");
   const [storageHealth, setStorageHealth] = useState({
     driver: "sqlite",
-    dbPath: "~/.omniroute/storage.sqlite",
+    dbPath: "~/.routiform/storage.sqlite",
     sizeBytes: 0,
     retentionDays: {
       app: 7,
@@ -147,7 +147,7 @@ export default function SystemStorageTab() {
       const filenameMatch = disposition.match(/filename="(.+)"/);
       const filename = filenameMatch
         ? filenameMatch[1]
-        : `omniroute-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.sqlite`;
+        : `routiform-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.sqlite`;
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -276,7 +276,9 @@ export default function SystemStorageTab() {
           combos: data.comboCount,
           apiKeys: data.apiKeyCount,
         });
-        const envNote = data.importedServerEnv ? t("importAllEnvRestored") : t("importAllEnvSkipped");
+        const envNote = data.importedServerEnv
+          ? t("importAllEnvRestored")
+          : t("importAllEnvSkipped");
         const restartNote = data.importedServerEnv ? ` ${t("importAllRestartHint")}` : "";
         setImportStatus({
           type: "success",
@@ -351,7 +353,7 @@ export default function SystemStorageTab() {
             {t("databasePath")}
           </p>
           <p className="text-sm font-mono text-text-main break-all">
-            {storageHealth.dbPath || "~/.omniroute/storage.sqlite"}
+            {storageHealth.dbPath || "~/.routiform/storage.sqlite"}
           </p>
         </div>
         <div className="p-3 rounded-lg bg-bg border border-border">
@@ -401,7 +403,7 @@ export default function SystemStorageTab() {
               const blob = await res.blob();
               const cd = res.headers.get("Content-Disposition") || "";
               const filenameMatch = cd.match(/filename="?([^"]+)"?/);
-              const filename = filenameMatch?.[1] || `omniroute-full-backup.tar.gz`;
+              const filename = filenameMatch?.[1] || `routiform-full-backup.tar.gz`;
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
@@ -458,7 +460,9 @@ export default function SystemStorageTab() {
           onChange={handleImportAllFileSelected}
         />
       </div>
-      <p className="text-xs text-text-muted leading-relaxed mb-4 max-w-3xl">{t("portableBackupHint")}</p>
+      <p className="text-xs text-text-muted leading-relaxed mb-4 max-w-3xl">
+        {t("portableBackupHint")}
+      </p>
 
       {/* Import confirmation dialog */}
       {confirmImport && pendingImportFile && (

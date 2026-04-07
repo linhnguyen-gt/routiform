@@ -26,7 +26,7 @@ const INTERNAL_BASE_URL =
 
 const globalState = globalThis as typeof globalThis & {
   __routiformModelSyncInternalAuthToken?: string;
-  __omnirouteModelSyncInternalAuthToken?: string;
+  __routiformModelSyncInternalAuthToken?: string;
 };
 
 let schedulerTimer: NodeJS.Timeout | null = null;
@@ -37,7 +37,7 @@ function getInternalAuthToken(): string {
   if (!internalAuthToken) {
     internalAuthToken =
       globalState.__routiformModelSyncInternalAuthToken ||
-      globalState.__omnirouteModelSyncInternalAuthToken ||
+      globalState.__routiformModelSyncInternalAuthToken ||
       randomUUID();
     globalState.__routiformModelSyncInternalAuthToken = internalAuthToken;
   }
@@ -56,8 +56,8 @@ export function isModelSyncInternalRequest(request: Request): boolean {
   if (!internalAuthToken) {
     if (globalState.__routiformModelSyncInternalAuthToken) {
       internalAuthToken = globalState.__routiformModelSyncInternalAuthToken;
-    } else if (globalState.__omnirouteModelSyncInternalAuthToken) {
-      internalAuthToken = globalState.__omnirouteModelSyncInternalAuthToken;
+    } else if (globalState.__routiformModelSyncInternalAuthToken) {
+      internalAuthToken = globalState.__routiformModelSyncInternalAuthToken;
       globalState.__routiformModelSyncInternalAuthToken = internalAuthToken;
     }
   }

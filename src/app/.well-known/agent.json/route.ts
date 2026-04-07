@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
 
 const PACKAGE_VERSION = process.env.npm_package_version || "1.8.1";
 const BASE_URL =
-  process.env.ROUTIFORM_BASE_URL || process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
+  process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
 
 /**
  * GET /.well-known/agent.json

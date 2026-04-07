@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { sanitizeColorEnv } from "./runtime-env.mjs";
 
 const port = process.env.DASHBOARD_PORT || process.env.PORT || "20128";
-const baseUrl = process.env.OMNIROUTE_BASE_URL || `http://localhost:${port}`;
+const baseUrl = process.env.ROUTIFORM_BASE_URL || `http://localhost:${port}`;
 const healthUrl = `${baseUrl}/api/monitoring/health`;
 const maxWaitMs = Number(process.env.ECOSYSTEM_SERVER_WAIT_MS || 180000);
 const pollMs = 2000;

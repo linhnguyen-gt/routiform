@@ -42,7 +42,7 @@ test("package.json does not contain hardcoded legacy secrets", () => {
   const pkg = readIfExists("package.json");
   assert.ok(pkg, "package.json should exist");
   const sensitivePatterns = [
-    "omniroute-default-secret-change-me",
+    "routiform-default-secret-change-me",
     "endpoint-proxy-api-key-secret",
     "change-me-storage-encryption",
   ];
@@ -55,7 +55,7 @@ test("proxy.ts does not contain hardcoded JWT_SECRET fallback", () => {
   const content = readIfExists("src/proxy.ts");
   assert.ok(content, "src/proxy.ts should exist");
   assert.equal(
-    content.includes("omniroute-default-secret-change-me"),
+    content.includes("routiform-default-secret-change-me"),
     false,
     "src/proxy.ts should not have hardcoded JWT_SECRET fallback"
   );

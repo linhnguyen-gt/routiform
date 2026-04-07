@@ -316,17 +316,17 @@ function attachLogMeta(
   );
   if (Object.keys(compactMeta).length === 0) return payload;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { _omniroute: compactMeta, _payload: payload ?? null };
+    return { _routiform: compactMeta, _payload: payload ?? null };
   }
   const existing =
-    payload._omniroute &&
-    typeof payload._omniroute === "object" &&
-    !Array.isArray(payload._omniroute)
-      ? payload._omniroute
+    payload._routiform &&
+    typeof payload._routiform === "object" &&
+    !Array.isArray(payload._routiform)
+      ? payload._routiform
       : {};
   return {
     ...payload,
-    _omniroute: {
+    _routiform: {
       ...existing,
       ...compactMeta,
     },
@@ -504,7 +504,7 @@ export async function handleChatCore({
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": getCorsOrigin(),
           "X-Routiform-Idempotent": "true",
-          "X-OmniRoute-Idempotent": "true",
+          "X-Routiform-Idempotent": "true",
         },
       }),
     };
@@ -717,7 +717,7 @@ export async function handleChatCore({
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": getCorsOrigin(),
             "X-Routiform-Cache": "HIT",
-            "X-OmniRoute-Cache": "HIT",
+            "X-Routiform-Cache": "HIT",
           },
         }),
       };
@@ -2147,7 +2147,7 @@ export async function handleChatCore({
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": getCorsOrigin(),
           "X-Routiform-Cache": "MISS",
-          "X-OmniRoute-Cache": "MISS",
+          "X-Routiform-Cache": "MISS",
         },
       }),
     };
@@ -2303,7 +2303,7 @@ export async function handleChatCore({
     const transformedBody = pipeWithDisconnect(providerResponse, transformStream, streamController);
     finalStream = transformedBody.pipeThrough(progressTransform);
     responseHeaders["X-Routiform-Progress"] = "enabled";
-    responseHeaders["X-OmniRoute-Progress"] = "enabled";
+    responseHeaders["X-Routiform-Progress"] = "enabled";
   } else {
     finalStream = pipeWithDisconnect(providerResponse, transformStream, streamController);
   }

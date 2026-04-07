@@ -1,5 +1,5 @@
 /**
- * OmniRoute — k6 Load / Performance Test (T-5)
+ * Routiform — k6 Load / Performance Test (T-5)
  *
  * Tests the proxy endpoint under sustained load to measure:
  *   - Request throughput (RPS)
@@ -9,12 +9,12 @@
  *
  * Usage:
  *   k6 run tests/load/proxy-load.js
- *   k6 run tests/load/proxy-load.js --env BASE_URL=https://llms.omniroute.online
+ *   k6 run tests/load/proxy-load.js --env BASE_URL=https://llms.routiform.online
  *   k6 run tests/load/proxy-load.js --env VUS=50 --env DURATION=120s
  *
  * Prerequisites:
  *   - k6 installed: https://grafana.com/docs/k6/latest/set-up/install-k6/
- *   - OMNIROUTE_API_KEY env var or --env API_KEY=... set
+ *   - ROUTIFORM_API_KEY env var or --env API_KEY=... set
  */
 
 import http from "k6/http";
@@ -28,7 +28,7 @@ const healthLatency = new Trend("health_latency", true);
 
 // ── Configuration ──
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
-const API_KEY = __ENV.API_KEY || __ENV.OMNIROUTE_API_KEY || "test-key";
+const API_KEY = __ENV.API_KEY || __ENV.ROUTIFORM_API_KEY || "test-key";
 const VUS = parseInt(__ENV.VUS || "10", 10);
 const DURATION = __ENV.DURATION || "60s";
 

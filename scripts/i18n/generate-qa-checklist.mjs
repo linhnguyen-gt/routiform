@@ -215,10 +215,10 @@ async function runAutomatedChecks() {
     const readmePath = path.join(I18N_README_DIR, code, "README.md");
     try {
       const content = await fs.readFile(readmePath, "utf8");
-      if (content.includes("**[English](#-omniroute--the-free-ai-gateway)**")) {
+      if (content.includes("**[English](#-routiform--the-free-ai-gateway)**")) {
         anchorLineRemoved = false;
       }
-      if (content.includes("## 🇧🇷 OmniRoute")) {
+      if (content.includes("## 🇧🇷 Routiform")) {
         brAppendixRemoved = false;
       }
     } catch {
@@ -273,7 +273,7 @@ async function main() {
   automatedChecksLines.push(
     `- Language selector (🌐 **Languages:**) in README (es/fr/de/ja/ar): **${automated.readmeLabelChecks.every((item) => item.ok) ? "OK" : "FALHAS"}**`,
     `- Linha legacy EN/PT removida em ja/ar: **${automated.anchorLineRemoved ? "OK" : "PENDENTE"}**`,
-    `- Apêndice "## 🇧🇷 OmniRoute" removido em ja/ar: **${automated.brAppendixRemoved ? "OK" : "PENDENTE"}**`,
+    `- Apêndice "## 🇧🇷 Routiform" removido em ja/ar: **${automated.brAppendixRemoved ? "OK" : "PENDENTE"}**`,
     "- RTL habilitado globalmente para `ar` e `he` via `dir=rtl` no layout."
   );
 

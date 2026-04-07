@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 
 const ROUTIFORM_BASE_URL =
-  process.env.ROUTIFORM_BASE_URL || process.env.OMNIROUTE_BASE_URL || "http://localhost:20128";
+  process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
 
 export async function GET() {
   try {

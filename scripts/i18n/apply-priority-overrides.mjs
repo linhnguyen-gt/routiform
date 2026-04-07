@@ -40,7 +40,7 @@ const MESSAGE_OVERRIDES = {
     "auth.unifiedAiApiProxy": "Proxy de API de IA unificado",
     "auth.runOnboardingWizard":
       "Ejecuta el asistente de onboarding para configurar tu contraseña y conectar tu primer proveedor de IA.",
-    "auth.stopServer": "Detén el servidor OmniRoute",
+    "auth.stopServer": "Detén el servidor Routiform",
     "auth.copyUrlManual": "Copia la URL de la barra de direcciones y pégala en la aplicación.",
     "auth.methodManualDescription":
       "Elimina la contraseña de la base de datos y configura una nueva al iniciar:",
@@ -115,7 +115,7 @@ const MESSAGE_OVERRIDES = {
     "home.requestsShort": "{count} 件",
     "auth.runOnboardingWizard":
       "オンボーディングウィザードを実行して、パスワード設定と最初の AI プロバイダー接続を行います。",
-    "auth.stopServer": "OmniRoute サーバーを停止",
+    "auth.stopServer": "Routiform サーバーを停止",
     "auth.copyUrlManual": "アドレスバーの URL をコピーしてアプリケーションに貼り付けてください。",
     "auth.methodManualDescription":
       "データベースからパスワードを削除し、起動時に新しいパスワードを設定します:",
@@ -161,9 +161,9 @@ const README_PREFIX_OVERRIDES = {
 
 const README_NAV_OVERRIDES = {
   "README.ja.md":
-    "[🌐 ウェブサイト](https://omniroute.online) • [🚀 クイックスタート](#-クイックスタート) • [💡 主な機能](#-主な機能) • [📖 ドキュメント](#-ドキュメント) • [💰 料金](#-価格の概要) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)",
+    "[🌐 ウェブサイト](https://routiform.online) • [🚀 クイックスタート](#-クイックスタート) • [💡 主な機能](#-主な機能) • [📖 ドキュメント](#-ドキュメント) • [💰 料金](#-価格の概要) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)",
   "README.ar.md":
-    "[🌐 الموقع](https://omniroute.online) • [🚀 البداية السريعة](#-بداية-سريعة) • [💡 الميزات](#-الميزات-الرئيسية) • [📖 التوثيق](#-التوثيق) • [💰 الأسعار](#-لمحة-سريعة-عن-الأسعار) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)",
+    "[🌐 الموقع](https://routiform.online) • [🚀 البداية السريعة](#-بداية-سريعة) • [💡 الميزات](#-الميزات-الرئيسية) • [📖 التوثيق](#-التوثيق) • [💰 الأسعار](#-لمحة-سريعة-عن-الأسعار) • [💬 WhatsApp](https://chat.whatsapp.com/JI7cDQ1GyaiDHhVBpLxf8b?mode=gi_t)",
 };
 
 function setByPath(target, pathStr, value) {
@@ -208,14 +208,14 @@ function removeEnglishPortugueseAnchorLine(content) {
   const filtered = lines.filter(
     (line) =>
       !line.includes(
-        "**[English](#-omniroute--the-free-ai-gateway)** | **[Português (BR)](#-omniroute--gateway-de-ia-gratuito)**"
+        "**[English](#-routiform--the-free-ai-gateway)** | **[Português (BR)](#-routiform--gateway-de-ia-gratuito)**"
       )
   );
   return filtered.join("\n");
 }
 
 function removeBrazilianAppendixSection(content) {
-  const marker = "\n## 🇧🇷 OmniRoute";
+  const marker = "\n## 🇧🇷 Routiform";
   const idx = content.indexOf(marker);
   if (idx === -1) {
     return content;

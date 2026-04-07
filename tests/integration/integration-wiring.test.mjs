@@ -2,7 +2,7 @@
  * Integration Wiring Verification Tests
  *
  * Validates that backend modules are correctly wired into the current
- * OmniRoute architecture (TypeScript + App Router route.ts files).
+ * Routiform architecture (TypeScript + App Router route.ts files).
  */
 
 import { describe, it } from "node:test";

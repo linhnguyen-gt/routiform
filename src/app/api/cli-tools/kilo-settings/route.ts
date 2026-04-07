@@ -29,11 +29,11 @@ const readAuth = async () => {
 // Check if Routiform OpenAI-compatible provider is configured
 const hasRoutiformConfig = (auth) => {
   if (!auth) return false;
-  const routerEntry = auth["openai-compatible"] || auth["omniroute"];
+  const routerEntry = auth["openai-compatible"] || auth["routiform"];
   if (!routerEntry) return false;
   const baseUrl = routerEntry.baseUrl || routerEntry.baseURL || "";
   return (
-    baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("omniroute")
+    baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("routiform")
   );
 };
 
@@ -251,7 +251,7 @@ export async function DELETE() {
 
     // Remove Routiform provider
     delete auth["openai-compatible"];
-    delete auth["omniroute"];
+    delete auth["routiform"];
 
     await fs.writeFile(AUTH_PATH, JSON.stringify(auth, null, 2));
 

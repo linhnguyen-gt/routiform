@@ -9,15 +9,7 @@ const os = require("os");
 // This file runs as a standalone CommonJS process and cannot import the ES module.
 function getDataDir() {
   if (process.env.DATA_DIR) return path.resolve(process.env.DATA_DIR.trim());
-  const home = os.homedir();
-  const newDot = path.join(home, ".routiform");
-  const oldDot = path.join(home, ".omniroute");
-  try {
-    if (!fs.existsSync(newDot) && fs.existsSync(oldDot)) return oldDot;
-  } catch {
-    /* ignore */
-  }
-  return newDot;
+  return path.join(os.homedir(), ".routiform");
 }
 
 // Configuration
@@ -255,10 +247,7 @@ const server = https.createServer(sslOptions, async (req, res) => {
   if (bodyBuffer.length > 0) saveRequestLog(req.url, bodyBuffer);
 
   // Anti-loop: requests originating from Routiform bypass interception
-  if (
-    req.headers["x-omniroute-source"] === "omniroute" ||
-    req.headers["x-routiform-source"] === "routiform"
-  ) {
+  if (req.headers["x-routiform-source"] === "routiform") {
     return passthrough(req, res, bodyBuffer);
   }
 

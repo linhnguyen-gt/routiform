@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * OmniRoute v3.3 -> v3.4 Environment Migration Script
+ * Routiform v3.3 -> v3.4 Environment Migration Script
  * Resolves breaking changes in environment variables format and validation.
  */
 
@@ -61,7 +61,7 @@ if (modified) {
 
   // Write new .env
   fs.writeFileSync(envPath, content, "utf8");
-  console.log("Successfully migrated .env file for OmniRoute 3.4.x.");
+  console.log("Successfully migrated .env file for Routiform 3.4.x.");
 } else {
-  console.log(".env file is already compatible with OmniRoute 3.4.x.");
+  console.log(".env file is already compatible with Routiform 3.4.x.");
 }

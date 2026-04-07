@@ -11,7 +11,7 @@
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS version_manager (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
-  tool              TEXT NOT NULL UNIQUE,           -- 'cliproxyapi' | 'omniroute'
+  tool              TEXT NOT NULL UNIQUE,           -- 'cliproxyapi' | 'routiform'
   current_version   TEXT,                           -- latest known release version
   installed_version TEXT,                           -- currently installed version
   pinned_version    TEXT,                           -- user-pinned version (null = auto)
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS version_manager (
   api_key           TEXT,                           -- API key for CLIProxyAPI (from its config)
   management_key    TEXT,                           -- CLIProxyAPI management secret key
   auto_update       INTEGER NOT NULL DEFAULT 1,    -- 1 = auto-update enabled
-  auto_start        INTEGER NOT NULL DEFAULT 0,    -- 1 = start with OmniRoute
+  auto_start        INTEGER NOT NULL DEFAULT 0,    -- 1 = start with Routiform
   last_health_check TEXT,                           -- ISO timestamp
   last_update_check TEXT,                           -- ISO timestamp
   health_status     TEXT DEFAULT 'unknown',         -- unknown | healthy | unhealthy | timeout
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS version_manager (
 -- --------------------------------------------------------------------------
 -- Table: upstream_proxy_config
 -- Per-provider routing configuration for CLIProxyAPI passthrough mode.
--- Determines whether each provider uses OmniRoute's native executor,
+-- Determines whether each provider uses Routiform's native executor,
 -- delegates to CLIProxyAPI, or uses fallback (native first, then CLIProxyAPI).
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS upstream_proxy_config (

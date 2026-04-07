@@ -5,8 +5,6 @@
   "type": "module",
   "bin": {
     "routiform": "bin/routiform.mjs",
-    "omniroute": "bin/routiform.mjs",
-    "omniroute-reset-password": "bin/reset-password.mjs",
     "routiform-reset-password": "bin/reset-password.mjs"
   },
   "files": [
@@ -27,7 +25,6 @@
   },
   "keywords": [
     "routiform",
-    "omniroute",
     "ai",
     "router",
     "proxy",
@@ -43,7 +40,7 @@
     "auto-fallback"
   ],
   "license": "MIT",
-  "author": "diegosouzapw",
+  "author": "linhnguyen-gt",
   "repository": {
     "type": "git",
     "url": "https://github.com/linhnguyen-gt/Routiform"

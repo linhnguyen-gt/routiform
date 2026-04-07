@@ -1,7 +1,5 @@
 # 🚀 Routiform — The Free AI Gateway
 
-_Fork maintained at [linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform); upstream: [linhnguyen-gt/Routiform](https://github.com/linhnguyen-gt/Routiform)._
-
 ### Never stop coding. Smart routing to **FREE & low-cost AI models** with automatic fallback.
 
 _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now with **MCP Server (25 tools)**, **A2A Protocol**, **Memory/Skills Systems** & **Electron Desktop App**._
@@ -20,18 +18,18 @@ _Your universal API proxy — one endpoint, 60+ providers, zero downtime. Now wi
 
 ![NPM Downloads](https://img.shields.io/npm/d18m/routiform?label=npm%20down%20year&color=red)
 ![Docker Pulls](https://img.shields.io/docker/pulls/linhnguyen0944/routiform)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/linhnguyen-gt/routiform/total?style=flat&label=eletron%20donwloads&color=blue)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/linhnguyen-gt/Routiform/total?style=flat&label=eletron%20donwloads&color=blue)
 
 [![stars](https://custom-icon-badges.demolab.com/github/stars/linhnguyen-gt/Routiform?logo=star&style=flat)](https://github.com/linhnguyen-gt/Routiform/stargazers)
 [![open issues](https://custom-icon-badges.demolab.com/github/issues-raw/linhnguyen-gt/Routiform?logo=issue)](https://github.com/linhnguyen-gt/Routiform/issues)
 [![license](https://custom-icon-badges.demolab.com/github/license/linhnguyen-gt/Routiform?logo=law)](https://github.com/linhnguyen-gt/Routiform/blob/main/LICENSE)
 [![last commit](https://custom-icon-badges.demolab.com/github/last-commit/linhnguyen-gt/Routiform?logo=history&logoColor=white)](https://github.com/linhnguyen-gt/Routiform/commits/main)
-[![total contributions](https://custom-icon-badges.demolab.com/badge/dynamic/json?logo=graph&logoColor=fff&color=blue&label=total%20contributions&query=%24.totalContributions&url=https%3A%2F%2Fstreak-stats.demolab.com%2F%3Fuser%3Ddiegosouzapw%26type%3Djson)](https://github.com/diegosouzapw)
+[![total contributions](https://custom-icon-badges.demolab.com/badge/dynamic/json?logo=graph&logoColor=fff&color=blue&label=total%20contributions&query=%24.totalContributions&url=https%3A%2F%2Fstreak-stats.demolab.com%2F%3Fuser%3Dlinhnguyen-gt%26type%3Djson)](https://github.com/linhnguyen-gt)
 [![code size](https://custom-icon-badges.demolab.com/github/languages/code-size/linhnguyen-gt/Routiform?logo=file-code&logoColor=white)](https://github.com/linhnguyen-gt/Routiform)
 [![pr closed](https://custom-icon-badges.demolab.com/github/issues-pr-closed/linhnguyen-gt/Routiform?color=purple&logo=git-pull-request&logoColor=white)](https://github.com/linhnguyen-gt/Routiform/pulls?q=is%3Apr+is%3Aclosed)
 [![tag](https://custom-icon-badges.demolab.com/github/v/tag/linhnguyen-gt/Routiform?logo=tag&logoColor=white)](https://github.com/linhnguyen-gt/Routiform/tags)
-[![github streak](https://custom-icon-badges.demolab.com/badge/dynamic/json?logo=fire&logoColor=fff&color=orange&label=github%20streak&query=%24.currentStreak.length&suffix=%20days&url=https%3A%2F%2Fstreak-stats.demolab.com%2F%3Fuser%3Ddiegosouzapw%26type%3Djson)](https://github.com/diegosouzapw)
-[![followers](https://custom-icon-badges.demolab.com/github/followers/diegosouzapw?logo=person-add)](https://github.com/diegosouzapw?tab=followers)
+[![github streak](https://custom-icon-badges.demolab.com/badge/dynamic/json?logo=fire&logoColor=fff&color=orange&label=github%20streak&query=%24.currentStreak.length&suffix=%20days&url=https%3A%2F%2Fstreak-stats.demolab.com%2F%3Fuser%3Dlinhnguyen-gt%26type%3Djson)](https://github.com/linhnguyen-gt)
+[![followers](https://custom-icon-badges.demolab.com/github/followers/linhnguyen-gt?logo=person-add)](https://github.com/linhnguyen-gt?tab=followers)
 [![fork](https://custom-icon-badges.demolab.com/github/forks/linhnguyen-gt/Routiform?logo=fork)](https://github.com/linhnguyen-gt/Routiform/network/members)
 [![watch](https://custom-icon-badges.demolab.com/github/watchers/linhnguyen-gt/Routiform?logo=eye)](https://github.com/linhnguyen-gt/Routiform/watchers)
 
@@ -2225,7 +2223,7 @@ Special thanks to **[9router](https://github.com/decolua/9router)** by **[decolu
 
 Special thanks to **[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)** — the original Go implementation that inspired this JavaScript port.
 
-Special thanks to **[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — the widely used AI gateway and upstream community project whose ideas, ecosystem, and ongoing work continue to inform Routiform.
+Special thanks to **[Routiform](https://github.com/linhnguyen-gt/Routiform)** — the widely used AI gateway and upstream community project whose ideas, ecosystem, and ongoing work continue to inform Routiform.
 
 ---
 

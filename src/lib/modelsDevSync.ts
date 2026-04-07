@@ -251,7 +251,7 @@ export function transformModelsDevToPricing(raw: ModelsDevData): PricingByProvid
   const result: PricingByProvider = {};
 
   for (const [providerId, providerData] of Object.entries(raw)) {
-    const omniRouteProviders = mapProviderId(providerId);
+    const mappedProviders = mapProviderId(providerId);
 
     for (const [modelId, model] of Object.entries(providerData.models || {})) {
       if (!model.cost) continue;
@@ -275,9 +275,9 @@ export function transformModelsDevToPricing(raw: ModelsDevData): PricingByProvid
       }
 
       // Write to ALL mapped Routiform providers
-      for (const omniProvider of omniRouteProviders) {
-        if (!result[omniProvider]) result[omniProvider] = {};
-        result[omniProvider][modelId] = entry;
+      for (const mappedId of mappedProviders) {
+        if (!result[mappedId]) result[mappedId] = {};
+        result[mappedId][modelId] = entry;
       }
     }
   }
@@ -294,7 +294,7 @@ export function transformModelsDevToCapabilities(raw: ModelsDevData): Capabiliti
   const result: CapabilitiesByProvider = {};
 
   for (const [providerId, providerData] of Object.entries(raw)) {
-    const omniRouteProviders = mapProviderId(providerId);
+    const mappedProviders = mapProviderId(providerId);
 
     for (const [modelId, model] of Object.entries(providerData.models || {})) {
       const cap: CapabilityEntry = {
@@ -322,9 +322,9 @@ export function transformModelsDevToCapabilities(raw: ModelsDevData): Capabiliti
               : null,
       };
 
-      for (const omniProvider of omniRouteProviders) {
-        if (!result[omniProvider]) result[omniProvider] = {};
-        result[omniProvider][modelId] = cap;
+      for (const mappedId of mappedProviders) {
+        if (!result[mappedId]) result[mappedId] = {};
+        result[mappedId][modelId] = cap;
       }
     }
   }

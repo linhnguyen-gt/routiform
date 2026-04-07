@@ -2,8 +2,8 @@ import { Agent, ProxyAgent, type Dispatcher } from "undici";
 import { socksDispatcher } from "fetch-socks";
 import { getUpstreamTimeoutConfig } from "@/shared/utils/runtimeTimeouts";
 
-const DISPATCHER_CACHE_KEY = Symbol.for("omniroute.proxyDispatcher.cache");
-const DEFAULT_DISPATCHER_KEY = Symbol.for("omniroute.proxyDispatcher.default");
+const DISPATCHER_CACHE_KEY = Symbol.for("routiform.proxyDispatcher.cache");
+const DEFAULT_DISPATCHER_KEY = Symbol.for("routiform.proxyDispatcher.default");
 const SUPPORTED_PROTOCOLS = new Set(["http:", "https:", "socks5:"]);
 
 type DispatcherCache = Map<string, Dispatcher>;
@@ -74,13 +74,16 @@ export function getDefaultDispatcher(): Dispatcher {
  */
 function extractExplicitPort(urlStr: string): string | null {
   try {
-    const idx = urlStr.indexOf('://');
+    const idx = urlStr.indexOf("://");
     if (idx === -1) return null;
     const authorityStart = idx + 3;
-    const authorityEnd = urlStr.indexOf('/', authorityStart);
-    const authority = authorityEnd === -1 ? urlStr.slice(authorityStart) : urlStr.slice(authorityStart, authorityEnd);
-    const lastColon = authority.lastIndexOf(':');
-    const atSign = authority.lastIndexOf('@');
+    const authorityEnd = urlStr.indexOf("/", authorityStart);
+    const authority =
+      authorityEnd === -1
+        ? urlStr.slice(authorityStart)
+        : urlStr.slice(authorityStart, authorityEnd);
+    const lastColon = authority.lastIndexOf(":");
+    const atSign = authority.lastIndexOf("@");
     if (lastColon !== -1 && lastColon > atSign) {
       const portStr = authority.slice(lastColon + 1);
       if (/^\d+$/.test(portStr)) {

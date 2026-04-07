@@ -30,7 +30,7 @@ type PatchState = {
 };
 
 const isCloud = typeof caches !== "undefined" && typeof caches === "object";
-const PATCH_STATE_KEY = Symbol.for("omniroute.proxyFetch.state");
+const PATCH_STATE_KEY = Symbol.for("routiform.proxyFetch.state");
 
 function getPatchState(): PatchState {
   const scopedGlobal = globalThis as typeof globalThis & {

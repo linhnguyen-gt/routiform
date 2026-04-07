@@ -4,7 +4,7 @@ import { hostname } from "os";
 
 // Generate device ID (persistent per installation)
 const DEVICE_ID = randomUUID();
-const PLATFORM = "omniroute";
+const PLATFORM = "routiform";
 const VERSION = "2.1.2";
 const DEVICE_NAME = hostname();
 const DEVICE_MODEL = `${process.platform} ${process.arch}`;

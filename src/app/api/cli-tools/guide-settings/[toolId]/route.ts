@@ -104,10 +104,10 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
     (m) =>
       m &&
       (m.routiformManaged === true ||
-        m.omnirouteManaged === true ||
+        m.routiformManaged === true ||
         normalizeApiBase(m.apiBase) === normalizedBaseUrl.toLowerCase() ||
         normalizeApiBase(m.apiBase).includes("routiform") ||
-        normalizeApiBase(m.apiBase).includes("omniroute") ||
+        normalizeApiBase(m.apiBase).includes("routiform") ||
         normalizeApiBase(m.apiBase).includes(`localhost:${apiPort}`) ||
         normalizeApiBase(m.apiBase).includes(`127.0.0.1:${apiPort}`) ||
         String(m.apiKey || "")

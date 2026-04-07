@@ -57,7 +57,7 @@ export default function TermsPage() {
               <li>{t("termsNoTransmission")}</li>
               <li>
                 {t("termsDataLocationText")}{" "}
-                <code className="text-primary text-sm">~/.omniroute/</code>.
+                <code className="text-primary text-sm">~/.routiform/</code>.
               </li>
             </ul>
           </section>

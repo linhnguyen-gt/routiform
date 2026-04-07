@@ -15,7 +15,7 @@ export function isDockerLikeRuntime(): boolean {
 
 /**
  * Whether to show the "zero-config mode" dashboard banner after auto-generated secrets.
- * - Default: show on bare-metal / npm when OMNIROUTE_BOOTSTRAPPED is set.
+ * - Default: show on bare-metal / npm when ROUTIFORM_BOOTSTRAPPED is set.
  * - Hidden in Docker-like runtimes unless ROUTIFORM_SHOW_ZERO_CONFIG_BANNER=true.
  */
 export function shouldShowZeroConfigBanner(): boolean {

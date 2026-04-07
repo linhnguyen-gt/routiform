@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Docker healthcheck script for OmniRoute.
+ * Docker healthcheck script for Routiform.
  * Checks the /api/monitoring/health endpoint on the dashboard port.
  * Used by Dockerfile and docker-compose files.
  */

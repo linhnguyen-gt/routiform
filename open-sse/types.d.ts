@@ -1,5 +1,5 @@
 /**
- * Core type definitions for omniroute.
+ * Core type definitions for routiform.
  *
  * These types describe the main data structures flowing through the proxy
  * pipeline: credentials, model info, executor results, and chat parameters.

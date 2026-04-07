@@ -27,7 +27,7 @@ async function checkToolConfigStatus(toolId: string): Promise<string> {
       case "claude":
         return config?.env?.ANTHROPIC_BASE_URL ? "configured" : "not_configured";
       case "codex":
-        return config?.providers?.omniroute || config?.providers?.["openai-compatible"]
+        return config?.providers?.routiform || config?.providers?.["openai-compatible"]
           ? "configured"
           : "not_configured";
       case "droid":
@@ -36,7 +36,7 @@ async function checkToolConfigStatus(toolId: string): Promise<string> {
       case "kilo":
         // Generic check: look for Routiform-specific markers in the config
         const configStr = JSON.stringify(config).toLowerCase();
-        return configStr.includes("omniroute") ||
+        return configStr.includes("routiform") ||
           configStr.includes("sk_routiform") ||
           configStr.includes(`localhost:${apiPort}`) ||
           configStr.includes(`127.0.0.1:${apiPort}`)

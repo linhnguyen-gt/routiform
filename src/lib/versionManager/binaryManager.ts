@@ -10,7 +10,7 @@ import { promisify } from "util";
 import { getChecksums, getReleaseByVersion } from "./releaseChecker.ts";
 
 const execFileAsync = promisify(execFile);
-const DEFAULT_DATA_DIR = process.env.DATA_DIR || path.join(os.homedir(), ".omniroute");
+const DEFAULT_DATA_DIR = process.env.DATA_DIR || path.join(os.homedir(), ".routiform");
 
 type Platform = "linux" | "darwin" | "windows" | "freebsd";
 type Arch = "amd64" | "arm64";

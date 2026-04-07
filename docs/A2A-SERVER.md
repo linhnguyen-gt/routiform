@@ -1,6 +1,6 @@
-# OmniRoute A2A Server Documentation
+# Routiform A2A Server Documentation
 
-> Agent-to-Agent Protocol v0.3 — OmniRoute as an intelligent routing agent
+> Agent-to-Agent Protocol v0.3 — Routiform as an intelligent routing agent
 
 ## Agent Discovery
 
@@ -8,7 +8,7 @@
 curl http://localhost:20128/.well-known/agent.json
 ```
 
-Returns the Agent Card describing OmniRoute's capabilities, skills, and authentication requirements.
+Returns the Agent Card describing Routiform's capabilities, skills, and authentication requirements.
 
 ---
 
@@ -17,7 +17,7 @@ Returns the Agent Card describing OmniRoute's capabilities, skills, and authenti
 All `/a2a` requests require an API key via the `Authorization` header:
 
 ```
-Authorization: Bearer YOUR_OMNIROUTE_API_KEY
+Authorization: Bearer YOUR_ROUTIFORM_API_KEY
 ```
 
 If no API key is configured on the server, authentication is bypassed.
@@ -120,7 +120,7 @@ curl -X POST http://localhost:20128/a2a \
 
 | Skill              | Description                                                                                                                     |
 | :----------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| `smart-routing`    | Routes prompts through OmniRoute's intelligent pipeline. Returns response with routing explanation, cost, and resilience trace. |
+| `smart-routing`    | Routes prompts through Routiform's intelligent pipeline. Returns response with routing explanation, cost, and resilience trace. |
 | `quota-management` | Answers natural-language queries about provider quotas, suggests free combos, and provides quota rankings.                      |
 
 ---

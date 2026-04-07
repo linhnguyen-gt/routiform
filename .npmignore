@@ -64,6 +64,6 @@ app/vscode-extension/
 
 # Subprojects
 clipr/
-omnirouteCloud/
-omnirouteSite/
+routiformCloud/
+routiformSite/
 vscode-extension/
