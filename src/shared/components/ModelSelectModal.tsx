@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import PropTypes from "prop-types";
+import { useTranslations } from "next-intl";
 import Modal from "./Modal";
+import Button from "./Button";
 import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import { getCompatibleFallbackModels } from "@/lib/providers/managedAvailableModels";
 import {
@@ -55,7 +57,9 @@ export default function ModelSelectModal({
   title = "Select Model",
   modelAliases = {},
   addedModelValues = [],
+  multiSelect = false,
 }) {
+  const tCommon = useTranslations("common");
   const [searchQuery, setSearchQuery] = useState("");
   const [combos, setCombos] = useState<any[]>([]);
   const [providerNodes, setProviderNodes] = useState<any[]>([]);
@@ -404,8 +408,10 @@ export default function ModelSelectModal({
 
   const handleSelect = (model: any) => {
     onSelect(model);
-    onClose();
-    setSearchQuery("");
+    if (!multiSelect) {
+      onClose();
+      setSearchQuery("");
+    }
   };
 
   return (
@@ -447,7 +453,8 @@ export default function ModelSelectModal({
             </div>
             <div className="flex flex-wrap gap-1.5">
               {filteredCombos.map((combo) => {
-                const isSelected = selectedModel === combo.name;
+                const isAdded = addedModelValues.includes(combo.name);
+                const isHighlighted = !multiSelect && selectedModel === combo.name;
                 return (
                   <button
                     key={combo.id}
@@ -457,12 +464,15 @@ export default function ModelSelectModal({
                     className={`
                       px-2 py-1 rounded-xl text-xs font-medium transition-all border hover:cursor-pointer
                       ${
-                        isSelected
+                        isHighlighted
                           ? "bg-primary text-white border-primary"
-                          : "bg-surface border-border text-text-main hover:border-primary/50 hover:bg-primary/5"
+                          : isAdded
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                            : "bg-surface border-border text-text-main hover:border-primary/50 hover:bg-primary/5"
                       }
                     `}
                   >
+                    {isAdded && <span className="mr-0.5 opacity-70">✓</span>}
                     {combo.name}
                   </button>
                 );
@@ -483,8 +493,8 @@ export default function ModelSelectModal({
 
             <div className="flex flex-wrap gap-1.5">
               {group.models.map((model, modelIndex) => {
-                const isSelected = selectedModel === model.value;
                 const isAdded = addedModelValues.includes(model.value);
+                const isHighlighted = !multiSelect && selectedModel === model.value;
                 return (
                   <button
                     key={`${providerId}-${String(model.id)}-${modelIndex}`}
@@ -492,7 +502,7 @@ export default function ModelSelectModal({
                     className={`
                       px-2 py-1 rounded-xl text-xs font-medium transition-all border hover:cursor-pointer
                       ${
-                        isSelected
+                        isHighlighted
                           ? "bg-primary text-white border-primary"
                           : isAdded
                             ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
@@ -517,6 +527,21 @@ export default function ModelSelectModal({
           </div>
         )}
       </div>
+
+      {multiSelect && (
+        <div className="flex justify-end mt-3 pt-3 border-t border-border">
+          <Button
+            type="button"
+            onClick={() => {
+              onClose();
+              setSearchQuery("");
+            }}
+            size="sm"
+          >
+            {tCommon("close")}
+          </Button>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -534,4 +559,5 @@ ModelSelectModal.propTypes = {
   title: PropTypes.string,
   modelAliases: PropTypes.object,
   addedModelValues: PropTypes.arrayOf(PropTypes.string),
+  multiSelect: PropTypes.bool,
 };

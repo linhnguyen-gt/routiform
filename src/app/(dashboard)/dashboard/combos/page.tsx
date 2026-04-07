@@ -1429,9 +1429,12 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
     else setNameError("");
   };
 
-  const handleAddModel = (model) => {
-    if (!models.find((m) => m.model === model.value)) {
-      setModels([...models, { model: model.value, weight: 0 }]);
+  const handleToggleModel = (model) => {
+    const value = model.value;
+    if (models.some((m) => m.model === value)) {
+      setModels(models.filter((m) => m.model !== value));
+    } else {
+      setModels([...models, { model: value, weight: 0 }]);
     }
   };
 
@@ -2238,12 +2241,13 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
       <ModelSelectModal
         isOpen={showModelSelect}
         onClose={() => setShowModelSelect(false)}
-        onSelect={handleAddModel}
+        onSelect={handleToggleModel}
         activeProviders={activeProviders}
         modelAliases={modelAliases}
         title={t("addModelToCombo")}
         selectedModel={null}
         addedModelValues={models.map((m) => m.model)}
+        multiSelect
       />
     </>
   );
