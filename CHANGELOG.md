@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.7.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.7.1...v3.7.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* **cline:** skip forced local image tool enforcement ([4ca5e26](https://github.com/linhnguyen-gt/Routiform/commit/4ca5e260b0d045cebe9a0004c4c759a3c09738a6))
+
 ### [3.7.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.7.0...v3.7.1) (2026-04-07)
 
 
