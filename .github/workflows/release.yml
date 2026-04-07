@@ -147,6 +147,43 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Extract release notes from CHANGELOG
+        if: steps.check.outputs.should_release == 'true'
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e '
+            const fs = require("fs");
+
+            const version = process.env.VERSION;
+            const content = fs.readFileSync("CHANGELOG.md", "utf8");
+            const lines = content.split(/\r?\n/);
+
+            const headingRegex = new RegExp(`^##\\s+(?:\\[${version}\\]|${version})(?:\\s+.*)?$`);
+            const start = lines.findIndex((line) => headingRegex.test(line.trim()));
+            if (start < 0) {
+              fs.writeFileSync(".release-notes.md", "");
+              process.exit(0);
+            }
+
+            let end = lines.length;
+            for (let i = start + 1; i < lines.length; i += 1) {
+              if (/^##\s+/.test(lines[i])) {
+                end = i;
+                break;
+              }
+            }
+
+            const section = lines.slice(start + 1, end).join("\n").trim();
+            fs.writeFileSync(".release-notes.md", section ? `${section}\n` : "");
+          '
+
+          if [ -s .release-notes.md ]; then
+            echo "has_notes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub release
         if: steps.check.outputs.should_release == 'true'
         env:
@@ -157,7 +194,11 @@ jobs:
             echo "Release $TAG already exists, skipping."
             exit 0
           fi
-          gh release create "$TAG" --generate-notes
+          if [ "${{ steps.notes.outputs.has_notes }}" = "true" ]; then
+            gh release create "$TAG" --title "$TAG" --notes-file .release-notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
 
   publish-npm:
     name: Publish to npm
