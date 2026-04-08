@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.8.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.7.2...v3.8.0) (2026-04-08)
+
+
+### Features
+
+* **context:** add context compression metrics tracking (Phase 4) ([e9c6c7c](https://github.com/linhnguyen-gt/Routiform/commit/e9c6c7c5a9a271df09ed1427c9e357f61e5ff145))
+* **context:** implement context window validation and compression ([a6c29c6](https://github.com/linhnguyen-gt/Routiform/commit/a6c29c60796a767d1a81d9b8b653caa9c79d255d))
+
+
+### Bug Fixes
+
+* clean lint warnings and align provider integrations ([46674f8](https://github.com/linhnguyen-gt/Routiform/commit/46674f827c7f04d1d324612a82abea374d26dbf1))
+* **codex:** sync live model catalogs across provider and combo UI ([e14abfa](https://github.com/linhnguyen-gt/Routiform/commit/e14abfa69fb664a7536852ea017e328a9ce9e2dd))
+* **compat:** harden responses interoperability and oauth expiry UI ([4f0c68f](https://github.com/linhnguyen-gt/Routiform/commit/4f0c68fac8756690757ae26d80fb0a771ae45c5a))
+* **qoder:** restore static model level mapping ([98effa9](https://github.com/linhnguyen-gt/Routiform/commit/98effa92af1c4ac59814d56a2680e5da34bb162e))
+* **routing:** harden context compression and tool-call stability across providers ([c6d74b8](https://github.com/linhnguyen-gt/Routiform/commit/c6d74b8ab0cc6dd9065c7ce494531153b8f6942e))
+* **settings:** align codex fast-tier copy with wire value ([b3262d9](https://github.com/linhnguyen-gt/Routiform/commit/b3262d9ce639552c4229cba1746a5307e4d12841))
+
 ### [3.7.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.7.1...v3.7.2) (2026-04-07)
 
 
