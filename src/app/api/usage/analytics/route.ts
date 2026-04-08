@@ -37,7 +37,9 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get("range") || "30d";
 
-    const db = await getUsageDb();
+    const historySinceIso = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+
+    const db = await getUsageDb(historySinceIso);
     const history = db.data.history || [];
 
     // Build connection map for account names

@@ -84,6 +84,9 @@ test("usage history persists entries and supports filtering and usageDb compatib
     startDate: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
   });
   const all = await usageHistory.getUsageDb();
+  const sinceRecentOnly = await usageHistory.getUsageDb(
+    new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  );
 
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0].provider, "provider-a");
@@ -99,6 +102,9 @@ test("usage history persists entries and supports filtering and usageDb compatib
   assert.equal(all.data.history[1].provider, "provider-a");
   assert.equal(all.data.history[0].success, false);
   assert.equal(all.data.history[1].success, true);
+
+  assert.equal(sinceRecentOnly.data.history.length, 1);
+  assert.equal(sinceRecentOnly.data.history[0].provider, "provider-a");
 });
 
 test("getModelLatencyStats aggregates success rate and latency percentiles", async () => {

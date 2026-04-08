@@ -5,7 +5,7 @@
  * summary cards, daily trends, activity heatmap, model breakdown, etc.
  */
 
-import { calculateCost } from "@/lib/usageDb";
+import { computeCostFromPricing, normalizeModelName } from "@/lib/usage/costCalculator";
 
 /**
  * Compute date range boundaries
@@ -129,6 +129,37 @@ export async function computeAnalytics(
   }
 
   // ---- Single pass over filtered entries for everything else ----
+  const pricingByPair = new Map<string, unknown>();
+  const pricingPairs = new Map<string, { provider: string; model: string }>();
+
+  for (const entry of entries) {
+    if (!entry?.provider || !entry?.model) continue;
+    const pairKey = `${entry.provider}::${entry.model}`;
+    if (!pricingPairs.has(pairKey)) {
+      pricingPairs.set(pairKey, { provider: entry.provider, model: entry.model });
+    }
+  }
+
+  if (pricingPairs.size > 0) {
+    try {
+      const { getPricingForModel } = await import("@/lib/localDb");
+      await Promise.all(
+        Array.from(pricingPairs.entries()).map(async ([pairKey, pair]) => {
+          let pricing = await getPricingForModel(pair.provider, pair.model);
+          if (!pricing) {
+            const normalizedModel = normalizeModelName(pair.model);
+            if (normalizedModel && normalizedModel !== pair.model) {
+              pricing = await getPricingForModel(pair.provider, normalizedModel);
+            }
+          }
+          pricingByPair.set(pairKey, pricing || null);
+        })
+      );
+    } catch {
+      // If pricing prefetch fails, costs fall back to 0 below.
+    }
+  }
+
   for (const entry of entries) {
     const pt = entry.tokens?.input ?? entry.tokens?.prompt_tokens ?? 0;
     const ct = entry.tokens?.output ?? entry.tokens?.completion_tokens ?? 0;
@@ -139,12 +170,9 @@ export async function computeAnalytics(
     const modelShort = shortModelName(entry.model);
 
     // Cost
-    let cost = 0;
-    try {
-      cost = await calculateCost(entry.provider, entry.model, entry.tokens);
-    } catch {
-      /* ignore */
-    }
+    const pairKey = `${entry.provider}::${entry.model}`;
+    const pricing = pricingByPair.get(pairKey) ?? null;
+    const cost = computeCostFromPricing(pricing, entry.tokens);
 
     // Summary
     summary.promptTokens += pt;

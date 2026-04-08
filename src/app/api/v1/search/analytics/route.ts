@@ -16,37 +16,33 @@ export async function GET(req: Request) {
   try {
     const db = getDbInstance();
 
-    // Total search requests
-    const totalRow = db
-      .prepare(`SELECT COUNT(*) as cnt FROM call_logs WHERE request_type = 'search'`)
-      .get() as { cnt: number };
-    const total = totalRow?.cnt ?? 0;
-
     // Today's searches (UTC date)
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
-    const todayRow = db
-      .prepare(
-        `SELECT COUNT(*) as cnt FROM call_logs WHERE request_type = 'search' AND timestamp >= ?`
-      )
-      .get(todayStart.toISOString()) as { cnt: number };
-    const today = todayRow?.cnt ?? 0;
 
-    // Errors
-    const errRow = db
+    // Aggregate scalar stats in one query
+    const statsRow = db
       .prepare(
-        `SELECT COUNT(*) as cnt FROM call_logs WHERE request_type = 'search' AND (status >= 400 OR error IS NOT NULL)`
+        `SELECT
+          COUNT(*) as total,
+          COALESCE(SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END), 0) as today,
+          COALESCE(SUM(CASE WHEN status >= 400 OR error IS NOT NULL THEN 1 ELSE 0 END), 0) as errors,
+          AVG(CASE WHEN duration > 0 THEN duration END) as avg_duration,
+          COALESCE(SUM(CASE WHEN duration > 0 AND duration < 5 THEN 1 ELSE 0 END), 0) as cached
+         FROM call_logs
+         WHERE request_type = 'search'`
       )
-      .get() as { cnt: number };
-    const errors = errRow?.cnt ?? 0;
-
-    // Avg duration
-    const durRow = db
-      .prepare(
-        `SELECT AVG(duration) as avg FROM call_logs WHERE request_type = 'search' AND duration > 0`
-      )
-      .get() as { avg: number | null };
-    const avgDurationMs = Math.round(durRow?.avg ?? 0);
+      .get(todayStart.toISOString()) as {
+      total?: number;
+      today?: number;
+      errors?: number;
+      avg_duration?: number | null;
+      cached?: number;
+    };
+    const total = Number(statsRow?.total ?? 0);
+    const today = Number(statsRow?.today ?? 0);
+    const errors = Number(statsRow?.errors ?? 0);
+    const avgDurationMs = Math.round(Number(statsRow?.avg_duration ?? 0));
 
     // Per-provider breakdown (provider column stores search provider id)
     const provRows = db
@@ -74,14 +70,7 @@ export async function GET(req: Request) {
       totalCostUsd += cost;
     }
 
-    // Cached: very fast responses (< 5ms) indicate cache hits
-    const cachedRow = db
-      .prepare(
-        `SELECT COUNT(*) as cnt FROM call_logs 
-         WHERE request_type = 'search' AND duration > 0 AND duration < 5`
-      )
-      .get() as { cnt: number };
-    const cached = cachedRow?.cnt ?? 0;
+    const cached = Number(statsRow?.cached ?? 0);
     const cacheHitRate = total > 0 ? Math.round((cached / total) * 100) : 0;
 
     return NextResponse.json({
