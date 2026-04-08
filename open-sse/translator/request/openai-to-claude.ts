@@ -291,34 +291,37 @@ export function openaiToClaudeRequest(model, body, stream) {
 
   // Tools - convert from OpenAI format to Claude format with prefix for OAuth
   if (body.tools && Array.isArray(body.tools)) {
-    result.tools = body.tools.map((tool) => {
-      const toolData = tool.type === "function" && tool.function ? tool.function : tool;
-      const originalName = toolData.name;
+    result.tools = body.tools
+      .map((tool) => {
+        const toolData = tool.type === "function" && tool.function ? tool.function : tool;
+        const originalName = typeof toolData.name === "string" ? toolData.name.trim() : "";
+        if (!originalName) return null;
 
-      // Claude OAuth requires prefixed tool names to avoid conflicts
-      // When prefix is disabled (non-Claude backends), use original name
-      const toolName = disableToolPrefix ? originalName : CLAUDE_OAUTH_TOOL_PREFIX + originalName;
+        // Claude OAuth requires prefixed tool names to avoid conflicts
+        // When prefix is disabled (non-Claude backends), use original name
+        const toolName = disableToolPrefix ? originalName : CLAUDE_OAUTH_TOOL_PREFIX + originalName;
 
-      // Store mapping for response translation (prefixed → original)
-      if (!disableToolPrefix) {
-        toolNameMap.set(toolName, originalName);
-      }
+        // Store mapping for response translation (prefixed → original)
+        if (!disableToolPrefix) {
+          toolNameMap.set(toolName, originalName);
+        }
 
-      // Normalize input_schema: Anthropic requires `properties` when type is "object" (#595).
-      // MCP tools (e.g. pencil, computer_use) may omit properties on object-type schemas.
-      const rawSchema: Record<string, unknown> = toolData.parameters ||
-        toolData.input_schema || { type: "object", properties: {}, required: [] };
-      const normalizedSchema =
-        rawSchema.type === "object" && !rawSchema.properties
-          ? { ...rawSchema, properties: {} }
-          : rawSchema;
+        // Normalize input_schema: Anthropic requires `properties` when type is "object" (#595).
+        // MCP tools (e.g. pencil, computer_use) may omit properties on object-type schemas.
+        const rawSchema: Record<string, unknown> = toolData.parameters ||
+          toolData.input_schema || { type: "object", properties: {}, required: [] };
+        const normalizedSchema =
+          rawSchema.type === "object" && !rawSchema.properties
+            ? { ...rawSchema, properties: {} }
+            : rawSchema;
 
-      return {
-        name: toolName,
-        description: toolData.description || "",
-        input_schema: normalizedSchema,
-      };
-    });
+        return {
+          name: toolName,
+          description: toolData.description || "",
+          input_schema: normalizedSchema,
+        };
+      })
+      .filter(Boolean);
 
     // Filter out tools with empty names (would cause Claude 400 error)
     result.tools = result.tools.filter((tool) => tool.name && tool.name?.trim());

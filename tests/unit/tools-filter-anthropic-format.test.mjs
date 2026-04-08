@@ -13,6 +13,24 @@ import assert from "node:assert/strict";
 // Inline the filter logic from chatCore.ts (lines 225-231 after #397 fix)
 function filterEmptyNameTools(tools) {
   return tools.filter((tool) => {
+    const toolType = typeof tool.type === "string" ? tool.type : "";
+    const builtInResponsesToolTypes = new Set([
+      "web_search",
+      "web_search_preview",
+      "file_search",
+      "computer",
+      "code_interpreter",
+      "image_generation",
+    ]);
+    if (
+      toolType &&
+      builtInResponsesToolTypes.has(toolType) &&
+      !tool.function &&
+      tool.name === undefined
+    ) {
+      return true;
+    }
+
     const fn = tool.function;
     const name = fn?.name ?? tool.name;
     return name && String(name).trim().length > 0;
@@ -88,6 +106,37 @@ describe("tools empty-name filter — #346 / PR #397", () => {
       { input_schema: { type: "object" } }, // Neither name nor function
       { name: null, input_schema: { type: "object" } },
     ];
+    assert.equal(filterEmptyNameTools(tools).length, 0);
+  });
+
+  it("should preserve built-in Responses API tools without names", () => {
+    const tools = [
+      { type: "web_search", external_web_access: true },
+      { type: "file_search" },
+      { type: "computer", display_width: 1024, display_height: 768 },
+      { type: "code_interpreter" },
+      { type: "image_generation", output_format: "png" },
+    ];
+    assert.equal(filterEmptyNameTools(tools).length, 5);
+  });
+
+  it("should keep built-in tools while still dropping empty-name function tools", () => {
+    const tools = [
+      { type: "web_search", external_web_access: true },
+      { type: "function", function: { name: "valid_tool" } },
+      { type: "function", function: { name: "" } },
+      { name: "anthropic_tool", input_schema: { type: "object" } },
+    ];
+
+    const result = filterEmptyNameTools(tools);
+    assert.equal(result.length, 3);
+    assert.ok(result.some((t) => t.type === "web_search"));
+    assert.ok(result.some((t) => t.function?.name === "valid_tool"));
+    assert.ok(result.some((t) => t.name === "anthropic_tool"));
+  });
+
+  it("should still drop unknown nameless non-function tool types", () => {
+    const tools = [{ type: "my_custom_type", foo: "bar" }];
     assert.equal(filterEmptyNameTools(tools).length, 0);
   });
 });

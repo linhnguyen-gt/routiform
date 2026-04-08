@@ -403,6 +403,7 @@ interface ConnectionRowConnection {
   globalPriority?: number;
   providerSpecificData?: Record<string, unknown>;
   expiresAt?: string;
+  tokenExpiresAt?: string;
 }
 
 interface ConnectionRowProps {
@@ -4515,23 +4516,26 @@ function ConnectionRow({
   // Use useState + useEffect for impure Date.now() to avoid calling during render
   const [isCooldown, setIsCooldown] = useState(false);
   // T12: token expiry status — lazy init avoids calling Date.now() during render;
-  // updates every 30s via interval only (no sync setState in effect body).
+  // updates every 30s and refreshes immediately when expiry source changes.
+  // Prefer tokenExpiresAt (updated on refresh) over expiresAt (original grant time).
+  const effectiveExpiresAt = connection.tokenExpiresAt || connection.expiresAt;
   const getTokenMinsLeft = () => {
-    if (!isOAuth || !connection.expiresAt) return null;
-    const expiresMs = new Date(connection.expiresAt).getTime();
+    if (!isOAuth || !effectiveExpiresAt) return null;
+    const expiresMs = new Date(effectiveExpiresAt).getTime();
     return Math.floor((expiresMs - Date.now()) / 60000);
   };
   const [tokenMinsLeft, setTokenMinsLeft] = useState<number | null>(getTokenMinsLeft);
 
   useEffect(() => {
-    if (!isOAuth || !connection.expiresAt) return;
+    if (!isOAuth || !effectiveExpiresAt) return;
     const update = () => {
-      const expiresMs = new Date(connection.expiresAt).getTime();
+      const expiresMs = new Date(effectiveExpiresAt).getTime();
       setTokenMinsLeft(Math.floor((expiresMs - Date.now()) / 60000));
     };
+    update();
     const iv = setInterval(update, 30000);
     return () => clearInterval(iv);
-  }, [isOAuth, connection.expiresAt]);
+  }, [isOAuth, effectiveExpiresAt]);
 
   useEffect(() => {
     const checkCooldown = () => {
@@ -4618,7 +4622,7 @@ function ConnectionRow({
                 (tokenMinsLeft < 0 ? (
                   <span
                     className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium bg-red-500/15 text-red-500"
-                    title={`Token expired: ${connection.expiresAt}`}
+                    title={`Token expired: ${effectiveExpiresAt}`}
                   >
                     <span className="material-symbols-outlined text-[11px]">error</span>
                     expired

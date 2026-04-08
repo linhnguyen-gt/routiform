@@ -37,8 +37,63 @@ export function getPromptCacheCreationTokens(tokens: unknown): number {
   return toFiniteNumber(
     tokenRecord.cacheCreation ??
       tokenRecord.cache_creation_input_tokens ??
-      promptDetails.cache_creation_tokens
+      promptDetails.cache_creation_tokens ??
+      promptDetails.cache_write_tokens
   );
+}
+
+export function getPromptCacheReadTokensOrNull(tokens: unknown): number | null {
+  const tokenRecord = asRecord(tokens);
+  const promptDetails = getPromptTokenDetails(tokenRecord);
+
+  if (
+    tokenRecord.cacheRead !== undefined ||
+    tokenRecord.cache_read_input_tokens !== undefined ||
+    tokenRecord.cached_tokens !== undefined ||
+    promptDetails.cached_tokens !== undefined
+  ) {
+    return getPromptCacheReadTokens(tokens);
+  }
+
+  return null;
+}
+
+export function getPromptCacheCreationTokensOrNull(tokens: unknown): number | null {
+  const tokenRecord = asRecord(tokens);
+  const promptDetails = getPromptTokenDetails(tokenRecord);
+
+  if (
+    tokenRecord.cacheCreation !== undefined ||
+    tokenRecord.cache_creation_input_tokens !== undefined ||
+    promptDetails.cache_creation_tokens !== undefined ||
+    promptDetails.cache_write_tokens !== undefined
+  ) {
+    return getPromptCacheCreationTokens(tokens);
+  }
+
+  return null;
+}
+
+export function getReasoningTokens(tokens: unknown): number {
+  const tokenRecord = asRecord(tokens);
+  const completionDetails = asRecord(tokenRecord.completion_tokens_details);
+  return toFiniteNumber(
+    tokenRecord.reasoning ?? tokenRecord.reasoning_tokens ?? completionDetails.reasoning_tokens
+  );
+}
+
+export function getReasoningTokensOrNull(tokens: unknown): number | null {
+  const tokenRecord = asRecord(tokens);
+  const completionDetails = asRecord(tokenRecord.completion_tokens_details);
+  if (
+    tokenRecord.reasoning !== undefined ||
+    tokenRecord.reasoning_tokens !== undefined ||
+    completionDetails.reasoning_tokens !== undefined
+  ) {
+    return getReasoningTokens(tokens);
+  }
+
+  return null;
 }
 
 export function getLoggedInputTokens(tokens: unknown): number {
@@ -49,7 +104,11 @@ export function getLoggedInputTokens(tokens: unknown): number {
   }
 
   if (tokenRecord.input_tokens !== undefined && tokenRecord.input_tokens !== null) {
-    return toFiniteNumber(tokenRecord.input_tokens);
+    return (
+      toFiniteNumber(tokenRecord.input_tokens) +
+      toFiniteNumber(tokenRecord.cache_read_input_tokens) +
+      toFiniteNumber(tokenRecord.cache_creation_input_tokens)
+    );
   }
 
   // prompt_tokens from translator already includes input + cache_read + cache_creation

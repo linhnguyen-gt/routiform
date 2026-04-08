@@ -109,6 +109,16 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
     : [];
   const requestJson = detail?.requestBody ? toPrettyJson(detail.requestBody) : null;
   const responseJson = detail?.responseBody ? toPrettyJson(detail.responseBody) : null;
+  const tokenIn = detail?.tokens?.in ?? log.tokens?.in ?? 0;
+  const tokenOut = detail?.tokens?.out ?? log.tokens?.out ?? 0;
+  const tokenCacheRead = detail?.tokens?.cacheRead ?? log.tokens?.cacheRead ?? null;
+  const tokenCacheCreation = detail?.tokens?.cacheCreation ?? log.tokens?.cacheCreation ?? null;
+  const tokenReasoning = detail?.tokens?.reasoning ?? log.tokens?.reasoning ?? null;
+
+  const formatNullableToken = (value) => {
+    if (value === null || value === undefined) return "N/A";
+    return Number(value).toLocaleString();
+  };
 
   return (
     <div
@@ -159,14 +169,23 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
             </div>
             <div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Tokens (I/O)
+                Tokens
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-bold">
-                  In: {(detail?.tokens?.in || log.tokens?.in || 0).toLocaleString()}
+                  Total In: {tokenIn.toLocaleString()}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
-                  Out: {(detail?.tokens?.out || log.tokens?.out || 0).toLocaleString()}
+                  Total Out: {tokenOut.toLocaleString()}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-sky-500/15 text-sky-700 dark:text-sky-300 text-xs font-bold">
+                  Cache Read: {formatNullableToken(tokenCacheRead)}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
+                  Cache Write: {formatNullableToken(tokenCacheCreation)}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                  Reasoning: {formatNullableToken(tokenReasoning)}
                 </span>
               </div>
             </div>
@@ -202,7 +221,7 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
             </div>
             <div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Protocol
+                Req Protocol
               </div>
               <span
                 className="inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase"

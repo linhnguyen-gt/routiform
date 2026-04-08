@@ -123,6 +123,18 @@ export async function validateAutoUpdateRuntime(
   }
 
   if (config.mode !== "docker-compose") {
+    // Docker containers started via `docker run` should be updated by pulling a new image
+    // and recreating the container. Running npm global update inside the container is not
+    // persistent across container recreation and can mislead users.
+    if (await existsImpl("/.dockerenv")) {
+      return {
+        supported: false,
+        reason:
+          "Docker image install detected. Update with `docker pull` + recreate container (or use docker-compose auto-update mode).",
+        composeCommand: null,
+      };
+    }
+
     return { supported: true, reason: null, composeCommand: null };
   }
 

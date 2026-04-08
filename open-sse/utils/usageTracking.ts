@@ -302,9 +302,12 @@ export function extractUsage(chunk) {
   if (chunk.type === "message_start" && chunk.message?.usage) {
     const u = chunk.message.usage;
     const inputTokens = u.input_tokens || u.prompt_tokens || 0;
-    if (inputTokens > 0) {
+    const cacheReadTokens = u.cache_read_input_tokens || 0;
+    const cacheCreationTokens = u.cache_creation_input_tokens || 0;
+    const totalPromptTokens = inputTokens + cacheReadTokens + cacheCreationTokens;
+    if (totalPromptTokens > 0) {
       return normalizeUsage({
-        prompt_tokens: inputTokens,
+        prompt_tokens: totalPromptTokens,
         completion_tokens: u.output_tokens || u.completion_tokens || 0,
         cache_read_input_tokens: u.cache_read_input_tokens,
         cache_creation_input_tokens: u.cache_creation_input_tokens,
@@ -314,8 +317,11 @@ export function extractUsage(chunk) {
 
   // Claude format (message_delta event) — carries OUTPUT tokens
   if (chunk.type === "message_delta" && chunk.usage && typeof chunk.usage === "object") {
+    const inputTokens = chunk.usage.input_tokens || 0;
+    const cacheReadTokens = chunk.usage.cache_read_input_tokens || 0;
+    const cacheCreationTokens = chunk.usage.cache_creation_input_tokens || 0;
     return normalizeUsage({
-      prompt_tokens: chunk.usage.input_tokens || 0,
+      prompt_tokens: inputTokens + cacheReadTokens + cacheCreationTokens,
       completion_tokens: chunk.usage.output_tokens || 0,
       cache_read_input_tokens: chunk.usage.cache_read_input_tokens,
       cache_creation_input_tokens: chunk.usage.cache_creation_input_tokens,

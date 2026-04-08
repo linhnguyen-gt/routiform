@@ -731,6 +731,34 @@ routiform
 > routiform
 > ```
 
+> **npm peer dependency warning (`@emoji-mart/react`)**
+>
+> You may see `ERESOLVE overriding peer dependency` during `npm install -g routiform`.
+> This warning comes from an upstream dependency chain:
+>
+> - `@lobehub/ui` → `@emoji-mart/react@1.1.1`
+> - `@emoji-mart/react@1.1.1` still declares `react ^16 || ^17 || ^18`
+>
+> Routiform runs normally (warning only). If you want a cleaner install output, use:
+>
+> ```bash
+> npm install -g routiform --legacy-peer-deps
+> ```
+>
+> Or set it once globally:
+>
+> ```bash
+> npm config set legacy-peer-deps true
+> npm install -g routiform
+> ```
+>
+> Quick check after install:
+>
+> ```bash
+> routiform --version
+> routiform --no-open
+> ```
+
 Dashboard opens at `http://localhost:20128` and API base URL is `http://localhost:20128/v1`.
 
 | Command                 | Description                                                 |

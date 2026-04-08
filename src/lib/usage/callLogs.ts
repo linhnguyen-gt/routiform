@@ -13,7 +13,13 @@ import type { RequestPipelinePayloads } from "@routiform/open-sse/utils/requestL
 import { getDbInstance } from "../db/core";
 import { getRequestDetailLogByCallLogId } from "../db/detailedLogs";
 import { shouldPersistToDisk, CALL_LOGS_DIR } from "./migrations";
-import { getLoggedInputTokens, getLoggedOutputTokens } from "./tokenAccounting";
+import {
+  getLoggedInputTokens,
+  getLoggedOutputTokens,
+  getPromptCacheCreationTokensOrNull,
+  getPromptCacheReadTokensOrNull,
+  getReasoningTokensOrNull,
+} from "./tokenAccounting";
 import { isNoLog } from "../compliance";
 import { sanitizePII } from "../piiSanitizer";
 import {
@@ -26,7 +32,7 @@ import { getCallLogMaxEntries, getCallLogRetentionDays } from "../logEnv";
 type JsonRecord = Record<string, unknown>;
 
 type CallLogArtifact = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   summary: {
     id: string;
     timestamp: string;
@@ -39,7 +45,13 @@ type CallLogArtifact = {
     account: string;
     connectionId: string | null;
     duration: number;
-    tokens: { in: number; out: number };
+    tokens: {
+      in: number;
+      out: number;
+      cacheRead: number | null;
+      cacheCreation: number | null;
+      reasoning: number | null;
+    };
     requestType: string | null;
     sourceFormat: string | null;
     targetFormat: string | null;
@@ -147,7 +159,9 @@ async function resolveAccountName(connectionId: string | null | undefined) {
     const connections = await getProviderConnections();
     const conn = connections.find((item) => item.id === connectionId);
     if (conn) {
-      account = conn.name || conn.email || account;
+      const connName = typeof conn.name === "string" ? conn.name : "";
+      const connEmail = typeof conn.email === "string" ? conn.email : "";
+      account = connName || connEmail || account;
     }
   } catch {
     // Best-effort lookup only.
@@ -180,6 +194,9 @@ function buildArtifact(
     duration: number;
     tokensIn: number;
     tokensOut: number;
+    tokensCacheRead: number | null;
+    tokensCacheCreation: number | null;
+    tokensReasoning: number | null;
     requestType: string | null;
     sourceFormat: string | null;
     targetFormat: string | null;
@@ -193,7 +210,7 @@ function buildArtifact(
   pipelinePayloads: RequestPipelinePayloads | null
 ): CallLogArtifact {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     summary: {
       id: logEntry.id,
       timestamp: logEntry.timestamp,
@@ -206,7 +223,13 @@ function buildArtifact(
       account: logEntry.account,
       connectionId: logEntry.connectionId,
       duration: logEntry.duration,
-      tokens: { in: logEntry.tokensIn, out: logEntry.tokensOut },
+      tokens: {
+        in: logEntry.tokensIn,
+        out: logEntry.tokensOut,
+        cacheRead: logEntry.tokensCacheRead,
+        cacheCreation: logEntry.tokensCacheCreation,
+        reasoning: logEntry.tokensReasoning,
+      },
       requestType: logEntry.requestType,
       sourceFormat: logEntry.sourceFormat,
       targetFormat: logEntry.targetFormat,
@@ -387,6 +410,9 @@ export async function saveCallLog(entry: any) {
       duration: entry.duration || 0,
       tokensIn: toNumber(getLoggedInputTokens(entry.tokens)),
       tokensOut: toNumber(getLoggedOutputTokens(entry.tokens)),
+      tokensCacheRead: getPromptCacheReadTokensOrNull(entry.tokens),
+      tokensCacheCreation: getPromptCacheCreationTokensOrNull(entry.tokens),
+      tokensReasoning: getReasoningTokensOrNull(entry.tokens),
       requestType: entry.requestType || null,
       sourceFormat: entry.sourceFormat || null,
       targetFormat: entry.targetFormat || null,
@@ -405,13 +431,14 @@ export async function saveCallLog(entry: any) {
         id, timestamp, method, path, status, model, requested_model, provider,
         account, connection_id, duration, tokens_in, tokens_out, request_type, source_format,
         target_format, api_key_id, api_key_name, combo_name, request_body, response_body, error,
-        artifact_relpath, has_pipeline_details
+        tokens_cache_read, tokens_cache_creation, tokens_reasoning, artifact_relpath,
+        has_pipeline_details
       )
       VALUES (
         @id, @timestamp, @method, @path, @status, @model, @requestedModel, @provider,
         @account, @connectionId, @duration, @tokensIn, @tokensOut, @requestType, @sourceFormat,
         @targetFormat, @apiKeyId, @apiKeyName, @comboName, @requestBody, @responseBody, @error,
-        NULL, 0
+        @tokensCacheRead, @tokensCacheCreation, @tokensReasoning, NULL, 0
       )
     `
     ).run(logEntry);
@@ -541,7 +568,13 @@ export async function getCallLogs(filter: any = {}) {
       provider: toStringOrNull(l.provider),
       account: toStringOrNull(l.account),
       duration: toNumber(l.duration),
-      tokens: { in: toNumber(l.tokens_in), out: toNumber(l.tokens_out) },
+      tokens: {
+        in: toNumber(l.tokens_in),
+        out: toNumber(l.tokens_out),
+        cacheRead: l.tokens_cache_read === null ? null : toNumber(l.tokens_cache_read),
+        cacheCreation: l.tokens_cache_creation === null ? null : toNumber(l.tokens_cache_creation),
+        reasoning: l.tokens_reasoning === null ? null : toNumber(l.tokens_reasoning),
+      },
       sourceFormat: toStringOrNull(l.source_format),
       targetFormat: toStringOrNull(l.target_format),
       error: toStringOrNull(l.error),
@@ -586,7 +619,14 @@ export async function getCallLogById(id: string) {
     account: toStringOrNull(entryRow.account),
     connectionId: toStringOrNull(entryRow.connection_id),
     duration: toNumber(entryRow.duration),
-    tokens: { in: toNumber(entryRow.tokens_in), out: toNumber(entryRow.tokens_out) },
+    tokens: {
+      in: toNumber(entryRow.tokens_in),
+      out: toNumber(entryRow.tokens_out),
+      cacheRead: entryRow.tokens_cache_read === null ? null : toNumber(entryRow.tokens_cache_read),
+      cacheCreation:
+        entryRow.tokens_cache_creation === null ? null : toNumber(entryRow.tokens_cache_creation),
+      reasoning: entryRow.tokens_reasoning === null ? null : toNumber(entryRow.tokens_reasoning),
+    },
     sourceFormat: toStringOrNull(entryRow.source_format),
     targetFormat: toStringOrNull(entryRow.target_format),
     apiKeyId: toStringOrNull(entryRow.api_key_id),

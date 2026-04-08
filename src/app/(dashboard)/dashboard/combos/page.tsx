@@ -17,7 +17,7 @@ import { ROUTING_STRATEGIES } from "@/shared/constants/routingStrategies";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // Validate combo name: letters, numbers, -, _, /, .
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_/.-]+$/;
@@ -1269,6 +1269,19 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
   const t = useTranslations("combos");
   const tc = useTranslations("common");
   const notify = useNotificationStore();
+  const initialFormState = useMemo(
+    () => ({
+      name: combo?.name || "",
+      models: (combo?.models || []).map((m) => normalizeModelEntry(m)),
+      strategy: combo?.strategy || "priority",
+      config: combo?.config || {},
+      agentSystemMessage: combo?.system_message || "",
+      agentToolFilter: combo?.tool_filter_regex || "",
+      agentContextCache: !!combo?.context_cache_protection,
+      requireToolCalling: !!combo?.requireToolCalling,
+    }),
+    [combo]
+  );
   const [name, setName] = useState(combo?.name || "");
   const [models, setModels] = useState(() => {
     return (combo?.models || []).map((m) => normalizeModelEntry(m));
@@ -1426,6 +1439,28 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders }) {
   useEffect(() => {
     if (isOpen) fetchModalData();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setName(initialFormState.name);
+    setModels(initialFormState.models);
+    setStrategy(initialFormState.strategy);
+    setConfig(initialFormState.config);
+    setAgentSystemMessage(initialFormState.agentSystemMessage);
+    setAgentToolFilter(initialFormState.agentToolFilter);
+    setAgentContextCache(initialFormState.agentContextCache);
+    setRequireToolCalling(initialFormState.requireToolCalling);
+
+    setShowModelSelect(false);
+    setSaving(false);
+    setNameError("");
+    setShowAdvanced(false);
+    setShowStrategyNudge(false);
+    setDragIndex(null);
+    setDragOverIndex(null);
+    strategyChangeMountedRef.current = false;
+  }, [initialFormState, isOpen]);
 
   useEffect(() => {
     if (!strategyChangeMountedRef.current) {

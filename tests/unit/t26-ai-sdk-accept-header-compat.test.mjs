@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { clientWantsJsonResponse, resolveStreamFlag, stripMarkdownCodeFence } =
-  await import("../../open-sse/utils/aiSdkCompat.ts");
+const {
+  clientWantsJsonResponse,
+  resolveExplicitStreamAlias,
+  resolveStreamFlag,
+  stripMarkdownCodeFence,
+  stripNonStandardStreamAliases,
+} = await import("../../open-sse/utils/aiSdkCompat.ts");
 
 test("T26: explicit stream:true takes priority over Accept application/json (#656)", () => {
   assert.equal(clientWantsJsonResponse("application/json"), true);
@@ -41,4 +46,32 @@ test("T26: undefined stream falls back to Accept header heuristic (#656)", () =>
 test("T26: explicit stream:false always prevents streaming", () => {
   assert.equal(resolveStreamFlag(false, "text/event-stream"), false);
   assert.equal(resolveStreamFlag(false, undefined), false);
+});
+
+test("T26: explicit non-stream aliases are detected", () => {
+  assert.equal(resolveExplicitStreamAlias({ non_stream: true }), false);
+  assert.equal(resolveExplicitStreamAlias({ disable_stream: true }), false);
+  assert.equal(resolveExplicitStreamAlias({ disable_streaming: true }), false);
+  assert.equal(resolveExplicitStreamAlias({ streaming: false }), false);
+});
+
+test("T26: explicit streaming alias is detected", () => {
+  assert.equal(resolveExplicitStreamAlias({ streaming: true }), true);
+});
+
+test("T26: non-standard aliases are stripped from request body", () => {
+  const payload = {
+    non_stream: true,
+    disable_stream: true,
+    disable_streaming: true,
+    streaming: false,
+    stream: false,
+    messages: [{ role: "user", content: "hello" }],
+  };
+  stripNonStandardStreamAliases(payload);
+  assert.equal("non_stream" in payload, false);
+  assert.equal("disable_stream" in payload, false);
+  assert.equal("disable_streaming" in payload, false);
+  assert.equal("streaming" in payload, false);
+  assert.equal(payload.stream, false);
 });

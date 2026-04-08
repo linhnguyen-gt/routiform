@@ -27,6 +27,43 @@ export function resolveStreamFlag(bodyStream: unknown, acceptHeader: unknown): b
 }
 
 /**
+ * Accept compatibility aliases used by some clients.
+ *
+ * Non-stream aliases (force JSON/non-SSE):
+ * - non_stream: true
+ * - disable_stream: true
+ * - disable_streaming: true
+ * - streaming: false
+ *
+ * Stream alias:
+ * - streaming: true
+ */
+export function resolveExplicitStreamAlias(body: unknown): boolean | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const b = body as Record<string, unknown>;
+
+  if (b.non_stream === true) return false;
+  if (b.disable_stream === true) return false;
+  if (b.disable_streaming === true) return false;
+  if (b.streaming === false) return false;
+  if (b.streaming === true) return true;
+
+  return undefined;
+}
+
+/**
+ * Remove non-standard stream aliases at the API boundary.
+ */
+export function stripNonStandardStreamAliases(body: unknown): void {
+  if (!body || typeof body !== "object") return;
+  const b = body as Record<string, unknown>;
+  delete b.non_stream;
+  delete b.disable_stream;
+  delete b.disable_streaming;
+  delete b.streaming;
+}
+
+/**
  * Removes surrounding markdown code fences when Claude wraps JSON payloads.
  * Example: ```json\n{"ok":true}\n``` -> {"ok":true}
  */

@@ -169,17 +169,15 @@ console.log(`
    \\____/|_| |_| |_|_| |_|_|_|  \\_\\___/ \\__,_|\\__\\___|
 \x1b[0m`);
 
-// ── Node.js version check ──────────────────────────────────
+// ── Node.js runtime note ───────────────────────────────────
+// Keep this advisory light-touch: modern Node versions can work fine,
+// but some environments may still need a native rebuild for better-sqlite3.
 const nodeMajor = parseInt(process.versions.node.split(".")[0], 10);
-if (nodeMajor >= 24) {
-  console.warn(`\x1b[33m  ⚠  Warning: You are running Node.js ${process.versions.node}.
-     Routiform uses better-sqlite3, a native addon that does not yet
-     have compatible prebuilt binaries for Node.js 24+.
-     You may experience errors like "is not a valid Win32 application"
-     or "NODE_MODULE_VERSION mismatch".
-
-     Recommended: use Node.js 22 LTS (or 20 LTS).
-     Workaround:  npm rebuild better-sqlite3\x1b[0m
+const isLtsNode = Boolean(process.release?.lts);
+if (nodeMajor >= 24 && !isLtsNode) {
+  console.warn(`\x1b[33m  ⚠  Node.js ${process.versions.node} detected (non-LTS build).
+     Routiform works best on an LTS runtime for maximum native addon stability.
+     If you hit better-sqlite3 errors, run: npm rebuild better-sqlite3\x1b[0m
 `);
 }
 

@@ -106,7 +106,13 @@ import {
 } from "../services/emergencyFallback.ts";
 import { maybeEnforceMediaToolForLocalImage } from "../services/imageToolRouting.ts";
 import { maybeEnforceRequiredToolChoiceForUrlFetch } from "../services/urlToolEnforcement.ts";
-import { resolveStreamFlag, stripMarkdownCodeFence } from "../utils/aiSdkCompat.ts";
+import {
+  resolveExplicitStreamAlias,
+  resolveStreamFlag,
+  stripMarkdownCodeFence,
+  stripNonStandardStreamAliases,
+} from "../utils/aiSdkCompat.ts";
+import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
 import { generateRequestId } from "@/shared/utils/requestId";
 import { normalizePayloadForLog } from "@/lib/logPayloads";
 import { injectMemory, shouldInjectMemory } from "@/lib/memory/injection";
@@ -703,7 +709,13 @@ export async function handleChatCore({
       ? clientRawRequest.headers.get("accept") || clientRawRequest.headers.get("Accept")
       : (clientRawRequest?.headers || {})["accept"] || (clientRawRequest?.headers || {})["Accept"];
 
+  const explicitStreamAlias = resolveExplicitStreamAlias(body);
+  if (explicitStreamAlias !== undefined && body && typeof body === "object") {
+    (body as Record<string, unknown>).stream = explicitStreamAlias;
+  }
   const stream = resolveStreamFlag(body?.stream, acceptHeader);
+  // Accept aliases only at Routiform API boundary, then strip before provider translation/execution.
+  stripNonStandardStreamAliases(body);
 
   // ── Phase 9.1: Semantic cache check (non-streaming, temp=0 only) ──
   if (isCacheable(body, clientRawRequest?.headers)) {
@@ -764,6 +776,26 @@ export async function handleChatCore({
   // upstream providers to reject with 400 "Invalid 'tools[0].name': empty string."
   if (Array.isArray(body.tools)) {
     body.tools = body.tools.filter((tool: Record<string, unknown>) => {
+      // Built-in Responses API tool types are identified solely by `type` and carry no name.
+      // Preserve only known built-ins here so unknown nameless tool types are still filtered.
+      const toolType = typeof tool.type === "string" ? tool.type : "";
+      const builtInResponsesToolTypes = new Set([
+        "web_search",
+        "web_search_preview",
+        "file_search",
+        "computer",
+        "code_interpreter",
+        "image_generation",
+      ]);
+      if (
+        toolType &&
+        builtInResponsesToolTypes.has(toolType) &&
+        !tool.function &&
+        tool.name === undefined
+      ) {
+        return true;
+      }
+
       const fn = tool.function as Record<string, unknown> | undefined;
       const name = fn?.name ?? tool.name;
       return name && String(name).trim().length > 0;
@@ -2267,8 +2299,7 @@ export async function handleChatCore({
 
   // For providers using Responses API format, translate stream back to openai (Chat Completions) format
   // UNLESS client is Droid CLI which expects openai-responses format back
-  const isDroidCLI =
-    userAgent?.toLowerCase().includes("droid") || userAgent?.toLowerCase().includes("codex-cli");
+  const isDroidCLI = isDroidCliUserAgent(userAgent);
   const needsResponsesTranslation =
     targetFormat === FORMATS.OPENAI_RESPONSES &&
     sourceFormat === FORMATS.OPENAI &&

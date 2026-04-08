@@ -165,3 +165,19 @@ test("openaiToClaudeRequest converts filesystem_read_media_file tool JSON into i
     },
   ]);
 });
+
+test("openaiToClaudeRequest skips nameless built-in responses tools", () => {
+  const request = {
+    messages: [{ role: "user", content: "use tools" }],
+    tools: [
+      { type: "web_search", external_web_access: true },
+      { type: "function", function: { name: "get_weather", parameters: { type: "object" } } },
+    ],
+  };
+
+  const translated = openaiToClaudeRequest("claude-sonnet-4", request, false);
+  assert.ok(Array.isArray(translated.tools));
+  assert.equal(translated.tools.length, 1);
+  assert.equal(translated.tools[0].name.includes("undefined"), false);
+  assert.equal(translated.tools[0].name.includes("get_weather"), true);
+});
