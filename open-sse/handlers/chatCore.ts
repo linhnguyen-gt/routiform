@@ -134,6 +134,7 @@ import {
   getEffectiveContextLimit,
   estimateRequestTokens,
 } from "../services/contextManager.ts";
+import { recordContextCompression, recordContextRejection } from "../services/comboMetrics.ts";
 
 export function shouldUseNativeCodexPassthrough({
   provider,
@@ -894,8 +895,20 @@ export async function handleChatCore({
           "CONTEXT",
           `Compressed: ${compressionResult.stats.original} → ${compressionResult.stats.final} tokens (limit=${validation.limit})`
         );
+        // Track compression metrics
+        if (comboName) {
+          recordContextCompression(
+            comboName,
+            `${provider}/${model}`,
+            compressionResult.stats.original,
+            compressionResult.stats.final
+          );
+        }
       } else {
-        // Still oversized after compression
+        // Still oversized after compression - track rejection
+        if (comboName) {
+          recordContextRejection(comboName, `${provider}/${model}`);
+        }
         persistFailureUsage(HTTP_STATUS.BAD_REQUEST, "context_length_exceeded");
         return createErrorResult(
           HTTP_STATUS.BAD_REQUEST,
@@ -903,7 +916,10 @@ export async function handleChatCore({
         );
       }
     } else {
-      // Compression didn't help or wasn't applicable
+      // Compression didn't help or wasn't applicable - track rejection
+      if (comboName) {
+        recordContextRejection(comboName, `${provider}/${model}`);
+      }
       persistFailureUsage(HTTP_STATUS.BAD_REQUEST, "context_length_exceeded");
       return createErrorResult(
         HTTP_STATUS.BAD_REQUEST,
