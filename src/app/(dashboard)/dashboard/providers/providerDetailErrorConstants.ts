@@ -1,0 +1,15 @@
+export const ERROR_TYPE_LABELS: Record<string, { labelKey: string; variant: string }> = {
+  runtime_error: { labelKey: "errorTypeRuntime", variant: "warning" },
+  upstream_auth_error: { labelKey: "errorTypeUpstreamAuth", variant: "error" },
+  account_deactivated: { labelKey: "errorTypeAccountDeactivated", variant: "error" },
+  auth_missing: { labelKey: "errorTypeMissingCredential", variant: "warning" },
+  token_refresh_failed: { labelKey: "errorTypeRefreshFailed", variant: "warning" },
+  token_expired: { labelKey: "errorTypeTokenExpired", variant: "warning" },
+  upstream_rate_limited: { labelKey: "errorTypeRateLimited", variant: "warning" },
+  upstream_unavailable: { labelKey: "errorTypeUpstreamUnavailable", variant: "error" },
+  network_error: { labelKey: "errorTypeNetworkError", variant: "warning" },
+  unsupported: { labelKey: "errorTypeTestUnsupported", variant: "default" },
+  upstream_error: { labelKey: "errorTypeUpstreamError", variant: "error" },
+  banned: { labelKey: "errorTypeBanned", variant: "error" },
+  credits_exhausted: { labelKey: "errorTypeCreditsExhausted", variant: "warning" },
+};

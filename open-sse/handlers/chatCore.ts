@@ -22,7 +22,7 @@ import {
   parseUpstreamError,
   formatProviderError,
 } from "../utils/error.ts";
-import { HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
+import { HTTP_STATUS, getProviderMaxTokensCap, DEFAULT_MAX_TOKENS } from "../config/constants.ts";
 import {
   classifyProviderError,
   PROVIDER_ERROR_TYPES,
@@ -113,6 +113,7 @@ import {
   stripNonStandardStreamAliases,
 } from "../utils/aiSdkCompat.ts";
 import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
+import { optimizeGithubRequestBody } from "../utils/githubRequestOptimizer.ts";
 import { generateRequestId } from "@/shared/utils/requestId";
 import { normalizePayloadForLog } from "@/lib/logPayloads";
 import { injectMemory, shouldInjectMemory } from "@/lib/memory/injection";
@@ -1193,6 +1194,22 @@ export async function handleChatCore({
     }
   }
 
+  // Ensure max_tokens is at least DEFAULT_MAX_TOKENS (65536) unless provider cap is lower
+  for (const field of ["max_tokens", "max_completion_tokens"] as const) {
+    if (typeof translatedBody[field] === "number" && translatedBody[field] < DEFAULT_MAX_TOKENS) {
+      const providerCap = getProviderMaxTokensCap(provider, String(translatedBody.model || ""));
+      const targetValue =
+        providerCap && providerCap < DEFAULT_MAX_TOKENS ? providerCap : DEFAULT_MAX_TOKENS;
+      if (translatedBody[field] < targetValue) {
+        log?.debug?.(
+          "PARAMS",
+          `Raising ${field} from ${translatedBody[field]} to ${targetValue} for ${provider}`
+        );
+        translatedBody[field] = targetValue;
+      }
+    }
+  }
+
   // Provider-specific max_tokens caps (#711)
   // Some providers reject requests when max_tokens exceeds their API limit.
   // Cap before sending to avoid upstream HTTP 400 errors.
@@ -1206,6 +1223,19 @@ export async function handleChatCore({
         );
         translatedBody[field] = providerCap;
       }
+    }
+  }
+
+  if (provider === "github") {
+    const optimization = optimizeGithubRequestBody(
+      translatedBody,
+      String(translatedBody.model || model || "")
+    );
+    if (optimization.actions.length > 0) {
+      log?.info?.(
+        "GITHUB",
+        `Applied request optimizations: ${optimization.actions.join(", ")} (model=${String(translatedBody.model || model || "unknown")}, tools=${Array.isArray(translatedBody.tools) ? translatedBody.tools.length : 0})`
+      );
     }
   }
 

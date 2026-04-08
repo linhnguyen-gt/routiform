@@ -65,7 +65,7 @@ export const CACHE_TTL = {
 };
 
 // Default max tokens
-export const DEFAULT_MAX_TOKENS = 64000;
+export const DEFAULT_MAX_TOKENS = 65536;
 
 // Minimum max tokens for tool calling (to prevent truncated arguments)
 export const DEFAULT_MIN_TOKENS = 32000;
@@ -77,7 +77,7 @@ export const PROVIDER_MAX_TOKENS: Record<string, number> = {
   gemini: 65536, // Gemini Studio
   // OpenCode / many clients default max_tokens≈32k; Sonnet/Opus/GPT Copilot models generally accept it.
   // (#711) Only cap in chatCore when above this — avoids cutting completions so short the model feels “dumb”.
-  github: 32000,
+  github: DEFAULT_MIN_TOKENS,
 };
 
 /**

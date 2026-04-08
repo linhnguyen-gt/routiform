@@ -8,6 +8,8 @@ import { backupDbFile } from "./backup";
 
 type JsonRecord = Record<string, unknown>;
 
+const DEFAULT_COMBO_CONTEXT_LENGTH = 200000;
+
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
 }
@@ -17,6 +19,13 @@ function getSerializedData(value: unknown): string | null {
   return typeof row.data === "string" ? row.data : null;
 }
 
+function normalizeComboContextLength(combo: JsonRecord): JsonRecord {
+  if (typeof combo.context_length === "number" && combo.context_length > 0) {
+    return combo;
+  }
+  return { ...combo, context_length: DEFAULT_COMBO_CONTEXT_LENGTH };
+}
+
 export async function getCombos() {
   const db = getDbInstance();
   return db
@@ -24,21 +33,21 @@ export async function getCombos() {
     .all()
     .map((row) => getSerializedData(row))
     .filter((row): row is string => row !== null)
-    .map((row) => JSON.parse(row));
+    .map((row) => normalizeComboContextLength(JSON.parse(row)));
 }
 
 export async function getComboById(id: string) {
   const db = getDbInstance();
   const row = db.prepare("SELECT data FROM combos WHERE id = ?").get(id);
   const payload = getSerializedData(row);
-  return payload ? JSON.parse(payload) : null;
+  return payload ? normalizeComboContextLength(JSON.parse(payload)) : null;
 }
 
 export async function getComboByName(name: string) {
   const db = getDbInstance();
   const row = db.prepare("SELECT data FROM combos WHERE name = ?").get(name);
   const payload = getSerializedData(row);
-  return payload ? JSON.parse(payload) : null;
+  return payload ? normalizeComboContextLength(JSON.parse(payload)) : null;
 }
 
 export async function createCombo(data: JsonRecord) {
@@ -54,6 +63,10 @@ export async function createCombo(data: JsonRecord) {
     isHidden: Boolean(data.isHidden),
     createdAt: now,
     updatedAt: now,
+    context_length:
+      typeof data.context_length === "number" && data.context_length > 0
+        ? data.context_length
+        : DEFAULT_COMBO_CONTEXT_LENGTH,
   };
 
   const optionalComboKeys = [
