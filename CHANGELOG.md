@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.8.5](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.4...v3.8.5) (2026-04-09)
+
+
+### Bug Fixes
+
+* **auth:** load server.env on npm install to prevent stuck /login after backup import ([98d1542](https://github.com/linhnguyen-gt/Routiform/commit/98d15425418d4cc97a5a1a805b49451b06fdf4d2))
+
 ### [3.8.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.3...v3.8.4) (2026-04-09)
 
 
