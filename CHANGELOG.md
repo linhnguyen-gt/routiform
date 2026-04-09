@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.8.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.3...v3.8.4) (2026-04-09)
+
+
+### Bug Fixes
+
+* **cli-tools:** improve debugging and remove desktop app support ([6593956](https://github.com/linhnguyen-gt/Routiform/commit/659395614872fecb77a44179242c6491d911a08f))
+
 ### [3.8.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.2...v3.8.3) (2026-04-09)
 
 
