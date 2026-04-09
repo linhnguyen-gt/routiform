@@ -7,6 +7,7 @@ import { execSync } from "node:child_process";
 import { getDbInstance, resetDbInstance, SQLITE_FILE, DATA_DIR } from "@/lib/db/core";
 import { backupDbFile } from "@/lib/db/backup";
 import { isAuthRequired, isAuthenticated } from "@/shared/utils/apiAuth";
+import { clearJwtSecretCache } from "@/shared/utils/jwtSecret";
 
 const MAX_UPLOAD_SIZE = 200 * 1024 * 1024; // 200 MB — archive includes DB + JSON
 
@@ -340,6 +341,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Clear JWT secret cache so the new secret from imported server.env is picked up
+    clearJwtSecretCache();
+    console.log("[DB] Import-all: JWT secret cache cleared");
+
+    // If auth secrets changed, a server restart is required for middleware to pick up new JWT_SECRET
+    const restartRequired = authSecretsChanged || runtimeOverrideDetected;
+
     return NextResponse.json({
       imported: true,
       filename: fileName,
@@ -347,6 +355,7 @@ export async function POST(request: Request) {
       runtimeSecretsReloaded,
       runtimeOverrideDetected,
       authSecretsChanged,
+      restartRequired,
       connectionCount: connCount,
       nodeCount,
       comboCount,
