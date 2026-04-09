@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.8.7](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.6...v3.8.7) (2026-04-09)
+
+
+### Bug Fixes
+
+* **auth:** allow settings access without auth when no password configured ([4ba566d](https://github.com/linhnguyen-gt/Routiform/commit/4ba566d10b085101a4825a6cbd21153203e2802f))
+* **jwt:** auto-generate secret when JWT_SECRET is not set ([51e4dd7](https://github.com/linhnguyen-gt/Routiform/commit/51e4dd7e690e80cc0ef8dcaedbfcfcecc8fa5e60))
+* **jwt:** remove caching to ensure fresh env values on each call ([50651e9](https://github.com/linhnguyen-gt/Routiform/commit/50651e9028931b30d45402fa828838c7a1033e3b))
+
 ### [3.8.6](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.5...v3.8.6) (2026-04-09)
 
 
