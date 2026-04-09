@@ -573,10 +573,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     authType: "apikey",
     authHeader: "bearer",
     defaultContextLength: 128000,
-    headers: {
-      "HTTP-Referer": "https://endpoint-proxy.local",
-      "X-Title": "Endpoint Proxy",
-    },
+    headers: {},
     // Empty: any model ID is valid; UI lists aliases + OpenRouter catalog (same pattern as 9router providerModels.openrouter: []).
     models: [],
   },

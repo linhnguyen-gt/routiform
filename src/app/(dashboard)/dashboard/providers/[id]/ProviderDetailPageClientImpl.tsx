@@ -538,17 +538,36 @@ export function ProviderDetailPageClientImpl() {
       setModelTestBannerError("");
       let success = false;
       try {
-        const res = await fetch("/api/models/test", {
+        const activeConnectionId = connections.find((conn: any) => conn.isActive !== false)?.id;
+        const request =
+          providerId === "openrouter" && activeConnectionId
+            ? {
+                url: `/api/providers/${encodeURIComponent(activeConnectionId)}/test`,
+                body: JSON.stringify({
+                  validationModelId: fullModel.startsWith(`${providerDisplayAlias}/`)
+                    ? fullModel.slice(providerDisplayAlias.length + 1)
+                    : fullModel,
+                }),
+                fromConnectionTest: true,
+              }
+            : {
+                url: "/api/models/test",
+                body: JSON.stringify({ model: fullModel }),
+                fromConnectionTest: false,
+              };
+
+        const res = await fetch(request.url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: fullModel }),
+          body: request.body,
         });
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean;
+          valid?: boolean;
           latencyMs?: number;
           error?: string;
         };
-        const ok = Boolean(data.ok);
+        const ok = request.fromConnectionTest ? Boolean(data.valid) : Boolean(data.ok);
         success = ok;
         setModelTestResults((prev) => ({ ...prev, [fullModel]: ok ? "ok" : "error" }));
         if (ok) {
@@ -573,7 +592,7 @@ export function ProviderDetailPageClientImpl() {
       }
       return success;
     },
-    [connections.length, notify, t]
+    [connections, notify, providerDisplayAlias, providerId, t]
   );
 
   const openPrimaryAddFlow = useCallback(() => {

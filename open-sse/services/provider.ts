@@ -45,6 +45,34 @@ function buildAnthropicCompatibleUrl(baseUrl) {
   return `${normalized}/messages`;
 }
 
+function getOpenRouterAttributionHeaders() {
+  const refererCandidates = [
+    process.env.ROUTIFORM_PUBLIC_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    process.env.BASE_URL,
+    process.env.ROUTIFORM_BASE_URL,
+    "https://github.com/linhnguyen-gt/Routiform",
+  ];
+  const referer =
+    refererCandidates.find((value) => {
+      if (typeof value !== "string" || value.trim().length === 0) return false;
+      try {
+        const url = new URL(value);
+        return !["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname);
+      } catch {
+        return false;
+      }
+    }) || "https://github.com/linhnguyen-gt/Routiform";
+  const title = process.env.OPENROUTER_APP_TITLE || process.env.APP_NAME || "routiform";
+
+  return {
+    "HTTP-Referer": referer,
+    "X-OpenRouter-Title": title,
+    "X-Title": title,
+  };
+}
+
 // Detect request format from endpoint first when the route is known.
 // This avoids ambiguous bodies like OpenAI /chat/completions requests that also
 // contain max_tokens or Claude model names.
@@ -294,6 +322,10 @@ export function buildProviderHeaders(provider, credentials, stream = true, body 
     } else {
       // bearer (default)
       headers["Authorization"] = `Bearer ${credentials.apiKey || credentials.accessToken}`;
+    }
+
+    if (provider === "openrouter") {
+      Object.assign(headers, getOpenRouterAttributionHeaders());
     }
   } else {
     // Fallback for unknown providers

@@ -291,6 +291,18 @@ export function validateContextLimit(body, provider, model = null, combo = null)
   };
 }
 
+export type ContextCompressionLayerStat = {
+  name: string;
+  tokens: number;
+};
+
+/** Token counts and which compression layers ran (empty `layers` when none ran). */
+export type CompressContextStats = {
+  original: number;
+  final: number;
+  layers: ContextCompressionLayerStat[];
+};
+
 /**
  * Apply context compression to request body.
  * Operates in 3 layers of increasing aggressiveness:
@@ -306,9 +318,14 @@ export function validateContextLimit(body, provider, model = null, combo = null)
 export function compressContext(
   body,
   options: { provider?: string; model?: string; maxTokens?: number; reserveTokens?: number } = {}
-) {
+): { body: any; compressed: boolean; stats: CompressContextStats } {
   if (!body || !body.messages || !Array.isArray(body.messages)) {
-    return { body, compressed: false, stats: {} };
+    const t = estimateRequestTokens(body);
+    return {
+      body,
+      compressed: false,
+      stats: { original: t, final: t, layers: [] },
+    };
   }
 
   const provider = options.provider || "default";
@@ -320,11 +337,18 @@ export function compressContext(
   let tools = Array.isArray(body.tools) ? [...body.tools] : body.tools;
   const buildWorkingBody = () => ({ ...body, messages, tools });
   let currentTokens = estimateRequestTokens(buildWorkingBody());
-  const stats = { original: currentTokens, layers: [] };
+  const stats: { original: number; layers: ContextCompressionLayerStat[] } = {
+    original: currentTokens,
+    layers: [],
+  };
 
   // Already fits
   if (currentTokens <= targetTokens) {
-    return { body, compressed: false, stats: { original: currentTokens, final: currentTokens } };
+    return {
+      body,
+      compressed: false,
+      stats: { original: currentTokens, final: currentTokens, layers: [] },
+    };
   }
 
   // Layer 0: Compact tool definitions (large tool registries can dominate context budget)

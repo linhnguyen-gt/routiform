@@ -152,6 +152,10 @@ jobs:
         id: notes
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          echo "Extracting release notes for version: $VERSION"
+          echo "First 20 lines of CHANGELOG.md:"
+          head -20 CHANGELOG.md
+
           node -e '
             const fs = require("fs");
 
@@ -160,11 +164,18 @@ jobs:
             const lines = content.split(/\r?\n/);
 
             const headingRegex = new RegExp(`^#{2,3}\\s+(?:\\[${version}\\]|${version})(?:.*)?$`);
+            console.log("Regex pattern:", headingRegex);
+            
             const start = lines.findIndex((line) => headingRegex.test(line.trim()));
+            console.log("Found heading at line index:", start);
+            
             if (start < 0) {
+              console.log("No matching heading found, creating empty release notes");
               fs.writeFileSync(".release-notes.md", "");
               process.exit(0);
             }
+
+            console.log("Heading line:", lines[start]);
 
             const semverHeadingRegex =
               /^#{2,3}\s+(?:\[\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?\]|\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)(?:.*)?$/;
@@ -177,9 +188,14 @@ jobs:
               }
             }
 
+            console.log("Section end at line index:", end);
             const section = lines.slice(start + 1, end).join("\n").trim();
+            console.log("Extracted section length:", section.length);
             fs.writeFileSync(".release-notes.md", section ? `${section}\n` : "");
           '
+
+          echo "Content of .release-notes.md:"
+          cat .release-notes.md || echo "(file is empty or does not exist)"
 
           if [ -s .release-notes.md ]; then
             echo "has_notes=true" >> "$GITHUB_OUTPUT"

@@ -10,6 +10,34 @@ import {
 import { isClaudeCodeCompatible } from "../services/provider.ts";
 import { buildClineHeaders } from "../services/clineAuth.ts";
 
+function getOpenRouterAttributionHeaders() {
+  const refererCandidates = [
+    process.env.ROUTIFORM_PUBLIC_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    process.env.BASE_URL,
+    process.env.ROUTIFORM_BASE_URL,
+    "https://github.com/linhnguyen-gt/Routiform",
+  ];
+  const referer =
+    refererCandidates.find((value) => {
+      if (typeof value !== "string" || value.trim().length === 0) return false;
+      try {
+        const url = new URL(value);
+        return !["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname);
+      } catch {
+        return false;
+      }
+    }) || "https://github.com/linhnguyen-gt/Routiform";
+  const title = process.env.OPENROUTER_APP_TITLE || process.env.APP_NAME || "routiform";
+
+  return {
+    "HTTP-Referer": referer,
+    "X-OpenRouter-Title": title,
+    "X-Title": title,
+  };
+}
+
 export class DefaultExecutor extends BaseExecutor {
   constructor(provider) {
     super(provider, PROVIDERS[provider] || PROVIDERS.openai);
@@ -109,6 +137,10 @@ export class DefaultExecutor extends BaseExecutor {
         } else {
           headers["Authorization"] = `Bearer ${effectiveKey || credentials.accessToken}`;
         }
+    }
+
+    if (this.provider === "openrouter") {
+      Object.assign(headers, getOpenRouterAttributionHeaders());
     }
 
     if (stream) headers["Accept"] = "text/event-stream";

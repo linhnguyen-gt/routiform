@@ -1,120 +1,60 @@
-import { getCorsOrigin } from "../utils/cors.ts";
-import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";
-import { translateRequest, needsTranslation } from "../translator/index.ts";
-import { FORMATS } from "../translator/formats.ts";
-import {
-  createSSETransformStreamWithLogger,
-  createPassthroughStreamWithLogger,
-  COLORS,
-} from "../utils/stream.ts";
-import { createStreamController, pipeWithDisconnect } from "../utils/streamHandler.ts";
-import { addBufferToUsage, filterUsageForFormat, estimateUsage } from "../utils/usageTracking.ts";
-import { refreshWithRetry } from "../services/tokenRefresh.ts";
-import { createRequestLogger } from "../utils/requestLogger.ts";
-import { getModelTargetFormat, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.ts";
-import { resolveModelAlias } from "../services/modelDeprecation.ts";
-import { getUnsupportedParams } from "../config/providerRegistry.ts";
-import { hasPerModelQuota, lockModelIfPerModelQuota } from "../services/accountFallback.ts";
-import { COOLDOWN_MS } from "../config/constants.ts";
-import {
-  buildErrorBody,
-  createErrorResult,
-  parseUpstreamError,
-  formatProviderError,
-} from "../utils/error.ts";
-import { HTTP_STATUS, getProviderMaxTokensCap, DEFAULT_MAX_TOKENS } from "../config/constants.ts";
-import {
-  classifyProviderError,
-  PROVIDER_ERROR_TYPES,
-  isEmptyContentResponse,
-} from "../services/errorClassifier.ts";
-import { updateProviderConnection } from "@/lib/db/providers";
-import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
-import { logAuditEvent } from "@/lib/compliance";
-import { handleBypassRequest } from "../utils/bypassHandler.ts";
-import {
-  saveRequestUsage,
-  trackPendingRequest,
-  appendRequestLog,
-  saveCallLog,
-} from "@/lib/usageDb";
-import {
-  getLoggedInputTokens,
-  getLoggedOutputTokens,
-  formatUsageLog,
-} from "@/lib/usage/tokenAccounting";
 import { recordCost } from "@/domain/costRules";
-import { calculateCost } from "@/lib/usage/costCalculator";
-import { CLAUDE_OAUTH_TOOL_PREFIX } from "../translator/request/openai-to-claude.ts";
+import { getCacheControlSettings } from "@/lib/cacheControlSettings";
+import { logAuditEvent } from "@/lib/compliance";
+import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
+import { updateProviderConnection } from "@/lib/db/providers";
 import {
   getModelNormalizeToolCallId,
   getModelPreserveOpenAIDeveloperRole,
   getModelUpstreamExtraHeaders,
   getUpstreamProxyConfig,
 } from "@/lib/localDb";
+import { calculateCost } from "@/lib/usage/costCalculator";
+import { formatUsageLog } from "@/lib/usage/tokenAccounting";
+import {
+  appendRequestLog,
+  saveCallLog,
+  saveRequestUsage,
+  trackPendingRequest,
+} from "@/lib/usageDb";
+import { COOLDOWN_MS, HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
+import { PROVIDER_ID_TO_ALIAS, getModelTargetFormat } from "../config/providerModels.ts";
+import { getUnsupportedParams } from "../config/providerRegistry.ts";
 import { getExecutor } from "../executors/index.ts";
-import { getCacheControlSettings } from "@/lib/cacheControlSettings";
+import { lockModelIfPerModelQuota } from "../services/accountFallback.ts";
 import {
-  shouldPreserveCacheControl,
+  PROVIDER_ERROR_TYPES,
+  classifyProviderError,
+  isEmptyContentResponse,
+} from "../services/errorClassifier.ts";
+import { resolveModelAlias } from "../services/modelDeprecation.ts";
+import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";
+import { refreshWithRetry } from "../services/tokenRefresh.ts";
+import { FORMATS } from "../translator/formats.ts";
+import { needsTranslation, translateRequest } from "../translator/index.ts";
+import { CLAUDE_OAUTH_TOOL_PREFIX } from "../translator/request/openai-to-claude.ts";
+import { handleBypassRequest } from "../utils/bypassHandler.ts";
+import {
   providerSupportsCaching,
+  shouldPreserveCacheControl,
 } from "../utils/cacheControlPolicy.ts";
-import { getCacheMetrics } from "@/lib/db/settings.ts";
+import { getCorsOrigin } from "../utils/cors.ts";
+import {
+  buildErrorBody,
+  createErrorResult,
+  formatProviderError,
+  parseUpstreamError,
+} from "../utils/error.ts";
+import { createRequestLogger } from "../utils/requestLogger.ts";
+import {
+  COLORS,
+  createPassthroughStreamWithLogger,
+  createSSETransformStreamWithLogger,
+} from "../utils/stream.ts";
+import { createStreamController, pipeWithDisconnect } from "../utils/streamHandler.ts";
+import { addBufferToUsage, estimateUsage, filterUsageForFormat } from "../utils/usageTracking.ts";
 
-import {
-  parseCodexQuotaHeaders,
-  getCodexResetTime,
-  getCodexModelScope,
-} from "../executors/codex.ts";
-import { translateNonStreamingResponse } from "./responseTranslator.ts";
-import { extractUsageFromResponse } from "./usageExtractor.ts";
-import {
-  parseSSEToClaudeResponse,
-  parseSSEToOpenAIResponse,
-  parseSSEToResponsesOutput,
-} from "./sseParser.ts";
-import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
-import {
-  withRateLimit,
-  updateFromHeaders,
-  initializeRateLimits,
-} from "../services/rateLimitManager.ts";
-import {
-  generateSignature,
-  getCachedResponse,
-  setCachedResponse,
-  isCacheable,
-} from "@/lib/semanticCache";
-import { getIdempotencyKey, checkIdempotency, saveIdempotency } from "@/lib/idempotencyLayer";
-import { createProgressTransform, wantsProgress } from "../utils/progressTracker.ts";
-import {
-  isModelUnavailableError,
-  getNextFamilyFallback,
-  isContextOverflowError,
-  findLargerContextModel,
-  getModelFamily,
-} from "../services/modelFamilyFallback.ts";
-import { computeRequestHash, deduplicate, shouldDeduplicate } from "../services/requestDedup.ts";
-import {
-  getBackgroundTaskReason,
-  getDegradedModel,
-  getBackgroundDegradationConfig,
-} from "../services/backgroundTaskDetector.ts";
-import {
-  shouldUseFallback,
-  isFallbackDecision,
-  EMERGENCY_FALLBACK_CONFIG,
-} from "../services/emergencyFallback.ts";
-import { maybeEnforceMediaToolForLocalImage } from "../services/imageToolRouting.ts";
-import { maybeEnforceRequiredToolChoiceForUrlFetch } from "../services/urlToolEnforcement.ts";
-import {
-  resolveExplicitStreamAlias,
-  resolveStreamFlag,
-  stripMarkdownCodeFence,
-  stripNonStandardStreamAliases,
-} from "../utils/aiSdkCompat.ts";
-import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
-import { optimizeGithubRequestBody } from "../utils/githubRequestOptimizer.ts";
-import { generateRequestId } from "@/shared/utils/requestId";
+import { checkIdempotency, getIdempotencyKey, saveIdempotency } from "@/lib/idempotencyLayer";
 import { normalizePayloadForLog } from "@/lib/logPayloads";
 import { injectMemory, shouldInjectMemory } from "@/lib/memory/injection";
 import { retrieveMemories } from "@/lib/memory/retrieval";
@@ -124,17 +64,67 @@ import {
   toMemoryRetrievalConfig,
 } from "@/lib/memory/settings";
 import {
+  generateSignature,
+  getCachedResponse,
+  isCacheable,
+  setCachedResponse,
+} from "@/lib/semanticCache";
+import { generateRequestId } from "@/shared/utils/requestId";
+import packageJson from "../../package.json";
+import {
+  getCodexModelScope,
+  getCodexResetTime,
+  parseCodexQuotaHeaders,
+} from "../executors/codex.ts";
+import {
+  getBackgroundDegradationConfig,
+  getBackgroundTaskReason,
+  getDegradedModel,
+} from "../services/backgroundTaskDetector.ts";
+import {
   buildClaudeCodeCompatibleRequest,
   isClaudeCodeCompatibleProvider,
   resolveClaudeCodeCompatibleSessionId,
 } from "../services/claudeCodeCompatible.ts";
-import {
-  compressContext,
-  validateContextLimit,
-  getEffectiveContextLimit,
-  estimateRequestTokens,
-} from "../services/contextManager.ts";
 import { recordContextCompression, recordContextRejection } from "../services/comboMetrics.ts";
+import { compressContext, validateContextLimit } from "../services/contextManager.ts";
+import {
+  EMERGENCY_FALLBACK_CONFIG,
+  isFallbackDecision,
+  shouldUseFallback,
+} from "../services/emergencyFallback.ts";
+import { maybeEnforceMediaToolForLocalImage } from "../services/imageToolRouting.ts";
+import {
+  findLargerContextModel,
+  getModelFamily,
+  getNextFamilyFallback,
+  isContextOverflowError,
+  isModelUnavailableError,
+} from "../services/modelFamilyFallback.ts";
+import {
+  initializeRateLimits,
+  updateFromHeaders,
+  withRateLimit,
+} from "../services/rateLimitManager.ts";
+import { computeRequestHash, deduplicate, shouldDeduplicate } from "../services/requestDedup.ts";
+import { maybeEnforceRequiredToolChoiceForUrlFetch } from "../services/urlToolEnforcement.ts";
+import {
+  resolveExplicitStreamAlias,
+  resolveStreamFlag,
+  stripMarkdownCodeFence,
+  stripNonStandardStreamAliases,
+} from "../utils/aiSdkCompat.ts";
+import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
+import { optimizeGithubRequestBody } from "../utils/githubRequestOptimizer.ts";
+import { createProgressTransform, wantsProgress } from "../utils/progressTracker.ts";
+import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
+import { translateNonStreamingResponse } from "./responseTranslator.ts";
+import {
+  parseSSEToClaudeResponse,
+  parseSSEToOpenAIResponse,
+  parseSSEToResponsesOutput,
+} from "./sseParser.ts";
+import { extractUsageFromResponse } from "./usageExtractor.ts";
 
 export function shouldUseNativeCodexPassthrough({
   provider,
@@ -688,6 +678,8 @@ export async function handleChatCore({
       : "";
 
   const buildUpstreamHeadersForExecute = (modelToCall: string): Record<string, string> => {
+    const name = packageJson.name;
+    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
     const upstreamHeaders =
       modelToCall === effectiveModel
         ? {
@@ -706,6 +698,14 @@ export async function handleChatCore({
       upstreamHeaders["User-Agent"] = connectionCustomUserAgent;
       if ("user-agent" in upstreamHeaders) {
         upstreamHeaders["user-agent"] = connectionCustomUserAgent;
+      }
+    }
+
+    if (provider === "openrouter") {
+      const appTitle = capitalized;
+      if (appTitle) {
+        upstreamHeaders["X-OpenRouter-Title"] = appTitle;
+        upstreamHeaders["X-Title"] = appTitle;
       }
     }
 
@@ -1393,22 +1393,6 @@ export async function handleChatCore({
     }
     if (stripped.length > 0) {
       log?.warn?.("PARAMS", `Stripped unsupported params for ${model}: ${stripped.join(", ")}`);
-    }
-  }
-
-  // Ensure max_tokens is at least DEFAULT_MAX_TOKENS (65536) unless provider cap is lower
-  for (const field of ["max_tokens", "max_completion_tokens"] as const) {
-    if (typeof translatedBody[field] === "number" && translatedBody[field] < DEFAULT_MAX_TOKENS) {
-      const providerCap = getProviderMaxTokensCap(provider, String(translatedBody.model || ""));
-      const targetValue =
-        providerCap && providerCap < DEFAULT_MAX_TOKENS ? providerCap : DEFAULT_MAX_TOKENS;
-      if (translatedBody[field] < targetValue) {
-        log?.debug?.(
-          "PARAMS",
-          `Raising ${field} from ${translatedBody[field]} to ${targetValue} for ${provider}`
-        );
-        translatedBody[field] = targetValue;
-      }
     }
   }
 

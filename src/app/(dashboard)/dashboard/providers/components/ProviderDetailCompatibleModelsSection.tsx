@@ -136,8 +136,39 @@ export function CompatibleModelsSection({
     }
   };
 
+  const modelsList =
+    allModels.length > 0 ? (
+      <div className="flex flex-col gap-3">
+        {allModels.map(({ modelId, alias }) => {
+          const fullModel = `${providerDisplayAlias}/${modelId}`;
+          return (
+            <PassthroughModelRow
+              key={`${providerStorageAlias}:${modelId}`}
+              modelId={modelId}
+              fullModel={fullModel}
+              copied={copied}
+              onCopy={onCopy}
+              onDeleteAlias={() => handleDeleteModel(modelId, alias)}
+              t={t}
+              showDeveloperToggle={!isAnthropic}
+              effectiveModelNormalize={effectiveModelNormalize}
+              effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
+              getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+              saveModelCompatFlags={saveModelCompatFlags}
+              compatDisabled={compatSavingModelId === modelId}
+              testStatus={modelTestResults[fullModel]}
+              onTest={canTestModels && onTestModel ? () => onTestModel(fullModel) : undefined}
+              isTesting={testingModelKey === fullModel}
+            />
+          );
+        })}
+      </div>
+    ) : null;
+
   return (
     <div className="flex flex-col gap-4">
+      {providerStorageAlias === "openrouter" && modelsList}
+
       <p className="text-sm text-text-muted">{description}</p>
 
       <div className="flex items-end gap-2 flex-wrap">
@@ -163,33 +194,7 @@ export function CompatibleModelsSection({
         </Button>
       </div>
 
-      {allModels.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {allModels.map(({ modelId, alias }) => {
-            const fullModel = `${providerDisplayAlias}/${modelId}`;
-            return (
-              <PassthroughModelRow
-                key={`${providerStorageAlias}:${modelId}`}
-                modelId={modelId}
-                fullModel={fullModel}
-                copied={copied}
-                onCopy={onCopy}
-                onDeleteAlias={() => handleDeleteModel(modelId, alias)}
-                t={t}
-                showDeveloperToggle={!isAnthropic}
-                effectiveModelNormalize={effectiveModelNormalize}
-                effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
-                getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
-                saveModelCompatFlags={saveModelCompatFlags}
-                compatDisabled={compatSavingModelId === modelId}
-                testStatus={modelTestResults[fullModel]}
-                onTest={canTestModels && onTestModel ? () => onTestModel(fullModel) : undefined}
-                isTesting={testingModelKey === fullModel}
-              />
-            );
-          })}
-        </div>
-      )}
+      {providerStorageAlias !== "openrouter" && modelsList}
     </div>
   );
 }
