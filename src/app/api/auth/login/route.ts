@@ -7,20 +7,8 @@ import { loginSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { getJwtSecret } from "@/shared/utils/jwtSecret";
 
-// SECURITY: No hardcoded fallback — JWT_SECRET must be configured.
-if (!process.env.JWT_SECRET) {
-  console.error("[SECURITY] FATAL: JWT_SECRET is not set. Login authentication is disabled.");
-}
 export async function POST(request) {
   try {
-    // Fail-fast if JWT_SECRET is not configured
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server misconfigured: JWT_SECRET not set. Contact administrator." },
-        { status: 500 }
-      );
-    }
-
     const secret = getJwtSecret();
     if (!secret) {
       return NextResponse.json(
