@@ -16,6 +16,7 @@ import {
   parseSSEToOpenAIResponse,
   parseSSEToResponsesOutput,
 } from "../../open-sse/handlers/sseParser.ts";
+import { createPassthroughStreamWithLogger } from "../../open-sse/utils/stream.ts";
 
 test("getModelInfoCore resolves unique non-openai unprefixed model", async () => {
   const info = await getModelInfoCore("claude-haiku-4-5-20251001", {});
@@ -634,4 +635,118 @@ test("parseSSEToOpenAIResponse reads final chunk with message not delta", () => 
   const parsed = parseSSEToOpenAIResponse(rawSSE, "cline/deepseek/deepseek-chat");
   assert.ok(parsed);
   assert.equal(parsed.choices[0].message.content, "OK");
+});
+
+test("createPassthroughStreamWithLogger emits final usage-only chunk when include_usage is true", async () => {
+  const transform = createPassthroughStreamWithLogger(
+    "openai",
+    null,
+    null,
+    "gpt-4o-mini",
+    null,
+    { stream_options: { include_usage: true } }
+  );
+
+  const writer = transform.writable.getWriter();
+  const reader = transform.readable.getReader();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  await writer.write(
+    encoder.encode(
+      `data: ${JSON.stringify({
+        id: "chatcmpl-1",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "gpt-4o-mini",
+        choices: [{ index: 0, delta: { role: "assistant", content: "Hi" }, finish_reason: null }],
+      })}\n\n`
+    )
+  );
+  await writer.write(
+    encoder.encode(
+      `data: ${JSON.stringify({
+        id: "chatcmpl-1",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "gpt-4o-mini",
+        choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+        usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+        system_fingerprint: "fp_123",
+        service_tier: "priority",
+      })}\n\n`
+    )
+  );
+  await writer.write(encoder.encode("data: [DONE]\n\n"));
+  await writer.close();
+
+  let output = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    output += decoder.decode(value, { stream: true });
+  }
+  output += decoder.decode();
+
+  const events = output
+    .split("\n\n")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+
+  assert.equal(events.length, 4);
+  assert.equal(events[3], "data: [DONE]");
+  assert.match(events[2], /"usage"/);
+  assert.doesNotMatch(events[1], /"usage"/);
+
+  const finishChunk = JSON.parse(events[1].slice(5).trim());
+  assert.equal(finishChunk.choices[0].finish_reason, "stop");
+  assert.equal(finishChunk.usage, undefined);
+
+  const usageChunk = JSON.parse(events[2].slice(5).trim());
+  assert.equal(usageChunk.object, "chat.completion.chunk");
+  assert.deepEqual(usageChunk.choices, []);
+  assert.equal(usageChunk.system_fingerprint, "fp_123");
+  assert.equal(usageChunk.service_tier, "priority");
+  assert.deepEqual(usageChunk.usage, {
+    prompt_tokens: 3,
+    completion_tokens: 2,
+    total_tokens: 5,
+  });
+});
+
+test("parseSSEToOpenAIResponse reads usage from final usage-only chunk", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      id: "chatcmpl-1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "gpt-4o-mini",
+      choices: [{ index: 0, delta: { role: "assistant", content: "Hi" }, finish_reason: null }],
+    })}`,
+    `data: ${JSON.stringify({
+      id: "chatcmpl-1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "gpt-4o-mini",
+      choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+    })}`,
+    `data: ${JSON.stringify({
+      id: "chatcmpl-1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "gpt-4o-mini",
+      choices: [],
+      usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "gpt-4o-mini");
+  assert.ok(parsed);
+  assert.equal(parsed.choices[0].message.content, "Hi");
+  assert.deepEqual(parsed.usage, {
+    prompt_tokens: 3,
+    completion_tokens: 2,
+    total_tokens: 5,
+  });
 });

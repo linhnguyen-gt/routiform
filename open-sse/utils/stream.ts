@@ -180,6 +180,16 @@ export function createSSEStream(options: StreamOptions = {}) {
   // Passthrough: accumulate content and reasoning separately for call log response body
   let passthroughAccumulatedContent = "";
   let passthroughAccumulatedReasoning = "";
+  const wantsFinalUsageChunk =
+    (sourceFormat === FORMATS.OPENAI || mode === STREAM_MODE.PASSTHROUGH) &&
+    !!body &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
+    (body as JsonRecord).stream_options &&
+    typeof (body as JsonRecord).stream_options === "object" &&
+    !Array.isArray((body as JsonRecord).stream_options) &&
+    ((body as JsonRecord).stream_options as JsonRecord).include_usage === true;
+  let finalUsageChunk: JsonRecord | null = null;
 
   // Guard against duplicate [DONE] events — ensures exactly one per stream
   let doneSent = false;
@@ -253,6 +263,22 @@ export function createSSEStream(options: StreamOptions = {}) {
                   clientPayloadCollector.push(providerPayload);
                 }
               }
+            }
+
+            if (trimmed.startsWith("data:") && trimmed.slice(5).trim() === "[DONE]") {
+              if (!doneSent) {
+                if (wantsFinalUsageChunk && finalUsageChunk?.usage) {
+                  const usageOutput = formatSSE(finalUsageChunk, FORMATS.OPENAI);
+                  clientPayloadCollector.push(finalUsageChunk);
+                  reqLogger?.appendConvertedChunk?.(usageOutput);
+                  controller.enqueue(encoder.encode(usageOutput));
+                }
+                doneSent = true;
+                const doneOutput = "data: [DONE]\n\n";
+                reqLogger?.appendConvertedChunk?.(doneOutput);
+                controller.enqueue(encoder.encode(doneOutput));
+              }
+              continue;
             }
 
             if (trimmed.startsWith("data:") && trimmed.slice(5).trim() !== "[DONE]") {
@@ -441,13 +467,49 @@ export function createSSEStream(options: StreamOptions = {}) {
                   }
                   if (isFinishChunk && !hasValidUsage(parsed.usage)) {
                     const estimated = estimateUsage(body, totalContentLength, FORMATS.OPENAI);
-                    parsed.usage = filterUsageForFormat(estimated, FORMATS.OPENAI);
-                    output = `data: ${JSON.stringify(parsed)}\n`;
                     usage = estimated;
+                    if (wantsFinalUsageChunk) {
+                      finalUsageChunk = {
+                        id: parsed.id,
+                        object: "chat.completion.chunk",
+                        created: parsed.created,
+                        model: parsed.model,
+                        choices: [],
+                        usage: filterUsageForFormat(estimated, FORMATS.OPENAI),
+                        ...(parsed.system_fingerprint !== undefined
+                          ? { system_fingerprint: parsed.system_fingerprint }
+                          : {}),
+                        ...(parsed.service_tier !== undefined
+                          ? { service_tier: parsed.service_tier }
+                          : {}),
+                      };
+                      delete parsed.usage;
+                    } else {
+                      parsed.usage = filterUsageForFormat(estimated, FORMATS.OPENAI);
+                    }
+                    output = `data: ${JSON.stringify(parsed)}\n`;
                     injectedUsage = true;
                   } else if (isFinishChunk && usage) {
                     const buffered = addBufferToUsage(usage);
-                    parsed.usage = filterUsageForFormat(buffered, FORMATS.OPENAI);
+                    if (wantsFinalUsageChunk) {
+                      finalUsageChunk = {
+                        id: parsed.id,
+                        object: "chat.completion.chunk",
+                        created: parsed.created,
+                        model: parsed.model,
+                        choices: [],
+                        usage: filterUsageForFormat(usage, FORMATS.OPENAI),
+                        ...(parsed.system_fingerprint !== undefined
+                          ? { system_fingerprint: parsed.system_fingerprint }
+                          : {}),
+                        ...(parsed.service_tier !== undefined
+                          ? { service_tier: parsed.service_tier }
+                          : {}),
+                      };
+                      delete parsed.usage;
+                    } else {
+                      parsed.usage = filterUsageForFormat(buffered, FORMATS.OPENAI);
+                    }
                     output = `data: ${JSON.stringify(parsed)}\n`;
                     injectedUsage = true;
                   } else if (idFixed || needsReserialization) {
@@ -486,6 +548,12 @@ export function createSSEStream(options: StreamOptions = {}) {
 
           if (parsed && parsed.done) {
             if (!doneSent) {
+              if (wantsFinalUsageChunk && finalUsageChunk?.usage) {
+                const usageOutput = formatSSE(finalUsageChunk, FORMATS.OPENAI);
+                clientPayloadCollector.push(finalUsageChunk);
+                reqLogger?.appendConvertedChunk?.(usageOutput);
+                controller.enqueue(encoder.encode(usageOutput));
+              }
               doneSent = true;
               clientPayloadCollector.push({ done: true });
               const output = "data: [DONE]\n\n";
@@ -641,12 +709,48 @@ export function createSSEStream(options: StreamOptions = {}) {
                 totalContentLength > 0
               ) {
                 const estimated = estimateUsage(body, totalContentLength, sourceFormat);
-                itemSanitized.usage = filterUsageForFormat(estimated, sourceFormat); // Filter + already has buffer
                 state.usage = estimated;
+                if (wantsFinalUsageChunk) {
+                  finalUsageChunk = {
+                    id: (itemSanitized as JsonRecord).id,
+                    object: "chat.completion.chunk",
+                    created: (itemSanitized as JsonRecord).created,
+                    model: (itemSanitized as JsonRecord).model,
+                    choices: [],
+                    usage: filterUsageForFormat(estimated, sourceFormat),
+                    ...((itemSanitized as JsonRecord).system_fingerprint !== undefined
+                      ? { system_fingerprint: (itemSanitized as JsonRecord).system_fingerprint }
+                      : {}),
+                    ...((itemSanitized as JsonRecord).service_tier !== undefined
+                      ? { service_tier: (itemSanitized as JsonRecord).service_tier }
+                      : {}),
+                  };
+                  delete (itemSanitized as JsonRecord).usage;
+                } else {
+                  itemSanitized.usage = filterUsageForFormat(estimated, sourceFormat); // Filter + already has buffer
+                }
               } else if (state.finishReason && isFinishChunk && state.usage) {
                 // Add buffer and filter usage for client (but keep original in state.usage for logging)
                 const buffered = addBufferToUsage(state.usage);
-                itemSanitized.usage = filterUsageForFormat(buffered, sourceFormat);
+                if (wantsFinalUsageChunk) {
+                  finalUsageChunk = {
+                    id: (itemSanitized as JsonRecord).id,
+                    object: "chat.completion.chunk",
+                    created: (itemSanitized as JsonRecord).created,
+                    model: (itemSanitized as JsonRecord).model,
+                    choices: [],
+                    usage: filterUsageForFormat(buffered, sourceFormat),
+                    ...((itemSanitized as JsonRecord).system_fingerprint !== undefined
+                      ? { system_fingerprint: (itemSanitized as JsonRecord).system_fingerprint }
+                      : {}),
+                    ...((itemSanitized as JsonRecord).service_tier !== undefined
+                      ? { service_tier: (itemSanitized as JsonRecord).service_tier }
+                      : {}),
+                  };
+                  delete (itemSanitized as JsonRecord).usage;
+                } else {
+                  itemSanitized.usage = filterUsageForFormat(buffered, sourceFormat);
+                }
               }
 
               const output = formatSSE(itemSanitized, sourceFormat);
@@ -826,14 +930,20 @@ export function createSSEStream(options: StreamOptions = {}) {
           }
 
           /**
-           * Usage injection strategy:
-           * Usage data (input/output tokens) is injected into the last content chunk
-           * or the finish_reason chunk rather than sent as a separate SSE event.
-           * This ensures all major clients (Claude CLI, Continue, Cursor) receive
-           * usage data even if they stop reading after the finish signal.
-           * The usage buffer (state.usage) accumulates across chunks and is only
-           * emitted once at stream end when merged into the final translated chunk.
+           * Usage emission strategy:
+           * By default, usage is merged into the last content or finish chunk for
+           * broad client compatibility. When OpenAI clients explicitly request
+           * stream_options.include_usage, emit one final usage-only
+           * chat.completion.chunk with choices: [] immediately before [DONE].
            */
+
+          // Send final usage-only chunk before [DONE] when explicitly requested
+          if (!doneSent && wantsFinalUsageChunk && finalUsageChunk?.usage) {
+            const usageOutput = formatSSE(finalUsageChunk, FORMATS.OPENAI);
+            clientPayloadCollector.push(finalUsageChunk);
+            reqLogger?.appendConvertedChunk?.(usageOutput);
+            controller.enqueue(encoder.encode(usageOutput));
+          }
 
           // Send [DONE] (only if not already sent during transform)
           if (!doneSent) {
