@@ -372,7 +372,7 @@ export function compressContext(
 
   if (currentTokens <= targetTokens) {
     return {
-      body: { ...body, messages },
+      body: buildWorkingBody(),
       compressed: true,
       stats: { ...stats, final: currentTokens },
     };
@@ -385,14 +385,16 @@ export function compressContext(
 
   if (currentTokens <= targetTokens) {
     return {
-      body: { ...body, messages },
+      body: buildWorkingBody(),
       compressed: true,
       stats: { ...stats, final: currentTokens },
     };
   }
 
-  // Layer 3: Aggressive purification — drop oldest messages keeping system + last N pairs
-  messages = purifyHistory(messages, targetTokens);
+  // Layer 3: Aggressive purification — drop oldest messages keeping the newest content that still fits.
+  messages = purifyHistory(messages, (candidateMessages) =>
+    estimateRequestTokens({ ...body, messages: candidateMessages, tools }) <= targetTokens
+  );
   currentTokens = estimateRequestTokens(buildWorkingBody());
   stats.layers.push({ name: "purify_history", tokens: currentTokens });
 
@@ -529,30 +531,40 @@ function compressThinking(messages) {
 
 // ─── Layer 3: Aggressive Purification ───────────────────────────────────────
 
-function purifyHistory(messages, targetTokens) {
-  // Keep system message(s) and the last N message pairs
+function purifyHistory(messages, fitsWithinTarget) {
+  // Keep system message(s) and the most recent non-system messages that still fit.
   const system = messages.filter((m) => m.role === "system" || m.role === "developer");
   const nonSystem = messages.filter((m) => m.role !== "system" && m.role !== "developer");
 
-  // Binary search for how many messages to keep from the end
+  const buildCandidate = (keep, includeSummary) => {
+    const keptMessages = keep <= 0 ? [] : nonSystem.slice(-keep);
+    const candidate = [...system, ...keptMessages];
+    if (includeSummary && keep < nonSystem.length) {
+      const dropped = nonSystem.length - keep;
+      candidate.splice(system.length, 0, {
+        role: "system",
+        content: `[Context compressed: ${dropped} earlier messages removed to fit context window]`,
+      });
+    }
+    return candidate;
+  };
+
   let keep = nonSystem.length;
-  while (keep > 2) {
-    const candidate = [...system, ...nonSystem.slice(-keep)];
-    const tokens = estimateTokens(JSON.stringify(candidate));
-    if (tokens <= targetTokens) break;
-    keep = Math.max(2, Math.floor(keep * 0.7)); // Drop 30% each iteration
+  while (keep >= 0) {
+    const withSummary = buildCandidate(keep, true);
+    if (fitsWithinTarget(withSummary)) {
+      return withSummary;
+    }
+
+    const withoutSummary = buildCandidate(keep, false);
+    if (fitsWithinTarget(withoutSummary)) {
+      return withoutSummary;
+    }
+
+    if (keep === 0) break;
+    const nextKeep = Math.floor(keep * 0.7);
+    keep = nextKeep < keep ? nextKeep : keep - 1;
   }
 
-  const result = [...system, ...nonSystem.slice(-keep)];
-
-  // Add summary of dropped messages
-  if (keep < nonSystem.length) {
-    const dropped = nonSystem.length - keep;
-    result.splice(system.length, 0, {
-      role: "system",
-      content: `[Context compressed: ${dropped} earlier messages removed to fit context window]`,
-    });
-  }
-
-  return result;
+  return buildCandidate(0, false);
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { compressContext, estimateTokens, getTokenLimit } =
+const { compressContext, estimateRequestTokens, estimateTokens, getTokenLimit } =
   await import("../../open-sse/services/contextManager.ts");
 const { CONTEXT_CONFIG } = await import("../../src/shared/constants/context.ts");
 
@@ -51,7 +51,7 @@ test("compressContext: handles null/empty body", () => {
   assert.equal(compressContext({ messages: null }).compressed, false);
 });
 
-test("compressContext: Layer 1 — trims long tool messages", () => {
+test("compressContext: trims oversized tool messages or purifies them away", () => {
   const longContent = "x".repeat(10000);
   const body = {
     model: "test",
@@ -61,12 +61,19 @@ test("compressContext: Layer 1 — trims long tool messages", () => {
       { role: "user", content: "done?" },
     ],
   };
-  // Use very tight limit to force compression
-  const result = compressContext(body, { maxTokens: 500, reserveTokens: 100 });
+  const maxTokens = 500;
+  const reserveTokens = 100;
+  const targetTokens = maxTokens - reserveTokens;
+  const result = compressContext(body, { maxTokens, reserveTokens });
+
   assert.ok(result.compressed);
+  assert.ok(estimateRequestTokens(result.body) <= targetTokens);
+
   const toolMsg = result.body.messages.find((m) => m.role === "tool");
-  assert.ok(toolMsg.content.length < longContent.length);
-  assert.ok(toolMsg.content.includes("[truncated]"));
+  if (toolMsg) {
+    assert.ok(toolMsg.content.length < longContent.length);
+    assert.ok(toolMsg.content.includes("[truncated]"));
+  }
 });
 
 test("compressContext: Layer 2 — compresses thinking in old messages", () => {
@@ -109,9 +116,79 @@ test("compressContext: Layer 3 — drops old messages to fit", () => {
     ]).flat(),
   ];
   const body = { model: "test", messages };
-  const result = compressContext(body, { maxTokens: 3000, reserveTokens: 500 });
+  const maxTokens = 3000;
+  const reserveTokens = 500;
+  const targetTokens = maxTokens - reserveTokens;
+  const result = compressContext(body, { maxTokens, reserveTokens });
   assert.ok(result.compressed);
   assert.ok(result.body.messages.length < messages.length);
   // System message preserved
   assert.equal(result.body.messages[0].role, "system");
+  assert.ok(
+    estimateTokens(JSON.stringify(result.body.messages)) <= targetTokens,
+    "Purified history should fit within target token budget"
+  );
+});
+
+test("compressContext: Layer 3 can drop all non-system messages when needed", () => {
+  const body = {
+    model: "test",
+    messages: [
+      { role: "system", content: "System" },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: "x".repeat(600),
+      })),
+    ],
+  };
+
+  const result = compressContext(body, { maxTokens: 250, reserveTokens: 200 });
+
+  assert.ok(result.compressed);
+  assert.deepEqual(result.body.messages[0], { role: "system", content: "System" });
+  assert.equal(result.body.messages.length, 2);
+  assert.match(result.body.messages[1].content, /Context compressed: 8 earlier messages removed/);
+});
+
+test("compressContext: full-body fit check accounts for top-level tools", () => {
+  const body = {
+    model: "test",
+    messages: Array.from({ length: 35 }, (_, i) => ({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content: "x".repeat(300),
+    })),
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "oversized_tool",
+          description: "d".repeat(300),
+          parameters: {
+            type: "object",
+            properties: Object.fromEntries(
+              Array.from({ length: 35 }, (_, i) => [
+                `field_${i}`,
+                { type: "string", description: "p".repeat(100) },
+              ])
+            ),
+          },
+        },
+      },
+    ],
+  };
+
+  const maxTokens = 4700;
+  const reserveTokens = 200;
+  const targetTokens = maxTokens - reserveTokens;
+  const result = compressContext(body, { maxTokens, reserveTokens });
+
+  assert.ok(result.compressed);
+  assert.ok(
+    estimateRequestTokens(result.body) <= targetTokens,
+    "Compressed request body should fit even when top-level tools are large"
+  );
+  assert.ok(
+    estimateTokens(JSON.stringify(result.body)) > estimateTokens(JSON.stringify(result.body.messages)),
+    "Top-level tools should still contribute extra request tokens"
+  );
 });
