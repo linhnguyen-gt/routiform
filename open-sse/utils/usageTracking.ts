@@ -250,6 +250,18 @@ export function normalizeUsage(usage) {
     if (Number.isFinite(numeric)) normalized[key] = numeric;
   };
 
+  const normalizeDetails = (details, mapping) => {
+    if (!details || typeof details !== "object" || Array.isArray(details)) return undefined;
+    const normalizedDetails = {};
+    for (const [fromKey, toKey] of mapping) {
+      const value = details[fromKey];
+      if (value === undefined || value === null) continue;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) normalizedDetails[toKey] = numeric;
+    }
+    return Object.keys(normalizedDetails).length > 0 ? normalizedDetails : undefined;
+  };
+
   assignNumber("prompt_tokens", usage?.prompt_tokens);
   assignNumber("completion_tokens", usage?.completion_tokens);
   assignNumber("total_tokens", usage?.total_tokens);
@@ -257,6 +269,19 @@ export function normalizeUsage(usage) {
   assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens);
   assignNumber("cached_tokens", usage?.cached_tokens);
   assignNumber("reasoning_tokens", usage?.reasoning_tokens);
+
+  const usageAny = usage as any;
+  const promptDetails = normalizeDetails(usageAny?.prompt_tokens_details, [
+    ["cached_tokens", "cached_tokens"],
+    ["cache_creation_tokens", "cache_creation_tokens"],
+    ["cache_write_tokens", "cache_write_tokens"],
+  ]);
+  if (promptDetails) (normalized as any).prompt_tokens_details = promptDetails;
+
+  const completionDetails = normalizeDetails(usageAny?.completion_tokens_details, [
+    ["reasoning_tokens", "reasoning_tokens"],
+  ]);
+  if (completionDetails) (normalized as any).completion_tokens_details = completionDetails;
 
   if (Object.keys(normalized).length === 0) return null;
   return normalized;
@@ -340,6 +365,18 @@ export function extractUsage(chunk) {
       completion_tokens: usage.output_tokens || usage.completion_tokens || 0,
       cached_tokens: usage.input_tokens_details?.cached_tokens,
       reasoning_tokens: usage.output_tokens_details?.reasoning_tokens,
+      prompt_tokens_details: usage.input_tokens_details
+        ? {
+            cached_tokens: usage.input_tokens_details.cached_tokens,
+            cache_creation_tokens: usage.input_tokens_details.cache_creation_tokens,
+            cache_write_tokens: usage.input_tokens_details.cache_write_tokens,
+          }
+        : undefined,
+      completion_tokens_details: usage.output_tokens_details
+        ? {
+            reasoning_tokens: usage.output_tokens_details.reasoning_tokens,
+          }
+        : undefined,
     });
   }
 
@@ -349,11 +386,14 @@ export function extractUsage(chunk) {
     typeof chunk.usage === "object" &&
     (chunk.usage.prompt_tokens !== undefined || chunk.usage.input_tokens !== undefined)
   ) {
+    const chunkUsage = chunk.usage as any;
     return normalizeUsage({
-      prompt_tokens: chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0,
-      completion_tokens: chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0,
-      cached_tokens: chunk.usage.prompt_tokens_details?.cached_tokens,
-      reasoning_tokens: chunk.usage.completion_tokens_details?.reasoning_tokens,
+      prompt_tokens: chunkUsage.prompt_tokens ?? chunkUsage.input_tokens ?? 0,
+      completion_tokens: chunkUsage.completion_tokens ?? chunkUsage.output_tokens ?? 0,
+      cached_tokens: chunkUsage.prompt_tokens_details?.cached_tokens,
+      reasoning_tokens: chunkUsage.completion_tokens_details?.reasoning_tokens,
+      prompt_tokens_details: chunkUsage.prompt_tokens_details,
+      completion_tokens_details: chunkUsage.completion_tokens_details,
     });
   }
 

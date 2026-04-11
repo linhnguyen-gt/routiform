@@ -1,19 +1,35 @@
 // Tool call helper functions for translator
+import { createHash } from "node:crypto";
 
 const ALPHANUM9 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-// Generate unique tool call ID (default long form)
-export function generateToolCallId() {
-  return `call_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+function stableToolIdHash(seed: unknown): string {
+  return createHash("sha256").update(JSON.stringify(seed ?? null)).digest("hex");
 }
 
-// Generate 9-char [a-zA-Z0-9] id for providers that require it (e.g. Mistral)
-function generateToolCallId9(): string {
-  let s = "";
-  for (let i = 0; i < 9; i++) {
-    s += ALPHANUM9[Math.floor(Math.random() * ALPHANUM9.length)];
+function toBase62(hash: string, length: number): string {
+  let out = "";
+  for (let i = 0; out.length < length; i += 2) {
+    const byteHex = hash.slice(i, i + 2) || hash.slice(0, 2) || "00";
+    const byte = Number.parseInt(byteHex, 16) || 0;
+    out += ALPHANUM9[byte % ALPHANUM9.length];
   }
-  return s;
+  return out;
+}
+
+// Generate deterministic tool call ID (default long form)
+export function generateToolCallId(seed?: unknown) {
+  return `call_${stableToolIdHash(seed).slice(0, 16)}`;
+}
+
+// Generate deterministic tool_use style ID
+export function generateToolUseId(seed?: unknown) {
+  return `toolu_${stableToolIdHash(seed).slice(0, 16)}`;
+}
+
+// Generate deterministic 9-char [a-zA-Z0-9] id for providers that require it (e.g. Mistral)
+export function generateToolCallId9(seed?: unknown): string {
+  return toBase62(stableToolIdHash(seed), 9);
 }
 
 /** @param options.use9CharId - When true, normalize ids to 9-char [a-zA-Z0-9] (e.g. Mistral); when false, only fix type/arguments, leave ids as-is */
@@ -29,25 +45,34 @@ export function ensureToolCallIds(body, options?: { use9CharId?: boolean }) {
     const used9 = new Set<string>();
     const newIdsInOrder: string[] = [];
 
-    for (const tc of msg.tool_calls) {
+    for (let toolIndex = 0; toolIndex < msg.tool_calls.length; toolIndex++) {
+      const tc = msg.tool_calls[toolIndex];
       if (!tc.type) {
         tc.type = "function";
       }
       if (tc.function?.arguments && typeof tc.function.arguments !== "string") {
         tc.function.arguments = JSON.stringify(tc.function.arguments);
       }
+
+      const existingId = tc.id != null && String(tc.id).trim() !== "" ? String(tc.id) : "";
+      const seed = {
+        existingId,
+        messageIndex: i,
+        toolIndex,
+        name: tc.function?.name ?? tc.name ?? "",
+        arguments: tc.function?.arguments ?? "",
+      };
+
       if (use9CharId) {
-        let newId: string;
-        do {
-          newId = generateToolCallId9();
-        } while (used9.has(newId));
+        let newId = generateToolCallId9(seed);
+        while (used9.has(newId)) {
+          newId = generateToolCallId9({ ...seed, collision: used9.size });
+        }
         used9.add(newId);
         newIdsInOrder.push(newId);
         tc.id = newId;
       } else {
-        // Leave id as-is, only ensure it exists for later tool message matching
-        const id =
-          tc.id != null && String(tc.id).trim() !== "" ? String(tc.id) : generateToolCallId();
+        const id = existingId || generateToolCallId(seed);
         tc.id = id;
         newIdsInOrder.push(id);
       }

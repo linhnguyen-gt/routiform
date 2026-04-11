@@ -8,6 +8,7 @@ import {
 import { PROVIDERS } from "../config/constants.ts";
 import { v4 as uuidv4 } from "uuid";
 import { refreshKiroToken } from "../services/tokenRefresh.ts";
+import { generateToolCallId } from "../translator/helpers/toolCallHelper.ts";
 import { CONTEXT_CONFIG } from "../../src/shared/constants/context";
 
 type JsonRecord = Record<string, unknown>;
@@ -223,7 +224,14 @@ export class KiroExecutor extends BaseExecutor {
             const toolUses = Array.isArray(toolUse) ? toolUse : [toolUse];
 
             for (const singleToolUse of toolUses) {
-              const toolCallId = singleToolUse.toolUseId || `call_${Date.now()}`;
+              const toolCallId =
+                singleToolUse.toolUseId ||
+                generateToolCallId({
+                  source: "kiro-executor-tool-use",
+                  occurrence: state.toolCallIndex,
+                  name: singleToolUse.name || "",
+                  input: singleToolUse.input,
+                });
               const toolName = singleToolUse.name || "";
               const toolInput = singleToolUse.input;
 

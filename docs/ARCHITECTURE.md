@@ -192,7 +192,23 @@ Management domains:
 Main flow modules:
 
 - Entry: `src/sse/handlers/chat.ts`
-- Core orchestration: `open-sse/handlers/chatCore.ts`
+- Core orchestration: `open-sse/handlers/chatCore.ts` (2,094 lines, modularized)
+- Request phases: `open-sse/handlers/phases/*` (7 modules)
+  - `idempotency-check.ts` — duplicate request detection
+  - `input-sanitizer.ts` — request normalization and memory injection
+  - `semantic-cache-handler.ts` — semantic cache lookup
+  - `background-task-redirector.ts` — async task routing
+  - `context-validator.ts` — context window validation and compression
+  - `model-fallback-handler.ts` — model-level fallback logic
+  - `emergency-fallback-handler.ts` — last-resort fallback strategies
+- Handler utilities: `open-sse/handlers/utils/*` (3 modules)
+  - `cache-log-helpers.ts` — cache usage logging utilities
+  - `claude-passthrough-helpers.ts` — Claude tool name mapping
+  - `header-helpers.ts` — case-insensitive header access
+- Handler services: `open-sse/handlers/services/*` (1 module)
+  - `codex-quota-manager.ts` — Codex quota state persistence
+- Handler types: `open-sse/handlers/types/*` (1 module)
+  - `chat-request-context.ts` — request context type definitions
 - Provider execution adapters: `open-sse/executors/*`
 - Format detection/provider config: `open-sse/services/provider.ts`
 - Model parse/resolve: `src/sse/services/model.ts`, `open-sse/services/model.ts`
