@@ -33,9 +33,15 @@ export async function handleResponsesCore({
 }) {
   // Convert Responses API format to Chat Completions format
   const convertedBody = convertResponsesApiFormat(body);
+  const convertedBodyRecord =
+    convertedBody && typeof convertedBody === "object" && !Array.isArray(convertedBody)
+      ? (convertedBody as Record<string, unknown>)
+      : null;
 
   // Ensure stream is enabled
-  convertedBody.stream = true;
+  if (convertedBodyRecord) {
+    convertedBodyRecord.stream = true;
+  }
 
   // Call chat core handler
   const result = await handleChatCore({

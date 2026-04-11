@@ -311,15 +311,25 @@ export class CodexExecutor extends BaseExecutor {
     // Remove session_id - generated for internal tracking but not supported by upstream Codex API
     delete body.session_id;
 
+    // Normalize suffixed model IDs before passthrough so upstream Codex receives
+    // the wire model name rather than the internal convenience suffix.
+    // e.g., gpt-5.3-codex-high → gpt-5.3-codex
+    if (modelEffort) {
+      body.model = cleanModel;
+      if (!body.reasoning) {
+        body.reasoning = { effort: clampEffort(cleanModel, modelEffort) };
+      } else if (body.reasoning.effort) {
+        body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
+      }
+      delete body.reasoning_effort;
+    }
+
     if (nativeCodexPassthrough) {
       return body;
     }
 
     // Apply normalized model/effect for the actual Codex wire request.
     // e.g., gpt-5.3-codex-high → model gpt-5.3-codex with reasoning high
-    if (modelEffort) {
-      body.model = cleanModel;
-    }
 
     // Priority: explicit reasoning.effort > reasoning_effort param > model suffix > default (medium)
     if (!body.reasoning) {

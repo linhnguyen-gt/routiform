@@ -1,6 +1,9 @@
 // Tool call helper functions for translator
 import { createHash } from "node:crypto";
 
+type JsonRecord = Record<string, unknown>;
+type MessageBody = { messages?: JsonRecord[] } & JsonRecord;
+
 const ALPHANUM9 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function stableToolIdHash(seed: unknown): string {
@@ -33,7 +36,7 @@ export function generateToolCallId9(seed?: unknown): string {
 }
 
 /** @param options.use9CharId - When true, normalize ids to 9-char [a-zA-Z0-9] (e.g. Mistral); when false, only fix type/arguments, leave ids as-is */
-export function ensureToolCallIds(body, options?: { use9CharId?: boolean }) {
+export function ensureToolCallIds(body: MessageBody, options?: { use9CharId?: boolean }) {
   if (!body.messages || !Array.isArray(body.messages)) return body;
 
   const use9CharId = options?.use9CharId === true;
@@ -98,10 +101,10 @@ export function ensureToolCallIds(body, options?: { use9CharId?: boolean }) {
 }
 
 // Get tool_call ids from assistant message (OpenAI format: tool_calls, Claude format: tool_use in content)
-export function getToolCallIds(msg) {
+export function getToolCallIds(msg: JsonRecord) {
   if (msg.role !== "assistant") return [];
 
-  const ids = [];
+  const ids: string[] = [];
 
   // OpenAI format: tool_calls array
   if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
@@ -123,18 +126,29 @@ export function getToolCallIds(msg) {
 }
 
 // Check if user message has tool_result for given ids (OpenAI format: role=tool, Claude format: tool_result in content)
-export function hasToolResults(msg, toolCallIds) {
+export function hasToolResults(msg: JsonRecord | null | undefined, toolCallIds: string[]) {
   if (!msg || !toolCallIds.length) return false;
 
   // OpenAI format: role = "tool" with tool_call_id
-  if (msg.role === "tool" && msg.tool_call_id) {
+  if (msg.role === "tool" && typeof msg.tool_call_id === "string") {
     return toolCallIds.includes(msg.tool_call_id);
   }
 
   // Claude format: tool_result blocks in user message content
   if (msg.role === "user" && Array.isArray(msg.content)) {
     for (const block of msg.content) {
-      if (block.type === "tool_result" && toolCallIds.includes(block.tool_use_id)) {
+      const toolUseId =
+        block && typeof block === "object" && !Array.isArray(block)
+          ? (block as JsonRecord).tool_use_id
+          : undefined;
+      if (
+        block &&
+        typeof block === "object" &&
+        !Array.isArray(block) &&
+        (block as JsonRecord).type === "tool_result" &&
+        typeof toolUseId === "string" &&
+        toolCallIds.includes(toolUseId)
+      ) {
         return true;
       }
     }
@@ -144,10 +158,10 @@ export function hasToolResults(msg, toolCallIds) {
 }
 
 // Fix missing tool responses - insert empty tool_result if assistant has tool_use but next message has no tool_result
-export function fixMissingToolResponses(body) {
+export function fixMissingToolResponses(body: MessageBody) {
   if (!body.messages || !Array.isArray(body.messages)) return body;
 
-  const newMessages = [];
+  const newMessages: Array<Record<string, unknown>> = [];
 
   for (let i = 0; i < body.messages.length; i++) {
     const msg = body.messages[i];

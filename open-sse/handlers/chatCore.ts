@@ -1721,11 +1721,21 @@ export async function handleChatCore({
             const fallbackContentType = (
               fallbackResult.response.headers.get("content-type") || ""
             ).toLowerCase();
+            const fallbackNormalizedProviderPayload = normalizePayloadForLog(fallbackRaw);
             const fallbackLooksLikeHtml =
               fallbackContentType.includes("text/html") ||
               /^\s*<(?:!doctype html|html|body)\b/i.test(fallbackRaw);
             if (fallbackLooksLikeHtml) {
-              return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Provider returned HTML error page");
+              const htmlErrorMessage = "Provider returned HTML error page";
+              persistAttemptLogs({
+                status: HTTP_STATUS.BAD_GATEWAY,
+                error: htmlErrorMessage,
+                providerRequest: fallbackResult.transformedBody || translatedBody,
+                providerResponse: fallbackNormalizedProviderPayload,
+                clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, htmlErrorMessage),
+              });
+              persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "html_error_payload");
+              return createErrorResult(HTTP_STATUS.BAD_GATEWAY, htmlErrorMessage);
             }
             try {
               responseBody = fallbackRaw ? JSON.parse(fallbackRaw) : {};
@@ -1739,19 +1749,50 @@ export async function handleChatCore({
               );
               // Fall through — continue processing with the new responseBody
             } catch {
-              return createErrorResult(
-                HTTP_STATUS.BAD_GATEWAY,
-                fallbackRaw.trim() || emptyContentMessage
-              );
+              const invalidJsonMessage = fallbackRaw.trim() || "Invalid JSON response from provider";
+              persistAttemptLogs({
+                status: HTTP_STATUS.BAD_GATEWAY,
+                error: invalidJsonMessage,
+                providerRequest: fallbackResult.transformedBody || translatedBody,
+                providerResponse: fallbackNormalizedProviderPayload,
+                clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, invalidJsonMessage),
+              });
+              persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "invalid_json_payload");
+              return createErrorResult(HTTP_STATUS.BAD_GATEWAY, invalidJsonMessage);
             }
           } else {
-            return createErrorResult(HTTP_STATUS.BAD_GATEWAY, emptyContentMessage);
+            const fallbackStatusMessage = `Fallback provider returned ${fallbackResult.response.status}`;
+            persistAttemptLogs({
+              status: HTTP_STATUS.BAD_GATEWAY,
+              error: fallbackStatusMessage,
+              providerRequest: fallbackResult.transformedBody || translatedBody,
+              clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, fallbackStatusMessage),
+            });
+            persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "empty_content_fallback_failed");
+            return createErrorResult(HTTP_STATUS.BAD_GATEWAY, fallbackStatusMessage);
           }
         } catch {
-          return createErrorResult(HTTP_STATUS.BAD_GATEWAY, emptyContentMessage);
+          const fallbackExecutionMessage = "Fallback provider request failed after empty content";
+          persistAttemptLogs({
+            status: HTTP_STATUS.BAD_GATEWAY,
+            error: fallbackExecutionMessage,
+            providerRequest: finalBody || translatedBody,
+            clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, fallbackExecutionMessage),
+          });
+          persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "empty_content_fallback_request_failed");
+          return createErrorResult(HTTP_STATUS.BAD_GATEWAY, fallbackExecutionMessage);
         }
       } else {
-        return createErrorResult(HTTP_STATUS.BAD_GATEWAY, emptyContentMessage);
+        const noFallbackMessage = "Provider returned empty content and no fallback model was available";
+        persistAttemptLogs({
+          status: HTTP_STATUS.BAD_GATEWAY,
+          error: noFallbackMessage,
+          providerRequest: finalBody || translatedBody,
+          providerResponse: normalizedProviderPayload,
+          clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, noFallbackMessage),
+        });
+        persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "empty_content_no_fallback");
+        return createErrorResult(HTTP_STATUS.BAD_GATEWAY, noFallbackMessage);
       }
     }
 

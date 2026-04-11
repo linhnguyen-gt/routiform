@@ -295,9 +295,14 @@ export class CursorExecutor extends BaseExecutor {
       signal,
     });
 
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value;
+    });
+
     return {
       status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
+      headers: responseHeaders,
       body: Buffer.from(await response.arrayBuffer()),
     };
   }

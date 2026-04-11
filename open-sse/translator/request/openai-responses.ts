@@ -318,7 +318,7 @@ export function openaiToOpenAIResponsesRequest(
   let hasSystemMessage = false;
   const messages = toArray(root.messages);
 
-  for (const messageValue of messages) {
+  for (const [messageIndex, messageValue] of messages.entries()) {
     const msg = toRecord(messageValue);
     const role = toString(msg.role);
 
@@ -442,7 +442,7 @@ export function openaiToOpenAIResponsesRequest(
               toString(toolCall.id).trim() ||
               generateToolCallId({
                 source: "openai-to-responses",
-                messageIndex: body.messages.indexOf(msg),
+                messageIndex,
                 toolCallIndex,
                 name: fnName,
                 arguments: fnArguments,
@@ -461,7 +461,7 @@ export function openaiToOpenAIResponsesRequest(
           const fnArguments = toString(fc.arguments, "{}");
           const callId = generateToolCallId({
             source: "openai-to-responses-deprecated-function-call",
-            messageIndex: body.messages.indexOf(msg),
+            messageIndex,
             name: fnName,
             arguments: fnArguments,
           });
@@ -505,7 +505,7 @@ export function openaiToOpenAIResponsesRequest(
           dequeueDeprecatedCallId(functionName) ||
           generateToolCallId({
             source: "openai-to-responses-deprecated-function-output",
-            messageIndex: body.messages.indexOf(msg),
+            messageIndex,
             name: functionName,
             output,
           }),

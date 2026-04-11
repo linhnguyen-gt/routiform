@@ -243,18 +243,36 @@ export function filterUsageForFormat(usage, targetFormat) {
 export function normalizeUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
-  const normalized = {};
-  const assignNumber = (key, value) => {
+  type UsageDetails = Record<string, number>;
+  type NormalizedUsage = {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cached_tokens?: number;
+    reasoning_tokens?: number;
+    prompt_tokens_details?: UsageDetails;
+    completion_tokens_details?: UsageDetails;
+  };
+
+  const normalized: NormalizedUsage = {};
+  type NumericUsageKey = Exclude<keyof NormalizedUsage, "prompt_tokens_details" | "completion_tokens_details">;
+  const assignNumber = (key: NumericUsageKey, value: unknown) => {
     if (value === undefined || value === null) return;
     const numeric = Number(value);
     if (Number.isFinite(numeric)) normalized[key] = numeric;
   };
 
-  const normalizeDetails = (details, mapping) => {
+  const normalizeDetails = (
+    details: unknown,
+    mapping: ReadonlyArray<readonly [string, string]>
+  ): UsageDetails | undefined => {
     if (!details || typeof details !== "object" || Array.isArray(details)) return undefined;
-    const normalizedDetails = {};
+    const detailRecord = details as Record<string, unknown>;
+    const normalizedDetails: UsageDetails = {};
     for (const [fromKey, toKey] of mapping) {
-      const value = details[fromKey];
+      const value = detailRecord[fromKey];
       if (value === undefined || value === null) continue;
       const numeric = Number(value);
       if (Number.isFinite(numeric)) normalizedDetails[toKey] = numeric;
@@ -270,18 +288,21 @@ export function normalizeUsage(usage) {
   assignNumber("cached_tokens", usage?.cached_tokens);
   assignNumber("reasoning_tokens", usage?.reasoning_tokens);
 
-  const usageAny = usage as any;
-  const promptDetails = normalizeDetails(usageAny?.prompt_tokens_details, [
+  const usageRecord = usage as Record<string, unknown> & {
+    prompt_tokens_details?: Record<string, unknown>;
+    completion_tokens_details?: Record<string, unknown>;
+  };
+  const promptDetails = normalizeDetails(usageRecord.prompt_tokens_details, [
     ["cached_tokens", "cached_tokens"],
     ["cache_creation_tokens", "cache_creation_tokens"],
     ["cache_write_tokens", "cache_write_tokens"],
   ]);
-  if (promptDetails) (normalized as any).prompt_tokens_details = promptDetails;
+  if (promptDetails) normalized.prompt_tokens_details = promptDetails;
 
-  const completionDetails = normalizeDetails(usageAny?.completion_tokens_details, [
+  const completionDetails = normalizeDetails(usageRecord.completion_tokens_details, [
     ["reasoning_tokens", "reasoning_tokens"],
   ]);
-  if (completionDetails) (normalized as any).completion_tokens_details = completionDetails;
+  if (completionDetails) normalized.completion_tokens_details = completionDetails;
 
   if (Object.keys(normalized).length === 0) return null;
   return normalized;
@@ -386,7 +407,14 @@ export function extractUsage(chunk) {
     typeof chunk.usage === "object" &&
     (chunk.usage.prompt_tokens !== undefined || chunk.usage.input_tokens !== undefined)
   ) {
-    const chunkUsage = chunk.usage as any;
+    const chunkUsage = chunk.usage as Record<string, unknown> & {
+      prompt_tokens?: unknown;
+      input_tokens?: unknown;
+      completion_tokens?: unknown;
+      output_tokens?: unknown;
+      prompt_tokens_details?: Record<string, unknown>;
+      completion_tokens_details?: Record<string, unknown>;
+    };
     return normalizeUsage({
       prompt_tokens: chunkUsage.prompt_tokens ?? chunkUsage.input_tokens ?? 0,
       completion_tokens: chunkUsage.completion_tokens ?? chunkUsage.output_tokens ?? 0,

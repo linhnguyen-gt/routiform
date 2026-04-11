@@ -229,10 +229,8 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
             existing.index = tc.index;
           }
           if (tc?.function?.name && !existing.function?.name) {
-            existing.function = (existing.function || {}) as any;
             existing.function.name = tc.function.name;
           }
-          existing.function = (existing.function || {}) as any;
           existing.function.arguments = `${existing.function.arguments || ""}${deltaArgs}`;
           accumulatedToolCalls.set(key, existing);
         }
@@ -436,35 +434,41 @@ export function parseSSEToClaudeResponse(rawSSE, fallbackModel) {
     mergeUsage(payload.usage);
   }
 
-  const content = [...blocks.values()]
+  type ParsedContentBlock =
+    | { type: "text"; text: string }
+    | { type: "thinking"; thinking: string; signature?: string }
+    | { type: "tool_use"; id: string; name: string; input: unknown };
+
+  const content: ParsedContentBlock[] = [...blocks.values()]
     .sort((a, b) => a.index - b.index)
-    .flatMap((block): any[] => {
+    .reduce<ParsedContentBlock[]>((items, block) => {
       if (block.type === "text") {
-        return block.text ? [{ type: "text", text: block.text }] : [];
+        if (block.text) {
+          items.push({ type: "text", text: block.text });
+        }
+        return items;
       }
       if (block.type === "thinking") {
-        return block.thinking
-          ? [
-              {
-                type: "thinking",
-                thinking: block.thinking,
-                ...(block.signature ? { signature: block.signature } : {}),
-              },
-            ]
-          : [];
+        if (block.thinking) {
+          items.push({
+            type: "thinking",
+            thinking: block.thinking,
+            ...(block.signature ? { signature: block.signature } : {}),
+          });
+        }
+        return items;
       }
 
       const parsedInput =
         block.inputJson.trim().length > 0 ? tryParseJson(block.inputJson) : block.input;
-      return [
-        {
-          type: "tool_use",
-          id: block.id,
-          name: block.name,
-          input: parsedInput,
-        },
-      ];
-    });
+      items.push({
+        type: "tool_use",
+        id: block.id,
+        name: block.name,
+        input: parsedInput,
+      });
+      return items;
+    }, []);
 
   return {
     id: messageId || `msg_${Date.now()}`,

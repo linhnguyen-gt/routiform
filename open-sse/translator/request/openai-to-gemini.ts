@@ -75,8 +75,8 @@ type CloudCodeEnvelope = {
   };
 };
 
-function normalizeAntigravityToolName(name: unknown) {
-  if (typeof name !== "string") return name;
+function normalizeAntigravityToolName(name: unknown): string {
+  if (typeof name !== "string") return "";
   const trimmed = name.trim();
   if (!trimmed) return trimmed;
 
@@ -367,11 +367,22 @@ export function openaiToGeminiCLIRequest(model, body, stream) {
     for (const content of gemini.contents) {
       if (!Array.isArray(content.parts)) continue;
       for (const part of content.parts) {
-        if (part.functionCall?.name) {
-          part.functionCall.name = normalizeAntigravityToolName(part.functionCall.name);
+        const functionCall =
+          part.functionCall && typeof part.functionCall === "object" && !Array.isArray(part.functionCall)
+            ? (part.functionCall as Record<string, unknown>)
+            : null;
+        if (functionCall?.name) {
+          functionCall.name = normalizeAntigravityToolName(functionCall.name);
         }
-        if (part.functionResponse?.name) {
-          part.functionResponse.name = normalizeAntigravityToolName(part.functionResponse.name);
+
+        const functionResponse =
+          part.functionResponse &&
+          typeof part.functionResponse === "object" &&
+          !Array.isArray(part.functionResponse)
+            ? (part.functionResponse as Record<string, unknown>)
+            : null;
+        if (functionResponse?.name) {
+          functionResponse.name = normalizeAntigravityToolName(functionResponse.name);
         }
       }
     }

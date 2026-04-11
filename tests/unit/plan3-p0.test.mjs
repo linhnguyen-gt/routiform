@@ -422,6 +422,27 @@ test("CodexExecutor preserves native responses payloads for Codex passthrough", 
   assert.ok(!("_nativeCodexPassthrough" in transformed));
 });
 
+test("CodexExecutor normalizes suffixed models for native Codex passthrough", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.3-codex-high",
+    {
+      model: "gpt-5.3-codex-high",
+      input: "ship it",
+      instructions: "custom system prompt",
+      _nativeCodexPassthrough: true,
+      stream: false,
+    },
+    false
+  );
+
+  assert.equal(transformed.model, "gpt-5.3-codex");
+  assert.deepEqual(transformed.reasoning, { effort: "high" });
+  assert.equal(transformed.reasoning_effort, undefined);
+  assert.equal(transformed.stream, true);
+  assert.ok(!("_nativeCodexPassthrough" in transformed));
+});
+
 test("CodexExecutor strips streaming fields for compact passthrough", () => {
   const executor = new CodexExecutor();
   const transformed = executor.transformRequest(
