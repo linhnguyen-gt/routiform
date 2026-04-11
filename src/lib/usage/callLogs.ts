@@ -463,6 +463,21 @@ export async function saveCallLog(entry: any) {
         ).run(artifactRelPath, protectedPipelinePayloads ? 1 : 0, logEntry.id);
       }
     }
+
+    const overflow = db
+      .prepare("SELECT COUNT(*) - ? AS overflow FROM call_logs")
+      .get(getCallLogMaxEntries()) as { overflow?: number };
+    const overflowRows = Math.max(0, overflow?.overflow ?? 0);
+    if (overflowRows > 0) {
+      db.prepare(
+        `DELETE FROM call_logs
+         WHERE id IN (
+           SELECT id FROM call_logs
+           ORDER BY timestamp ASC, id ASC
+           LIMIT ?
+         )`
+      ).run(overflowRows);
+    }
   } catch (error) {
     console.error("[callLogs] Failed to save call log:", (error as Error).message);
   }

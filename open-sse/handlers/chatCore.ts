@@ -2182,6 +2182,26 @@ export async function handleChatCore({
 
       responseBody = parsedFromSSE;
     } else {
+      const looksLikeHtml = contentType.includes("text/html") || /^\s*<(?:!doctype html|html|body)\b/i.test(rawBody);
+      if (looksLikeHtml) {
+        appendRequestLog({
+          model,
+          provider,
+          connectionId,
+          status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}`,
+        }).catch(() => {});
+        const htmlErrorMessage = "Provider returned HTML error page";
+        persistAttemptLogs({
+          status: HTTP_STATUS.BAD_GATEWAY,
+          error: htmlErrorMessage,
+          providerRequest: finalBody || translatedBody,
+          providerResponse: normalizedProviderPayload,
+          clientResponse: buildErrorBody(HTTP_STATUS.BAD_GATEWAY, htmlErrorMessage),
+        });
+        persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "html_error_payload");
+        return createErrorResult(HTTP_STATUS.BAD_GATEWAY, htmlErrorMessage);
+      }
+
       try {
         responseBody = rawBody ? JSON.parse(rawBody) : {};
       } catch {
@@ -2191,7 +2211,7 @@ export async function handleChatCore({
           connectionId,
           status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}`,
         }).catch(() => {});
-        const invalidJsonMessage = "Invalid JSON response from provider";
+        const invalidJsonMessage = rawBody.trim() || "Invalid JSON response from provider";
         persistAttemptLogs({
           status: HTTP_STATUS.BAD_GATEWAY,
           error: invalidJsonMessage,
@@ -2236,6 +2256,15 @@ export async function handleChatCore({
           const fallbackResult = await executeProviderRequest(nextModel, false);
           if (fallbackResult.response.ok) {
             const fallbackRaw = await fallbackResult.response.text();
+            const fallbackContentType = (
+              fallbackResult.response.headers.get("content-type") || ""
+            ).toLowerCase();
+            const fallbackLooksLikeHtml =
+              fallbackContentType.includes("text/html") ||
+              /^\s*<(?:!doctype html|html|body)\b/i.test(fallbackRaw);
+            if (fallbackLooksLikeHtml) {
+              return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Provider returned HTML error page");
+            }
             try {
               responseBody = fallbackRaw ? JSON.parse(fallbackRaw) : {};
               providerUrl = fallbackResult.url;
@@ -2248,7 +2277,10 @@ export async function handleChatCore({
               );
               // Fall through — continue processing with the new responseBody
             } catch {
-              return createErrorResult(HTTP_STATUS.BAD_GATEWAY, emptyContentMessage);
+              return createErrorResult(
+                HTTP_STATUS.BAD_GATEWAY,
+                fallbackRaw.trim() || emptyContentMessage
+              );
             }
           } else {
             return createErrorResult(HTTP_STATUS.BAD_GATEWAY, emptyContentMessage);

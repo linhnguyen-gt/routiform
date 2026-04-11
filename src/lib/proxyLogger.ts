@@ -8,6 +8,7 @@
  */
 import { v4 as uuidv4 } from "uuid";
 import { getDbInstance, isCloud, isBuildPhase } from "./db/core";
+import { getProxyLogMaxEntries } from "./logEnv";
 
 const shouldPersistToDisk = !isCloud && !isBuildPhase;
 
@@ -147,6 +148,21 @@ export function logProxyEvent(entry: Partial<ProxyLogEntry>) {
         account: log.account,
         tlsFingerprint: log.tlsFingerprint ? 1 : 0,
       });
+
+      const overflow = db
+        .prepare("SELECT COUNT(*) - ? AS overflow FROM proxy_logs")
+        .get(getProxyLogMaxEntries()) as { overflow?: number };
+      const overflowRows = Math.max(0, overflow?.overflow ?? 0);
+      if (overflowRows > 0) {
+        db.prepare(
+          `DELETE FROM proxy_logs
+           WHERE id IN (
+             SELECT id FROM proxy_logs
+             ORDER BY timestamp ASC, id ASC
+             LIMIT ?
+           )`
+        ).run(overflowRows);
+      }
     } catch (err: any) {
       console.warn("[proxyLogger] Failed to persist:", err.message);
     }
