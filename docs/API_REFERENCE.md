@@ -197,13 +197,34 @@ Response example:
 
 ### Routing & Config
 
-| Endpoint              | Method   | Description                   |
-| --------------------- | -------- | ----------------------------- |
-| `/api/models/alias`   | GET/POST | Model aliases                 |
-| `/api/models/catalog` | GET      | All models by provider + type |
-| `/api/combos*`        | Various  | Combo management              |
-| `/api/keys*`          | Various  | API key management            |
-| `/api/pricing`        | GET      | Model pricing                 |
+| Endpoint              | Method   | Description                        |
+| --------------------- | -------- | ---------------------------------- |
+| `/api/models/alias`   | GET/POST | Model aliases                      |
+| `/api/models/catalog` | GET      | All models by provider + type      |
+| `/api/combos*`        | Various  | Combo management (CRUD + reorder)  |
+| `/api/keys*`          | Various  | API key management                 |
+| `/api/pricing`        | GET      | Model pricing                      |
+
+#### Combo Reordering
+
+```bash
+# Reorder combos by drag-and-drop
+POST /api/combos/reorder
+Content-Type: application/json
+
+{
+  "ids": ["combo-id-1", "combo-id-2", "combo-id-3"]
+}
+
+# Response
+{
+  "updated": 3
+}
+```
+
+Persists the display order of combos. The `ids` array defines the new sequence; combos are assigned sequential `sort_order` values starting from 0. Invalid IDs are rejected with 400.
+
+---
 
 ### Usage & Analytics
 

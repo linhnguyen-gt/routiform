@@ -247,6 +247,17 @@ Models:
 Cost: $0 forever!
 ```
 
+### Reordering Combos
+
+Drag combo cards to reorder them in the dashboard. The order is persisted automatically and synced to cloud if enabled.
+
+```bash
+# API: Reorder combos programmatically
+curl -X POST http://localhost:20128/api/combos/reorder \
+  -H "Content-Type: application/json" \
+  -d '{"ids": ["combo-1", "combo-2", "combo-3"]}'
+```
+
 ---
 
 ## 🔧 CLI Integration

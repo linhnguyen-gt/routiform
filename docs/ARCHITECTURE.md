@@ -477,6 +477,7 @@ erDiagram
       string id
       string name
       string[] models
+      number sort_order
     }
 
     API_KEY {
@@ -576,7 +577,8 @@ flowchart LR
 - `src/app/api/oauth/*`: OAuth/device-code flows
 - `src/app/api/keys*`: local API key lifecycle
 - `src/app/api/models/alias`: alias management
-- `src/app/api/combos*`: fallback combo management
+- `src/app/api/combos*`: fallback combo management (CRUD + reorder)
+- `src/app/api/combos/reorder`: combo sort_order persistence (POST)
 - `src/app/api/pricing`: pricing overrides for cost calculation
 - `src/app/api/settings/proxy`: proxy configuration (GET/PUT/DELETE)
 - `src/app/api/settings/proxy/test`: outbound proxy connectivity test (POST)
@@ -705,6 +707,7 @@ Additional processing layers in the translation pipeline:
 | `GET/PUT/DELETE /api/settings/proxy`               | Proxy Config       | Network proxy configuration                                         |
 | `POST /api/settings/proxy/test`                    | Proxy Connectivity | Proxy health/connectivity test endpoint                             |
 | `GET/POST/DELETE /api/provider-models`             | Provider Models    | Provider model metadata backing custom and managed available models |
+| `POST /api/combos/reorder`                         | Combo Reorder      | Persist drag-to-reorder sequence                                    |
 
 ## Bypass Handler
 

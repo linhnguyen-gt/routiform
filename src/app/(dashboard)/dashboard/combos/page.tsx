@@ -368,6 +368,8 @@ export default function CombosPage() {
   const [providerNodes, setProviderNodes] = useState([]);
   const [showUsageGuide, setShowUsageGuide] = useState(true);
   const [recentlyCreatedCombo, setRecentlyCreatedCombo] = useState("");
+  const [comboDragIndex, setComboDragIndex] = useState<number | null>(null);
+  const [comboDragOverIndex, setComboDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -454,6 +456,65 @@ export default function CombosPage() {
         notify.error(err.error?.message || err.error || t("failedUpdate"));
       }
     } catch (error) {
+      notify.error(t("errorUpdating"));
+    }
+  };
+
+  // Combo-level drag-to-reorder handlers
+  const handleComboDragStart = (e: React.DragEvent, index: number) => {
+    setComboDragIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+    const el = e.currentTarget as HTMLElement | null;
+    if (el) setTimeout(() => { if (el.isConnected) el.style.opacity = "0.5"; }, 0);
+  };
+
+  const handleComboDragEnd = (e: React.DragEvent) => {
+    const el = e.currentTarget as HTMLElement | null;
+    if (el) el.style.opacity = "1";
+    setComboDragIndex(null);
+    setComboDragOverIndex(null);
+  };
+
+  const handleComboDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setComboDragOverIndex(index);
+  };
+
+  const handleComboDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const fromIndex = comboDragIndex;
+    if (fromIndex === null || fromIndex === dropIndex) {
+      setComboDragIndex(null);
+      setComboDragOverIndex(null);
+      return;
+    }
+
+    // Capture original state BEFORE optimistic update
+    const originalCombos = combos;
+
+    // Optimistic update
+    const reordered = [...combos];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    setCombos(reordered);
+    setComboDragIndex(null);
+    setComboDragOverIndex(null);
+
+    // Persist to server
+    try {
+      const res = await fetch("/api/combos/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: reordered.map((c) => c.id) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.updated === 0) throw new Error("No combos updated");
+    } catch {
+      // Revert to captured original state
+      setCombos(originalCombos);
       notify.error(t("errorUpdating"));
     }
   };
@@ -649,23 +710,36 @@ export default function CombosPage() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {combos.map((combo) => (
-            <ComboCard
+          {combos.map((combo, index) => (
+            <div
               key={combo.id}
-              combo={combo}
-              metrics={metrics[combo.name]}
-              providerNodes={providerNodes}
-              copied={copied}
-              onCopy={copy}
-              onEdit={() => setEditingCombo(combo)}
-              onDelete={() => handleDelete(combo.id)}
-              onDuplicate={() => handleDuplicate(combo)}
-              onTest={() => handleTestCombo(combo)}
-              testing={testingCombo === combo.name}
-              onProxy={() => setProxyTargetCombo(combo)}
-              hasProxy={!!proxyConfig?.combos?.[combo.id]}
-              onToggle={() => handleToggleCombo(combo)}
-            />
+              draggable
+              onDragStart={(e) => handleComboDragStart(e, index)}
+              onDragEnd={handleComboDragEnd}
+              onDragOver={(e) => handleComboDragOver(e, index)}
+              onDrop={(e) => handleComboDrop(e, index)}
+              className={`transition-all ${
+                comboDragOverIndex === index && comboDragIndex !== index
+                  ? "ring-2 ring-primary/40 rounded-xl"
+                  : ""
+              } ${comboDragIndex === index ? "opacity-50" : ""}`}
+            >
+              <ComboCard
+                combo={combo}
+                metrics={metrics[combo.name]}
+                providerNodes={providerNodes}
+                copied={copied}
+                onCopy={copy}
+                onEdit={() => setEditingCombo(combo)}
+                onDelete={() => handleDelete(combo.id)}
+                onDuplicate={() => handleDuplicate(combo)}
+                onTest={() => handleTestCombo(combo)}
+                testing={testingCombo === combo.name}
+                onProxy={() => setProxyTargetCombo(combo)}
+                hasProxy={!!proxyConfig?.combos?.[combo.id]}
+                onToggle={() => handleToggleCombo(combo)}
+              />
+            </div>
           ))}
         </div>
       )}
