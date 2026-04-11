@@ -8,7 +8,15 @@ import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 // POST /api/combos/reorder - Persist drag-to-reorder order
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+      }
+      throw error;
+    }
 
     const validation = validateBody(reorderCombosSchema, body);
     if (isValidationFailure(validation)) {

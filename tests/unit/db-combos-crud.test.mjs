@@ -37,9 +37,9 @@ async function makeCombo(name) {
 // ─── sort_order defaults ──────────────────────────────────────────────────────
 
 test("getCombos returns combos ordered by sort_order ASC then name ASC", async () => {
-  const c1 = await makeCombo("zebra");
-  const c2 = await makeCombo("alpha");
-  const c3 = await makeCombo("mango");
+  const _c1 = await makeCombo("zebra");
+  const _c2 = await makeCombo("alpha");
+  const _c3 = await makeCombo("mango");
 
   // No reorder yet — sort_order is 0 for all, so falls back to name ASC
   const all = await combosDb.getCombos();
@@ -69,7 +69,7 @@ test("reorderCombos assigns sequential sort_order and persists across reads", as
 test("reorderCombos is atomic — partial list leaves unmentioned rows with old sort_order", async () => {
   const c1 = await makeCombo("alpha");
   const c2 = await makeCombo("beta");
-  const c3 = await makeCombo("gamma");
+  const _c3 = await makeCombo("gamma");
 
   // Only reorder two of the three
   await combosDb.reorderCombos([c2.id, c1.id]);
@@ -121,12 +121,7 @@ test("reorderCombos filters out invalid IDs and only updates valid ones", async 
   const c1 = await makeCombo("valid-1");
   const c2 = await makeCombo("valid-2");
 
-  const updated = await combosDb.reorderCombos([
-    "invalid-uuid-1",
-    c2.id,
-    "invalid-uuid-2",
-    c1.id,
-  ]);
+  const updated = await combosDb.reorderCombos(["invalid-uuid-1", c2.id, "invalid-uuid-2", c1.id]);
 
   // Only 2 valid IDs updated
   assert.equal(updated, 2);
@@ -135,4 +130,3 @@ test("reorderCombos filters out invalid IDs and only updates valid ones", async 
   assert.equal(all[0].name, "valid-2");
   assert.equal(all[1].name, "valid-1");
 });
-

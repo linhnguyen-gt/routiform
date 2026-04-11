@@ -1,6 +1,5 @@
 import { recordCost } from "@/domain/costRules";
 import { getCacheControlSettings } from "@/lib/cacheControlSettings";
-import { logAuditEvent } from "@/lib/compliance";
 import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
 import { updateProviderConnection } from "@/lib/db/providers";
 import {
@@ -32,7 +31,6 @@ import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.
 import { refreshWithRetry } from "../services/tokenRefresh.ts";
 import { FORMATS } from "../translator/formats.ts";
 import { needsTranslation, translateRequest } from "../translator/index.ts";
-import { CLAUDE_OAUTH_TOOL_PREFIX } from "../translator/request/openai-to-claude.ts";
 import { handleBypassRequest } from "../utils/bypassHandler.ts";
 import {
   providerSupportsCaching,
@@ -53,6 +51,10 @@ import {
 } from "../utils/stream.ts";
 import { createStreamController, pipeWithDisconnect } from "../utils/streamHandler.ts";
 import { addBufferToUsage, estimateUsage, filterUsageForFormat } from "../utils/usageTracking.ts";
+import { handleIdempotencyCheck } from "./phases/idempotency-check.ts";
+import { sanitizeRequestInput } from "./phases/input-sanitizer.ts";
+import { checkSemanticCache } from "./phases/semantic-cache-handler.ts";
+import { persistCodexQuotaState } from "./services/codex-quota-manager.ts";
 import {
   attachLogMeta,
   buildCacheUsageLogMeta,
@@ -62,46 +64,17 @@ import {
   buildClaudePassthroughToolNameMap,
   restoreClaudePassthroughToolNames,
 } from "./utils/claude-passthrough-helpers.ts";
-import { getHeaderValueCaseInsensitive } from "./utils/header-helpers.ts";
-import { persistCodexQuotaState } from "./services/codex-quota-manager.ts";
-import { handleIdempotencyCheck } from "./phases/idempotency-check.ts";
-import { sanitizeRequestInput } from "./phases/input-sanitizer.ts";
-import { checkSemanticCache } from "./phases/semantic-cache-handler.ts";
 
-import { checkIdempotency, getIdempotencyKey, saveIdempotency } from "@/lib/idempotencyLayer";
+import { getIdempotencyKey, saveIdempotency } from "@/lib/idempotencyLayer";
 import { normalizePayloadForLog } from "@/lib/logPayloads";
-import { injectMemory, shouldInjectMemory } from "@/lib/memory/injection";
-import { retrieveMemories } from "@/lib/memory/retrieval";
-import {
-  DEFAULT_MEMORY_SETTINGS,
-  getMemorySettings,
-  toMemoryRetrievalConfig,
-} from "@/lib/memory/settings";
-import {
-  generateSignature,
-  getCachedResponse,
-  isCacheable,
-  setCachedResponse,
-} from "@/lib/semanticCache";
+import { generateSignature, isCacheable, setCachedResponse } from "@/lib/semanticCache";
 import { generateRequestId } from "@/shared/utils/requestId";
 import packageJson from "../../package.json";
-import {
-  getCodexModelScope,
-  getCodexResetTime,
-  parseCodexQuotaHeaders,
-} from "../executors/codex.ts";
-import { handleBackgroundTaskRedirection } from "./phases/background-task-redirector.ts";
 import {
   buildClaudeCodeCompatibleRequest,
   isClaudeCodeCompatibleProvider,
   resolveClaudeCodeCompatibleSessionId,
 } from "../services/claudeCodeCompatible.ts";
-import { validateAndCompressContext } from "./phases/context-validator.ts";
-import { handleEmergencyFallback } from "./phases/emergency-fallback-handler.ts";
-import {
-  handleModelFallback,
-  shouldAttemptModelFallback,
-} from "./phases/model-fallback-handler.ts";
 import { getNextFamilyFallback } from "../services/modelFamilyFallback.ts";
 import {
   initializeRateLimits,
@@ -109,7 +82,6 @@ import {
   withRateLimit,
 } from "../services/rateLimitManager.ts";
 import { computeRequestHash, deduplicate, shouldDeduplicate } from "../services/requestDedup.ts";
-import { maybeEnforceRequiredToolChoiceForUrlFetch } from "../services/urlToolEnforcement.ts";
 import {
   resolveExplicitStreamAlias,
   resolveStreamFlag,
@@ -119,6 +91,13 @@ import {
 import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
 import { optimizeGithubRequestBody } from "../utils/githubRequestOptimizer.ts";
 import { createProgressTransform, wantsProgress } from "../utils/progressTracker.ts";
+import { handleBackgroundTaskRedirection } from "./phases/background-task-redirector.ts";
+import { validateAndCompressContext } from "./phases/context-validator.ts";
+import { handleEmergencyFallback } from "./phases/emergency-fallback-handler.ts";
+import {
+  handleModelFallback,
+  shouldAttemptModelFallback,
+} from "./phases/model-fallback-handler.ts";
 import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
 import { translateNonStreamingResponse } from "./responseTranslator.ts";
 import {
@@ -316,7 +295,6 @@ export async function handleChatCore({
     tokens,
     responseBody,
     error,
-    providerRequest,
     providerResponse,
     clientResponse,
     claudeCacheMeta,
@@ -476,7 +454,7 @@ export async function handleChatCore({
   const contextResult = validateAndCompressContext({
     body,
     provider,
-    model,
+    model: effectiveModel,
     combo,
     comboName,
     reqLogger,
@@ -1303,17 +1281,6 @@ export async function handleChatCore({
     }
   }
 
-  await persistCodexQuotaState({
-    provider,
-    connectionId,
-    credentials,
-    model,
-    requestedModel,
-    headers: providerResponse.headers,
-    status: providerResponse.status,
-    log,
-  });
-
   // Check provider response - return error info for fallback handling
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false);
@@ -1512,7 +1479,9 @@ export async function handleChatCore({
     if (fallbackResult.attempted && fallbackResult.nextModel) {
       currentModel = fallbackResult.nextModel;
       translatedBody.model = fallbackResult.nextModel;
-      const errorCode = fallbackResult.nextModel.includes("overflow") ? "context_overflow" : "model_unavailable";
+      const errorCode = fallbackResult.nextModel.includes("overflow")
+        ? "context_overflow"
+        : "model_unavailable";
 
       // Re-execute with the fallback model
       try {
@@ -1554,7 +1523,9 @@ export async function handleChatCore({
     } else if (fallbackResult.error) {
       // No fallback available or not a fallback-eligible error
       const errorCode = shouldAttemptModelFallback(statusCode, message)
-        ? (message.toLowerCase().includes("context") ? "context_overflow" : "model_unavailable")
+        ? message.toLowerCase().includes("context")
+          ? "context_overflow"
+          : "model_unavailable"
         : `upstream_${statusCode}`;
       persistAttemptLogs({
         status: statusCode,
@@ -1644,7 +1615,8 @@ export async function handleChatCore({
 
       responseBody = parsedFromSSE;
     } else {
-      const looksLikeHtml = contentType.includes("text/html") || /^\s*<(?:!doctype html|html|body)\b/i.test(rawBody);
+      const looksLikeHtml =
+        contentType.includes("text/html") || /^\s*<(?:!doctype html|html|body)\b/i.test(rawBody);
       if (looksLikeHtml) {
         appendRequestLog({
           model,
@@ -1749,7 +1721,8 @@ export async function handleChatCore({
               );
               // Fall through — continue processing with the new responseBody
             } catch {
-              const invalidJsonMessage = fallbackRaw.trim() || "Invalid JSON response from provider";
+              const invalidJsonMessage =
+                fallbackRaw.trim() || "Invalid JSON response from provider";
               persistAttemptLogs({
                 status: HTTP_STATUS.BAD_GATEWAY,
                 error: invalidJsonMessage,
@@ -1783,7 +1756,8 @@ export async function handleChatCore({
           return createErrorResult(HTTP_STATUS.BAD_GATEWAY, fallbackExecutionMessage);
         }
       } else {
-        const noFallbackMessage = "Provider returned empty content and no fallback model was available";
+        const noFallbackMessage =
+          "Provider returned empty content and no fallback model was available";
         persistAttemptLogs({
           status: HTTP_STATUS.BAD_GATEWAY,
           error: noFallbackMessage,
@@ -1799,6 +1773,18 @@ export async function handleChatCore({
     if (sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE) {
       responseBody = restoreClaudePassthroughToolNames(responseBody, toolNameMap);
     }
+
+    await persistCodexQuotaState({
+      provider,
+      connectionId,
+      credentials,
+      model: currentModel || String(translatedBody.model || model),
+      requestedModel,
+      headers: providerResponse.headers,
+      status: providerResponse.status,
+      log,
+    });
+
     reqLogger.logProviderResponse(
       providerResponse.status,
       providerResponse.statusText,
@@ -1830,8 +1816,8 @@ export async function handleChatCore({
       console.log(`${COLORS.green}${msg}${COLORS.reset}`);
 
       // Track cache token metrics
-      const inputTokens = usage.prompt_tokens || 0;
-      const cachedTokens = toPositiveNumber(
+      const _inputTokens = usage.prompt_tokens || 0;
+      const _cachedTokens = toPositiveNumber(
         usage.cache_read_input_tokens ??
           usage.cached_tokens ??
           (
@@ -1840,7 +1826,7 @@ export async function handleChatCore({
               | undefined
           )?.cached_tokens
       );
-      const cacheCreationTokens = toPositiveNumber(
+      const _cacheCreationTokens = toPositiveNumber(
         usage.cache_creation_input_tokens ??
           (
             (usage as Record<string, unknown>).prompt_tokens_details as
@@ -1998,8 +1984,8 @@ export async function handleChatCore({
 
     // Track cache token metrics for streaming responses
     if (streamUsage && typeof streamUsage === "object") {
-      const inputTokens = streamUsage.prompt_tokens || 0;
-      const cachedTokens = toPositiveNumber(
+      const _inputTokens = streamUsage.prompt_tokens || 0;
+      const _cachedTokens = toPositiveNumber(
         streamUsage.cache_read_input_tokens ??
           streamUsage.cached_tokens ??
           (
@@ -2008,7 +1994,7 @@ export async function handleChatCore({
               | undefined
           )?.cached_tokens
       );
-      const cacheCreationTokens = toPositiveNumber(
+      const _cacheCreationTokens = toPositiveNumber(
         streamUsage.cache_creation_input_tokens ??
           (
             (streamUsage as Record<string, unknown>).prompt_tokens_details as

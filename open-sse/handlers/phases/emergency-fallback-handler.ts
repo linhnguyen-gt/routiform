@@ -8,19 +8,25 @@ import { getExecutor } from "../../executors/index.ts";
 /**
  * Result of emergency fallback attempt.
  */
+type JsonRecord = Record<string, unknown>;
+
+type ProviderCredentials = Record<string, unknown> & {
+  providerSpecificData?: Record<string, unknown> | null;
+};
+
 export interface EmergencyFallbackResult {
   /** Whether fallback was attempted */
   attempted: boolean;
   /** Whether fallback succeeded */
   success: boolean;
   /** Fallback response (if successful) */
-  response?: any;
+  response?: Response;
   /** Fallback URL (if successful) */
   url?: string;
   /** Fallback headers (if successful) */
-  headers?: any;
+  headers?: HeadersInit;
   /** Transformed body (if successful) */
-  transformedBody?: any;
+  transformedBody?: JsonRecord;
 }
 
 /**
@@ -61,8 +67,8 @@ export async function handleEmergencyFallback({
   stream: boolean;
   requestHasTools: boolean;
   provider: string;
-  translatedBody: any;
-  credentials: any;
+  translatedBody: JsonRecord;
+  credentials: ProviderCredentials;
   streamController: { signal: AbortSignal };
   extendedContext?: boolean;
   log?: {

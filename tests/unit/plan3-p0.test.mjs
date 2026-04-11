@@ -297,7 +297,7 @@ test("CodexExecutor generates stable session_id from Codex request fingerprint",
   const transformed1 = executor.transformRequest("gpt-5.1-codex", structuredClone(body), true);
   const transformed2 = executor.transformRequest("gpt-5.1-codex", structuredClone(body), true);
 
-  const expectedSessionId = generateSessionId(
+  const _expectedSessionId = generateSessionId(
     {
       model: body.model,
       system: body.instructions,
@@ -418,7 +418,8 @@ test("CodexExecutor preserves native responses payloads for Codex passthrough", 
   assert.equal(transformed.instructions, "custom system prompt");
   assert.equal(transformed.store, false);
   assert.deepEqual(transformed.metadata, { source: "codex-client" });
-  assert.equal(transformed.reasoning_effort, "high");
+  assert.deepEqual(transformed.reasoning, { effort: "high" });
+  assert.equal(transformed.reasoning_effort, undefined);
   assert.ok(!("_nativeCodexPassthrough" in transformed));
 });
 
@@ -911,14 +912,9 @@ test("KiroExecutor generates distinct fallback ids for repeated identical tool c
 });
 
 test("createPassthroughStreamWithLogger emits final usage-only chunk when include_usage is true", async () => {
-  const transform = createPassthroughStreamWithLogger(
-    "openai",
-    null,
-    null,
-    "gpt-4o-mini",
-    null,
-    { stream_options: { include_usage: true } }
-  );
+  const transform = createPassthroughStreamWithLogger("openai", null, null, "gpt-4o-mini", null, {
+    stream_options: { include_usage: true },
+  });
 
   const writer = transform.writable.getWriter();
   const reader = transform.readable.getReader();

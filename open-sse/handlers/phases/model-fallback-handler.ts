@@ -5,7 +5,7 @@ import {
   isContextOverflowError,
   isModelUnavailableError,
 } from "../../services/modelFamilyFallback.ts";
-import { buildErrorBody, createErrorResult } from "../../utils/error.ts";
+import { buildErrorBody as _buildErrorBody, createErrorResult } from "../../utils/error.ts";
 
 /**
  * Result of model fallback attempt.
@@ -64,7 +64,10 @@ export function handleModelFallback({
     const nextModel = getNextFamilyFallback(currentModel, triedModels);
     if (nextModel) {
       triedModels.add(nextModel);
-      log?.info?.("MODEL_FALLBACK", `${currentModel} unavailable (${statusCode}) → trying ${nextModel}`);
+      log?.info?.(
+        "MODEL_FALLBACK",
+        `${currentModel} unavailable (${statusCode}) → trying ${nextModel}`
+      );
       return {
         attempted: true,
         success: false, // Will be determined by caller after execution
@@ -90,7 +93,10 @@ export function handleModelFallback({
 
     if (nextModel) {
       triedModels.add(nextModel);
-      log?.info?.("CONTEXT_OVERFLOW_FALLBACK", `${currentModel} context overflow → trying ${nextModel}`);
+      log?.info?.(
+        "CONTEXT_OVERFLOW_FALLBACK",
+        `${currentModel} context overflow → trying ${nextModel}`
+      );
       return {
         attempted: true,
         success: false, // Will be determined by caller after execution
@@ -116,5 +122,7 @@ export function handleModelFallback({
  * Determines if an error is eligible for model fallback.
  */
 export function shouldAttemptModelFallback(statusCode: number, message: string): boolean {
-  return isModelUnavailableError(statusCode, message) || isContextOverflowError(statusCode, message);
+  return (
+    isModelUnavailableError(statusCode, message) || isContextOverflowError(statusCode, message)
+  );
 }

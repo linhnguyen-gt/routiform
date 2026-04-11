@@ -1,4 +1,4 @@
-import { generateToolUseId } from "../translator/helpers/toolCallHelper.ts";
+import { generateToolUseId } from "@routiform/open-sse/translator/helpers/toolCallHelper.ts";
 
 /**
  * Convert OpenAI-style SSE chunks into a single non-streaming JSON response.

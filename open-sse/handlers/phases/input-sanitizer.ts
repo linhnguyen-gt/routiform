@@ -60,7 +60,7 @@ export async function sanitizeRequestInput(
   // Clients sometimes forward tool definitions with empty names, causing
   // upstream providers to reject with 400 "Invalid 'tools[0].name': empty string."
   if (Array.isArray(body.tools)) {
-    body.tools = body.tools.filter((tool: Record<string, unknown>) => {
+    const filteredTools = body.tools.filter((tool: Record<string, unknown>) => {
       // Built-in Responses API tool types are identified solely by `type` and carry no name.
       // Preserve only known built-ins here so unknown nameless tool types are still filtered.
       const toolType = typeof tool.type === "string" ? tool.type : "";
@@ -72,18 +72,29 @@ export async function sanitizeRequestInput(
         "code_interpreter",
         "image_generation",
       ]);
-      if (
-        toolType &&
-        builtInResponsesToolTypes.has(toolType) &&
-        !tool.function &&
-        tool.name === undefined
-      ) {
+      if (toolType && builtInResponsesToolTypes.has(toolType) && !tool.function) {
         return true;
       }
 
       const fn = tool.function as Record<string, unknown> | undefined;
       const name = fn?.name ?? tool.name;
       return name && String(name).trim().length > 0;
+    }) as Record<string, unknown>[];
+
+    // Normalize empty-string names in tools to undefined (do not drop built-ins)
+    body.tools = filteredTools.map((tool: Record<string, unknown>) => {
+      if (tool.name === "") {
+        const { name: _n, ...rest } = tool;
+        return rest;
+      }
+      const fn = tool.function as Record<string, unknown> | undefined;
+      if (fn && fn.name === "") {
+        return {
+          ...tool,
+          function: { ...fn, name: undefined },
+        };
+      }
+      return tool;
     });
   }
 

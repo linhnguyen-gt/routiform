@@ -10,11 +10,11 @@ function getAuthToken(credentials: ProviderCredentials): string {
   if (typeof credentials.accessToken === "string" && credentials.accessToken.trim()) {
     return credentials.accessToken.trim();
   }
-  if (typeof credentials.refreshToken === "string" && credentials.refreshToken.trim()) {
-    return credentials.refreshToken.trim();
-  }
   if (typeof credentials.apiKey === "string" && credentials.apiKey.trim()) {
     return credentials.apiKey.trim();
+  }
+  if (typeof credentials.refreshToken === "string" && credentials.refreshToken.trim()) {
+    return credentials.refreshToken.trim();
   }
   return "";
 }
@@ -24,7 +24,7 @@ export class QoderExecutor extends BaseExecutor {
     super("qoder", PROVIDERS.qoder);
   }
 
-  async execute({ model, body, stream, credentials, signal, upstreamExtraHeaders }: ExecuteInput) {
+  async execute({ model, body, _stream, credentials, signal, upstreamExtraHeaders }: ExecuteInput) {
     const token = getAuthToken(credentials);
 
     if (!token) {

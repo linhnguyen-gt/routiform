@@ -67,6 +67,15 @@ function maskSensitiveHeaders(headers: HeaderInput): Record<string, unknown> {
     (headers as Headers).forEach((value, key) => {
       headerEntries[key] = value;
     });
+  } else if (
+    headers &&
+    typeof (headers as { entries?: () => Iterable<[string, unknown]> }).entries === "function"
+  ) {
+    for (const [key, value] of (
+      headers as { entries: () => Iterable<[string, unknown]> }
+    ).entries()) {
+      headerEntries[key] = value;
+    }
   } else {
     Object.assign(headerEntries, headers as Record<string, unknown>);
   }
@@ -132,7 +141,7 @@ function compactPipelinePayloads(
   return hasOwnValues(result) ? result : null;
 }
 
-function createNoOpLogger(): RequestLogger {
+function _createNoOpLogger(): RequestLogger {
   return {
     sessionPath: null,
     logClientRawRequest() {},

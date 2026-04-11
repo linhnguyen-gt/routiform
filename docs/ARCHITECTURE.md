@@ -272,6 +272,7 @@ Usage persistence:
 
 - facade: `src/lib/usageDb.ts` (decomposed modules in `src/lib/usage/*`)
 - SQLite tables in `storage.sqlite`: `usage_history`, `call_logs`, `proxy_logs`
+- `call_logs` and `proxy_logs` are bounded by retention rules and max-row caps (`CALL_LOG_MAX_ENTRIES`, `PROXY_LOG_MAX_ENTRIES`)
 - optional file artifacts remain for compatibility/debug (`${DATA_DIR}/log.txt`, `${DATA_DIR}/call_logs/`, `<repo>/logs/...`)
 - legacy JSON files are migrated to SQLite by startup migrations when present
 
@@ -775,6 +776,7 @@ Runtime visibility sources:
 
 - console logs from `src/sse/utils/logger.ts`
 - per-request usage aggregates in SQLite (`usage_history`, `call_logs`, `proxy_logs`)
+- `call_logs` and `proxy_logs` are capped by retention windows and `*_MAX_ENTRIES` limits; `/api/storage/health` exposes the configured table caps via `tableMaxRows`
 - four-stage detailed payload captures in SQLite (`request_detail_logs`) when `settings.detailed_logs_enabled=true`
 - textual request status log in `log.txt` (optional/compat)
 - optional deep request/translation logs under `logs/` when `ENABLE_REQUEST_LOGS=true`

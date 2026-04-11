@@ -257,7 +257,10 @@ export function normalizeUsage(usage) {
   };
 
   const normalized: NormalizedUsage = {};
-  type NumericUsageKey = Exclude<keyof NormalizedUsage, "prompt_tokens_details" | "completion_tokens_details">;
+  type NumericUsageKey = Exclude<
+    keyof NormalizedUsage,
+    "prompt_tokens_details" | "completion_tokens_details"
+  >;
   const assignNumber = (key: NumericUsageKey, value: unknown) => {
     if (value === undefined || value === null) return;
     const numeric = Number(value);
@@ -493,14 +496,14 @@ export function estimateInputTokens(body) {
       const toolStr = JSON.stringify(body.tools);
       toolTokens = Math.ceil(toolStr.length / CHARS_PER_TOKEN_SCHEMA);
       // Estimate messages without tools
-      const { tools, ...bodyWithoutTools } = body;
+      const { tools: _tools, ...bodyWithoutTools } = body;
       messageTokens = estimateTokenCount(JSON.stringify(bodyWithoutTools));
     } else {
       messageTokens = estimateTokenCount(JSON.stringify(body));
     }
 
     return messageTokens + toolTokens;
-  } catch (err) {
+  } catch (_err) {
     // Fallback if stringify fails
     return 0;
   }
@@ -554,7 +557,7 @@ export function estimateUsage(body, contentLength, targetFormat = FORMATS.OPENAI
 /**
  * Log usage with cache info (green color)
  */
-export function logUsage(provider, usage, model = null, connectionId = null, apiKeyInfo = null) {
+export function logUsage(provider, usage, model = null, connectionId = null, _apiKeyInfo = null) {
   if (!usage || typeof usage !== "object") return;
 
   const p = provider?.toUpperCase() || "UNKNOWN";

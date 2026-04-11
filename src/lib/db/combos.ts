@@ -47,14 +47,25 @@ export async function getCombos() {
 export async function reorderCombos(orderedIds: string[]): Promise<number> {
   const db = getDbInstance();
 
+  // Deduplicate while preserving order
+  const seen = new Set<string>();
+  const orderedUniqueIds = orderedIds.filter((id) => {
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  // Return early if empty to avoid invalid SQL WHERE id IN ()
+  if (orderedUniqueIds.length === 0) return 0;
+
   // Validate all IDs exist before updating
-  const placeholders = orderedIds.map(() => "?").join(",");
+  const placeholders = orderedUniqueIds.map(() => "?").join(",");
   const existing = db
     .prepare(`SELECT id FROM combos WHERE id IN (${placeholders})`)
-    .all(...orderedIds)
+    .all(...orderedUniqueIds)
     .map((row: any) => row.id);
 
-  const validIds = orderedIds.filter((id) => existing.includes(id));
+  const validIds = orderedUniqueIds.filter((id) => existing.includes(id));
   if (validIds.length === 0) return 0;
 
   const stmt = db.prepare("UPDATE combos SET sort_order = ? WHERE id = ?");

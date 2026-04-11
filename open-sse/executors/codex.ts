@@ -200,7 +200,7 @@ export class CodexExecutor extends BaseExecutor {
    * Always request event-stream from upstream, even when client requested stream=false.
    * Includes chatgpt-account-id header for strict workspace binding.
    */
-  buildHeaders(credentials, stream = true) {
+  buildHeaders(credentials, _stream = true) {
     const isCompactRequest = isCompactResponsesEndpoint(credentials?.requestEndpointPath);
     const headers = super.buildHeaders(credentials, isCompactRequest ? false : true);
 
@@ -319,6 +319,18 @@ export class CodexExecutor extends BaseExecutor {
       if (!body.reasoning) {
         body.reasoning = { effort: clampEffort(cleanModel, modelEffort) };
       } else if (body.reasoning.effort) {
+        body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
+      }
+      delete body.reasoning_effort;
+    }
+
+    // Always normalize or remove reasoning_effort shorthand before passthrough
+    // to avoid leaking internal convenience fields upstream (even when no model suffix)
+    if (body.reasoning_effort) {
+      if (!body.reasoning) {
+        body.reasoning = { effort: clampEffort(cleanModel, body.reasoning_effort) };
+      } else if (body.reasoning.effort) {
+        // Keep reasoning.effort precedence if already set
         body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
       }
       delete body.reasoning_effort;

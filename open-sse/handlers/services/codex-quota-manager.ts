@@ -1,4 +1,4 @@
-import { updateProviderConnection } from "@/lib/db/providers";
+import { getProviderConnectionById, updateProviderConnection } from "@/lib/db/providers";
 import {
   getCodexModelScope,
   getCodexResetTime,
@@ -51,53 +51,43 @@ export async function persistCodexQuotaState(options: {
     const quota = parseCodexQuotaHeaders(headers as Headers);
     if (!quota) return;
 
-    const existingProviderData =
-      credentials?.providerSpecificData && typeof credentials.providerSpecificData === "object"
-        ? credentials.providerSpecificData
-        : {};
-    const scope = getCodexModelScope(model || requestedModel || "");
-    const quotaState = {
-      usage5h: quota.usage5h,
-      limit5h: quota.limit5h,
-      resetAt5h: quota.resetAt5h,
-      usage7d: quota.usage7d,
-      limit7d: quota.limit7d,
-      resetAt7d: quota.resetAt7d,
-      scope,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const nextProviderData: Record<string, unknown> = {
-      ...existingProviderData,
-      codexQuotaState: quotaState,
+    // Build minimal update to avoid clobbering concurrent changes to other
+    // providerSpecificData keys; let updateProviderConnection merge at DB level.
+    const updatePayload: {
+      providerSpecificData: Record<string, unknown>;
+    } = {
+      providerSpecificData: { codexQuotaState: quota },
     };
 
     // T03/T09: on 429, persist exact reset time per scope to avoid global over-blocking.
     if (status === 429) {
       const resetTimeMs = getCodexResetTime(quota);
       if (resetTimeMs && resetTimeMs > Date.now()) {
+        // Fetch latest providerSpecificData to merge scope rate limit entries (or rely on DB merge)
+        const connection = connectionId ? await getProviderConnectionById(connectionId) : null;
+        const existingDbProviderData = connection?.providerSpecificData
+          ? (connection.providerSpecificData as Record<string, unknown>)
+          : {};
+
+        const scopeKey = getCodexModelScope(model || requestedModel || "");
         const scopeUntil = new Date(resetTimeMs).toISOString();
-        const scopeMapRaw =
-          existingProviderData &&
-          typeof existingProviderData === "object" &&
-          existingProviderData.codexScopeRateLimitedUntil &&
-          typeof existingProviderData.codexScopeRateLimitedUntil === "object"
-            ? existingProviderData.codexScopeRateLimitedUntil
+        const existingScopeMap =
+          existingDbProviderData.codexScopeRateLimitedUntil &&
+          typeof existingDbProviderData.codexScopeRateLimitedUntil === "object"
+            ? (existingDbProviderData.codexScopeRateLimitedUntil as Record<string, unknown>)
             : {};
 
-        nextProviderData.codexScopeRateLimitedUntil = {
-          ...(scopeMapRaw as Record<string, unknown>),
-          [scope]: scopeUntil,
+        updatePayload.providerSpecificData.codexScopeRateLimitedUntil = {
+          ...existingScopeMap,
+          [scopeKey]: scopeUntil,
         };
       }
     }
 
-    await updateProviderConnection(connectionId, {
-      providerSpecificData: nextProviderData,
-    });
+    const updated = await updateProviderConnection(connectionId, updatePayload);
 
-    if (credentials) {
-      credentials.providerSpecificData = nextProviderData;
+    if (credentials && updated) {
+      credentials.providerSpecificData = updated.providerSpecificData as Record<string, unknown>;
     }
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : String(err);

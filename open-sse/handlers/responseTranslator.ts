@@ -456,7 +456,7 @@ function convertOpenAINonStreamingToClaude(openaiResponse: JsonRecord): JsonReco
   }
 
   // Always include text if it exists (even empty string), or if there are no tool calls and no reasoning
-  const hasToolCalls = Array.isArray(messageObj.tool_calls) && messageObj.tool_calls.length > 0;
+  const _hasToolCalls = Array.isArray(messageObj.tool_calls) && messageObj.tool_calls.length > 0;
 
   if (messageObj.content !== undefined && messageObj.content !== null) {
     hasTextOrReasoning = true;

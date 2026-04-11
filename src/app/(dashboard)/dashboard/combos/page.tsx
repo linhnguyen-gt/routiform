@@ -368,6 +368,7 @@ export default function CombosPage() {
   const [providerNodes, setProviderNodes] = useState([]);
   const [showUsageGuide, setShowUsageGuide] = useState(true);
   const [recentlyCreatedCombo, setRecentlyCreatedCombo] = useState("");
+  const [liveRegionText, setLiveRegionText] = useState("");
   const [comboDragIndex, setComboDragIndex] = useState<number | null>(null);
   const [comboDragOverIndex, setComboDragOverIndex] = useState<number | null>(null);
 
@@ -466,7 +467,10 @@ export default function CombosPage() {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", index.toString());
     const el = e.currentTarget as HTMLElement | null;
-    if (el) setTimeout(() => { if (el.isConnected) el.style.opacity = "0.5"; }, 0);
+    if (el)
+      setTimeout(() => {
+        if (el.isConnected) el.style.opacity = "0.5";
+      }, 0);
   };
 
   const handleComboDragEnd = (e: React.DragEvent) => {
@@ -482,25 +486,38 @@ export default function CombosPage() {
     setComboDragOverIndex(index);
   };
 
-  const handleComboDrop = async (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    const fromIndex = comboDragIndex;
-    if (fromIndex === null || fromIndex === dropIndex) {
-      setComboDragIndex(null);
-      setComboDragOverIndex(null);
+  const moveCombo = async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex < 0 ||
+      fromIndex >= combos.length ||
+      toIndex < 0 ||
+      toIndex >= combos.length ||
+      fromIndex === toIndex
+    ) {
       return;
     }
 
     // Capture original state BEFORE optimistic update
-    const originalCombos = combos;
+    const originalCombos = [...combos];
 
     // Optimistic update
     const reordered = [...combos];
     const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(dropIndex, 0, moved);
+    reordered.splice(toIndex, 0, moved);
     setCombos(reordered);
     setComboDragIndex(null);
     setComboDragOverIndex(null);
+
+    // Announce reorder to screen readers
+    const comboName = originalCombos[fromIndex].name;
+    setLiveRegionText(
+      t("comboMoved", {
+        name: comboName,
+        from: fromIndex + 1,
+        to: toIndex + 1,
+        defaultValue: `${comboName} moved from position ${fromIndex + 1} to position ${toIndex + 1}`,
+      })
+    );
 
     // Persist to server
     try {
@@ -517,6 +534,18 @@ export default function CombosPage() {
       setCombos(originalCombos);
       notify.error(t("errorUpdating"));
     }
+  };
+
+  const handleComboDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const fromIndex = comboDragIndex;
+    if (fromIndex === null || fromIndex === dropIndex) {
+      setComboDragIndex(null);
+      setComboDragOverIndex(null);
+      return;
+    }
+
+    await moveCombo(fromIndex, dropIndex);
   };
 
   const handleDelete = async (id) => {
@@ -696,6 +725,11 @@ export default function CombosPage() {
         </Card>
       )}
 
+      {/* Live region for screen reader announcements */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {liveRegionText}
+      </div>
+
       {/* Model Routing Rules (#563) */}
       <ModelRoutingSection combos={combos} />
 
@@ -709,16 +743,39 @@ export default function CombosPage() {
           onAction={() => setShowCreateModal(true)}
         />
       ) : (
-        <div className="flex flex-col gap-4">
+        <div
+          role="list"
+          aria-label={t("comboList", { defaultValue: "Combos" })}
+          className="flex flex-col gap-4"
+        >
           {combos.map((combo, index) => (
             <div
               key={combo.id}
               draggable
+              tabIndex={0}
+              role="listitem"
+              aria-roledescription="draggable combo"
+              aria-grabbed={comboDragIndex === index}
               onDragStart={(e) => handleComboDragStart(e, index)}
               onDragEnd={handleComboDragEnd}
               onDragOver={(e) => handleComboDragOver(e, index)}
               onDrop={(e) => handleComboDrop(e, index)}
-              className={`transition-all ${
+              onKeyDown={(e) => {
+                if (e.key === "ArrowUp" && index > 0) {
+                  e.preventDefault();
+                  moveCombo(index, index - 1);
+                } else if (e.key === "ArrowDown" && index < combos.length - 1) {
+                  e.preventDefault();
+                  moveCombo(index, index + 1);
+                } else if (e.key === "Home") {
+                  e.preventDefault();
+                  if (index > 0) moveCombo(index, 0);
+                } else if (e.key === "End") {
+                  e.preventDefault();
+                  if (index < combos.length - 1) moveCombo(index, combos.length - 1);
+                }
+              }}
+              className={`transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 comboDragOverIndex === index && comboDragIndex !== index
                   ? "ring-2 ring-primary/40 rounded-xl"
                   : ""
@@ -738,6 +795,10 @@ export default function CombosPage() {
                 onProxy={() => setProxyTargetCombo(combo)}
                 hasProxy={!!proxyConfig?.combos?.[combo.id]}
                 onToggle={() => handleToggleCombo(combo)}
+                onMoveUp={() => moveCombo(index, index - 1)}
+                onMoveDown={() => moveCombo(index, index + 1)}
+                canMoveUp={index > 0}
+                canMoveDown={index < combos.length - 1}
               />
             </div>
           ))}
@@ -1049,6 +1110,10 @@ function ComboCard({
   hasProxy,
   onToggle,
   providerNodes,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }) {
   const strategy = combo.strategy || "priority";
   const models = combo.models || [];
@@ -1193,6 +1258,24 @@ function ComboCard({
               >
                 {testing ? "progress_activity" : "play_arrow"}
               </span>
+            </button>
+            <button
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={t("moveUp", { defaultValue: "Move combo up" })}
+              title={t("moveUp", { defaultValue: "Move up" })}
+            >
+              <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={t("moveDown", { defaultValue: "Move combo down" })}
+              title={t("moveDown", { defaultValue: "Move down" })}
+            >
+              <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
             </button>
             <button
               onClick={onDuplicate}

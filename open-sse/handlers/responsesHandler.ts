@@ -38,14 +38,34 @@ export async function handleResponsesCore({
       ? (convertedBody as Record<string, unknown>)
       : null;
 
-  // Ensure stream is enabled
-  if (convertedBodyRecord) {
-    convertedBodyRecord.stream = true;
+  if (!convertedBodyRecord) {
+    return {
+      success: false,
+      status: 400,
+      error: "Invalid translated payload: Responses API conversion must return a plain object",
+      response: new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "Invalid translated payload: Responses API conversion must return a plain object",
+            type: "invalid_request_error",
+            code: "invalid_translated_payload",
+          },
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      ),
+    };
   }
+
+  // Ensure stream is enabled
+  convertedBodyRecord.stream = true;
 
   // Call chat core handler
   const result = await handleChatCore({
-    body: convertedBody,
+    body: convertedBodyRecord,
     modelInfo,
     credentials,
     log,

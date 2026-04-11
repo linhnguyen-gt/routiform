@@ -85,7 +85,7 @@ function normalizeAntigravityToolName(name: unknown): string {
 }
 
 // Core: Convert OpenAI request to Gemini format (base for all variants)
-function openaiToGeminiBase(model, body, stream) {
+function openaiToGeminiBase(model, body, _stream) {
   const result: GeminiRequest = {
     model: model,
     contents: [],
@@ -322,7 +322,7 @@ export function openaiToGeminiRequest(model, body, stream) {
 // OpenAI -> Gemini CLI (Cloud Code Assist)
 export function openaiToGeminiCLIRequest(model, body, stream) {
   const gemini = openaiToGeminiBase(model, body, stream);
-  const isClaude = model.toLowerCase().includes("claude");
+  const _isClaude = model.toLowerCase().includes("claude");
 
   // Add thinking config for CLI
   if (body.reasoning_effort) {
@@ -368,11 +368,13 @@ export function openaiToGeminiCLIRequest(model, body, stream) {
       if (!Array.isArray(content.parts)) continue;
       for (const part of content.parts) {
         const functionCall =
-          part.functionCall && typeof part.functionCall === "object" && !Array.isArray(part.functionCall)
+          part.functionCall &&
+          typeof part.functionCall === "object" &&
+          !Array.isArray(part.functionCall)
             ? (part.functionCall as Record<string, unknown>)
             : null;
-        if (functionCall?.name) {
-          functionCall.name = normalizeAntigravityToolName(functionCall.name);
+        if (functionCall && "name" in functionCall) {
+          functionCall.name = normalizeAntigravityToolName(String(functionCall.name ?? ""));
         }
 
         const functionResponse =
@@ -381,8 +383,8 @@ export function openaiToGeminiCLIRequest(model, body, stream) {
           !Array.isArray(part.functionResponse)
             ? (part.functionResponse as Record<string, unknown>)
             : null;
-        if (functionResponse?.name) {
-          functionResponse.name = normalizeAntigravityToolName(functionResponse.name);
+        if (functionResponse && "name" in functionResponse) {
+          functionResponse.name = normalizeAntigravityToolName(String(functionResponse.name ?? ""));
         }
       }
     }

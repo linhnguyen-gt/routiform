@@ -2,9 +2,11 @@
  * Request context for chat completion handlers.
  * Encapsulates all parameters needed for processing a chat request.
  */
+type JsonRecord = Record<string, unknown>;
+
 export interface ChatRequestContext {
   /** Request body (OpenAI/Claude/etc. format) */
-  body: any;
+  body: JsonRecord;
 
   /** Model routing information */
   modelInfo: {
@@ -14,7 +16,7 @@ export interface ChatRequestContext {
   };
 
   /** Provider credentials (API keys, tokens, etc.) */
-  credentials: any;
+  credentials: JsonRecord;
 
   /** Logger instance for request tracing */
   log?: {
@@ -61,7 +63,7 @@ export interface ChatRequestContext {
   isCombo?: boolean;
 
   /** Combo configuration object */
-  combo?: any;
+  combo?: JsonRecord;
 }
 
 /**

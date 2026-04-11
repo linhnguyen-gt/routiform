@@ -6,11 +6,13 @@ import { createErrorResult } from "../../utils/error.ts";
 /**
  * Result of context validation and compression.
  */
+type JsonRecord = Record<string, unknown>;
+
 export interface ContextValidationResult {
   /** Whether validation passed (context is within limits) */
   valid: boolean;
   /** Updated request body (may be compressed) */
-  body: any;
+  body: JsonRecord;
   /** Error result if validation failed */
   error?: {
     success: false;
@@ -48,10 +50,10 @@ export function validateAndCompressContext({
   log,
   persistFailureUsage,
 }: {
-  body: any;
+  body: JsonRecord;
   provider: string;
   model: string;
-  combo?: any;
+  combo?: Record<string, unknown> | null;
   comboName?: string;
   reqLogger?: {
     logContextValidation?: (data: {
