@@ -299,11 +299,15 @@ export function normalizeUsage(usage) {
     ["cached_tokens", "cached_tokens"],
     ["cache_creation_tokens", "cache_creation_tokens"],
     ["cache_write_tokens", "cache_write_tokens"],
+    ["audio_tokens", "audio_tokens"],
   ]);
   if (promptDetails) normalized.prompt_tokens_details = promptDetails;
 
   const completionDetails = normalizeDetails(usageRecord.completion_tokens_details, [
     ["reasoning_tokens", "reasoning_tokens"],
+    ["accepted_prediction_tokens", "accepted_prediction_tokens"],
+    ["rejected_prediction_tokens", "rejected_prediction_tokens"],
+    ["audio_tokens", "audio_tokens"],
   ]);
   if (completionDetails) normalized.completion_tokens_details = completionDetails;
 
@@ -394,11 +398,15 @@ export function extractUsage(chunk) {
             cached_tokens: usage.input_tokens_details.cached_tokens,
             cache_creation_tokens: usage.input_tokens_details.cache_creation_tokens,
             cache_write_tokens: usage.input_tokens_details.cache_write_tokens,
+            audio_tokens: usage.input_tokens_details.audio_tokens,
           }
         : undefined,
       completion_tokens_details: usage.output_tokens_details
         ? {
             reasoning_tokens: usage.output_tokens_details.reasoning_tokens,
+            audio_tokens: usage.output_tokens_details.audio_tokens,
+            accepted_prediction_tokens: usage.output_tokens_details.accepted_prediction_tokens,
+            rejected_prediction_tokens: usage.output_tokens_details.rejected_prediction_tokens,
           }
         : undefined,
     });

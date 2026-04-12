@@ -19,6 +19,8 @@ import {
   getPromptCacheCreationTokensOrNull,
   getPromptCacheReadTokensOrNull,
   getReasoningTokensOrNull,
+  getPromptTokenDetailsOrNull,
+  getCompletionTokenDetailsOrNull,
 } from "./tokenAccounting";
 import { isNoLog } from "../compliance";
 import { sanitizePII } from "../piiSanitizer";
@@ -51,6 +53,8 @@ type CallLogArtifact = {
       cacheRead: number | null;
       cacheCreation: number | null;
       reasoning: number | null;
+      promptDetails: Record<string, unknown> | null;
+      completionDetails: Record<string, unknown> | null;
     };
     requestType: string | null;
     sourceFormat: string | null;
@@ -197,6 +201,8 @@ function buildArtifact(
     tokensCacheRead: number | null;
     tokensCacheCreation: number | null;
     tokensReasoning: number | null;
+    tokensPromptDetails: Record<string, unknown> | null;
+    tokensCompletionDetails: Record<string, unknown> | null;
     requestType: string | null;
     sourceFormat: string | null;
     targetFormat: string | null;
@@ -229,6 +235,8 @@ function buildArtifact(
         cacheRead: logEntry.tokensCacheRead,
         cacheCreation: logEntry.tokensCacheCreation,
         reasoning: logEntry.tokensReasoning,
+        promptDetails: logEntry.tokensPromptDetails,
+        completionDetails: logEntry.tokensCompletionDetails,
       },
       requestType: logEntry.requestType,
       sourceFormat: logEntry.sourceFormat,
@@ -413,6 +421,8 @@ export async function saveCallLog(entry: any) {
       tokensCacheRead: getPromptCacheReadTokensOrNull(entry.tokens),
       tokensCacheCreation: getPromptCacheCreationTokensOrNull(entry.tokens),
       tokensReasoning: getReasoningTokensOrNull(entry.tokens),
+      tokensPromptDetails: getPromptTokenDetailsOrNull(entry.tokens),
+      tokensCompletionDetails: getCompletionTokenDetailsOrNull(entry.tokens),
       requestType: entry.requestType || null,
       sourceFormat: entry.sourceFormat || null,
       targetFormat: entry.targetFormat || null,
@@ -601,6 +611,8 @@ export async function getCallLogs(filter: any = {}) {
         cacheRead: l.tokens_cache_read === null ? null : toNumber(l.tokens_cache_read),
         cacheCreation: l.tokens_cache_creation === null ? null : toNumber(l.tokens_cache_creation),
         reasoning: l.tokens_reasoning === null ? null : toNumber(l.tokens_reasoning),
+        promptDetails: null, // Only available from JSON artifact, not DB row
+        completionDetails: null, // Only available from JSON artifact, not DB row
       },
       sourceFormat: toStringOrNull(l.source_format),
       targetFormat: toStringOrNull(l.target_format),
@@ -653,6 +665,8 @@ export async function getCallLogById(id: string) {
       cacheCreation:
         entryRow.tokens_cache_creation === null ? null : toNumber(entryRow.tokens_cache_creation),
       reasoning: entryRow.tokens_reasoning === null ? null : toNumber(entryRow.tokens_reasoning),
+      promptDetails: null, // Read from JSON artifact later
+      completionDetails: null, // Read from JSON artifact later
     },
     sourceFormat: toStringOrNull(entryRow.source_format),
     targetFormat: toStringOrNull(entryRow.target_format),
@@ -668,8 +682,15 @@ export async function getCallLogById(id: string) {
 
   const artifact = readArtifactFromDisk(artifactRelPath);
   if (artifact) {
+    // Merge tokens to retain detail from artifact
+    const artifactTokens = artifact.summary?.tokens || {};
     return {
       ...entry,
+      tokens: {
+        ...entry.tokens,
+        promptDetails: artifactTokens.promptDetails ?? null,
+        completionDetails: artifactTokens.completionDetails ?? null,
+      },
       requestBody: artifact.requestBody ?? entry.requestBody,
       responseBody: artifact.responseBody ?? entry.responseBody,
       error: artifact.error ?? entry.error,

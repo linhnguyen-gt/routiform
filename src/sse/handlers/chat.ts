@@ -550,7 +550,8 @@ async function handleSingleModelChat(
           // Cap output on emergency fallback to avoid unexpected long responses.
           const maxTokens = Math.min(
             Number(
-              fallbackBody.max_tokens ??
+              fallbackBody.max_completion_tokens ??
+                fallbackBody.max_tokens ??
                 fallbackBody.max_completion_tokens ??
                 fallbackDecision.maxOutputTokens
             ) || fallbackDecision.maxOutputTokens,
@@ -558,6 +559,7 @@ async function handleSingleModelChat(
           );
           fallbackBody.max_tokens = maxTokens;
           fallbackBody.max_completion_tokens = maxTokens;
+          fallbackBody.max_tokens = maxTokens;
 
           log.warn(
             "EMERGENCY_FALLBACK",

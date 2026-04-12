@@ -63,6 +63,7 @@
  * @property {string} [model] - Model identifier
  * @property {string} [system] - System prompt (Claude format)
  * @property {boolean} [stream] - Whether to stream response
+ * @property {number} [max_completion_tokens] - Maximum completion tokens
  * @property {number} [max_tokens] - Maximum output tokens
  */
 
