@@ -99,7 +99,10 @@ import {
   shouldAttemptModelFallback,
 } from "./phases/model-fallback-handler.ts";
 import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
-import { translateNonStreamingResponse } from "./responseTranslator.ts";
+import {
+  applyForcedToolChoiceFallback,
+  translateNonStreamingResponse,
+} from "./responseTranslator.ts";
 import {
   parseSSEToClaudeResponse,
   parseSSEToOpenAIResponse,
@@ -1868,6 +1871,10 @@ export async function handleChatCore({
           toolNameMap as Map<string, string> | null
         )
       : responseBody;
+
+    // Apply forced tool_choice fallback for Codex upstream that ignores tool_choice
+    // and returns JSON as plain text content instead of tool_calls
+    translatedResponse = applyForcedToolChoiceFallback(body, translatedResponse);
 
     // T26: Strip markdown code blocks if provider format is Claude
     if (sourceFormat === "claude" && !stream) {
