@@ -878,6 +878,57 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     ],
   },
 
+  deepinfra: {
+    id: "deepinfra",
+    alias: "di",
+    format: "openai",
+    executor: "default",
+    baseUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
+    modelsUrl: "https://api.deepinfra.com/v1/openai/models",
+    authType: "apikey",
+    authHeader: "bearer",
+    defaultContextLength: CONTEXT_CONFIG.defaultLimit,
+    models: [
+      { id: "meta-llama/Meta-Llama-3.3-70B-Instruct", name: "Llama 3.3 70B Instruct" },
+      { id: "Qwen/Qwen3-32B", name: "Qwen3 32B" },
+      { id: "deepseek-ai/DeepSeek-V3", name: "DeepSeek V3" },
+    ],
+  },
+
+  sambanova: {
+    id: "sambanova",
+    alias: "sn",
+    format: "openai",
+    executor: "default",
+    baseUrl: "https://api.sambanova.ai/v1/chat/completions",
+    modelsUrl: "https://api.sambanova.ai/v1/models",
+    authType: "apikey",
+    authHeader: "bearer",
+    defaultContextLength: CONTEXT_CONFIG.defaultLimit,
+    models: [
+      { id: "Meta-Llama-3.1-8B-Instruct", name: "Meta Llama 3.1 8B Instruct" },
+      { id: "Meta-Llama-3.3-70B-Instruct", name: "Meta Llama 3.3 70B Instruct" },
+      { id: "Qwen3-32B", name: "Qwen3 32B" },
+    ],
+  },
+
+  venice: {
+    id: "venice",
+    alias: "ven",
+    format: "openai",
+    executor: "default",
+    baseUrl: "https://api.venice.ai/api/v1/chat/completions",
+    modelsUrl: "https://api.venice.ai/api/v1/models",
+    authType: "apikey",
+    authHeader: "bearer",
+    defaultContextLength: CONTEXT_CONFIG.defaultLimit,
+    models: [
+      { id: "venice-uncensored", name: "Venice Uncensored" },
+      { id: "mistral-31-24b", name: "Mistral 31 24B" },
+      { id: "zai-org-glm-4.7", name: "GLM 4.7" },
+    ],
+  },
+
   groq: {
     id: "groq",
     alias: "groq",
