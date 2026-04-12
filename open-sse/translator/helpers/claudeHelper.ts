@@ -28,6 +28,37 @@ export function hasValidContent(msg) {
   return false;
 }
 
+// Re-hydrate text blocks that encode tool_result back to tool_result blocks.
+// chatCore.ts converts tool_result → "[Tool Result: <id>]\n<text>" when routing
+// through non-Claude providers. This reverses that conversion before sending to Claude.
+export function rehydrateToolResultTextBlocks(messages: any[]): void {
+  const TOOL_RESULT_RE = /^\[Tool Result: ([^\]]+)\]\n?([\s\S]*)$/;
+
+  const toolUseIds = new Set<string>();
+  for (const msg of messages) {
+    if (msg.role === "assistant" && Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.type === "tool_use" && block.id) {
+          toolUseIds.add(String(block.id));
+        }
+      }
+    }
+  }
+
+  for (const msg of messages) {
+    if (msg.role === "user" && Array.isArray(msg.content)) {
+      msg.content = msg.content.flatMap((block: any) => {
+        if (block.type !== "text") return [block];
+        const m = TOOL_RESULT_RE.exec(block.text ?? "");
+        if (!m) return [block];
+        const [, callId, resultText] = m;
+        if (!toolUseIds.has(callId)) return [block];
+        return [{ type: "tool_result", tool_use_id: callId, content: resultText.trim() }];
+      });
+    }
+  }
+}
+
 // Fix tool_use/tool_result ordering for Claude API
 // 1. Assistant message with tool_use: remove text AFTER tool_use (Claude doesn't allow)
 // 2. Merge consecutive same-role messages
@@ -199,6 +230,9 @@ export function prepareClaudeRequest(body, provider = null, preserveCacheControl
     if (body.tools && Array.isArray(body.tools)) {
       body.tools = body.tools.filter((tool) => tool.name && tool.name?.trim());
     }
+
+    // Pass 1.45: Re-hydrate [Tool Result: id] text blocks → tool_result blocks
+    rehydrateToolResultTextBlocks(filtered);
 
     // Pass 1.5: Fix tool_use/tool_result ordering
     // Each tool_use must have tool_result in the NEXT message (not same message with other content)
