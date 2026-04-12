@@ -552,14 +552,12 @@ async function handleSingleModelChat(
             Number(
               fallbackBody.max_completion_tokens ??
                 fallbackBody.max_tokens ??
-                fallbackBody.max_completion_tokens ??
                 fallbackDecision.maxOutputTokens
             ) || fallbackDecision.maxOutputTokens,
             fallbackDecision.maxOutputTokens
           );
           fallbackBody.max_tokens = maxTokens;
           fallbackBody.max_completion_tokens = maxTokens;
-          fallbackBody.max_tokens = maxTokens;
 
           log.warn(
             "EMERGENCY_FALLBACK",
