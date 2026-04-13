@@ -759,7 +759,8 @@
         },
         "notes": {
           "0": "OpenCode는 API 키 구성이 필요합니다.",
-          "1": "기본 URL을 Routiform 엔드포인트로 설정하세요."
+          "1": "기본 URL을 Routiform 엔드포인트로 설정하세요.",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {

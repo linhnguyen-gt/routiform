@@ -231,11 +231,15 @@ export const CLI_TOOLS = {
     notes: [
       {
         type: "warning",
-        text: "Config path: Linux/macOS ~/.config/opencode/opencode.json • Windows %APPDATA%\\\\opencode\\\\opencode.json",
+        text: "Config path: Linux/macOS ~/.config/opencode/opencode.json • Windows %APPDATA%\\opencode\\opencode.json",
       },
       {
         type: "warning",
         text: 'Thinking variant example: opencode run "implement this feature" --model routiform/claude-sonnet-4-5-thinking --variant high',
+      },
+      {
+        type: "info",
+        text: "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool.",
       },
     ],
     guideSteps: [
@@ -252,18 +256,18 @@ export const CLI_TOOLS = {
     codeBlock: {
       language: "json",
       code: `{
+  "$schema": "https://opencode.ai/config.json",
   "providers": {
     "routiform": {
+      "npm": "@ai-sdk/anthropic",
       "name": "Routiform",
-      "api": "openai",
-      "baseURL": "{{baseUrl}}",
-      "apiKey": "{{apiKey}}",
-      "models": [
-        "{{model}}",
-        "claude-sonnet-4-5-thinking",
-        "gemini-3.1-pro-high",
-        "gemini-3-flash"
-      ]
+      "options": {
+        "baseURL": "{{baseUrl}}",
+        "apiKey": "{{apiKey}}"
+      },
+      "models": {
+{{models}}
+      }
     }
   }
 }`,

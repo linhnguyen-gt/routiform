@@ -14,7 +14,7 @@ const eslintConfig = [
   },
   // Relaxed rules for open-sse and tests (incremental adoption)
   {
-    files: ["open-sse/**/*.ts", "tests/**/*.ts"],
+    files: ["open-sse/**/*.ts", "src/**/*.ts", "tests/**/*.ts"],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
     },

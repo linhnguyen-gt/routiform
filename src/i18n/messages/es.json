@@ -759,7 +759,8 @@
         },
         "notes": {
           "0": "OpenCode requiere configuración de clave API.",
-          "1": "Establece la URL base a tu endpoint de Routiform."
+          "1": "Establece la URL base a tu endpoint de Routiform.",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {
