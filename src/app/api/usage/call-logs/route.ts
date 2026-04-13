@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
 
-    const filter: Record<string, any> = {};
+    const filter: Record<string, string | number | null> = {};
     if (searchParams.get("status")) filter.status = searchParams.get("status");
     if (searchParams.get("model")) filter.model = searchParams.get("model");
     if (searchParams.get("provider")) filter.provider = searchParams.get("provider");
@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     if (searchParams.get("apiKey")) filter.apiKey = searchParams.get("apiKey");
     if (searchParams.get("combo")) filter.combo = searchParams.get("combo");
     if (searchParams.get("search")) filter.search = searchParams.get("search");
-    if (searchParams.get("limit")) filter.limit = parseInt(searchParams.get("limit"));
+    const limitParam = searchParams.get("limit");
+    if (limitParam) filter.limit = parseInt(limitParam, 10);
 
     const logs = await getCallLogs(filter);
     return NextResponse.json(logs);

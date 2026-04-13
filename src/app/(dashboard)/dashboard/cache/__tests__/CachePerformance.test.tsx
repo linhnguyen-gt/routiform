@@ -79,11 +79,11 @@ describe("CachePerformance", () => {
     });
 
     it("renders gracefully when stats is null", () => {
-      render(<CachePerformance stats={null} />);
+      render(<CachePerformance />);
     });
 
     it("renders component container even with no data", () => {
-      render(<CachePerformance stats={null} />);
+      render(<CachePerformance />);
       const container = document.querySelector("[data-testid='cache-performance']");
       expect(container).toBeInTheDocument();
     });

@@ -19,26 +19,26 @@ export interface PluginContext {
   /** Unique request ID */
   requestId: string;
   /** Request body (parsed JSON) */
-  body: any;
+  body: Record<string, unknown>;
   /** Model string */
   model: string;
   /** Provider (if resolved) */
   provider?: string;
   /** API key info */
-  apiKeyInfo?: any;
+  apiKeyInfo?: Record<string, unknown>;
   /** Arbitrary metadata plugins can share */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface PluginResult {
   /** If true, stop processing further plugins and return immediately */
   blocked?: boolean;
   /** Optional response to return if blocked */
-  response?: any;
+  response?: unknown;
   /** Modified body (if any) */
-  body?: any;
+  body?: unknown;
   /** Modified metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Plugin {
@@ -51,9 +51,9 @@ export interface Plugin {
   /** Called before the chat handler */
   onRequest?: (ctx: PluginContext) => Promise<PluginResult | void> | PluginResult | void;
   /** Called after the chat handler */
-  onResponse?: (ctx: PluginContext, response: any) => Promise<any | void> | any | void;
+  onResponse?: (ctx: PluginContext, response: unknown) => Promise<unknown | void> | unknown | void;
   /** Called on handler error */
-  onError?: (ctx: PluginContext, error: Error) => Promise<any | void> | any | void;
+  onError?: (ctx: PluginContext, error: Error) => Promise<unknown | void> | unknown | void;
 }
 
 // ── Registry ──
@@ -129,7 +129,7 @@ export function listPlugins(): Array<{
  */
 export async function runOnRequest(
   ctx: PluginContext
-): Promise<{ blocked: boolean; response?: any; ctx: PluginContext }> {
+): Promise<{ blocked: boolean; response?: unknown; ctx: PluginContext }> {
   let currentCtx = { ...ctx };
 
   for (const plugin of _plugins) {
@@ -142,13 +142,22 @@ export async function runOnRequest(
           console.log(`[Plugins] Request blocked by "${plugin.name}"`);
           return { blocked: true, response: result.response, ctx: currentCtx };
         }
-        if (result.body) currentCtx.body = result.body;
-        if (result.metadata) {
-          currentCtx.metadata = { ...currentCtx.metadata, ...result.metadata };
+        if (result.body) currentCtx.body = result.body as Record<string, unknown>;
+        if (result.metadata && typeof result.metadata === "object" && result.metadata !== null) {
+          const existingMetadata =
+            typeof currentCtx.metadata === "object" && currentCtx.metadata !== null
+              ? (currentCtx.metadata as Record<string, unknown>)
+              : {};
+          currentCtx.metadata = {
+            ...existingMetadata,
+            ...(result.metadata as Record<string, unknown>),
+          } as Record<string, unknown>;
         }
       }
-    } catch (err: any) {
-      console.error(`[Plugins] onRequest error in "${plugin.name}": ${err.message}`);
+    } catch (err: unknown) {
+      console.error(
+        `[Plugins] onRequest error in "${plugin.name}": ${err instanceof Error ? err.message : String(err)}`
+      );
       // Plugin errors don't block the pipeline by default
     }
   }
@@ -159,7 +168,7 @@ export async function runOnRequest(
 /**
  * Run all onResponse hooks. Returns the (possibly modified) response.
  */
-export async function runOnResponse(ctx: PluginContext, response: any): Promise<any> {
+export async function runOnResponse(ctx: PluginContext, response: unknown): Promise<unknown> {
   let currentResponse = response;
 
   for (const plugin of _plugins) {
@@ -170,8 +179,10 @@ export async function runOnResponse(ctx: PluginContext, response: any): Promise<
       if (modified !== undefined && modified !== null) {
         currentResponse = modified;
       }
-    } catch (err: any) {
-      console.error(`[Plugins] onResponse error in "${plugin.name}": ${err.message}`);
+    } catch (err: unknown) {
+      console.error(
+        `[Plugins] onResponse error in "${plugin.name}": ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -182,7 +193,7 @@ export async function runOnResponse(ctx: PluginContext, response: any): Promise<
  * Run all onError hooks. Returns a recovery response if any plugin handles it,
  * or null to let the error propagate.
  */
-export async function runOnError(ctx: PluginContext, error: Error): Promise<any | null> {
+export async function runOnError(ctx: PluginContext, error: Error): Promise<unknown | null> {
   for (const plugin of _plugins) {
     if (!plugin.enabled || !plugin.onError) continue;
 
@@ -192,8 +203,10 @@ export async function runOnError(ctx: PluginContext, error: Error): Promise<any 
         console.log(`[Plugins] Error recovered by "${plugin.name}"`);
         return recovery;
       }
-    } catch (err: any) {
-      console.error(`[Plugins] onError error in "${plugin.name}": ${err.message}`);
+    } catch (err: unknown) {
+      console.error(
+        `[Plugins] onError error in "${plugin.name}": ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

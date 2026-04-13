@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     const minLevel = LEVEL_ORDER[levelFilter] || 0;
 
-    const entries: any[] = [];
+    const entries: unknown[] = [];
 
     for (const line of lines) {
       try {
@@ -109,7 +109,10 @@ export async function GET(req: NextRequest) {
         "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to read logs" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) || "Failed to read logs" },
+      { status: 500 }
+    );
   }
 }

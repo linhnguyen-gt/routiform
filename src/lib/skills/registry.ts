@@ -207,18 +207,19 @@ class SkillRegistry {
       ? db.prepare("SELECT * FROM skills WHERE api_key_id = ?").all(apiKeyId)
       : db.prepare("SELECT * FROM skills").all();
 
-    for (const row of rows as any[]) {
+    for (const row of rows as Array<Record<string, unknown>>) {
+      const schemaStr = String(row.schema || "{}");
       const skill: Skill = {
-        id: row.id,
-        apiKeyId: row.api_key_id,
-        name: row.name,
-        version: row.version,
-        description: row.description || "",
-        schema: JSON.parse(row.schema),
-        handler: row.handler,
+        id: String(row.id || ""),
+        apiKeyId: String(row.api_key_id || ""),
+        name: String(row.name || ""),
+        version: String(row.version || ""),
+        description: String(row.description || ""),
+        schema: JSON.parse(String(schemaStr)),
+        handler: String(row.handler || ""),
         enabled: row.enabled === 1,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
+        createdAt: new Date(String(row.created_at)),
+        updatedAt: new Date(String(row.updated_at)),
       };
       this.registeredSkills.set(`${skill.name}@${skill.version}`, skill);
       this.updateVersionCache(skill);

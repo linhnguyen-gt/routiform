@@ -113,10 +113,10 @@ export function useProviderDetailOrchestrator() {
   const [retestingId, setRetestingId] = useState<string | null>(null);
   const [batchTesting, setBatchTesting] = useState(false);
   const [headerImgErrorProviderId, setHeaderImgErrorProviderId] = useState<string | null>(null);
-  const [proxyTarget, setProxyTarget] = useState<any>(null);
-  const [proxyConfig, setProxyConfig] = useState<any>(null);
+  const [proxyTarget, setProxyTarget] = useState<unknown>(null);
+  const [proxyConfig, setProxyConfig] = useState<unknown>(null);
   const [connProxyMap, setConnProxyMap] = useState<
-    Record<string, { proxy: any; level: string } | null>
+    Record<string, { proxy: unknown; level: string } | null>
   >({});
   const [modelTestResults, setModelTestResults] = useState<Record<string, "ok" | "error">>({});
   const [testingModelKey, setTestingModelKey] = useState<string | null>(null);
@@ -133,43 +133,53 @@ export function useProviderDetailOrchestrator() {
   const autoSyncBootstrappedRef = useRef<Set<string>>(new Set());
 
   // Provider info
-  const providerInfo = providerNode
+  const providerNodeObj = providerNode as Record<string, unknown> | null;
+  const providerInfo = providerNodeObj
     ? {
-        id: providerNode.id,
+        id: providerNodeObj.id as string,
         name:
-          providerNode.name ||
+          (providerNodeObj.name as string) ||
           (isCcCompatible
             ? CC_COMPATIBLE_LABEL
-            : providerNode.type === "anthropic-compatible"
+            : providerNodeObj.type === "anthropic-compatible"
               ? t("anthropicCompatibleName")
               : t("openaiCompatibleName")),
         color: isCcCompatible
           ? "#B45309"
-          : providerNode.type === "anthropic-compatible"
+          : providerNodeObj.type === "anthropic-compatible"
             ? "#D97757"
             : "#10A37F",
         textIcon: isCcCompatible
           ? "CC"
-          : providerNode.type === "anthropic-compatible"
+          : providerNodeObj.type === "anthropic-compatible"
             ? "AC"
             : "OC",
-        apiType: providerNode.apiType,
-        baseUrl: providerNode.baseUrl,
-        type: providerNode.type,
+        apiType: providerNodeObj.apiType as string,
+        baseUrl: providerNodeObj.baseUrl as string,
+        type: providerNodeObj.type as string,
       }
-    : (FREE_PROVIDERS as any)[providerId] ||
-      (OAUTH_PROVIDERS as any)[providerId] ||
-      (APIKEY_PROVIDERS as any)[providerId];
+    : (((FREE_PROVIDERS as Record<string, unknown>)[providerId] ||
+        (OAUTH_PROVIDERS as Record<string, unknown>)[providerId] ||
+        (APIKEY_PROVIDERS as Record<string, unknown>)[providerId]) as Record<string, unknown>);
 
   const providerSupportsOAuth =
-    !!(FREE_PROVIDERS as any)[providerId] || !!(OAUTH_PROVIDERS as any)[providerId];
+    !!(FREE_PROVIDERS as Record<string, unknown>)[providerId] ||
+    !!(OAUTH_PROVIDERS as Record<string, unknown>)[providerId];
   const providerSupportsPat = supportsApiKeyOnFreeProvider(providerId);
   const isOAuth = providerSupportsOAuth && !providerSupportsPat;
   const allowQoderOAuthUi = providerId !== "qoder";
   const isManagedAvailableModelsProvider = isCompatible || providerId === "openrouter";
   const supportsAutoSync = supportsProviderModelAutoSync(providerId);
   const providerStorageAlias = isCompatible ? providerId : providerAlias;
-  const providerDisplayAlias = isCompatible ? providerNode?.prefix || providerId : providerAlias;
+  const providerPrefix =
+    providerNode && typeof providerNode === "object" && "prefix" in providerNode
+      ? providerNode.prefix
+      : undefined;
+  const providerDisplayAlias = isCompatible
+    ? typeof providerPrefix === "string"
+      ? providerPrefix
+      : providerId
+    : providerAlias;
 
   const headerImgError = headerImgErrorProviderId === providerId;
   const setHeaderImgError = useCallback(
@@ -197,13 +207,14 @@ export function useProviderDetailOrchestrator() {
           .map((c) =>
             fetch(`/api/settings/proxy?resolve=${encodeURIComponent(c.id!)}`, { cache: "no-store" })
               .then((r) => (r.ok ? r.json() : null))
-              .then((data) => [c.id!, data] as [string, any])
-              .catch(() => [c.id!, null] as [string, any])
+              .then((data) => [c.id!, data] as [string, unknown])
+              .catch(() => [c.id!, null] as [string, unknown])
           )
       );
-      const map: Record<string, { proxy: any; level: string } | null> = {};
+      const map: Record<string, { proxy: unknown; level: string } | null> = {};
       for (const [id, data] of results) {
-        map[id] = data?.proxy ? data : null;
+        const dataObj = data as Record<string, unknown> | null;
+        map[id] = dataObj?.proxy ? (dataObj as { proxy: unknown; level: string }) : null;
       }
       setConnProxyMap(map);
     } catch {

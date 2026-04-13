@@ -429,7 +429,7 @@ export default function AgentsPage() {
                       $schema: "https://opencode.ai/config.json",
                       provider: {
                         routiform: {
-                          npm: "@ai-sdk/openai-compatible",
+                          npm: "@ai-sdk/anthropic",
                           name: "Routiform",
                           options: {
                             baseURL,

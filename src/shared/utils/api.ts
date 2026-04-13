@@ -52,7 +52,10 @@ async function handleResponse(response: Response) {
   const data = await response.json();
 
   if (!response.ok) {
-    const error: any = new Error(data.error || "An error occurred");
+    const error = new Error(data.error || "An error occurred") as Error & {
+      status?: number;
+      data?: unknown;
+    };
     error.status = response.status;
     error.data = data;
     throw error;

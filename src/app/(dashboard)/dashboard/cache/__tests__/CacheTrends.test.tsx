@@ -9,9 +9,39 @@ vi.mock("next-intl", () => ({
 }));
 
 const sampleTrendData = [
-  { timestamp: "2026-04-01T00:00:00Z", requests: 120, hits: 100, misses: 20, hitRate: 83.3 },
-  { timestamp: "2026-04-01T01:00:00Z", requests: 95, hits: 80, misses: 15, hitRate: 84.2 },
-  { timestamp: "2026-04-01T02:00:00Z", requests: 200, hits: 180, misses: 20, hitRate: 90.0 },
+  {
+    timestamp: "2026-04-01T00:00:00Z",
+    requests: 120,
+    cachedRequests: 100,
+    inputTokens: 1000,
+    cachedTokens: 800,
+    cacheCreationTokens: 50,
+    hits: 100,
+    misses: 20,
+    hitRate: 83.3,
+  },
+  {
+    timestamp: "2026-04-01T01:00:00Z",
+    requests: 95,
+    cachedRequests: 80,
+    inputTokens: 950,
+    cachedTokens: 760,
+    cacheCreationTokens: 40,
+    hits: 80,
+    misses: 15,
+    hitRate: 84.2,
+  },
+  {
+    timestamp: "2026-04-01T02:00:00Z",
+    requests: 200,
+    cachedRequests: 180,
+    inputTokens: 2000,
+    cachedTokens: 1800,
+    cacheCreationTokens: 90,
+    hits: 180,
+    misses: 20,
+    hitRate: 90.0,
+  },
 ];
 
 describe("CacheTrends", () => {

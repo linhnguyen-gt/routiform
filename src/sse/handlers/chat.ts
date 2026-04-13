@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import {
   getProviderCredentials,
   hasActiveProviderConnection,
@@ -8,7 +7,6 @@ import {
   isValidApiKey,
 } from "../services/auth";
 import { getModelInfo, getComboForModel } from "../services/model";
-import { parseModel } from "@routiform/open-sse/services/model.ts";
 import {
   detectFormatFromEndpoint,
   getTargetFormat,
@@ -53,7 +51,6 @@ import {
 import { markAccountExhaustedFrom429 } from "../../domain/quotaCache";
 import { RequestTelemetry, recordTelemetry } from "../../shared/utils/requestTelemetry";
 import { generateRequestId } from "../../shared/utils/requestId";
-import { logAuditEvent } from "../../lib/compliance/index";
 import { enforceApiKeyPolicy } from "../../shared/utils/apiKeyPolicy";
 import { cloneLogPayload } from "@/lib/logPayloads";
 import {
@@ -78,7 +75,10 @@ import {
  * Supports: OpenAI, Claude, Gemini, OpenAI Responses API formats
  * Format detection and translation handled by translator
  */
-export async function handleChat(request: any, clientRawRequest: any = null) {
+export async function handleChat(
+  request: Request,
+  clientRawRequest: Record<string, unknown> | null = null
+) {
   // Pipeline: Start request telemetry
   const reqId = generateRequestId();
   const telemetry = new RequestTelemetry(reqId);
@@ -102,7 +102,7 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
 
   // FASE-01: Input sanitization — prompt injection detection & PII redaction
   telemetry.startPhase("validate");
-  const sanitizeResult = sanitizeRequest(body, log as any);
+  const sanitizeResult = sanitizeRequest(body, log as unknown as Console);
   if (sanitizeResult.blocked) {
     log.warn("SANITIZER", "Request blocked due to prompt injection", {
       detections: sanitizeResult.detections,
@@ -189,32 +189,32 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
     );
     return policy.rejection;
   }
-  const apiKeyInfo = policy.apiKeyInfo;
+  const apiKeyInfo = policy.apiKeyInfo as unknown as Record<string, unknown> | null;
   telemetry.endPhase();
 
   // T08: per-key active session limit (0 = unlimited).
-  if (apiKeyInfo?.id && sessionId) {
+  const apiKeyId = apiKeyInfo?.id ? String(apiKeyInfo.id) : null;
+  if (apiKeyId && sessionId) {
     const maxSessions =
       typeof apiKeyInfo.maxSessions === "number" && apiKeyInfo.maxSessions > 0
         ? apiKeyInfo.maxSessions
         : 0;
 
-    if (maxSessions > 0 && !isSessionRegisteredForKey(apiKeyInfo.id, sessionId)) {
-      const sessionViolation = checkSessionLimit(apiKeyInfo.id, maxSessions);
+    if (maxSessions > 0 && !isSessionRegisteredForKey(apiKeyId, sessionId)) {
+      const sessionViolation = checkSessionLimit(apiKeyId, maxSessions);
       if (sessionViolation) {
         return withSessionHeader(
           errorResponse(HTTP_STATUS.RATE_LIMITED, sessionViolation.message),
           sessionId
         );
       }
-      registerKeySession(apiKeyInfo.id, sessionId);
+      registerKeySession(apiKeyId, sessionId);
     }
   }
 
   // T05 — Task-Aware Smart Routing
   // Detect the semantic task type and optionally route to the optimal model
   let resolvedModelStr = modelStr;
-  let taskRouteInfo: { taskType: string; wasRouted: boolean } | null = null;
   if (getTaskRoutingConfig().enabled) {
     telemetry.startPhase("task-route");
     const tr = applyTaskAwareRouting(modelStr, body);
@@ -228,7 +228,7 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
     } else if (tr.taskType !== "chat") {
       log.debug("T05", `Task-Aware: detected="${tr.taskType}" (no override configured)`);
     }
-    taskRouteInfo = { taskType: tr.taskType, wasRouted: tr.wasRouted };
+    const _taskRouteInfo = { taskType: tr.taskType, wasRouted: tr.wasRouted };
     telemetry.endPhase();
   }
 
@@ -260,7 +260,9 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
       const creds = await getProviderCredentials(
         provider,
         null,
-        apiKeyInfo?.allowedConnections ?? null,
+        Array.isArray(apiKeyInfo?.allowedConnections)
+          ? (apiKeyInfo.allowedConnections as string[])
+          : null,
         modelInfo.model || modelString
       );
       if (!creds || creds.allRateLimited) return false;
@@ -268,16 +270,30 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
     };
 
     // Fetch settings and all combos for config cascade and nested resolution
-    const [settings, allCombos] = await Promise.all([
-      getSettings().catch(() => ({})),
-      getCombos().catch(() => []),
+    const results = await Promise.all([
+      getSettings().catch(() => ({}) as Record<string, unknown>),
+      getCombos().catch((): ComboRecord[] => []),
     ]);
+    const [settings, allCombos]: [Record<string, unknown>, ComboRecord[]] = results as [
+      Record<string, unknown>,
+      ComboRecord[],
+    ];
     telemetry.endPhase();
 
-    const response = await (handleComboChat as any)({
+    const response = await (
+      handleComboChat as (args: {
+        body: Record<string, unknown>;
+        combo: ComboRecord;
+        handleSingleModel: (b: Record<string, unknown>, m: string) => Promise<Response>;
+        isModelAvailable: (modelString: string) => Promise<boolean>;
+        log: Record<string, unknown>;
+        settings: Record<string, unknown>;
+        allCombos: ComboRecord[];
+      }) => Promise<Response>
+    )({
       body,
       combo,
-      handleSingleModel: (b: any, m: string) =>
+      handleSingleModel: (b: Record<string, unknown>, m: string) =>
         handleSingleModelChat(
           b,
           m,
@@ -295,21 +311,24 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
           combo
         ),
       isModelAvailable: checkModelAvailable,
-      log: log as any,
+      log: log as unknown as Record<string, unknown>,
       settings,
       allCombos,
     });
 
     // ── Global Fallback Provider (#689) ────────────────────────────────────
     // If combo exhausted all models, try the global fallback before giving up.
-    const fallbackTriggers = getGlobalFallbackStatusCodes(settings as Record<string, unknown>);
+    const fallbackTriggers = getGlobalFallbackStatusCodes(
+      settings as unknown as Record<string, unknown>
+    );
+    const settingsObj = settings as unknown as Record<string, unknown>;
     if (
       !response.ok &&
       fallbackTriggers.includes(response.status) &&
-      typeof (settings as any)?.globalFallbackModel === "string" &&
-      (settings as any).globalFallbackModel.trim()
+      typeof settingsObj?.globalFallbackModel === "string" &&
+      (settingsObj.globalFallbackModel as string).trim()
     ) {
-      const fallbackModel = (settings as any).globalFallbackModel.trim();
+      const fallbackModel = (settingsObj.globalFallbackModel as string).trim();
       log.info(
         "GLOBAL_FALLBACK",
         `Combo "${combo.name}" exhausted — attempting global fallback: ${fallbackModel}`
@@ -336,8 +355,9 @@ export async function handleChat(request: any, clientRawRequest: any = null) {
           "GLOBAL_FALLBACK",
           `Global fallback ${fallbackModel} also failed (${fallbackResponse.status})`
         );
-      } catch (err: any) {
-        log.warn("GLOBAL_FALLBACK", `Global fallback error: ${err?.message || "unknown"}`);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        log.warn("GLOBAL_FALLBACK", `Global fallback error: ${errorMessage}`);
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -382,13 +402,13 @@ export function buildClientRawRequest(request: Request, body: unknown) {
  * retry loop.
  */
 async function handleSingleModelChat(
-  body: any,
+  body: Record<string, unknown>,
   modelStr: string,
-  clientRawRequest: any = null,
-  request: any = null,
+  clientRawRequest: Record<string, unknown> | null = null,
+  request: Request | null = null,
   comboName: string | null = null,
-  apiKeyInfo: any = null,
-  telemetry: any = null,
+  apiKeyInfo: Record<string, unknown> | null = null,
+  telemetry: RequestTelemetry | null = null,
   runtimeOptions: {
     emergencyFallbackTried?: boolean;
     forceLiveComboTest?: boolean;
@@ -399,7 +419,11 @@ async function handleSingleModelChat(
   combo: ComboRecord | null = null
 ) {
   // 1. Resolve model → provider/model
-  const resolved = await resolveModelOrError(modelStr, body, clientRawRequest?.endpoint);
+  const resolved = await resolveModelOrError(
+    modelStr,
+    body,
+    (clientRawRequest?.endpoint as string) || ""
+  );
   if (resolved.error) return resolved.error;
 
   const { provider, model, sourceFormat, targetFormat, extendedContext } = resolved;
@@ -442,7 +466,9 @@ async function handleSingleModelChat(
     const credentials = await getProviderCredentials(
       provider,
       null,
-      apiKeyInfo?.allowedConnections ?? null,
+      Array.isArray(apiKeyInfo?.allowedConnections)
+        ? (apiKeyInfo.allowedConnections as string[])
+        : null,
       model,
       credentialOptions
     );
@@ -487,11 +513,11 @@ async function handleSingleModelChat(
       body,
       provider,
       model,
-      refreshedCredentials,
+      refreshedCredentials: refreshedCredentials as Record<string, unknown>,
       proxyInfo,
       log,
       clientRawRequest,
-      credentials,
+      credentials: credentials as Record<string, unknown>,
       apiKeyInfo,
       userAgent,
       comboName,
@@ -545,7 +571,7 @@ async function handleSingleModelChat(
             `Skip: no active connection for ${fallbackDecision.provider} (configure API key or disable emergency fallback target)`
           );
         } else if (fallbackModelStr !== currentModelStr) {
-          const fallbackBody = { ...body, model: fallbackModelStr };
+          const fallbackBody = { ...body, model: fallbackModelStr } as Record<string, unknown>;
 
           // Cap output on emergency fallback to avoid unexpected long responses.
           const maxTokens = Math.min(
@@ -599,8 +625,8 @@ async function handleSingleModelChat(
     // 7. Fallback to next account
     const { shouldFallback } = await markAccountUnavailable(
       credentials.connectionId,
-      result.status,
-      result.error,
+      Number(result.status),
+      String(result.error),
       provider,
       model
     );
@@ -622,17 +648,24 @@ async function handleSingleModelChat(
 /**
  * Resolve model string to provider/model info, or return an error response.
  */
-async function resolveModelOrError(modelStr: string, body: any, endpointPath: string = "") {
+async function resolveModelOrError(
+  modelStr: string,
+  body: Record<string, unknown>,
+  endpointPath: string = ""
+) {
   const modelInfo = await getModelInfo(modelStr);
   if (!modelInfo.provider) {
-    if ((modelInfo as any).errorType === "ambiguous_model") {
+    const modelInfoExt = modelInfo as Record<string, unknown>;
+    if (modelInfoExt.errorType === "ambiguous_model") {
       const message =
-        (modelInfo as any).errorMessage ||
+        (modelInfoExt.errorMessage as string) ||
         `Ambiguous model '${modelStr}'. Use provider/model prefix (ex: gh/${modelStr} or cc/${modelStr}).`;
       log.warn("CHAT", message, {
         model: modelStr,
         candidates:
-          (modelInfo as any).candidateAliases || (modelInfo as any).candidateProviders || [],
+          (modelInfoExt.candidateAliases as string[]) ||
+          (modelInfoExt.candidateProviders as string[]) ||
+          [],
       });
       return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, message) };
     }
@@ -647,7 +680,8 @@ async function resolveModelOrError(modelStr: string, body: any, endpointPath: st
   // If the custom model specifies apiFormat="responses", override targetFormat
   // to route through the Responses API translator instead of Chat Completions
   let targetFormat = getModelTargetFormat(providerAlias, model) || getTargetFormat(provider);
-  if ((modelInfo as any).apiFormat === "responses") {
+  const modelInfoExt = modelInfo as Record<string, unknown>;
+  if (modelInfoExt.apiFormat === "responses") {
     targetFormat = "openai-responses";
     log.info("ROUTING", `Custom model apiFormat=responses → targetFormat=openai-responses`);
   }
@@ -676,7 +710,9 @@ function checkPipelineGates(
     log.info("AVAILABILITY", `${provider}/${model} cooldown bypassed for combo live test`);
   } else if (!modelAvailable) {
     log.warn("AVAILABILITY", `${provider}/${model} is in cooldown, rejecting request`);
-    return (unavailableResponse as any)(
+    return (
+      unavailableResponse as (status: number, message: string, retryAfter: number) => Response
+    )(
       HTTP_STATUS.SERVICE_UNAVAILABLE,
       `Model ${provider}/${model} is temporarily unavailable (cooldown)`,
       30
@@ -693,11 +729,9 @@ function checkPipelineGates(
     log.info("CIRCUIT", `Bypassing OPEN circuit breaker for combo live test: ${provider}`);
   } else if (!breaker.canExecute()) {
     log.warn("CIRCUIT", `Circuit breaker OPEN for ${provider}, rejecting request`);
-    return (unavailableResponse as any)(
-      HTTP_STATUS.SERVICE_UNAVAILABLE,
-      `Provider ${provider} circuit breaker is open`,
-      30
-    );
+    return (
+      unavailableResponse as (status: number, message: string, retryAfter: number) => Response
+    )(HTTP_STATUS.SERVICE_UNAVAILABLE, `Provider ${provider} circuit breaker is open`, 30);
   }
 
   return null;
@@ -726,27 +760,62 @@ async function executeChatWithBreaker({
   isCombo,
   combo,
   extendedContext,
-}: any): Promise<{ result: any; tlsFingerprintUsed: boolean }> {
-  let tlsFingerprintUsed = false;
+}: {
+  bypassCircuitBreaker: boolean;
+  breaker: ReturnType<typeof getCircuitBreaker>;
+  body: Record<string, unknown>;
+  provider: string;
+  model: string;
+  refreshedCredentials: Record<string, unknown>;
+  proxyInfo: Record<string, unknown> | null;
+  log: typeof log;
+  clientRawRequest: Record<string, unknown> | null;
+  credentials: Record<string, unknown>;
+  apiKeyInfo: Record<string, unknown> | null;
+  userAgent: string;
+  comboName: string | null;
+  comboStrategy: string | null;
+  isCombo: boolean;
+  combo: ComboRecord | null;
+  extendedContext?: boolean;
+}): Promise<{ result: Record<string, unknown>; tlsFingerprintUsed: boolean }> {
+  let _tlsFingerprintUsed = false;
 
   try {
     const chatFn = () =>
-      runWithProxyContext(proxyInfo?.proxy || null, () =>
-        (handleChatCore as any)({
+      runWithProxyContext((proxyInfo?.proxy as string) || null, () =>
+        (
+          handleChatCore as (args: {
+            body: Record<string, unknown>;
+            modelInfo: { provider: string; model: string; extendedContext?: boolean };
+            credentials: Record<string, unknown>;
+            log: typeof log;
+            clientRawRequest: Record<string, unknown> | null;
+            connectionId: string;
+            apiKeyInfo: Record<string, unknown> | null;
+            userAgent: string;
+            comboName: string | null;
+            comboStrategy: string | null;
+            isCombo: boolean;
+            combo: ComboRecord | null;
+            onCredentialsRefreshed: (newCreds: Record<string, unknown>) => Promise<void>;
+            onRequestSuccess: () => Promise<void>;
+          }) => Promise<Record<string, unknown>>
+        )({
           body: { ...body, model: `${provider}/${model}` },
           modelInfo: { provider, model, extendedContext },
           credentials: refreshedCredentials,
           log: logger,
           clientRawRequest,
-          connectionId: credentials.connectionId,
+          connectionId: credentials.connectionId as string,
           apiKeyInfo,
           userAgent,
           comboName,
           comboStrategy,
           isCombo,
           combo,
-          onCredentialsRefreshed: async (newCreds: any) => {
-            await updateProviderCredentials(credentials.connectionId, {
+          onCredentialsRefreshed: async (newCreds: Record<string, unknown>) => {
+            await updateProviderCredentials(credentials.connectionId as string, {
               accessToken: newCreds.accessToken,
               refreshToken: newCreds.refreshToken,
               providerSpecificData: newCreds.providerSpecificData,
@@ -754,7 +823,7 @@ async function executeChatWithBreaker({
             });
           },
           onRequestSuccess: async () => {
-            await clearAccountError(credentials.connectionId, credentials);
+            await clearAccountError(credentials.connectionId as string, credentials);
           },
         })
       );
@@ -762,27 +831,35 @@ async function executeChatWithBreaker({
     if (bypassCircuitBreaker) {
       if (!proxyInfo?.proxy && isTlsFingerprintActive()) {
         const tracked = await runWithTlsTracking(chatFn);
-        return { result: tracked.result, tlsFingerprintUsed: tracked.tlsFingerprintUsed };
+        return {
+          result: tracked.result as Record<string, unknown>,
+          tlsFingerprintUsed: tracked.tlsFingerprintUsed,
+        };
       }
 
       const result = await chatFn();
-      return { result, tlsFingerprintUsed: false };
+      return { result: result as Record<string, unknown>, tlsFingerprintUsed: false };
     }
 
     if (!proxyInfo?.proxy && isTlsFingerprintActive()) {
       const tracked = await breaker.execute(async () => runWithTlsTracking(chatFn));
-      return { result: tracked.result, tlsFingerprintUsed: tracked.tlsFingerprintUsed };
+      return {
+        result: tracked.result as Record<string, unknown>,
+        tlsFingerprintUsed: tracked.tlsFingerprintUsed,
+      };
     }
 
     const result = await breaker.execute(chatFn);
-    return { result, tlsFingerprintUsed: false };
+    return { result: result as Record<string, unknown>, tlsFingerprintUsed: false };
   } catch (cbErr) {
     if (cbErr instanceof CircuitBreakerOpenError) {
       log.warn("CIRCUIT", `${provider} circuit open during retry: ${cbErr.message}`);
       return {
         result: {
           success: false,
-          response: (unavailableResponse as any)(
+          response: (
+            unavailableResponse as (status: number, message: string, retryAfter: number) => Response
+          )(
             HTTP_STATUS.SERVICE_UNAVAILABLE,
             `Provider ${provider} circuit breaker is open`,
             Math.ceil(cbErr.retryAfterMs / 1000)
@@ -795,13 +872,19 @@ async function executeChatWithBreaker({
 
     // T14: Proxy Fast-Fail should be converted into an upstream-unavailable result
     // so account fallback logic can continue with another connection.
-    if (cbErr?.code === "PROXY_UNREACHABLE" || /proxy unreachable/i.test(cbErr?.message || "")) {
-      const detail = cbErr?.message || "Proxy unreachable";
+    const cbError = cbErr as { code?: string; message?: string };
+    if (
+      cbError?.code === "PROXY_UNREACHABLE" ||
+      /proxy unreachable/i.test(cbError?.message || "")
+    ) {
+      const detail = cbError?.message || "Proxy unreachable";
       log.warn("PROXY", detail);
       return {
         result: {
           success: false,
-          response: (unavailableResponse as any)(HTTP_STATUS.SERVICE_UNAVAILABLE, detail, 2),
+          response: (
+            unavailableResponse as (status: number, message: string, retryAfter: number) => Response
+          )(HTTP_STATUS.SERVICE_UNAVAILABLE, detail, 2),
           status: HTTP_STATUS.SERVICE_UNAVAILABLE,
           error: detail,
         },
@@ -816,7 +899,7 @@ async function executeChatWithBreaker({
 // ──── Extracted helpers (T-28) ────
 
 function handleNoCredentials(
-  credentials: any,
+  credentials: Record<string, unknown> | null,
   triedConnectionIds: string[],
   provider: string,
   model: string,
@@ -831,8 +914,10 @@ function handleNoCredentials(
     return unavailableResponse(
       status,
       `[${provider}/${model}] ${errorMsg}`,
-      credentials.retryAfter,
-      credentials.retryAfterHuman
+      typeof credentials.retryAfter === "number" || typeof credentials.retryAfter === "string"
+        ? credentials.retryAfter
+        : undefined,
+      typeof credentials.retryAfterHuman === "string" ? credentials.retryAfterHuman : undefined
     );
   }
   if (triedConnectionIds.length === 0) {
@@ -858,11 +943,12 @@ function handleNoCredentials(
   );
 }
 
-async function safeResolveProxy(connectionId: string) {
+async function safeResolveProxy(connectionId: string): Promise<Record<string, unknown> | null> {
   try {
     return await resolveProxyForConnection(connectionId);
-  } catch (proxyErr: any) {
-    log.debug("PROXY", `Failed to resolve proxy: ${proxyErr.message}`);
+  } catch (proxyErr) {
+    const errorMessage = proxyErr instanceof Error ? proxyErr.message : String(proxyErr);
+    log.debug("PROXY", `Failed to resolve proxy: ${errorMessage}`);
     return null;
   }
 }
@@ -879,24 +965,38 @@ function safeLogEvents({
   comboName,
   clientRawRequest,
   tlsFingerprintUsed = false,
+}: {
+  result: Record<string, unknown>;
+  proxyInfo: Record<string, unknown> | null;
+  proxyLatency: number;
+  provider: string;
+  model: string;
+  sourceFormat: string;
+  targetFormat: string;
+  credentials: Record<string, unknown>;
+  comboName: string | null;
+  clientRawRequest: Record<string, unknown> | null;
+  tlsFingerprintUsed?: boolean;
 }) {
   try {
     logProxyEvent({
-      status: result.success
+      status: (result.success as boolean)
         ? "success"
-        : result.status === 408 || result.status === 504
+        : (result.status as number) === 408 || (result.status as number) === 504
           ? "timeout"
           : "error",
-      proxy: proxyInfo?.proxy || null,
-      level: proxyInfo?.level || "direct",
-      levelId: proxyInfo?.levelId || null,
+      proxy: proxyInfo?.proxy
+        ? (proxyInfo.proxy as { type: string; host: string; port: number | string })
+        : null,
+      level: (proxyInfo?.level as string) || "direct",
+      levelId: (proxyInfo?.levelId as string) || null,
       provider,
       targetUrl: `${provider}/${model}`,
       latencyMs: proxyLatency,
-      error: result.success ? null : result.error || null,
-      connectionId: credentials.connectionId,
+      error: (result.success as boolean) ? null : (result.error as string) || null,
+      connectionId: credentials.connectionId as string,
       comboId: comboName || null,
-      account: credentials.connectionId?.slice(0, 8) || null,
+      account: (credentials.connectionId as string)?.slice(0, 8) || null,
       tlsFingerprint: tlsFingerprintUsed,
     });
   } catch {}
@@ -906,11 +1006,11 @@ function safeLogEvents({
       model,
       sourceFormat,
       targetFormat,
-      status: result.success ? "success" : "error",
-      statusCode: result.success ? 200 : result.status || 500,
+      status: (result.success as boolean) ? "success" : "error",
+      statusCode: (result.success as boolean) ? 200 : (result.status as number) || 500,
       latency: proxyLatency,
-      endpoint: clientRawRequest?.endpoint || "/v1/chat/completions",
-      connectionId: credentials.connectionId || null,
+      endpoint: (clientRawRequest?.endpoint as string) || "/v1/chat/completions",
+      connectionId: (credentials.connectionId as string) || null,
       comboName: comboName || null,
     });
   } catch {}

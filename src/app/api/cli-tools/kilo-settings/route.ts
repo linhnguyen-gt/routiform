@@ -13,7 +13,7 @@ import { getApiKeyById } from "@/lib/localDb";
 
 const KILO_DATA_DIR = path.join(os.homedir(), ".local", "share", "kilo");
 const AUTH_PATH = path.join(KILO_DATA_DIR, "auth.json");
-const KILO_CONFIG_DIR = path.join(os.homedir(), ".config", "kilo");
+const _KILO_CONFIG_DIR = path.join(os.homedir(), ".config", "kilo");
 
 // Read auth.json
 const readAuth = async () => {

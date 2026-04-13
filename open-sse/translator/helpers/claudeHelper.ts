@@ -31,23 +31,27 @@ export function hasValidContent(msg) {
 // Re-hydrate text blocks that encode tool_result back to tool_result blocks.
 // chatCore.ts converts tool_result → "[Tool Result: <id>]\n<text>" when routing
 // through non-Claude providers. This reverses that conversion before sending to Claude.
-export function rehydrateToolResultTextBlocks(messages: any[]): void {
+export function rehydrateToolResultTextBlocks(messages: unknown[]): void {
   const TOOL_RESULT_RE = /^\[Tool Result: ([^\]]+)\]\n?([\s\S]*)$/;
 
   const toolUseIds = new Set<string>();
   for (const msg of messages) {
-    if (msg.role === "assistant" && Array.isArray(msg.content)) {
-      for (const block of msg.content) {
-        if (block.type === "tool_use" && block.id) {
-          toolUseIds.add(String(block.id));
+    const message = msg as Record<string, unknown>;
+    if (message.role === "assistant" && Array.isArray(message.content)) {
+      for (const block of message.content) {
+        const contentBlock = block as Record<string, unknown>;
+        if (contentBlock.type === "tool_use" && contentBlock.id) {
+          toolUseIds.add(String(contentBlock.id));
         }
       }
     }
   }
 
   for (const msg of messages) {
-    if (msg.role === "user" && Array.isArray(msg.content)) {
-      msg.content = msg.content.flatMap((block: any) => {
+    const message = msg as Record<string, unknown>;
+    if (message.role === "user" && Array.isArray(message.content)) {
+      const content = message.content as Array<{ type: string; text?: string }>;
+      message.content = content.flatMap((block: { type: string; text?: string }) => {
         if (block.type !== "text") return [block];
         const m = TOOL_RESULT_RE.exec(block.text ?? "");
         if (!m) return [block];
@@ -161,11 +165,12 @@ function ensureMessageContentArray(msg) {
   return [];
 }
 
-function markMessageCacheControl(msg, ttl = undefined) {
+function markMessageCacheControl(msg: unknown, ttl: number | undefined = undefined) {
   const content = ensureMessageContentArray(msg);
   if (content.length === 0) return false;
   const lastIndex = content.length - 1;
-  content[lastIndex].cache_control =
+  const lastContent = content[lastIndex] as Record<string, unknown>;
+  lastContent.cache_control =
     ttl !== undefined ? { type: "ephemeral", ttl } : { type: "ephemeral" };
   return true;
 }

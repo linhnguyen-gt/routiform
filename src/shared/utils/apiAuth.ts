@@ -52,9 +52,12 @@ const PUBLIC_API_ROUTES = [
  *
  * @returns null if authenticated, error message string if not
  */
-export async function verifyAuth(request: any): Promise<string | null> {
+export async function verifyAuth(request: Request): Promise<string | null> {
   // 1. Check JWT cookie (dashboard session)
-  const token = request.cookies.get("auth_token")?.value;
+  const cookies = (
+    request as unknown as { cookies?: { get: (name: string) => { value: string } | undefined } }
+  ).cookies;
+  const token = cookies?.get("auth_token")?.value;
   if (token && process.env.JWT_SECRET) {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -152,12 +155,12 @@ export async function isAuthRequired(): Promise<boolean> {
     // reset-password CLI tool (bin/reset-password.mjs).
     if (!settings.password && !process.env.INITIAL_PASSWORD) return false;
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // On error, require auth (secure by default)
     // Log the error so failures (e.g., SQLITE_BUSY) aren't silent 401s
     console.error(
       "[API_AUTH_GUARD] isAuthRequired failed, defaulting to true:",
-      error?.message || error
+      (error as Error)?.message || error
     );
     return true;
   }

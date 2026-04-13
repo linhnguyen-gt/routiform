@@ -10,7 +10,7 @@ import { spinner as createSpinner } from "../utils/ui";
  * Uses Authorization Code flow with Basic Auth
  */
 export class QoderService {
-  config: any;
+  config: Record<string, unknown>;
 
   constructor() {
     this.config = QODER_CONFIG;
@@ -26,12 +26,13 @@ export class QoderService {
       );
     }
 
+    const extraParams = this.config.extraParams as Record<string, unknown> | undefined;
     const params = new URLSearchParams({
-      loginMethod: this.config.extraParams.loginMethod,
-      type: this.config.extraParams.type,
+      loginMethod: String(extraParams?.loginMethod || ""),
+      type: String(extraParams?.type || ""),
       redirect: redirectUri,
       state: state,
-      client_id: this.config.clientId,
+      client_id: String(this.config.clientId),
     });
 
     return `${this.config.authorizeUrl}?${params.toString()}`;
@@ -48,11 +49,11 @@ export class QoderService {
     }
 
     // Create Basic Auth header
-    const basicAuth = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString(
-      "base64"
-    );
+    const basicAuth = Buffer.from(
+      `${String(this.config.clientId)}:${String(this.config.clientSecret)}`
+    ).toString("base64");
 
-    const response = await fetch(this.config.tokenUrl, {
+    const response = await fetch(String(this.config.tokenUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -63,8 +64,8 @@ export class QoderService {
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirectUri,
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
+        client_id: String(this.config.clientId),
+        client_secret: String(this.config.clientSecret),
       }),
     });
 
@@ -112,9 +113,10 @@ export class QoderService {
   /**
    * Save Qoder tokens to server
    */
-  async saveTokens(tokens: any, userInfo: any) {
+  async saveTokens(tokens: Record<string, unknown>, userInfo: unknown) {
     const { server, token, userId } = getServerCredentials();
 
+    const user = userInfo as Record<string, unknown> | null;
     const response = await fetch(`${server}/api/cli/providers/qoder`, {
       method: "POST",
       headers: {
@@ -126,8 +128,8 @@ export class QoderService {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresIn: tokens.expires_in,
-        apiKey: userInfo.apiKey,
-        email: userInfo.email || userInfo.phone,
+        apiKey: user?.apiKey,
+        email: String(user?.email || user?.phone || ""),
       }),
     });
 
@@ -149,7 +151,7 @@ export class QoderService {
       spinner.text = "Starting local server...";
 
       // Start local server for callback
-      let callbackParams: any = null;
+      let callbackParams: Record<string, string> | null = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
       });
@@ -213,8 +215,9 @@ export class QoderService {
 
       spinner.succeed(`Qoder connected successfully! (${userInfo.email || userInfo.phone})`);
       return true;
-    } catch (error: any) {
-      spinner.fail(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      spinner.fail(`Failed: ${errMsg}`);
       throw error;
     }
   }

@@ -95,12 +95,14 @@ export function setModelUnavailable(provider, model, cooldownMs = 60000, reason)
   });
 }
 
-export function setModelProblematic(provider, model, options = {}) {
+export function setModelProblematic(provider, model, options: Record<string, unknown> = {}) {
   const key = makeKey(provider, model);
   const now = Date.now();
-  const status = Number(options.status || 0);
+  const status = typeof options.status === "number" ? options.status : 0;
   const baseCooldownMs =
-    Number.isFinite(options.baseCooldownMs) && options.baseCooldownMs > 0
+    typeof options.baseCooldownMs === "number" &&
+    Number.isFinite(options.baseCooldownMs) &&
+    options.baseCooldownMs > 0
       ? options.baseCooldownMs
       : PROBLEMATIC_STATUS_COOLDOWNS[status] || MIN_PROBLEMATIC_COOLDOWN_MS;
   const previous = failureState.get(key);
@@ -112,7 +114,9 @@ export function setModelProblematic(provider, model, options = {}) {
   );
 
   failureState.set(key, { failureCount, lastFailureAt: now });
-  setModelUnavailable(provider, model, scaledCooldownMs, options.reason || `HTTP ${status || "transient"}`);
+  const reason =
+    typeof options.reason === "string" ? options.reason : `HTTP ${status || "transient"}`;
+  setModelUnavailable(provider, model, scaledCooldownMs, reason);
 
   return {
     failureCount,

@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     let testDb: InstanceType<typeof Database> | null = null;
     try {
       testDb = new Database(tmpPath, { readonly: true });
-      const result = testDb.pragma("integrity_check") as any[];
+      const result = testDb.pragma("integrity_check") as Array<{ integrity_check: string }>;
       if (result[0]?.integrity_check !== "ok") {
         return NextResponse.json(
           { error: "Database integrity check failed. The file may be corrupted." },
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       const tables = testDb
         .prepare("SELECT name FROM sqlite_master WHERE type='table'")
         .all()
-        .map((row: any) => row.name);
+        .map((row: { name: string }) => row.name);
 
       const missingTables = REQUIRED_TABLES.filter((t) => !tables.includes(t));
       if (missingTables.length > 0) {
@@ -144,11 +144,23 @@ export async function POST(request: Request) {
     // Reopen and verify
     const db = getDbInstance();
     const connCount =
-      (db.prepare("SELECT COUNT(*) as cnt FROM provider_connections").get() as any)?.cnt || 0;
+      (
+        db.prepare("SELECT COUNT(*) as cnt FROM provider_connections").get() as
+          | { cnt: number }
+          | undefined
+      )?.cnt || 0;
     const nodeCount =
-      (db.prepare("SELECT COUNT(*) as cnt FROM provider_nodes").get() as any)?.cnt || 0;
-    const comboCount = (db.prepare("SELECT COUNT(*) as cnt FROM combos").get() as any)?.cnt || 0;
-    const keyCount = (db.prepare("SELECT COUNT(*) as cnt FROM api_keys").get() as any)?.cnt || 0;
+      (
+        db.prepare("SELECT COUNT(*) as cnt FROM provider_nodes").get() as
+          | { cnt: number }
+          | undefined
+      )?.cnt || 0;
+    const comboCount =
+      (db.prepare("SELECT COUNT(*) as cnt FROM combos").get() as { cnt: number } | undefined)
+        ?.cnt || 0;
+    const keyCount =
+      (db.prepare("SELECT COUNT(*) as cnt FROM api_keys").get() as { cnt: number } | undefined)
+        ?.cnt || 0;
 
     console.log(
       `[DB] Imported database from upload: ${connCount} connections, ${nodeCount} nodes, ${comboCount} combos, ${keyCount} API keys`

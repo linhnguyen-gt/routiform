@@ -222,12 +222,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const fetchedModels = modelsData.models || [];
 
     // Filter out models already in the built-in registry
-    const registryIds = new Set(getModelsByProviderId(logProvider).map((m: any) => m.id));
+    const registryIds = new Set(getModelsByProviderId(logProvider).map((m) => m.id));
 
     // Replace the full model list
     const models = dedupeModelsById(
       fetchedModels
-        .map((m: any) => {
+        .map((m: Record<string, unknown>) => {
           const clineMeta = normalizeClineMeta(m.clineMeta);
           return {
             id: m.id || m.name || m.model,
@@ -247,7 +247,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             ...(clineMeta ? { clineMeta } : {}),
           };
         })
-        .filter((m: any) => m.id && !registryIds.has(m.id))
+        .filter(
+          (m: Record<string, unknown>) => typeof m.id === "string" && m.id && !registryIds.has(m.id)
+        )
     );
 
     const previousModels = await getCustomModels(logProvider);
@@ -256,11 +258,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // For Gemini: also write to syncedAvailableModels (unioned across API keys)
     if (logProvider === "gemini") {
       try {
-        const syncedModels = models.map((m: any) => ({
-          id: m.id,
-          name: m.name || m.id,
+        const syncedModels = models.map((m: Record<string, unknown>) => ({
+          id: typeof m.id === "string" ? m.id : String(m.id),
+          name:
+            typeof m.name === "string" ? m.name : typeof m.id === "string" ? m.id : String(m.id),
           source: "api-sync" as const,
-          ...(m.supportedEndpoints ? { supportedEndpoints: m.supportedEndpoints } : {}),
+          ...(Array.isArray(m.supportedEndpoints)
+            ? { supportedEndpoints: m.supportedEndpoints as string[] }
+            : {}),
           ...(typeof m.inputTokenLimit === "number" ? { inputTokenLimit: m.inputTokenLimit } : {}),
           ...(typeof m.outputTokenLimit === "number"
             ? { outputTokenLimit: m.outputTokenLimit }
@@ -280,7 +285,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (usesManagedAvailableModels(logProvider)) {
       const aliasSync = await syncManagedAvailableModelAliases(
         logProvider,
-        models.map((model: any) => model.id)
+        models.map((model: Record<string, unknown>) =>
+          typeof model.id === "string" ? model.id : String(model.id)
+        )
       );
       syncedAliases = aliasSync.assignedAliases.length;
     }
@@ -315,7 +322,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       logged: modelChanges.total > 0,
       models: replaced,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log error
     await saveCallLog({
       method: "POST",
@@ -326,7 +333,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       sourceFormat: "-",
       connectionId: id,
       duration: Date.now() - start,
-      error: error.message || "Sync failed",
+      error: error instanceof Error ? error.message : String(error) || "Sync failed",
       requestType: "model-sync",
       ...(channelLabel
         ? {
@@ -337,6 +344,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         : {}),
     }).catch(() => {});
 
-    return NextResponse.json({ error: error.message || "Failed to sync models" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) || "Failed to sync models" },
+      { status: 500 }
+    );
   }
 }

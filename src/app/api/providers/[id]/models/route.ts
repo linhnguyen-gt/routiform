@@ -186,7 +186,7 @@ type ProviderModelsConfigEntry = {
   authPrefix?: string;
   authQuery?: string;
   body?: unknown;
-  parseResponse: (data: any) => any;
+  parseResponse: (data: unknown) => unknown;
 };
 
 const KIMI_CODING_MODELS_CONFIG: ProviderModelsConfigEntry = {
@@ -194,7 +194,10 @@ const KIMI_CODING_MODELS_CONFIG: ProviderModelsConfigEntry = {
   method: "GET",
   headers: { "Content-Type": "application/json" },
   authHeader: "x-api-key",
-  parseResponse: (data) => data.data || data.models || [],
+  parseResponse: (data) => {
+    const record = asRecord(data);
+    return (record.data as unknown[]) || (record.models as unknown[]) || [];
+  },
 };
 
 // Providers that return hardcoded models (no remote /models API)
@@ -283,7 +286,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
       "Content-Type": "application/json",
     },
     authHeader: "x-api-key",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   gemini: {
     url: "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
@@ -307,7 +313,7 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
         "asyncBatchEmbedContent",
       ]);
 
-      return (data.models || []).map((m: Record<string, unknown>) => {
+      return ((data as { models?: unknown[] }).models || []).map((m: Record<string, unknown>) => {
         const methods: string[] = Array.isArray(m.supportedGenerationMethods)
           ? m.supportedGenerationMethods
           : [];
@@ -342,7 +348,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   antigravity: {
     url: "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:models",
@@ -351,7 +360,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     authHeader: "Authorization",
     authPrefix: "Bearer ",
     body: {},
-    parseResponse: (data) => data.models || [],
+    parseResponse: (data) => {
+      const dataObj = data as { models?: unknown[] };
+      return dataObj.models || [];
+    },
   },
   openai: {
     url: "https://api.openai.com/v1/models",
@@ -359,7 +371,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/models",
@@ -367,7 +382,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   kimi: {
     url: "https://api.moonshot.ai/v1/models",
@@ -375,7 +393,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   "kimi-coding": {
     ...KIMI_CODING_MODELS_CONFIG,
@@ -391,7 +412,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
       "Content-Type": "application/json",
     },
     authHeader: "x-api-key",
-    parseResponse: (data) => data.data || [],
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[] };
+      return dataObj.data || [];
+    },
   },
   deepseek: {
     url: "https://api.deepseek.com/v1/models",
@@ -399,7 +423,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   deepinfra: {
     url: "https://api.deepinfra.com/v1/openai/models",
@@ -407,7 +434,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   sambanova: {
     url: "https://api.sambanova.ai/v1/models",
@@ -415,7 +445,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   venice: {
     url: "https://api.venice.ai/api/v1/models",
@@ -423,7 +456,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   groq: {
     url: "https://api.groq.com/openai/v1/models",
@@ -431,7 +467,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   blackbox: {
     url: "https://api.blackbox.ai/v1/models",
@@ -439,7 +478,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   xai: {
     url: "https://api.x.ai/v1/models",
@@ -447,7 +489,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   mistral: {
     url: "https://api.mistral.ai/v1/models",
@@ -455,7 +500,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
 
   together: {
@@ -464,7 +512,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   fireworks: {
     url: "https://api.fireworks.ai/inference/v1/models",
@@ -472,7 +523,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   cerebras: {
     url: "https://api.cerebras.ai/v1/models",
@@ -480,7 +534,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   cohere: {
     url: "https://api.cohere.com/v2/models",
@@ -488,7 +545,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   nvidia: {
     url: "https://integrate.api.nvidia.com/v1/models",
@@ -496,7 +556,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   nebius: {
     url: "https://api.tokenfactory.nebius.com/v1/models",
@@ -504,7 +567,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   kilocode: {
     url: "https://api.kilo.ai/api/openrouter/models",
@@ -512,7 +578,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   "ollama-cloud": {
     url: "https://api.ollama.com/v1/models",
@@ -520,7 +589,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.models || data.data || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.models as unknown[]) || (record.data as unknown[]) || [];
+    },
   },
   synthetic: {
     url: "https://api.synthetic.new/openai/v1/models",
@@ -528,7 +600,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   "kilo-gateway": {
     url: "https://api.kilo.ai/api/gateway/models",
@@ -536,7 +611,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
   "opencode-zen": {
     url: "https://opencode.ai/zen/v1/models",
@@ -544,7 +622,10 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
     headers: { "Content-Type": "application/json" },
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    parseResponse: (data) => data.data || data.models || [],
+    parseResponse: (data) => {
+      const record = asRecord(data);
+      return (record.data as unknown[]) || (record.models as unknown[]) || [];
+    },
   },
 };
 
@@ -580,9 +661,13 @@ export async function GET(
     // Resolve proxy for this provider (provider-level → global → direct)
     const proxy = await resolveProxyForProvider(provider);
 
-    const buildResponse = (payload: any, statusConfig?: ResponseInit) => {
+    const buildResponse = (payload: Record<string, unknown>, statusConfig?: ResponseInit) => {
       if (excludeHidden && payload.models && Array.isArray(payload.models)) {
-        payload.models = payload.models.filter((m: any) => !getModelIsHidden(provider, m.id));
+        payload.models = payload.models.filter((m: unknown) => {
+          const model = asRecord(m);
+          const modelId = typeof model.id === "string" ? model.id : "";
+          return !getModelIsHidden(provider, modelId);
+        });
       }
       return NextResponse.json(payload, statusConfig);
     };
@@ -654,11 +739,14 @@ export async function GET(
         }
 
         const fallback = mergeCodexModels(
-          (PROVIDER_MODELS.codex || []).map((m: any) => ({
-            id: m.id,
-            name: m.name || m.id,
-            owned_by: "codex",
-          }))
+          (PROVIDER_MODELS.codex || []).map((m: unknown) => {
+            const model = asRecord(m);
+            return {
+              id: model.id,
+              name: model.name || model.id,
+              owned_by: "codex",
+            };
+          })
         );
 
         return buildResponse({
@@ -731,8 +819,9 @@ export async function GET(
             lastErrorStatus = response.status;
             throw new Error("auth_failed");
           }
-        } catch (err: any) {
-          if (err.message === "auth_failed") break; // Don't try other endpoints if auth failed
+        } catch (err: unknown) {
+          const error = err as { message?: string };
+          if (error.message === "auth_failed") break; // Don't try other endpoints if auth failed
         }
       }
 
@@ -747,11 +836,14 @@ export async function GET(
 
         console.warn(`[models] All endpoints failed for ${provider}, using local catalog`);
         const localModels = PROVIDER_MODELS[provider] || [];
-        models = localModels.map((m: any) => ({
-          id: m.id,
-          name: m.name || m.id,
-          owned_by: provider,
-        }));
+        models = localModels.map((m: unknown) => {
+          const model = asRecord(m);
+          return {
+            id: model.id,
+            name: model.name || model.id,
+            owned_by: provider,
+          };
+        });
       }
 
       // Track source for MCP tool T39 requirement
@@ -926,7 +1018,7 @@ export async function GET(
       }
 
       const models = rawModels
-        .map((model: any) => {
+        .map((model: Record<string, unknown>) => {
           const id = String(model.id || model.name || model.model || "").trim();
           const key = normalizeModelKey(id);
           const isRecommended = recommendedSet.has(key);
@@ -949,7 +1041,9 @@ export async function GET(
               : {}),
           };
         })
-        .filter((model: any) => typeof model.id === "string" && model.id.length > 0);
+        .filter(
+          (model: Record<string, unknown>) => typeof model.id === "string" && model.id.length > 0
+        );
 
       return buildResponse({
         provider,
@@ -1031,11 +1125,14 @@ export async function GET(
       return buildResponse({
         provider,
         connectionId,
-        models: qwenModels.map((m: any) => ({
-          id: m.id,
-          name: m.name || m.id,
-          owned_by: "qwen",
-        })),
+        models: qwenModels.map((m: unknown) => {
+          const model = asRecord(m);
+          return {
+            id: model.id,
+            name: model.name || model.id,
+            owned_by: "qwen",
+          };
+        }),
         source: "local_catalog",
       });
     }
@@ -1079,7 +1176,7 @@ export async function GET(
     }
 
     // Make request (with pagination for providers that use nextPageToken, e.g. Gemini)
-    const fetchOptions: any = {
+    const fetchOptions: RequestInit = {
       method: config.method,
       headers,
     };
@@ -1088,7 +1185,7 @@ export async function GET(
       fetchOptions.body = JSON.stringify(config.body);
     }
 
-    let allModels: any[] = [];
+    let allModels: unknown[] = [];
     let pageUrl = url;
     let pageCount = 0;
     const MAX_PAGES = 20; // Safety limit

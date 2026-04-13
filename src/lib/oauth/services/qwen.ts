@@ -9,7 +9,7 @@ import { spinner as createSpinner } from "../utils/ui";
  * Uses Device Code Flow with PKCE
  */
 export class QwenService {
-  config: any;
+  config: Record<string, unknown>;
 
   constructor() {
     this.config = QWEN_CONFIG;
@@ -19,17 +19,17 @@ export class QwenService {
    * Request device code
    */
   async requestDeviceCode(codeChallenge: string) {
-    const response = await fetch(this.config.deviceCodeUrl, {
+    const response = await fetch(String(this.config.deviceCodeUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
       },
       body: new URLSearchParams({
-        client_id: this.config.clientId,
-        scope: this.config.scope,
+        client_id: String(this.config.clientId),
+        scope: String(this.config.scope),
         code_challenge: codeChallenge,
-        code_challenge_method: this.config.codeChallengeMethod,
+        code_challenge_method: String(this.config.codeChallengeMethod),
       }),
     });
 
@@ -51,7 +51,7 @@ export class QwenService {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((r) => setTimeout(r, pollInterval));
 
-      const response = await fetch(this.config.tokenUrl, {
+      const response = await fetch(String(this.config.tokenUrl), {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -59,7 +59,7 @@ export class QwenService {
         },
         body: new URLSearchParams({
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-          client_id: this.config.clientId,
+          client_id: String(this.config.clientId),
           device_code: deviceCode,
           code_verifier: codeVerifier,
         }),
@@ -91,9 +91,10 @@ export class QwenService {
   /**
    * Save Qwen tokens to server
    */
-  async saveTokens(tokens: any) {
+  async saveTokens(tokens: unknown) {
     const { server, token, userId } = getServerCredentials();
 
+    const tokenData = tokens as Record<string, unknown>;
     const response = await fetch(`${server}/api/cli/providers/qwen`, {
       method: "POST",
       headers: {
@@ -102,10 +103,10 @@ export class QwenService {
         "X-User-Id": userId,
       },
       body: JSON.stringify({
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiresIn: tokens.expires_in,
-        resourceUrl: tokens.resource_url,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: tokenData.expires_in,
+        resourceUrl: tokenData.resource_url,
       }),
     });
 
@@ -163,8 +164,9 @@ export class QwenService {
 
       spinner.succeed("Qwen connected successfully!");
       return true;
-    } catch (error: any) {
-      spinner.fail(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      spinner.fail(`Failed: ${errMsg}`);
       throw error;
     }
   }

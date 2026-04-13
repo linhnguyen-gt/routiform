@@ -16,7 +16,6 @@ import {
   saveCircuitBreakerState,
   loadCircuitBreakerState,
   loadAllCircuitBreakerStates,
-  deleteCircuitBreakerState,
   deleteAllCircuitBreakerStates,
 } from "../../lib/db/domainState";
 

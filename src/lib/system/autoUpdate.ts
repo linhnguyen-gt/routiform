@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 type ComposeCommand = "docker compose" | "docker-compose";
-export type AutoUpdateMode = "npm" | "docker-compose";
+export type AutoUpdateMode = "npm" | "docker-compose" | "source";
 
 type ExecFileLike = typeof execFileAsync;
 type SpawnLike = typeof spawn;
@@ -74,7 +74,7 @@ export function getAutoUpdateConfig(env: NodeJS.ProcessEnv = process.env): AutoU
     // If we are not in a global node_modules directory, we are likely a local source install/build.
     // Even if .git is missing (downloaded zip), we should treat it as source.
     if (isGitRepo || !isGlobalNodeModules) {
-      mode = "source" as any;
+      mode = "source";
     }
   }
 
@@ -113,7 +113,7 @@ export async function validateAutoUpdateRuntime(
   execFileImpl: ExecFileLike = execFileAsync,
   existsImpl: (targetPath: string) => Promise<boolean> = pathExists
 ): Promise<AutoUpdateValidation> {
-  if (config.mode === ("source" as any)) {
+  if (config.mode === "source") {
     return {
       supported: false,
       reason:

@@ -52,7 +52,7 @@ export async function GET() {
 
   // Include custom models tagged for images
   try {
-    const customModelsMap = (await getAllCustomModels()) as Record<string, any>;
+    const customModelsMap = (await getAllCustomModels()) as Record<string, unknown>;
     for (const [providerId, models] of Object.entries(customModelsMap)) {
       if (!Array.isArray(models)) continue;
       for (const model of models) {
@@ -118,7 +118,7 @@ export async function POST(request) {
   // If not in built-in registry, check custom models tagged for images
   if (!provider) {
     try {
-      const customModelsMap = (await getAllCustomModels()) as Record<string, any>;
+      const customModelsMap = (await getAllCustomModels()) as Record<string, unknown>;
       for (const [providerId, models] of Object.entries(customModelsMap)) {
         if (!Array.isArray(models)) continue;
         for (const model of models) {
@@ -191,15 +191,22 @@ export async function POST(request) {
 
   if (result.success) {
     await clearRecoveredProviderState(credentials);
-    return new Response(JSON.stringify((result as any).data), {
+    return new Response(JSON.stringify((result as Record<string, unknown>).data), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const errorPayload = toJsonErrorPayload((result as any).error, "Image generation provider error");
+  const errorPayload = toJsonErrorPayload(
+    (result as Record<string, unknown>).error,
+    "Image generation provider error"
+  );
+  const status =
+    typeof (result as Record<string, unknown>).status === "number"
+      ? ((result as Record<string, unknown>).status as number)
+      : 500;
   return new Response(JSON.stringify(errorPayload), {
-    status: (result as any).status,
+    status,
     headers: { "Content-Type": "application/json" },
   });
 }

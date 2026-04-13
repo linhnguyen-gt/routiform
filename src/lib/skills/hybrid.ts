@@ -14,8 +14,8 @@ const defaultHybridConfig: HybridConfig = {
 
 export class HybridExecutor {
   private config: HybridConfig;
-  private directExecutor: any;
-  private sandboxRunner: any;
+  private directExecutor: unknown;
+  private sandboxRunner: unknown;
 
   constructor(config: Partial<HybridConfig> = {}) {
     this.config = { ...defaultHybridConfig, ...config };
@@ -25,9 +25,12 @@ export class HybridExecutor {
     this.config = { ...this.config, ...config };
   }
 
-  async execute(skillName: string, input: any, context: any): Promise<any> {
-    const startTime = Date.now();
-    const estimatedDuration = input.estimatedDuration || 0;
+  async execute(skillName: string, input: unknown, context: unknown): Promise<unknown> {
+    const _startTime = Date.now();
+    const estimatedDuration =
+      typeof (input as Record<string, unknown>).estimatedDuration === "number"
+        ? ((input as Record<string, unknown>).estimatedDuration as number)
+        : 0;
 
     if (this.shouldUseSandbox(estimatedDuration)) {
       return this.executeInSandbox(skillName, input, context);
@@ -49,17 +52,26 @@ export class HybridExecutor {
     return estimatedDuration > this.config.maxDirectDuration;
   }
 
-  private async executeDirect(skillName: string, input: any, context: any): Promise<any> {
+  private async executeDirect(
+    _skillName: string,
+    _input: unknown,
+    _context: unknown
+  ): Promise<unknown> {
     return { mode: "direct", result: {} };
   }
 
-  private async executeInSandbox(skillName: string, input: any, context: any): Promise<any> {
+  private async executeInSandbox(
+    _skillName: string,
+    _input: unknown,
+    _context: unknown
+  ): Promise<unknown> {
     return { mode: "sandbox", result: {} };
   }
 
-  private isRetryable(err: any): boolean {
-    if (err?.message?.includes("timeout")) return true;
-    if (err?.message?.includes("memory")) return true;
+  private isRetryable(err: unknown): boolean {
+    const error = err as { message?: string };
+    if (error?.message?.includes("timeout")) return true;
+    if (error?.message?.includes("memory")) return true;
     return false;
   }
 }

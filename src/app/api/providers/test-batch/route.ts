@@ -108,7 +108,7 @@ export async function POST(request) {
             )
           ),
         ]);
-        const data = result as any;
+        const data = result as Record<string, unknown>;
         return {
           provider: conn.provider,
           connectionId: conn.id,

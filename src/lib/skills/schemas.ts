@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SkillStatus, SkillMode } from "./types";
+import { SkillMode } from "./types";
 
 export const SkillSchema = z.object({
   input: z.record(z.string(), z.unknown()),

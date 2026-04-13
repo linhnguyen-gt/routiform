@@ -91,5 +91,6 @@ export async function POST(request, { params }) {
     body: JSON.stringify(body),
   });
 
-  return await handleChat(newRequest, buildClientRawRequest(request, rawBody));
+  const clientRawRequest = buildClientRawRequest(request, rawBody);
+  return await handleChat(newRequest, clientRawRequest);
 }

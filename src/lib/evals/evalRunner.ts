@@ -47,8 +47,9 @@ const suites = new Map();
  *
  * @param {EvalSuite} suite
  */
-export function registerSuite(suite: any) {
-  suites.set(suite.id, suite);
+export function registerSuite(suite: unknown) {
+  const s = suite as Record<string, unknown>;
+  suites.set(String(s.id), suite);
 }
 
 /**
@@ -89,40 +90,46 @@ export function listSuites() {
  * @param {string} actualOutput - The actual LLM response text
  * @returns {EvalResult}
  */
-export function evaluateCase(evalCase: any, actualOutput: string) {
+export function evaluateCase(evalCase: Record<string, unknown>, actualOutput: string) {
   const start = Date.now();
 
   try {
     let passed = false;
-    const details: Record<string, any> = {};
+    const details: Record<string, unknown> = {};
 
-    switch (evalCase.expected.strategy) {
+    const expected =
+      evalCase.expected && typeof evalCase.expected === "object"
+        ? (evalCase.expected as Record<string, unknown>)
+        : {};
+
+    switch (expected.strategy) {
       case "exact":
-        passed = actualOutput === evalCase.expected.value;
-        details.expected = evalCase.expected.value;
+        passed = actualOutput === expected.value;
+        details.expected = expected.value;
         details.actual = actualOutput;
         break;
 
       case "contains":
         passed =
-          typeof evalCase.expected.value === "string" &&
-          actualOutput.toLowerCase().includes(evalCase.expected.value.toLowerCase());
-        details.searchTerm = evalCase.expected.value;
+          typeof expected.value === "string" &&
+          actualOutput.toLowerCase().includes(expected.value.toLowerCase());
+        details.searchTerm = expected.value;
         break;
 
       case "regex": {
         const regex =
-          evalCase.expected.value instanceof RegExp
-            ? evalCase.expected.value
-            : new RegExp(evalCase.expected.value);
+          expected.value instanceof RegExp ? expected.value : new RegExp(String(expected.value));
         passed = regex.test(actualOutput);
-        details.pattern = String(evalCase.expected.value);
+        details.pattern = String(expected.value);
         break;
       }
 
       case "custom":
-        if (typeof evalCase.expected.fn === "function") {
-          passed = evalCase.expected.fn(actualOutput, evalCase);
+        if (typeof expected.fn === "function") {
+          passed = (expected.fn as (output: string, evalCase: Record<string, unknown>) => boolean)(
+            actualOutput,
+            evalCase
+          );
         }
         break;
 
@@ -132,7 +139,7 @@ export function evaluateCase(evalCase: any, actualOutput: string) {
           caseName: evalCase.name,
           passed: false,
           durationMs: Date.now() - start,
-          error: `Unknown strategy: ${evalCase.expected.strategy}`,
+          error: `Unknown strategy: ${String(expected.strategy)}`,
         };
     }
 
@@ -143,13 +150,13 @@ export function evaluateCase(evalCase: any, actualOutput: string) {
       durationMs: Date.now() - start,
       details,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       caseId: evalCase.id,
       caseName: evalCase.name,
       passed: false,
       durationMs: Date.now() - start,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -194,20 +201,52 @@ export function runSuite(suiteId: string, outputs: Record<string, string>) {
  * @param {Array<ReturnType<typeof runSuite>>} runs
  * @returns {{ suites: number, totalCases: number, totalPassed: number, overallPassRate: number, perSuite: Array<{ id: string, name: string, passRate: number }> }}
  */
-export function createScorecard(runs: any[]) {
-  const totalCases = runs.reduce((sum, r) => sum + r.summary.total, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.summary.passed, 0);
+export function createScorecard(runs: unknown[]) {
+  const totalCases = runs.reduce((sum, r) => {
+    const rObj = r as Record<string, unknown>;
+    const summary =
+      rObj.summary && typeof rObj.summary === "object"
+        ? (rObj.summary as Record<string, unknown>)
+        : {};
+    const total = typeof summary.total === "number" ? summary.total : 0;
+    return (typeof sum === "number" ? sum : 0) + total;
+  }, 0);
+  const totalPassed = runs.reduce((sum, r) => {
+    const rObj = r as Record<string, unknown>;
+    const summary =
+      rObj.summary && typeof rObj.summary === "object"
+        ? (rObj.summary as Record<string, unknown>)
+        : {};
+    const passed = typeof summary.passed === "number" ? summary.passed : 0;
+    return (typeof sum === "number" ? sum : 0) + passed;
+  }, 0);
 
   return {
     suites: runs.length,
     totalCases,
     totalPassed,
-    overallPassRate: totalCases > 0 ? Math.round((totalPassed / totalCases) * 100) : 0,
-    perSuite: runs.map((r) => ({
-      id: r.suiteId,
-      name: r.suiteName,
-      passRate: r.summary.passRate,
-    })),
+    overallPassRate:
+      Number(totalCases) > 0 ? Math.round((Number(totalPassed) / Number(totalCases)) * 100) : 0,
+    perSuite: runs.map((r) => {
+      const rObj = r as Record<string, unknown>;
+      const summary =
+        rObj.summary && typeof rObj.summary === "object"
+          ? (rObj.summary as Record<string, unknown>)
+          : {};
+      const passRate = typeof summary.passRate === "number" ? summary.passRate : 0;
+      const totalCasesNum = typeof summary.totalCases === "number" ? summary.totalCases : 0;
+      const passedNum = typeof summary.passed === "number" ? summary.passed : 0;
+      return {
+        id: rObj.suiteId,
+        name: rObj.suiteName,
+        passRate:
+          passRate > 0
+            ? passRate
+            : totalCasesNum > 0
+              ? Math.round((Number(passedNum) / Number(totalCasesNum)) * 100)
+              : 0,
+      };
+    }),
   };
 }
 

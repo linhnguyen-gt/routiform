@@ -25,9 +25,11 @@ const EXPIRED_RETRY_BACKOFF_MIN = 5; // backoff between expired retries (minutes
 const LOG_PREFIX = "[HealthCheck]";
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
 
-export function buildRefreshFailureUpdate(conn: any, now: string) {
+export function buildRefreshFailureUpdate(conn: Record<string, unknown>, now: string) {
   const wasExpired = conn.testStatus === "expired";
-  const retryCount = (conn.expiredRetryCount ?? 0) + (wasExpired ? 1 : 0);
+  const retryCount =
+    (typeof conn.expiredRetryCount === "number" ? conn.expiredRetryCount : 0) +
+    (wasExpired ? 1 : 0);
 
   return {
     lastHealthCheckAt: now,
@@ -99,19 +101,19 @@ async function shouldHideLogs(): Promise<boolean> {
   return pendingHideLogs;
 }
 
-function log(message: string, ...args: any[]) {
+function log(message: string, ...args: unknown[]) {
   shouldHideLogs().then((hide) => {
     if (!hide) console.log(message, ...args);
   });
 }
 
-function logWarn(message: string, ...args: any[]) {
+function logWarn(message: string, ...args: unknown[]) {
   shouldHideLogs().then((hide) => {
     if (!hide) console.warn(message, ...args);
   });
 }
 
-function logError(message: string, ...args: any[]) {
+function logError(message: string, ...args: unknown[]) {
   shouldHideLogs().then((hide) => {
     if (!hide) console.error(message, ...args);
   });
@@ -292,7 +294,7 @@ async function checkConnection(conn) {
   }
 
   if (result && result.accessToken) {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       accessToken: result.accessToken,
       lastHealthCheckAt: now,
       testStatus: "active",

@@ -11,7 +11,7 @@ const ROUTIFORM_BASE_URL =
   process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
 const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.ROUTIFORM_API_KEY || "";
 
-async function routeFetch(path: string, options: RequestInit = {}): Promise<any> {
+async function routeFetch(path: string, options: RequestInit = {}): Promise<unknown> {
   const url = `${ROUTIFORM_BASE_URL}${path}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -48,10 +48,21 @@ export async function executeSmartRouting(task: A2ATask): Promise<SmartRoutingRe
   });
   const latencyMs = Date.now() - start;
 
-  const content = raw?.choices?.[0]?.message?.content || "";
-  const provider = raw?.provider || "unknown";
-  const actualCost = raw?.cost || 0;
-  const promptTokens = raw?.usage?.prompt_tokens || 0;
+  const rawObj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const choices = Array.isArray(rawObj.choices) ? rawObj.choices : [];
+  const firstChoice = choices[0] as Record<string, unknown> | undefined;
+  const message =
+    firstChoice && typeof firstChoice === "object"
+      ? (firstChoice.message as Record<string, unknown> | undefined)
+      : undefined;
+  const content = message && typeof message.content === "string" ? message.content : "";
+  const provider = typeof rawObj.provider === "string" ? rawObj.provider : "unknown";
+  const actualCost = typeof rawObj.cost === "number" ? rawObj.cost : 0;
+  const usage =
+    rawObj.usage && typeof rawObj.usage === "object"
+      ? (rawObj.usage as Record<string, unknown>)
+      : {};
+  const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : 0;
   const estimatedCost = (promptTokens / 1_000_000) * 3.0; // rough estimate
 
   // Budget policy check
@@ -60,7 +71,7 @@ export async function executeSmartRouting(task: A2ATask): Promise<SmartRoutingRe
   return {
     artifacts: [{ type: "text", content }],
     metadata: {
-      routing_explanation: `Selected ${raw?.model || model} via provider "${provider}" (latency: ${latencyMs}ms, cost: $${actualCost.toFixed(4)})`,
+      routing_explanation: `Selected ${typeof rawObj.model === "string" ? rawObj.model : model} via provider "${provider}" (latency: ${latencyMs}ms, cost: $${actualCost.toFixed(4)})`,
       cost_envelope: {
         estimated: Math.round(estimatedCost * 10000) / 10000,
         actual: Math.round(actualCost * 10000) / 10000,
@@ -68,7 +79,7 @@ export async function executeSmartRouting(task: A2ATask): Promise<SmartRoutingRe
       },
       resilience_trace: [
         { event: "primary_selected", provider, timestamp: new Date().toISOString() },
-        ...(raw?.fallbacksTriggered
+        ...(Array.isArray(rawObj.fallbacksTriggered)
           ? [
               {
                 event: "fallback_needed",

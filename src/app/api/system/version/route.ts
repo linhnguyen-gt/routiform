@@ -190,8 +190,16 @@ export async function POST(req: NextRequest) {
           message: `Update to v${latest} complete!`,
         });
         console.log(`[AutoUpdate] Successfully updated to v${latest}`);
-      } catch (err: any) {
-        const errMsg = err?.stderr || err?.message || String(err);
+      } catch (err: unknown) {
+        const stderr =
+          err && typeof err === "object" && "stderr" in err && typeof err.stderr === "string"
+            ? err.stderr
+            : "";
+        const message =
+          err && typeof err === "object" && "message" in err && typeof err.message === "string"
+            ? err.message
+            : "";
+        const errMsg = stderr || message || String(err);
         send({ step: "error", status: "failed", message: errMsg });
         console.error(`[AutoUpdate] Update failed:`, err);
       } finally {

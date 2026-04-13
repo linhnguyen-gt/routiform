@@ -6,7 +6,7 @@ import {
   extractApiKey,
   isValidApiKey,
 } from "@/sse/services/auth";
-import { parseRerankModel, getRerankProvider } from "@routiform/open-sse/config/rerankRegistry.ts";
+import { parseRerankModel } from "@routiform/open-sse/config/rerankRegistry.ts";
 import { errorResponse } from "@routiform/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
@@ -32,16 +32,16 @@ export async function OPTIONS() {
  * Local OpenAI-compatible backends (oMLX, vLLM, etc.) expose /v1/rerank
  * under the same base URL as chat.
  */
-function buildDynamicRerankProvider(node: any) {
+function buildDynamicRerankProvider(node: unknown) {
   // Strip trailing /v1 if present — we'll add /rerank
-  let base = node.baseUrl || "";
+  let base = String((node as Record<string, unknown>).baseUrl || "");
   if (base.endsWith("/v1")) base = base.slice(0, -3);
   return {
-    id: node.prefix,
+    id: (node as Record<string, unknown>).prefix,
     baseUrl: `${base}/v1/rerank`,
     authType: "apikey",
     authHeader: "bearer",
-    providerId: node.id, // full provider connection ID for credential lookup
+    providerId: (node as Record<string, unknown>).id, // full provider connection ID for credential lookup
   };
 }
 
@@ -82,9 +82,10 @@ export async function POST(request) {
   try {
     const nodes = await getProviderNodes();
     localProviders = (Array.isArray(nodes) ? nodes : [])
-      .filter((n: any) => {
+      .filter((n: Record<string, unknown>) => {
         try {
-          const hostname = new URL(n.baseUrl).hostname;
+          const baseUrl = typeof n.baseUrl === "string" ? n.baseUrl : "";
+          const hostname = new URL(baseUrl).hostname;
           // Strictly matching 172.16.0.0/12 (Docker/local) and explicitly blocking ::1 per SSRF hardening
           return (
             hostname === "localhost" ||
@@ -108,7 +109,7 @@ export async function POST(request) {
   }
 
   // Try cloud registry first
-  const { provider, model: modelId } = parseRerankModel(body.model);
+  const { provider, model: _modelId } = parseRerankModel(body.model);
 
   if (provider) {
     // Cloud provider matched
@@ -139,7 +140,9 @@ export async function POST(request) {
     const localProvider = localProviders.find((p) => p.id === prefix);
 
     if (localProvider) {
-      const credentials = await getProviderCredentials(localProvider.providerId);
+      const credentials = await getProviderCredentials(
+        String((localProvider as Record<string, unknown>).providerId)
+      );
       if (!credentials) {
         return errorResponse(
           HTTP_STATUS.BAD_REQUEST,
@@ -176,8 +179,11 @@ export async function POST(request) {
         return Response.json(data, {
           headers: { "Access-Control-Allow-Origin": CORS_ORIGIN },
         });
-      } catch (err: any) {
-        return errorResponse(500, `Rerank request failed: ${err.message}`);
+      } catch (err: unknown) {
+        return errorResponse(
+          500,
+          `Rerank request failed: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
   }

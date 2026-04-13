@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuditLog, logAuditEvent } from "@/lib/compliance/index";
+import { getAuditLog } from "@/lib/compliance/index";
 
 export async function GET(request) {
   try {

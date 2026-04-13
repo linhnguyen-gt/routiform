@@ -75,7 +75,7 @@ export class CloudSyncScheduler {
       try {
         const result = await this.sync();
         return result;
-      } catch (error) {
+      } catch (_error) {
         if (attempt === maxRetries) {
           return null;
         }

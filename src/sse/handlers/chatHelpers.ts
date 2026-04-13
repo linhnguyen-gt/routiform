@@ -36,26 +36,34 @@ const HTTP_STATUS = {
  */
 export async function resolveModelOrError(
   modelStr: string,
-  body: any,
-  log: any,
-  errorResponse: Function
+  body: Record<string, unknown>,
+  log: Record<string, unknown>,
+  errorResponse: (status: number, message: string) => Response
 ) {
   const modelInfo = await getModelInfo(modelStr);
 
   if (!modelInfo.provider) {
-    if ((modelInfo as any).errorType === "ambiguous_model") {
+    if ((modelInfo as Record<string, unknown>).errorType === "ambiguous_model") {
       const message =
-        (modelInfo as any).errorMessage ||
+        String((modelInfo as Record<string, unknown>).errorMessage) ||
         `Ambiguous model '${modelStr}'. Use provider/model prefix (ex: gh/${modelStr} or cc/${modelStr}).`;
-      log.warn("CHAT", message, {
+      const logger = log as {
+        warn: (type: string, msg: string, data: Record<string, unknown>) => void;
+      };
+      logger.warn("CHAT", message, {
         model: modelStr,
         candidates:
-          (modelInfo as any).candidateAliases || (modelInfo as any).candidateProviders || [],
+          (modelInfo as Record<string, unknown>).candidateAliases ||
+          (modelInfo as Record<string, unknown>).candidateProviders ||
+          [],
       });
       return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, message) };
     }
 
-    log.warn("CHAT", "Invalid model format", { model: modelStr });
+    const logger = log as {
+      warn: (type: string, msg: string, data: Record<string, unknown>) => void;
+    };
+    logger.warn("CHAT", "Invalid model format", { model: modelStr });
     return { error: errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format") };
   }
 
@@ -66,16 +74,18 @@ export async function resolveModelOrError(
   // If the custom model specifies apiFormat="responses", override targetFormat
   // to route through the Responses API translator instead of Chat Completions
   let targetFormat = getModelTargetFormat(providerAlias, model) || getTargetFormat(provider);
-  if ((modelInfo as any).apiFormat === "responses") {
+  if ((modelInfo as Record<string, unknown>).apiFormat === "responses") {
     targetFormat = "openai-responses";
-    log.info("ROUTING", `Custom model apiFormat=responses → targetFormat=openai-responses`);
+    const logger = log as { info: (type: string, msg: string) => void };
+    logger.info("ROUTING", `Custom model apiFormat=responses → targetFormat=openai-responses`);
   }
 
   // Log routing
+  const logger = log as { info: (type: string, msg: string) => void };
   if (modelStr !== `${provider}/${model}`) {
-    log.info("ROUTING", `${modelStr} → ${provider}/${model}`);
+    logger.info("ROUTING", `${modelStr} → ${provider}/${model}`);
   } else {
-    log.info("ROUTING", `Provider: ${provider}, Model: ${model}`);
+    logger.info("ROUTING", `Provider: ${provider}, Model: ${model}`);
   }
 
   return { provider, model, sourceFormat, targetFormat };
@@ -168,7 +178,7 @@ export function buildChatCoreParams({
     apiKeyInfo,
     userAgent,
     comboName,
-    onCredentialsRefreshed: async (newCreds: any) => {
+    onCredentialsRefreshed: async (newCreds: Record<string, unknown>) => {
       const { updateProviderCredentials } = await import("../services/tokenRefresh");
       await updateProviderCredentials(credentials.connectionId, {
         accessToken: newCreds.accessToken,

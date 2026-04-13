@@ -423,46 +423,50 @@ export async function replaceCustomModels(
       id: m.id,
       name: m.name || m.id,
       source: m.source || "auto-sync",
-      apiFormat: m.apiFormat || (prev as any)?.apiFormat || "chat-completions",
-      supportedEndpoints: m.supportedEndpoints || (prev as any)?.supportedEndpoints || ["chat"],
+      apiFormat: m.apiFormat || (prev as Record<string, unknown>)?.apiFormat || "chat-completions",
+      supportedEndpoints: m.supportedEndpoints ||
+        (prev as Record<string, unknown>)?.supportedEndpoints || ["chat"],
       // Preserve metadata from provider API (or previous sync)
       ...(m.inputTokenLimit != null
         ? { inputTokenLimit: m.inputTokenLimit }
-        : (prev as any)?.inputTokenLimit != null
-          ? { inputTokenLimit: (prev as any).inputTokenLimit }
+        : (prev as Record<string, unknown>)?.inputTokenLimit != null
+          ? { inputTokenLimit: (prev as Record<string, unknown>).inputTokenLimit }
           : {}),
       ...(m.outputTokenLimit != null
         ? { outputTokenLimit: m.outputTokenLimit }
-        : (prev as any)?.outputTokenLimit != null
-          ? { outputTokenLimit: (prev as any).outputTokenLimit }
+        : (prev as Record<string, unknown>)?.outputTokenLimit != null
+          ? { outputTokenLimit: (prev as Record<string, unknown>).outputTokenLimit }
           : {}),
       ...(m.description != null
         ? { description: m.description }
-        : (prev as any)?.description != null
-          ? { description: (prev as any).description }
+        : (prev as Record<string, unknown>)?.description != null
+          ? { description: (prev as Record<string, unknown>).description }
           : {}),
       ...(m.supportsThinking != null
         ? { supportsThinking: m.supportsThinking }
-        : (prev as any)?.supportsThinking != null
-          ? { supportsThinking: (prev as any).supportsThinking }
+        : (prev as Record<string, unknown>)?.supportsThinking != null
+          ? { supportsThinking: (prev as Record<string, unknown>).supportsThinking }
           : {}),
       ...(m.clineMeta != null
         ? { clineMeta: m.clineMeta }
-        : (prev as any)?.clineMeta != null
-          ? { clineMeta: (prev as any).clineMeta }
+        : (prev as Record<string, unknown>)?.clineMeta != null
+          ? { clineMeta: (prev as Record<string, unknown>).clineMeta }
           : {}),
       // Preserve existing compat flags
-      ...(prev && (prev as any).normalizeToolCallId !== undefined
-        ? { normalizeToolCallId: (prev as any).normalizeToolCallId }
+      ...(prev && (prev as Record<string, unknown>).normalizeToolCallId !== undefined
+        ? { normalizeToolCallId: (prev as Record<string, unknown>).normalizeToolCallId }
         : {}),
-      ...(prev && (prev as any).preserveOpenAIDeveloperRole !== undefined
-        ? { preserveOpenAIDeveloperRole: (prev as any).preserveOpenAIDeveloperRole }
+      ...(prev && (prev as Record<string, unknown>).preserveOpenAIDeveloperRole !== undefined
+        ? {
+            preserveOpenAIDeveloperRole: (prev as Record<string, unknown>)
+              .preserveOpenAIDeveloperRole,
+          }
         : {}),
-      ...(prev && (prev as any).compatByProtocol
-        ? { compatByProtocol: (prev as any).compatByProtocol }
+      ...(prev && (prev as Record<string, unknown>).compatByProtocol
+        ? { compatByProtocol: (prev as Record<string, unknown>).compatByProtocol }
         : {}),
-      ...(prev && (prev as any).upstreamHeaders
-        ? { upstreamHeaders: (prev as any).upstreamHeaders }
+      ...(prev && (prev as Record<string, unknown>).upstreamHeaders
+        ? { upstreamHeaders: (prev as Record<string, unknown>).upstreamHeaders }
         : {}),
     };
   });

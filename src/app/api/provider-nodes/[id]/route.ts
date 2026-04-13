@@ -55,7 +55,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
     const { name, prefix, apiType, baseUrl, chatPath, modelsPath } = validation.data;
-    const node: any = await getProviderNodeById(id);
+    const node: Record<string, unknown> = await getProviderNodeById(id);
 
     if (!node) {
       return NextResponse.json({ error: "Provider node not found" }, { status: 404 });

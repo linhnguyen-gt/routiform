@@ -65,7 +65,7 @@ export default function NewProviderPage() {
         const data = await response.json();
         setErrors({ submit: data.error || t("failedCreate") });
       }
-    } catch (error) {
+    } catch (_error) {
       setErrors({ submit: t("errorOccurred") });
     } finally {
       setLoading(false);

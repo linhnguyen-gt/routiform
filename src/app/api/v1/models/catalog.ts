@@ -155,7 +155,7 @@ export async function getUnifiedModelsResponse(
     // Issue #100: Optionally require authentication for /models (security hardening)
     // When enabled, unauthenticated requests get 401 with proper error response.
     // Supports API key (Bearer token) for external clients and JWT cookie for dashboard.
-    let settings: Record<string, any> = {};
+    let settings: Record<string, unknown> = {};
     try {
       settings = await getSettings();
     } catch {}
@@ -183,10 +183,10 @@ export async function getUnifiedModelsResponse(
 
     // Get active provider connections
     let connections = [];
-    let totalConnectionCount = 0; // Track if DB has ANY connections (even disabled)
+    let _totalConnectionCount = 0; // Track if DB has ANY connections (even disabled)
     try {
       connections = await getProviderConnections();
-      totalConnectionCount = connections.length;
+      _totalConnectionCount = connections.length;
       // Filter to only active connections
       connections = connections.filter((c) => c.isActive !== false);
     } catch (e) {
@@ -198,7 +198,7 @@ export async function getUnifiedModelsResponse(
     let providerNodes = [];
     try {
       providerNodes = await getProviderNodes();
-    } catch (e) {
+    } catch (_e) {
       console.log("Could not fetch provider nodes");
     }
 
@@ -218,7 +218,7 @@ export async function getUnifiedModelsResponse(
     let combos = [];
     try {
       combos = await getCombos();
-    } catch (e) {
+    } catch (_e) {
       console.log("Could not fetch combos");
     }
 
@@ -523,8 +523,8 @@ export async function getUnifiedModelsResponse(
             ...(endpoints.length > 1 || !endpoints.includes("chat")
               ? { supported_endpoints: endpoints }
               : {}),
-            ...(typeof (model as any).inputTokenLimit === "number"
-              ? { context_length: (model as any).inputTokenLimit }
+            ...(typeof (model as Record<string, unknown>).inputTokenLimit === "number"
+              ? { context_length: (model as Record<string, unknown>).inputTokenLimit }
               : {}),
             ...(visionFields || {}),
           });
@@ -548,15 +548,15 @@ export async function getUnifiedModelsResponse(
               parent: aliasId,
               custom: true,
               ...(modelType ? { type: modelType } : {}),
-              ...(typeof (model as any).inputTokenLimit === "number"
-                ? { context_length: (model as any).inputTokenLimit }
+              ...(typeof (model as Record<string, unknown>).inputTokenLimit === "number"
+                ? { context_length: (model as Record<string, unknown>).inputTokenLimit }
                 : {}),
               ...(providerVisionFields || {}),
             });
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       console.log("Could not fetch custom models");
     }
 
@@ -583,8 +583,8 @@ export async function getUnifiedModelsResponse(
         const visionFields =
           getVisionCapabilityFields(aliasId) || getVisionCapabilityFields(modelId);
         const contextLength =
-          typeof (model as any).contextLength === "number"
-            ? (model as any).contextLength
+          typeof (model as Record<string, unknown>).contextLength === "number"
+            ? (model as Record<string, unknown>).contextLength
             : undefined;
 
         models.push({
@@ -634,7 +634,7 @@ export async function getUnifiedModelsResponse(
   } catch (error) {
     console.log("Error fetching models:", error);
     return Response.json(
-      { error: { message: (error as any).message, type: "server_error" } },
+      { error: { message: (error as Error).message, type: "server_error" } },
       { status: 500 }
     );
   }

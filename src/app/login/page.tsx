@@ -42,7 +42,7 @@ export default function LoginPage() {
           setHasPassword(true);
           setSetupComplete(true);
         }
-      } catch (err) {
+      } catch (_err) {
         clearTimeout(timeoutId);
         setHasPassword(true);
         setSetupComplete(true);
@@ -76,7 +76,7 @@ export default function LoginPage() {
         }
         setError(data.error || t("invalidPassword"));
       }
-    } catch (err) {
+    } catch (_err) {
       setError(t("errorOccurredRetry"));
     } finally {
       setLoading(false);

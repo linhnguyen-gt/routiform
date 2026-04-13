@@ -58,7 +58,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
       let url;
       try {
         url = new URL(callbackUrl);
-      } catch (e) {
+      } catch (_e) {
         // If URL parsing fails, might be malformed
         throw new Error("Invalid callback URL format");
       }

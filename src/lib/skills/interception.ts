@@ -47,32 +47,46 @@ export async function interceptToolCalls(
   return results;
 }
 
-export function extractToolCalls(response: any, modelId: string): ToolCall[] {
+export function extractToolCalls(response: unknown, modelId: string): ToolCall[] {
   const provider = detectProvider(modelId);
+  const resp = response as Record<string, unknown>;
 
   switch (provider) {
     case "openai":
-      return (response.tool_calls || []).map((tc: any) => ({
-        id: tc.id || `call_${Date.now()}`,
-        name: tc.function?.name || "",
-        arguments: parseArguments(tc.function?.arguments || "{}"),
-      }));
+      return (Array.isArray(resp.tool_calls) ? resp.tool_calls : []).map((tc: unknown) => {
+        const toolCall = tc as Record<string, unknown>;
+        const func = toolCall.function as Record<string, unknown> | undefined;
+        return {
+          id: String(toolCall.id || `call_${Date.now()}`),
+          name: String(func?.name || ""),
+          arguments: parseArguments(String(func?.arguments || "{}")),
+        };
+      });
 
     case "anthropic":
-      return (response.content || [])
-        .filter((c: any) => c.type === "tool_use")
-        .map((tc: any) => ({
-          id: tc.id,
-          name: tc.name,
-          arguments: tc.input || {},
-        }));
+      return (Array.isArray(resp.content) ? resp.content : [])
+        .filter((c: unknown) => {
+          const content = c as Record<string, unknown>;
+          return content.type === "tool_use";
+        })
+        .map((tc: unknown) => {
+          const toolCall = tc as Record<string, unknown>;
+          return {
+            id: String(toolCall.id),
+            name: String(toolCall.name),
+            arguments: (toolCall.input as Record<string, unknown>) || {},
+          };
+        });
 
     case "google":
-      return (response.functionCalls || []).map((fc: any) => ({
-        id: `call_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        name: fc.name,
-        arguments: fc.args || {},
-      }));
+      return (Array.isArray(resp.functionCalls) ? resp.functionCalls : []).map((fc: unknown) => {
+        const funcCall = fc as Record<string, unknown>;
+        return {
+          id: `call_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          name: String(funcCall.name),
+          arguments: (funcCall.args as Record<string, unknown>) || {},
+        };
+      });
 
     default:
       return [];
@@ -92,10 +106,10 @@ function parseArguments(args: string | Record<string, unknown>): Record<string, 
 }
 
 export async function handleToolCallExecution(
-  response: any,
+  response: unknown,
   modelId: string,
   context: ExecutionContext
-): Promise<any> {
+): Promise<unknown> {
   const toolCalls = extractToolCalls(response, modelId);
 
   if (toolCalls.length === 0) {
@@ -109,7 +123,7 @@ export async function handleToolCallExecution(
   switch (provider) {
     case "openai":
       return {
-        ...response,
+        ...(response as object),
         tool_results: results.map((r) => ({
           tool_call_id: r.id,
           output: JSON.stringify(r.result),
@@ -117,10 +131,11 @@ export async function handleToolCallExecution(
       };
 
     case "anthropic":
+      const content = (response as Record<string, unknown>).content;
       return {
-        ...response,
+        ...(response as object),
         content: [
-          ...response.content,
+          ...(Array.isArray(content) ? content : []),
           ...results.map((r) => ({
             type: "tool_result",
             tool_use_id: r.id,

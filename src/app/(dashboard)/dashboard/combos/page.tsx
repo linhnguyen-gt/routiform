@@ -436,7 +436,7 @@ export default function CombosPage() {
         const err = await res.json();
         notify.error(err.error?.message || err.error || t("failedCreate"));
       }
-    } catch (error) {
+    } catch (_error) {
       notify.error(t("errorCreating"));
     }
   };
@@ -456,7 +456,7 @@ export default function CombosPage() {
         const err = await res.json();
         notify.error(err.error?.message || err.error || t("failedUpdate"));
       }
-    } catch (error) {
+    } catch (_error) {
       notify.error(t("errorUpdating"));
     }
   };
@@ -556,7 +556,7 @@ export default function CombosPage() {
         setCombos(combos.filter((c) => c.id !== id));
         notify.success(t("comboDeleted"));
       }
-    } catch (error) {
+    } catch (_error) {
       notify.error(t("errorDeleting"));
     }
   };
@@ -599,7 +599,7 @@ export default function CombosPage() {
         return;
       }
       setTestResults(data || { error: t("testFailed") });
-    } catch (error) {
+    } catch (_error) {
       setTestResults({ error: t("testFailed") });
       notify.error(t("testFailed"));
     } finally {
@@ -617,7 +617,7 @@ export default function CombosPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: newActive }),
       });
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       setCombos((prev) =>
         prev.map((c) => (c.id === combo.id ? { ...c, isActive: !newActive } : c))

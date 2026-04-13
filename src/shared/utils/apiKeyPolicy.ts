@@ -207,9 +207,11 @@ export async function enforceApiKeyPolicy(
   let apiKeyInfo: ApiKeyMetadata | null = null;
   try {
     apiKeyInfo = await getApiKeyMetadata(apiKey);
-  } catch (error) {
+  } catch (_error) {
     // Fail-closed: if policy backend fails, reject the request
-    log.error("API_POLICY", "Failed to fetch API key metadata. Request blocked.", { error });
+    log.error("API_POLICY", "Failed to fetch API key metadata. Request blocked.", {
+      error: _error,
+    });
     return {
       apiKey,
       apiKeyInfo: null,
@@ -275,9 +277,9 @@ export async function enforceApiKeyPolicy(
           ),
         };
       }
-    } catch (error) {
+    } catch (_error) {
       // Fail-closed: budget backend error should block request
-      log.error("API_POLICY", "Budget check failed. Request blocked.", { error });
+      log.error("API_POLICY", "Budget check failed. Request blocked.", { error: _error });
       return {
         apiKey,
         apiKeyInfo,

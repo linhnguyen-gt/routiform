@@ -9,7 +9,7 @@ import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
  */
 export async function GET() {
   try {
-    const settings: any = await getSettings();
+    const settings: Record<string, unknown> = await getSettings();
     return NextResponse.json({
       comboDefaults: settings.comboDefaults || {
         strategy: "priority",
@@ -57,7 +57,7 @@ export async function PATCH(request) {
     }
     const body = validation.data;
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
 
     if (body.comboDefaults) {
       updates.comboDefaults = body.comboDefaults;
@@ -66,7 +66,7 @@ export async function PATCH(request) {
       updates.providerOverrides = body.providerOverrides;
     }
 
-    const settings: any = await updateSettings(updates);
+    const settings: Record<string, unknown> = await updateSettings(updates);
     return NextResponse.json({
       comboDefaults: settings.comboDefaults || {},
       providerOverrides: settings.providerOverrides || {},

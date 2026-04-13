@@ -57,26 +57,30 @@ function loadFromDb() {
     const db = getDbInstance();
     const rows = db
       .prepare("SELECT * FROM proxy_logs ORDER BY timestamp DESC LIMIT ?")
-      .all(MAX_IN_MEMORY_ENTRIES) as any[];
+      .all(MAX_IN_MEMORY_ENTRIES) as Record<string, unknown>[];
 
     for (const row of rows) {
       proxyLogs.push({
-        id: row.id,
-        timestamp: row.timestamp,
-        status: row.status || "success",
+        id: String(row.id),
+        timestamp: String(row.timestamp),
+        status: String(row.status || "success"),
         proxy: row.proxy_host
-          ? { type: row.proxy_type, host: row.proxy_host, port: row.proxy_port }
+          ? {
+              type: String(row.proxy_type),
+              host: String(row.proxy_host),
+              port: row.proxy_port as number | string,
+            }
           : null,
-        level: row.level || "direct",
-        levelId: row.level_id || null,
-        provider: row.provider || null,
-        targetUrl: row.target_url || null,
-        publicIp: row.public_ip || null,
-        latencyMs: row.latency_ms || 0,
-        error: row.error || null,
-        connectionId: row.connection_id || null,
-        comboId: row.combo_id || null,
-        account: row.account || null,
+        level: String(row.level || "direct"),
+        levelId: row.level_id ? String(row.level_id) : null,
+        provider: row.provider ? String(row.provider) : null,
+        targetUrl: row.target_url ? String(row.target_url) : null,
+        publicIp: row.public_ip ? String(row.public_ip) : null,
+        latencyMs: typeof row.latency_ms === "number" ? row.latency_ms : 0,
+        error: row.error ? String(row.error) : null,
+        connectionId: row.connection_id ? String(row.connection_id) : null,
+        comboId: row.combo_id ? String(row.combo_id) : null,
+        account: row.account ? String(row.account) : null,
         tlsFingerprint: row.tls_fingerprint === 1,
       });
     }
@@ -84,8 +88,11 @@ function loadFromDb() {
     if (proxyLogs.length > 0) {
       console.log(`[proxyLogger] Loaded ${proxyLogs.length} proxy logs from SQLite`);
     }
-  } catch (err: any) {
-    console.warn("[proxyLogger] Failed to load from DB:", err.message);
+  } catch (err: unknown) {
+    console.warn(
+      "[proxyLogger] Failed to load from DB:",
+      err instanceof Error ? err.message : String(err)
+    );
   }
 }
 
@@ -174,8 +181,11 @@ export function logProxyEvent(entry: Partial<ProxyLogEntry>) {
           }
         }
       }
-    } catch (err: any) {
-      console.warn("[proxyLogger] Failed to persist:", err.message);
+    } catch (err: unknown) {
+      console.warn(
+        "[proxyLogger] Failed to persist:",
+        err instanceof Error ? err.message : String(err)
+      );
     }
   }
 
@@ -238,8 +248,11 @@ export function clearProxyLogs() {
     try {
       const db = getDbInstance();
       db.prepare("DELETE FROM proxy_logs").run();
-    } catch (err: any) {
-      console.warn("[proxyLogger] Failed to clear DB:", err.message);
+    } catch (err: unknown) {
+      console.warn(
+        "[proxyLogger] Failed to clear DB:",
+        err instanceof Error ? err.message : String(err)
+      );
     }
   }
 }

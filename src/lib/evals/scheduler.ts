@@ -28,7 +28,7 @@ export interface EvalRunResult {
   total: number;
   passed: number;
   failed: number;
-  results: any[];
+  results: unknown[];
 }
 
 // ── State ──
@@ -64,7 +64,7 @@ export function schedule(suiteId: string, intervalMs: number): ScheduledEval {
 
   // Clear existing timer if re-scheduling
   if (_timers.has(suiteId)) {
-    clearInterval(_timers.get(suiteId) as any);
+    clearInterval(_timers.get(suiteId) as NodeJS.Timeout);
   }
 
   const entry: ScheduledEval = {
@@ -96,7 +96,7 @@ export function schedule(suiteId: string, intervalMs: number): ScheduledEval {
 export function unschedule(suiteId: string): boolean {
   const timer = _timers.get(suiteId);
   if (timer) {
-    clearInterval(timer as any);
+    clearInterval(timer as NodeJS.Timeout);
     _timers.delete(suiteId);
   }
   return _schedules.delete(suiteId);
@@ -111,7 +111,7 @@ export function pause(suiteId: string): boolean {
   entry.enabled = false;
   const timer = _timers.get(suiteId);
   if (timer) {
-    clearInterval(timer as any);
+    clearInterval(timer as NodeJS.Timeout);
     _timers.delete(suiteId);
   }
   return true;
@@ -161,9 +161,11 @@ async function executeScheduledRun(suiteId: string): Promise<EvalRunResult | nul
     for (const evalCase of suite.cases) {
       try {
         outputs[evalCase.id] = await _outputProvider(suiteId, evalCase.id);
-      } catch (err: any) {
-        console.warn(`[EvalScheduler] Failed to get output for ${evalCase.id}: ${err.message}`);
-        outputs[evalCase.id] = `[ERROR] ${err.message}`;
+      } catch (err: unknown) {
+        console.warn(
+          `[EvalScheduler] Failed to get output for ${evalCase.id}: ${err instanceof Error ? err.message : String(err)}`
+        );
+        outputs[evalCase.id] = `[ERROR] ${err instanceof Error ? err.message : String(err)}`;
       }
     }
 
@@ -196,8 +198,11 @@ async function executeScheduledRun(suiteId: string): Promise<EvalRunResult | nul
     );
 
     return runResult;
-  } catch (err: any) {
-    console.error(`[EvalScheduler] Error running ${suiteId}:`, err.message);
+  } catch (err: unknown) {
+    console.error(
+      `[EvalScheduler] Error running ${suiteId}:`,
+      err instanceof Error ? err.message : String(err)
+    );
     return null;
   }
 }
@@ -241,7 +246,7 @@ export function getScorecard(): ReturnType<typeof createScorecard> | null {
   if (_history.length === 0) return null;
 
   // Get latest run per suite
-  const latestBySuite = new Map<string, any>();
+  const latestBySuite = new Map<string, EvalRunResult>();
   for (const run of _history) {
     latestBySuite.set(run.suiteId, run);
   }
@@ -249,9 +254,13 @@ export function getScorecard(): ReturnType<typeof createScorecard> | null {
   // Build scorecard from latest runs
   const runs = Array.from(latestBySuite.values()).map((r) => ({
     suiteId: r.suiteId,
-    suiteName: r.suiteName,
-    results: r.results,
-    summary: { total: r.total, passed: r.passed, failed: r.failed, passRate: r.passRate },
+    timestamp: new Date().toISOString(),
+    stats: {
+      total: typeof r.total === "number" ? r.total : 0,
+      passed: typeof r.passed === "number" ? r.passed : 0,
+      failed: typeof r.failed === "number" ? r.failed : 0,
+      passRate: typeof r.passRate === "number" ? r.passRate : 0,
+    },
   }));
 
   return createScorecard(runs);
@@ -262,7 +271,7 @@ export function getScorecard(): ReturnType<typeof createScorecard> | null {
  */
 export function stopAll(): void {
   for (const timer of _timers.values()) {
-    clearInterval(timer as any);
+    clearInterval(timer as NodeJS.Timeout);
   }
   _timers.clear();
   _schedules.clear();

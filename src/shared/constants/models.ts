@@ -20,7 +20,7 @@ import { PROVIDER_MODELS as MODELS } from "@routiform/open-sse/config/providerMo
 // Providers that accept any model (passthrough)
 const PASSTHROUGH_PROVIDERS = new Set(
   Object.entries(AI_PROVIDERS)
-    .filter(([, p]) => (p as any).passthroughModels)
+    .filter(([, p]) => (p as Record<string, unknown>).passthroughModels)
     .map(([key]) => key)
 );
 

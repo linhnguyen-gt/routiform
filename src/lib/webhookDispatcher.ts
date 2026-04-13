@@ -17,7 +17,7 @@ export type WebhookEvent =
 export interface WebhookPayload {
   event: WebhookEvent;
   timestamp: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 function signPayload(payload: string, secret: string): string {
@@ -63,9 +63,13 @@ export async function deliverWebhook(
       if (attempt < maxRetries) {
         await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (attempt === maxRetries) {
-        return { success: false, status: 0, error: error.message || "Network error" };
+        return {
+          success: false,
+          status: 0,
+          error: error instanceof Error ? error.message : String(error) || "Network error",
+        };
       }
       await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
@@ -77,7 +81,10 @@ export async function deliverWebhook(
 /**
  * Dispatch an event to all matching enabled webhooks
  */
-export async function dispatchEvent(event: WebhookEvent, data: Record<string, any>): Promise<void> {
+export async function dispatchEvent(
+  event: WebhookEvent,
+  data: Record<string, unknown>
+): Promise<void> {
   // Lazy import to avoid circular deps
   const { getEnabledWebhooks, recordWebhookDelivery, disableWebhooksWithHighFailures } =
     await import("./db/webhooks");

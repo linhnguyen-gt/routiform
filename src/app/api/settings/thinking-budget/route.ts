@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSettings, updateSettings } from "@/lib/localDb";
+import { updateSettings } from "@/lib/localDb";
 import {
   setThinkingBudgetConfig,
   getThinkingBudgetConfig,
-  ThinkingMode,
 } from "@routiform/open-sse/services/thinkingBudget.ts";
 import { updateThinkingBudgetSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";

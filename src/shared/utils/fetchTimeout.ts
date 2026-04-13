@@ -35,8 +35,8 @@ export async function fetchWithTimeout(url: string | URL, options: FetchTimeoutO
       signal: controller.signal,
     });
     return response;
-  } catch (error: any) {
-    if (error.name === "AbortError") {
+  } catch (error: unknown) {
+    if ((error as Record<string, unknown>).name === "AbortError") {
       throw new FetchTimeoutError(
         `Request to ${url} timed out after ${timeoutMs}ms`,
         timeoutMs,

@@ -214,22 +214,23 @@ export async function fetchLiveProviderLimits(connectionId: string): Promise<{
   connection: ProviderConnectionLike;
   usage: JsonRecord;
 }> {
-  let connection = (await getProviderConnectionById(connectionId)) as ProviderConnectionLike | null;
-  if (!connection) {
+  let connection = (await getProviderConnectionById(connectionId)) as unknown;
+  if (!connection || typeof connection !== "object") {
     throw withStatus(new Error("Connection not found"), 404);
   }
+  const connObj = connection as ProviderConnectionLike;
 
-  if (!isSupportedUsageConnection(connection)) {
+  if (!isSupportedUsageConnection(connObj)) {
     throw withStatus(new Error("Usage not available for this connection"), 400);
   }
 
-  if (connection.authType !== "oauth") {
-    const usage = (await getUsageForProvider(connection)) as JsonRecord;
+  if (connObj.authType !== "oauth") {
+    const usage = (await getUsageForProvider(connObj)) as JsonRecord;
     if (isRecord(usage.quotas)) {
-      setQuotaCache(connectionId, connection.provider, usage.quotas);
+      setQuotaCache(connectionId, String(connObj.provider), usage.quotas);
     }
-    await syncExpiredStatusIfNeeded(connection, usage);
-    return { connection, usage };
+    await syncExpiredStatusIfNeeded(connObj as ProviderConnectionLike, usage);
+    return { connection: connObj as ProviderConnectionLike, usage };
   }
 
   const proxyInfo = await resolveProxyForConnection(connectionId);
@@ -257,17 +258,18 @@ export async function fetchLiveProviderLimits(connectionId: string): Promise<{
 
   try {
     result = await fetchUsageWithContext(proxyConfig);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorObj = error as Record<string, unknown>;
     const isThrownNetworkError =
-      error?.message === "fetch failed" ||
-      error?.code === "PROXY_UNREACHABLE" ||
-      error?.code === "UND_ERR_CONNECT_TIMEOUT" ||
-      error?.cause?.code === "ECONNREFUSED";
+      (errorObj.message as string) === "fetch failed" ||
+      (errorObj.code as string) === "PROXY_UNREACHABLE" ||
+      (errorObj.code as string) === "UND_ERR_CONNECT_TIMEOUT" ||
+      ((errorObj.cause as Record<string, unknown>)?.code as string) === "ECONNREFUSED";
 
     if (proxyConfig && isThrownNetworkError) {
       console.warn(
         `[ProviderLimits] Proxy fetch threw for ${connectionId}, retrying without proxy:`,
-        error?.message
+        (errorObj.message as string) || ""
       );
       result = await fetchUsageWithContext(null);
     } else {
@@ -284,12 +286,16 @@ export async function fetchLiveProviderLimits(connectionId: string): Promise<{
   }
 
   if (isRecord(result.usage.quotas)) {
-    setQuotaCache(connectionId, connection.provider, result.usage.quotas);
+    setQuotaCache(
+      connectionId,
+      (connection as ProviderConnectionLike).provider,
+      result.usage.quotas
+    );
   }
-  await syncExpiredStatusIfNeeded(connection, result.usage);
+  await syncExpiredStatusIfNeeded(connection as ProviderConnectionLike, result.usage);
 
   return {
-    connection,
+    connection: connection as ProviderConnectionLike,
     usage: result.usage,
   };
 }
@@ -321,9 +327,9 @@ export async function syncAllProviderLimits(
   errors: Record<string, string>;
 }> {
   const { source = "manual", concurrency = 5 } = options;
-  const connections = (
-    (await getProviderConnections({ isActive: true })) as ProviderConnectionLike[]
-  ).filter(isSupportedUsageConnection);
+  const connections = ((await getProviderConnections({ isActive: true })) as unknown[]).filter(
+    isSupportedUsageConnection
+  ) as ProviderConnectionLike[];
   const cacheEntries: Array<{ connectionId: string; entry: ProviderLimitsCacheEntry }> = [];
   const caches: Record<string, ProviderLimitsCacheEntry> = {};
   const errors: Record<string, string> = {};

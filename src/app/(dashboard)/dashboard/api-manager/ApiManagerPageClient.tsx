@@ -122,8 +122,8 @@ export default function ApiManagerPageClient() {
         const data = await res.json();
         setAllModels(data.data || []);
       }
-    } catch (error) {
-      console.log("Error fetching models:", error);
+    } catch (err) {
+      console.log("Error fetching models:", err);
     }
   }, []);
 
@@ -134,8 +134,8 @@ export default function ApiManagerPageClient() {
         const data = await res.json();
         setAllConnections(data.connections || []);
       }
-    } catch (error) {
-      console.log("Error fetching connections:", error);
+    } catch (err) {
+      console.log("Error fetching connections:", err);
     }
   }, []);
 
@@ -163,8 +163,8 @@ export default function ApiManagerPageClient() {
         };
       }
       setUsageStats(stats);
-    } catch (e) {
-      console.log("Error fetching usage stats:", e);
+    } catch (err) {
+      console.log("Error fetching usage stats:", err);
     }
   }, []);
 
@@ -188,8 +188,8 @@ export default function ApiManagerPageClient() {
           typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
       }
       setSessionCounts(normalized);
-    } catch (error) {
-      console.log("Error fetching session counts:", error);
+    } catch (err) {
+      console.log("Error fetching session counts:", err);
     }
   }, []);
 
@@ -204,8 +204,8 @@ export default function ApiManagerPageClient() {
         fetchUsageStats(data.keys || []);
         fetchSessionCounts(data.keys || []);
       }
-    } catch (error) {
-      console.log("Error fetching keys:", error);
+    } catch (err) {
+      console.log("Error fetching keys:", err);
     } finally {
       setLoading(false);
     }
@@ -248,7 +248,7 @@ export default function ApiManagerPageClient() {
       } else {
         setError(data.error || t("failedCreateKey"));
       }
-    } catch (error) {
+    } catch (_error) {
       console.error("Error creating key:", error);
       setError(t("failedCreateKeyRetry"));
     } finally {
@@ -276,7 +276,7 @@ export default function ApiManagerPageClient() {
         const data = await res.json();
         setError(data.error || t("failedDeleteKey"));
       }
-    } catch (error) {
+    } catch (_error) {
       console.error("Error deleting key:", error);
       setError(t("failedDeleteKeyRetry"));
     } finally {
@@ -304,7 +304,7 @@ export default function ApiManagerPageClient() {
       if (typeof data?.key === "string") {
         await copy(data.key, `existing_key_${keyId}`);
       }
-    } catch (error) {
+    } catch (_error) {
       console.log("Error copying existing key:", error);
     }
   };
@@ -372,7 +372,7 @@ export default function ApiManagerPageClient() {
         const data = await res.json();
         setError(data.error || t("failedUpdatePermissions"));
       }
-    } catch (error) {
+    } catch (_error) {
       console.error("Error updating permissions:", error);
       setError(t("failedUpdatePermissionsRetry"));
     } finally {

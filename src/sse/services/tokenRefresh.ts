@@ -22,7 +22,7 @@ export const TOKEN_EXPIRY_BUFFER_MS = BUFFER_MS;
 export const refreshAccessToken = async (
   provider: string,
   refreshToken: string,
-  credentials: any
+  credentials: Record<string, unknown>
 ) => {
   const proxy = await resolveProxyForProvider(provider);
   return _refreshAccessToken(provider, refreshToken, credentials, log, proxy);
@@ -68,37 +68,50 @@ export const refreshCopilotToken = async (githubAccessToken: string) => {
   return _refreshCopilotToken(githubAccessToken, log, proxy);
 };
 
-export const getAccessToken = async (provider: string, credentials: any) => {
+export const getAccessToken = async (provider: string, credentials: Record<string, unknown>) => {
   const proxy = await resolveProxyForProvider(provider);
   return _getAccessToken(provider, credentials, log, proxy);
 };
 
-export const refreshTokenByProvider = async (provider: string, credentials: any) => {
+export const refreshTokenByProvider = async (
+  provider: string,
+  credentials: Record<string, unknown>
+) => {
   const proxy = await resolveProxyForProvider(provider);
   return _refreshTokenByProvider(provider, credentials, log, proxy);
 };
 
-export const formatProviderCredentials = (provider: string, credentials: any) =>
+export const formatProviderCredentials = (provider: string, credentials: Record<string, unknown>) =>
   _formatProviderCredentials(provider, credentials, log);
 
-export const getAllAccessTokens = (userInfo: any) => _getAllAccessTokens(userInfo, log);
+export const getAllAccessTokens = (userInfo: Record<string, unknown>) =>
+  _getAllAccessTokens(userInfo, log);
 
 // Local-specific: Update credentials in localDb
-export async function updateProviderCredentials(connectionId: string, newCredentials: any) {
+export async function updateProviderCredentials(connectionId: string, newCredentials: unknown) {
   try {
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
 
-    if (newCredentials.accessToken) {
+    if (newCredentials && typeof newCredentials === "object" && "accessToken" in newCredentials) {
       updates.accessToken = newCredentials.accessToken;
     }
-    if (newCredentials.refreshToken) {
+    if (newCredentials && typeof newCredentials === "object" && "refreshToken" in newCredentials) {
       updates.refreshToken = newCredentials.refreshToken;
     }
-    if (newCredentials.expiresIn) {
+    if (
+      newCredentials &&
+      typeof newCredentials === "object" &&
+      "expiresIn" in newCredentials &&
+      typeof newCredentials.expiresIn === "number"
+    ) {
       updates.expiresAt = new Date(Date.now() + newCredentials.expiresIn * 1000).toISOString();
       updates.expiresIn = newCredentials.expiresIn;
     }
-    if (newCredentials.providerSpecificData) {
+    if (
+      newCredentials &&
+      typeof newCredentials === "object" &&
+      "providerSpecificData" in newCredentials
+    ) {
       updates.providerSpecificData = newCredentials.providerSpecificData;
     }
 
@@ -111,18 +124,22 @@ export async function updateProviderCredentials(connectionId: string, newCredent
   } catch (error) {
     log.error("TOKEN_REFRESH", "Error updating credentials in localDb", {
       connectionId,
-      error: (error as any).message,
+      error: (error as Error).message,
     });
     return false;
   }
 }
 
 // Local-specific: Check and refresh token proactively
-export async function checkAndRefreshToken(provider: string, credentials: any) {
-  let updatedCredentials = { ...credentials };
+export async function checkAndRefreshToken(provider: string, credentials: unknown) {
+  if (!credentials || typeof credentials !== "object") {
+    return credentials;
+  }
+
+  let updatedCredentials = { ...credentials } as Record<string, unknown>;
 
   // Check regular token expiry
-  if (updatedCredentials.expiresAt) {
+  if (updatedCredentials.expiresAt && typeof updatedCredentials.expiresAt === "string") {
     const expiresAt = new Date(updatedCredentials.expiresAt).getTime();
     const now = Date.now();
 
@@ -133,24 +150,31 @@ export async function checkAndRefreshToken(provider: string, credentials: any) {
       });
 
       const newCredentials = await getAccessToken(provider, updatedCredentials);
-      if (newCredentials && newCredentials.accessToken) {
-        await updateProviderCredentials(updatedCredentials.connectionId, newCredentials);
+      const newCreds = newCredentials as Record<string, unknown>;
+      if (newCredentials && newCreds.accessToken) {
+        await updateProviderCredentials(String(updatedCredentials.connectionId), newCredentials);
 
         updatedCredentials = {
           ...updatedCredentials,
-          accessToken: newCredentials.accessToken,
-          refreshToken: newCredentials.refreshToken || updatedCredentials.refreshToken,
-          expiresAt: newCredentials.expiresIn
-            ? new Date(Date.now() + newCredentials.expiresIn * 1000).toISOString()
-            : updatedCredentials.expiresAt,
+          accessToken: newCreds.accessToken,
+          refreshToken: newCreds.refreshToken || updatedCredentials.refreshToken,
+          expiresAt:
+            typeof newCreds.expiresIn === "number"
+              ? new Date(Date.now() + newCreds.expiresIn * 1000).toISOString()
+              : updatedCredentials.expiresAt,
         };
       }
     }
   }
 
   // Check GitHub copilot token expiry
-  if (provider === "github" && updatedCredentials.providerSpecificData?.copilotTokenExpiresAt) {
-    const copilotExpiresAt = updatedCredentials.providerSpecificData.copilotTokenExpiresAt * 1000;
+  const providerData =
+    updatedCredentials.providerSpecificData &&
+    typeof updatedCredentials.providerSpecificData === "object"
+      ? (updatedCredentials.providerSpecificData as Record<string, unknown>)
+      : {};
+  if (provider === "github" && typeof providerData.copilotTokenExpiresAt === "number") {
+    const copilotExpiresAt = providerData.copilotTokenExpiresAt * 1000;
     const now = Date.now();
 
     if (copilotExpiresAt - now < TOKEN_EXPIRY_BUFFER_MS) {
@@ -159,23 +183,29 @@ export async function checkAndRefreshToken(provider: string, credentials: any) {
         expiresIn: Math.round((copilotExpiresAt - now) / 1000),
       });
 
-      const copilotToken = await refreshCopilotToken(updatedCredentials.accessToken);
+      const copilotToken = await refreshCopilotToken(String(updatedCredentials.accessToken));
       if (copilotToken) {
-        await updateProviderCredentials(updatedCredentials.connectionId, {
+        const copilotResult = copilotToken as Record<string, unknown>;
+        const currentProviderData =
+          updatedCredentials.providerSpecificData &&
+          typeof updatedCredentials.providerSpecificData === "object"
+            ? (updatedCredentials.providerSpecificData as Record<string, unknown>)
+            : {};
+        await updateProviderCredentials(String(updatedCredentials.connectionId), {
           providerSpecificData: {
-            ...updatedCredentials.providerSpecificData,
-            copilotToken: copilotToken.token,
-            copilotTokenExpiresAt: copilotToken.expiresAt,
+            ...currentProviderData,
+            copilotToken: String(copilotResult.token),
+            copilotTokenExpiresAt: copilotResult.expiresAt,
           },
         });
 
         updatedCredentials.providerSpecificData = {
-          ...updatedCredentials.providerSpecificData,
-          copilotToken: copilotToken.token,
-          copilotTokenExpiresAt: copilotToken.expiresAt,
+          ...currentProviderData,
+          copilotToken: String(copilotResult.token),
+          copilotTokenExpiresAt: copilotResult.expiresAt,
         };
         // Sync to top-level so buildHeaders() picks up the fresh token
-        updatedCredentials.copilotToken = copilotToken.token;
+        updatedCredentials.copilotToken = String(copilotResult.token);
       }
     }
   }
@@ -184,16 +214,18 @@ export async function checkAndRefreshToken(provider: string, credentials: any) {
 }
 
 // Local-specific: Refresh GitHub and Copilot tokens together
-export async function refreshGitHubAndCopilotTokens(credentials: any) {
-  const newGitHubCredentials = await refreshGitHubToken(credentials.refreshToken);
+export async function refreshGitHubAndCopilotTokens(credentials: unknown) {
+  const creds = credentials as Record<string, unknown>;
+  const newGitHubCredentials = await refreshGitHubToken(String(creds.refreshToken));
   if (newGitHubCredentials?.accessToken) {
     const copilotToken = await refreshCopilotToken(newGitHubCredentials.accessToken);
     if (copilotToken) {
+      const copilotResult = copilotToken as Record<string, unknown>;
       return {
         ...newGitHubCredentials,
         providerSpecificData: {
-          copilotToken: copilotToken.token,
-          copilotTokenExpiresAt: copilotToken.expiresAt,
+          copilotToken: copilotResult.token,
+          copilotTokenExpiresAt: copilotResult.expiresAt,
         },
       };
     }

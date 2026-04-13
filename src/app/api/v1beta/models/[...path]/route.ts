@@ -87,10 +87,15 @@ export async function POST(request, { params }) {
       body: JSON.stringify(convertedBody),
     });
 
-    return await handleChat(newRequest, buildClientRawRequest(request, rawBody));
+    const clientRawRequest = buildClientRawRequest(request, rawBody);
+    return await handleChat(newRequest, clientRawRequest);
   } catch (error) {
     console.log("Error handling Gemini request:", error);
-    return Response.json({ error: { message: error.message, code: 500 } }, { status: 500 });
+    const message =
+      error && typeof error === "object" && "message" in error && typeof error.message === "string"
+        ? error.message
+        : "Unknown error";
+    return Response.json({ error: { message, code: 500 } }, { status: 500 });
   }
 }
 

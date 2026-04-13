@@ -63,7 +63,7 @@ export async function reorderCombos(orderedIds: string[]): Promise<number> {
   const existing = db
     .prepare(`SELECT id FROM combos WHERE id IN (${placeholders})`)
     .all(...orderedUniqueIds)
-    .map((row: any) => row.id);
+    .map((row: Record<string, unknown>) => row.id);
 
   const validIds = orderedUniqueIds.filter((id) => existing.includes(id));
   if (validIds.length === 0) return 0;

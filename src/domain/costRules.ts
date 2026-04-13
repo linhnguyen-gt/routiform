@@ -15,8 +15,7 @@ import {
   saveCostEntry,
   loadCostEntries,
   deleteAllCostData,
-  deleteBudget as dbDeleteBudget,
-  deleteCostEntries,
+  deleteBudget as _dbDeleteBudget,
 } from "../lib/db/domainState";
 
 interface BudgetConfig {

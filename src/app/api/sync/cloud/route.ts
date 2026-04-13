@@ -50,8 +50,9 @@ export async function GET() {
     } catch {
       return NextResponse.json({ enabled: true, connected: false });
     }
-  } catch (error: any) {
-    return NextResponse.json({ enabled: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ enabled: false, error: errMsg }, { status: 500 });
   }
 }
 
@@ -59,7 +60,7 @@ export async function GET() {
  * POST /api/sync/cloud
  * Sync data with Cloud
  */
-export async function POST(request: any) {
+export async function POST(request: Request) {
   let rawBody;
   try {
     rawBody = await request.json();
@@ -98,7 +99,7 @@ export async function POST(request: any) {
         return enableResult;
       }
       case "sync": {
-        const syncResult: any = await syncToCloud(machineId);
+        const syncResult: Record<string, unknown> = await syncToCloud(machineId);
         if (syncResult.error) {
           return NextResponse.json(syncResult, { status: 502 });
         }
@@ -110,18 +111,19 @@ export async function POST(request: any) {
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Cloud sync error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
 
 /**
  * Sync and verify connection with ping (retry on verify)
  */
-async function syncAndVerify(machineId: string, createdKey: any, existingKeys: any[]) {
+async function syncAndVerify(machineId: string, createdKey: string | null, existingKeys: unknown[]) {
   // Step 1: Sync data to cloud
-  const syncResult: any = await syncToCloud(machineId, createdKey);
+  const syncResult: Record<string, unknown> = await syncToCloud(machineId, createdKey);
   if (syncResult.error) {
     return NextResponse.json(
       { error: `Cloud sync failed: ${syncResult.error}` },
@@ -133,7 +135,8 @@ async function syncAndVerify(machineId: string, createdKey: any, existingKeys: a
   const cloudUrl = CLOUD_URL ? `${CLOUD_URL}/${machineId}` : null;
 
   // Step 2: Verify connection by pinging the cloud (with retry)
-  const apiKey = createdKey || existingKeys[0]?.key;
+  const existingKey = existingKeys && existingKeys.length > 0 && existingKeys[0] && typeof existingKeys[0] === 'object' && 'key' in existingKeys[0] && typeof existingKeys[0].key === 'string' ? existingKeys[0].key : null;
+  const apiKey = createdKey || existingKey;
   if (!apiKey) {
     return NextResponse.json({
       ...syncResult,
@@ -170,8 +173,10 @@ async function syncAndVerify(machineId: string, createdKey: any, existingKeys: a
         });
       }
       lastVerifyError = `Ping failed: ${pingResponse.status}`;
-    } catch (error: any) {
-      lastVerifyError = error?.name === "AbortError" ? "Verify timeout" : error.message;
+    } catch (error: unknown) {
+      const errorName = error && typeof error === 'object' && 'name' in error && typeof error.name === 'string' ? error.name : '';
+      const errorMessage = error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : String(error);
+      lastVerifyError = errorName === "AbortError" ? "Verify timeout" : errorMessage;
     }
 
     // Wait before retry (except on last attempt)
@@ -192,7 +197,7 @@ async function syncAndVerify(machineId: string, createdKey: any, existingKeys: a
 /**
  * Disable Cloud - delete cache and update Claude CLI settings
  */
-async function handleDisable(machineId: string, request: any) {
+async function handleDisable(machineId: string, request: Request) {
   if (!CLOUD_URL) {
     return NextResponse.json({ error: "NEXT_PUBLIC_CLOUD_URL is not configured" }, { status: 500 });
   }
@@ -202,8 +207,8 @@ async function handleDisable(machineId: string, request: any) {
     response = await fetchWithTimeout(`${CLOUD_URL}/sync/${machineId}`, {
       method: "DELETE",
     });
-  } catch (error: any) {
-    const isTimeout = error?.name === "AbortError";
+  } catch (error: unknown) {
+    const isTimeout = error && typeof error === 'object' && 'name' in error && error.name === "AbortError";
     return NextResponse.json(
       {
         error: isTimeout ? "Cloud disable timeout" : "Failed to reach cloud service",
@@ -242,8 +247,8 @@ async function updateClaudeSettingsToLocal(machineId: string, host: string) {
     try {
       const content = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(content);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         return; // No settings file, nothing to update
       }
       throw error;
@@ -259,7 +264,8 @@ async function updateClaudeSettingsToLocal(machineId: string, host: string) {
     settings.env.ANTHROPIC_BASE_URL = localUrl;
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
     console.log(`Updated Claude CLI settings: ${cloudUrl} → ${localUrl}`);
-  } catch (error: any) {
-    console.log("Failed to update Claude CLI settings:", error.message);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.log("Failed to update Claude CLI settings:", errMsg);
   }
 }

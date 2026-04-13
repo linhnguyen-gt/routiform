@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   const validation = validateBody(actionSchema, rawBody);
   if (isValidationFailure(validation)) {
-    return validation.response;
+    return NextResponse.json({ error: validation.error }, { status: 400 });
   }
 
   const parsed = validation.data;

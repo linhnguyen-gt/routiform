@@ -3,7 +3,6 @@ import {
   detectInstalledAgents,
   refreshAgentCache,
   setCustomAgents,
-  getCustomAgentDefs,
   type CustomAgentDef,
 } from "@/lib/acp/registry";
 import { getSettings, updateSettings } from "@/lib/localDb";

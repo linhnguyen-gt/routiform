@@ -33,13 +33,13 @@ export async function POST(request) {
     }
     const { provider, apiKey, validationModelId, customUserAgent } = validation.data;
 
-    let providerSpecificData: any = { validationModelId };
+    let providerSpecificData: Record<string, unknown> = { validationModelId };
     if (customUserAgent) {
       providerSpecificData.customUserAgent = customUserAgent;
     }
 
     if (isOpenAICompatibleProvider(provider) || isAnthropicCompatibleProvider(provider)) {
-      const node: any = await getProviderNodeById(provider);
+      const node: Record<string, unknown> = await getProviderNodeById(provider);
       if (!node) {
         const typeName = isOpenAICompatibleProvider(provider)
           ? "OpenAI"
@@ -66,15 +66,15 @@ export async function POST(request) {
       providerSpecificData,
     });
 
-    if (result.unsupported) {
+    if ("unsupported" in result && result.unsupported) {
       return NextResponse.json({ error: "Provider validation not supported" }, { status: 400 });
     }
 
     return NextResponse.json({
       valid: !!result.valid,
       error: result.valid ? null : result.error || "Invalid API key",
-      warning: result.warning || null,
-      method: result.method || null,
+      warning: ("warning" in result ? result.warning : null) || null,
+      method: ("method" in result ? result.method : null) || null,
     });
   } catch (error) {
     console.log("Error validating API key:", error);

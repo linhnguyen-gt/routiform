@@ -10,7 +10,7 @@ interface StatementLike<TRow = unknown> {
 
 interface DbLike {
   prepare: <TRow = unknown>(sql: string) => StatementLike<TRow>;
-  transaction: <T extends (...args: any[]) => unknown>(fn: T) => T;
+  transaction: <T extends (...args: unknown[]) => unknown>(fn: T) => T;
 }
 
 interface KeyValueRow {

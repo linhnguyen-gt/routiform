@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     let db;
     try {
       db = new Database(dbPath, { readonly: true, fileMustExist: true });
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({
         found: false,
         error:
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         .prepare("SELECT key, value FROM itemTable WHERE key IN (?, ?)")
         .all("cursorAuth/accessToken", "storage.serviceMachineId");
 
-      const tokens: Record<string, any> = {};
+      const tokens: Record<string, string> = {};
       for (const row of rows) {
         if (row.key === "cursorAuth/accessToken") {
           tokens.accessToken = row.value;
@@ -78,11 +78,11 @@ export async function GET(request: Request) {
       db?.close();
       return NextResponse.json({
         found: false,
-        error: `Failed to read database: ${(error as any).message}`,
+        error: `Failed to read database: ${(error as Error).message}`,
       });
     }
   } catch (error) {
     console.log("Cursor auto-import error:", error);
-    return NextResponse.json({ found: false, error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ found: false, error: (error as Error).message }, { status: 500 });
   }
 }

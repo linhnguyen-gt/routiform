@@ -1,5 +1,5 @@
 import { MemoryConfigSchema, MemoryCreateInputSchema, MemoryUpdateInputSchema } from "../schemas";
-import { z } from "zod";
+import { describe, test, expect } from "vitest";
 
 describe("Memory Schemas", () => {
   const validConfig = {

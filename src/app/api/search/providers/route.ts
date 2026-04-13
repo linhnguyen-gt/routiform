@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ providers });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Failed to list providers" }, { status: 500 });
   }
 }

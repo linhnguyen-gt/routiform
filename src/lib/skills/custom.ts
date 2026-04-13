@@ -11,7 +11,7 @@ export async function registerCustomSkill(data: {
   handler: string;
   apiKeyId: string;
   enabled?: boolean;
-}): Promise<any> {
+}): Promise<unknown> {
   const parsed = SkillCreateInputSchema.parse(data);
   return skillRegistry.register({
     ...parsed,
@@ -26,11 +26,11 @@ export function validateCustomSkill(data: unknown): { valid: boolean; errors?: s
   }
   return {
     valid: false,
-    errors: result.error.issues.map((e: any) => `${e.path.join(".")}: ${e.message}`),
+    errors: result.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`),
   };
 }
 
-export function listCustomSkills(apiKeyId: string): any[] {
+export function listCustomSkills(apiKeyId: string): unknown[] {
   return skillRegistry.list(apiKeyId);
 }
 

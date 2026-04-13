@@ -9,6 +9,7 @@ async function run() {
   const executor = new QoderExecutor();
   const result = await executor.execute({
     model: "coder-model",
+    stream: true,
     body: {
       messages: [{ role: "user", content: "hello test" }],
       stream: true,
@@ -17,7 +18,7 @@ async function run() {
     credentials: {
       accessToken: creds.access_token,
       resourceUrl: creds.resource_url,
-    },
+    } as any,
     signal: new AbortController().signal,
   });
 

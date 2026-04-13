@@ -409,7 +409,7 @@ export default function OAuthModal({
     try {
       channel = new BroadcastChannel("oauth_callback");
       channel.onmessage = (event) => handleCallback(event.data);
-    } catch (e) {
+    } catch (_e) {
       console.log("BroadcastChannel not supported");
     }
 
@@ -420,7 +420,7 @@ export default function OAuthModal({
           const data = JSON.parse(event.newValue);
           handleCallback(data);
           localStorage.removeItem("oauth_callback");
-        } catch (e) {
+        } catch (_e) {
           console.log("Failed to parse localStorage data");
         }
       }

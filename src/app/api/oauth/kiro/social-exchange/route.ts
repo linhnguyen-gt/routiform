@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const email = kiroService.extractEmailFromJWT(tokenData.accessToken);
 
     // Save to database
-    const connection: any = await createProviderConnection({
+    const connection: Record<string, unknown> = await createProviderConnection({
       provider: "kiro",
       authType: "oauth",
       accessToken: tokenData.accessToken,
@@ -69,9 +69,12 @@ export async function POST(request: Request) {
         email: connection.email,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Kiro social exchange error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
 

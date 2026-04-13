@@ -107,7 +107,7 @@ export async function listBackups(toolId: string) {
   }
 
   const metaFiles = entries.filter((e) => e.endsWith(".meta.json"));
-  const backups: any[] = [];
+  const backups: unknown[] = [];
 
   for (const metaFile of metaFiles) {
     try {
@@ -140,7 +140,11 @@ export async function listBackups(toolId: string) {
   }
 
   // Sort newest first
-  backups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  backups.sort((a, b) => {
+    const aCreatedAt = (a as Record<string, unknown>).createdAt;
+    const bCreatedAt = (b as Record<string, unknown>).createdAt;
+    return new Date(String(bCreatedAt)).getTime() - new Date(String(aCreatedAt)).getTime();
+  });
   return backups;
 }
 
@@ -148,7 +152,7 @@ export async function listBackups(toolId: string) {
  * Restore a backup by its id (filename).
  */
 export async function restoreBackup(toolId: string, backupId: string) {
-  const dir = getToolBackupDir(toolId);
+  const _dir = getToolBackupDir(toolId);
   // Anchor backupId within the tool dir — prevent path traversal via backupId
   const backupPath = safePath(toolId, backupId);
   const metaPath = backupPath + ".meta.json";
@@ -214,19 +218,19 @@ async function rotateBackups(toolId: string) {
   const all = await listBackups(toolId);
 
   // Group by original file basename
-  const groups: Record<string, any[]> = {};
+  const groups: Record<string, Array<Record<string, unknown>>> = {};
   for (const b of all) {
-    const key = path.basename(b.originalPath);
+    const key = path.basename(String((b as Record<string, unknown>).originalPath));
     if (!groups[key]) groups[key] = [];
-    groups[key].push(b);
+    groups[key].push(b as Record<string, unknown>);
   }
 
-  for (const [, group] of Object.entries(groups) as [string, any[]][]) {
+  for (const [, group] of Object.entries(groups) as [string, Array<Record<string, unknown>>][]) {
     // Already sorted newest first
     if (group.length > MAX_BACKUPS_PER_TOOL) {
       const toDelete = group.slice(MAX_BACKUPS_PER_TOOL);
       for (const old of toDelete) {
-        await deleteBackup(toolId, old.id);
+        await deleteBackup(toolId, String(old.id));
       }
     }
   }

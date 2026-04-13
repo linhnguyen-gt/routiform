@@ -12,7 +12,6 @@
 
 import {
   saveFallbackChain,
-  loadFallbackChain,
   loadAllFallbackChains,
   deleteFallbackChain,
   deleteAllFallbackChains,

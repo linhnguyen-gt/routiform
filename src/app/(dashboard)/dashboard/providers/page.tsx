@@ -190,7 +190,7 @@ export default function ProvidersPage() {
       } else {
         notify.error(data.error || "Failed to import from Zed IDE.");
       }
-    } catch (error) {
+    } catch (_error) {
       notify.error("Network error while trying to import from Zed.");
     } finally {
       setImportingZed(false);

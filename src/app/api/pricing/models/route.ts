@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { REGISTRY } from "@routiform/open-sse/config/providerRegistry.ts";
 import { getAllCustomModels, getPricing } from "@/lib/localDb";
 
+interface ModelEntry {
+  id: string;
+  name: string;
+  custom?: boolean;
+}
+
+interface CatalogEntry {
+  id: string;
+  alias?: string;
+  name: string;
+  authType?: string;
+  format?: string;
+  models?: ModelEntry[];
+  modelCount?: number;
+  pricing?: unknown;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -25,7 +42,7 @@ function asModelArray(value: unknown): Array<{ id?: string; name?: string }> {
  */
 export async function GET() {
   try {
-    const catalog: Record<string, any> = {};
+    const catalog: Record<string, CatalogEntry> = {};
 
     // ── 1. Registry models (hardcoded) ──────────────────────────────
     for (const entry of Object.values(REGISTRY)) {
@@ -76,25 +93,28 @@ export async function GET() {
         };
       }
 
-      const existingIds = new Set(catalog[alias].models.map((m) => m.id));
+      const existingModels = catalog[alias].models || [];
+      const existingIds = new Set(existingModels.map((m) => m.id));
       for (const model of models) {
         const modelId = typeof model.id === "string" ? model.id : null;
         if (!modelId || existingIds.has(modelId)) {
           continue;
         }
         if (!existingIds.has(modelId)) {
-          catalog[alias].models.push({
+          const catalogModels = catalog[alias].models || [];
+          catalogModels.push({
             id: modelId,
             name: typeof model.name === "string" && model.name.trim() ? model.name : modelId,
             custom: true,
           });
+          catalog[alias].models = catalogModels;
           existingIds.add(modelId);
         }
       }
     }
 
     // ── 3. Pricing-only models (DB) ─────────────────────────────────
-    let pricingData: Record<string, any> = {};
+    let pricingData: Record<string, unknown> = {};
     try {
       pricingData = await getPricing();
     } catch {
@@ -113,14 +133,16 @@ export async function GET() {
         };
       }
 
-      const existingIds = new Set(catalog[providerAlias].models.map((m) => m.id));
+      const catalogModels = catalog[providerAlias].models || [];
+      const existingIds = new Set(catalogModels.map((m) => m.id));
       for (const modelId of Object.keys(models)) {
         if (!existingIds.has(modelId)) {
-          catalog[providerAlias].models.push({
+          catalogModels.push({
             id: modelId,
             name: modelId,
             custom: true,
           });
+          catalog[providerAlias].models = catalogModels;
           existingIds.add(modelId);
         }
       }
@@ -128,7 +150,7 @@ export async function GET() {
 
     // Add modelCount to each entry
     for (const entry of Object.values(catalog)) {
-      entry.modelCount = entry.models.length;
+      entry.modelCount = (entry.models || []).length;
     }
 
     return NextResponse.json(catalog);

@@ -112,7 +112,7 @@ export function evaluateToolPolicy(toolNames: string[]): ToolPolicyResult {
 /**
  * Extract tool names from an OpenAI-compatible request body.
  */
-export function extractToolNames(body: any): string[] {
+export function extractToolNames(body: Record<string, unknown>): string[] {
   const tools: string[] = [];
 
   // tools array (new format)
@@ -134,8 +134,18 @@ export function extractToolNames(body: any): string[] {
   }
 
   // tool_choice (if specific tool is forced)
-  if (body?.tool_choice?.function?.name) {
-    tools.push(body.tool_choice.function.name);
+  if (body?.tool_choice && typeof body.tool_choice === "object" && body.tool_choice !== null) {
+    const toolChoice = body.tool_choice as Record<string, unknown>;
+    if (
+      toolChoice.function &&
+      typeof toolChoice.function === "object" &&
+      toolChoice.function !== null
+    ) {
+      const func = toolChoice.function as Record<string, unknown>;
+      if (func.name && typeof func.name === "string") {
+        tools.push(func.name);
+      }
+    }
   }
 
   return tools;
@@ -144,7 +154,7 @@ export function extractToolNames(body: any): string[] {
 /**
  * Convenience: validate an entire request body against the tool policy.
  */
-export function validateToolsInRequest(body: any): ToolPolicyResult {
+export function validateToolsInRequest(body: Record<string, unknown>): ToolPolicyResult {
   const toolNames = extractToolNames(body);
   return evaluateToolPolicy(toolNames);
 }

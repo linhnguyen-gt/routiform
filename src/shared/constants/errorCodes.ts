@@ -172,7 +172,7 @@ export function createErrorResponse(code: string, details: ErrorDetails = {}) {
     };
   }
 
-  const response: any = {
+  const response: unknown = {
     error: {
       code: def.code,
       message: def.message,
@@ -184,7 +184,7 @@ export function createErrorResponse(code: string, details: ErrorDetails = {}) {
   };
 
   if (details.retryAfter) {
-    response.retryAfter = details.retryAfter;
+    (response as Record<string, unknown>).retryAfter = details.retryAfter;
   }
 
   return response;

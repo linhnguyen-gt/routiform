@@ -27,11 +27,11 @@ import { getSettings } from "./localDb.ts";
 import { getCircuitBreaker } from "../shared/utils/circuitBreaker.ts";
 import { recordTelemetry, RequestTelemetry } from "../shared/utils/requestTelemetry.ts";
 
-type Factory<T = any> = () => T;
+type Factory<T = unknown> = () => T;
 
 class Container {
   private _factories = new Map<string, Factory>();
-  private _instances = new Map<string, any>();
+  private _instances = new Map<string, unknown>();
 
   /**
    * Register a factory for a service. Does NOT instantiate until resolve().
@@ -46,7 +46,7 @@ class Container {
    * Resolve a service by name. Lazy-creates via factory on first call,
    * then returns the cached singleton.
    */
-  resolve<T = any>(name: string): T {
+  resolve<T = unknown>(name: string): T {
     if (this._instances.has(name)) {
       return this._instances.get(name) as T;
     }

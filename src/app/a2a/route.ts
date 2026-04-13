@@ -16,11 +16,12 @@ import { executeSmartRouting } from "@/lib/a2a/skills/smartRouting";
 import { executeQuotaManagement } from "@/lib/a2a/skills/quotaManagement";
 import { logRoutingDecision } from "@/lib/a2a/routingLogger";
 import { createA2AStream, SSE_HEADERS } from "@/lib/a2a/streaming";
-import { executeA2ATaskWithState } from "@/lib/a2a/taskExecution";
 
 // ============ Skill Registry ============
 
-const SKILL_HANDLERS: Record<string, (task: any) => Promise<any>> = {
+import type { A2ATask, TaskArtifact } from "@/lib/a2a/taskManager";
+
+const SKILL_HANDLERS: Record<string, (task: A2ATask) => Promise<unknown>> = {
   "smart-routing": executeSmartRouting,
   "quota-management": executeQuotaManagement,
 };
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Parse JSON-RPC body
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -112,8 +113,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { jsonrpc, id, method, params } = body;
+  const requestId = typeof id === "string" || typeof id === "number" ? id : null;
   if (jsonrpc !== "2.0" || !method) {
-    return jsonRpcError(id || null, -32600, "Invalid request: missing jsonrpc or method");
+    return jsonRpcError(requestId, -32600, "Invalid request: missing jsonrpc or method");
   }
 
   const tm = getTaskManager();
@@ -121,11 +123,12 @@ export async function POST(req: NextRequest) {
   switch (method) {
     // ── message/send ──────────────────────────────────────
     case "message/send": {
-      const skill = params?.skill || "smart-routing";
-      const messages = toMessageArray(params?.messages) || toMessageArray(params?.message);
+      const p = params as Record<string, unknown>;
+      const skill = typeof p?.skill === "string" ? p.skill : "smart-routing";
+      const messages = toMessageArray(p?.messages) || toMessageArray(p?.message);
       if (!messages) {
         return jsonRpcError(
-          id,
+          requestId,
           -32602,
           "Invalid params: provide `messages[]` or `message.content`"
         );
@@ -133,33 +136,53 @@ export async function POST(req: NextRequest) {
 
       const handler = SKILL_HANDLERS[skill];
       if (!handler) {
-        return jsonRpcError(id, -32601, `Unknown skill: ${skill}`);
+        return jsonRpcError(requestId, -32601, `Unknown skill: ${skill}`);
       }
 
-      const task = tm.createTask({ skill, messages, metadata: params?.metadata });
+      const task = tm.createTask({
+        skill,
+        messages,
+        metadata: p?.metadata as Record<string, unknown>,
+      });
       try {
         tm.updateTask(task.id, "working");
-        const result = await handler(task);
+        const result = (await handler(task)) as {
+          artifacts: TaskArtifact[];
+          metadata?: Record<string, unknown>;
+        };
         tm.updateTask(task.id, "completed", result.artifacts);
 
         // Log routing decision
         if (skill === "smart-routing" && result.metadata) {
+          const metadata = p?.metadata as Record<string, unknown> | undefined;
+          const routingExplanation =
+            typeof result.metadata.routing_explanation === "string"
+              ? result.metadata.routing_explanation
+              : "";
+          const costEnvelope =
+            result.metadata.cost_envelope &&
+            typeof result.metadata.cost_envelope === "object" &&
+            !Array.isArray(result.metadata.cost_envelope)
+              ? (result.metadata.cost_envelope as Record<string, unknown>)
+              : null;
+          const actualCost =
+            costEnvelope && typeof costEnvelope.actual === "number" ? costEnvelope.actual : 0;
+
           logRoutingDecision({
-            taskType: (params?.metadata?.role as string) || "general",
-            comboId: (params?.metadata?.combo as string) || "default",
-            providerSelected:
-              result.metadata?.routing_explanation?.match(/"([^"]+)"/)?.[1] || "unknown",
-            modelUsed: (params?.metadata?.model as string) || "auto",
+            taskType: typeof metadata?.role === "string" ? metadata.role : "general",
+            comboId: typeof metadata?.combo === "string" ? metadata.combo : "default",
+            providerSelected: routingExplanation.match(/"([^"]+)"/)?.[1] || "unknown",
+            modelUsed: typeof metadata?.model === "string" ? metadata.model : "auto",
             score: 1,
             factors: [],
             fallbacksTriggered: [],
             success: true,
             latencyMs: 0,
-            cost: result.metadata?.cost_envelope?.actual || 0,
+            cost: actualCost,
           });
         }
 
-        return jsonRpcResult(id, {
+        return jsonRpcResult(requestId, {
           task: { id: task.id, state: "completed" },
           artifacts: result.artifacts,
           metadata: result.metadata,
@@ -167,17 +190,18 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         tm.updateTask(task.id, "failed", [{ type: "error", content: msg }], msg);
-        return jsonRpcError(id, -32603, `Skill execution failed: ${msg}`);
+        return jsonRpcError(requestId, -32603, `Skill execution failed: ${msg}`);
       }
     }
 
     // ── message/stream ────────────────────────────────────
     case "message/stream": {
-      const skill = params?.skill || "smart-routing";
-      const messages = toMessageArray(params?.messages) || toMessageArray(params?.message);
+      const p = params as Record<string, unknown>;
+      const skill = typeof p?.skill === "string" ? p.skill : "smart-routing";
+      const messages = toMessageArray(p?.messages) || toMessageArray(p?.message);
       if (!messages) {
         return jsonRpcError(
-          id,
+          requestId,
           -32602,
           "Invalid params: provide `messages[]` or `message.content`"
         );
@@ -185,52 +209,63 @@ export async function POST(req: NextRequest) {
 
       const handler = SKILL_HANDLERS[skill];
       if (!handler) {
-        return jsonRpcError(id, -32601, `Unknown skill: ${skill}`);
+        return jsonRpcError(requestId, -32601, `Unknown skill: ${skill}`);
       }
 
-      const task = tm.createTask({ skill, messages, metadata: params?.metadata });
+      const task = tm.createTask({
+        skill,
+        messages,
+        metadata: p?.metadata as Record<string, unknown>,
+      });
       tm.updateTask(task.id, "working");
 
-      const stream = createA2AStream(
-        task,
-        async (t) => executeA2ATaskWithState(tm, t, handler),
-        req.signal,
-        {
-          onStart: () => tm.beginStream(),
-          onEnd: () => tm.endStream(),
-        }
-      );
+      const wrappedHandler = async (t: A2ATask) => {
+        const result = await handler(t);
+        return result as {
+          artifacts: Array<{ content: string }>;
+          metadata: Record<string, unknown>;
+        };
+      };
+
+      const stream = createA2AStream(task, wrappedHandler, req.signal, {
+        onStart: () => tm.beginStream(),
+        onEnd: () => tm.endStream(),
+      });
 
       return new Response(stream, { headers: SSE_HEADERS });
     }
 
     // ── tasks/get ─────────────────────────────────────────
     case "tasks/get": {
-      const taskId = params?.taskId || params?.id;
-      if (!taskId) return jsonRpcError(id, -32602, "Invalid params: taskId required");
+      const p = params as Record<string, unknown>;
+      const taskId =
+        typeof p?.taskId === "string" ? p.taskId : typeof p?.id === "string" ? p.id : "";
+      if (!taskId) return jsonRpcError(requestId, -32602, "Invalid params: taskId required");
 
       const task = tm.getTask(taskId);
-      if (!task) return jsonRpcError(id, -32601, `Task not found: ${taskId}`);
+      if (!task) return jsonRpcError(requestId, -32601, `Task not found: ${taskId}`);
 
-      return jsonRpcResult(id, { task });
+      return jsonRpcResult(requestId, { task });
     }
 
     // ── tasks/cancel ──────────────────────────────────────
     case "tasks/cancel": {
-      const taskId = params?.taskId || params?.id;
-      if (!taskId) return jsonRpcError(id, -32602, "Invalid params: taskId required");
+      const p = params as Record<string, unknown>;
+      const taskId =
+        typeof p?.taskId === "string" ? p.taskId : typeof p?.id === "string" ? p.id : "";
+      if (!taskId) return jsonRpcError(requestId, -32602, "Invalid params: taskId required");
 
       try {
         const task = tm.cancelTask(taskId);
-        return jsonRpcResult(id, { task: { id: task.id, state: task.state } });
+        return jsonRpcResult(requestId, { task: { id: task.id, state: task.state } });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        return jsonRpcError(id, -32603, msg);
+        return jsonRpcError(requestId, -32603, msg);
       }
     }
 
     default:
-      return jsonRpcError(id, -32601, `Method not found: ${method}`);
+      return jsonRpcError(requestId, -32601, `Method not found: ${method}`);
   }
 }
 

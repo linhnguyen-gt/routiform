@@ -21,7 +21,7 @@ export async function GET() {
     const combos = combosRes.status === "fulfilled" ? await combosRes.value.json() : [];
 
     // Build provider scores from circuit breaker state
-    const breakers: any[] = health?.circuitBreakers || [];
+    const breakers: unknown[] = health?.circuitBreakers || [];
     const providerScores = new Map<string, number>();
 
     // Start all providers with base score
@@ -37,9 +37,12 @@ export async function GET() {
 
     // Adjust by circuit breaker state
     for (const cb of breakers) {
-      const current = providerScores.get(cb.provider) || 0;
-      if (cb.state === "OPEN") providerScores.set(cb.provider, current * 0.1);
-      else if (cb.state === "HALF_OPEN") providerScores.set(cb.provider, current * 0.5);
+      if (cb && typeof cb === "object" && "provider" in cb && typeof cb.provider === "string") {
+        const current = providerScores.get(cb.provider) || 0;
+        const state = "state" in cb ? cb.state : undefined;
+        if (state === "OPEN") providerScores.set(cb.provider, current * 0.1);
+        else if (state === "HALF_OPEN") providerScores.set(cb.provider, current * 0.5);
+      }
     }
 
     // Sort by score descending

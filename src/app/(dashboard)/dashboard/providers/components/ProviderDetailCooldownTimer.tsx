@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import type { CooldownTimerProps } from "../[id]/types";
 
-export function ProviderDetailCooldownTimer({ until }: CooldownTimerProps): JSX.Element | null {
+export function ProviderDetailCooldownTimer({
+  until,
+}: CooldownTimerProps): React.JSX.Element | null {
   const [remaining, setRemaining] = useState("");
 
   useEffect(() => {

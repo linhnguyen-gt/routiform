@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getModelsByProviderId } from "@/shared/constants/models";
 import type { CompatModelRow } from "../types";
 
@@ -15,7 +15,7 @@ export interface UseProviderDetailModelsReturn {
     customModels: CompatModelRow[];
     modelCompatOverrides: Array<CompatModelRow & { id: string }>;
   };
-  syncedAvailableModels: any[];
+  syncedAvailableModels: unknown[];
   opencodeLiveCatalog: {
     status: "idle" | "loading" | "ready" | "no_connection" | "error";
     models: Array<{ id: string; name: string; contextLength?: number }>;
@@ -47,7 +47,9 @@ export function useProviderDetailModels({
     customModels: CompatModelRow[];
     modelCompatOverrides: Array<CompatModelRow & { id: string }>;
   }>({ customModels: [], modelCompatOverrides: [] });
-  const [syncedAvailableModels, setSyncedAvailableModels] = useState<any[]>([]);
+  const [syncedAvailableModels, setSyncedAvailableModels] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [opencodeLiveCatalog, setOpencodeLiveCatalog] = useState<{
     status: "idle" | "loading" | "ready" | "no_connection" | "error";
     models: Array<{ id: string; name: string; contextLength?: number }>;

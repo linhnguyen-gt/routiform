@@ -35,7 +35,7 @@ function getTimeString() {
 /** @param {StreamControllerOptions} options */
 export function createStreamController({
   onDisconnect,
-  _log,
+  log: _log,
   provider,
   model,
 }: StreamControllerOptions = {}) {

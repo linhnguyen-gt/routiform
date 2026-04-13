@@ -156,19 +156,25 @@ export function sanitizePIIChunk(chunk: string): string {
 /**
  * Sanitize PII in a full response object (OpenAI-compatible format).
  */
-export function sanitizePIIResponse(response: any): any {
+export function sanitizePIIResponse(response: unknown): unknown {
   if (!isEnabled() || !response) return response;
 
   try {
-    const choices = response.choices || [];
-    for (const choice of choices) {
-      if (choice.message?.content) {
-        const result = sanitizePII(choice.message.content);
-        choice.message.content = result.text;
-      }
-      if (choice.delta?.content) {
-        const result = sanitizePII(choice.delta.content);
-        choice.delta.content = result.text;
+    const choices = (response as Record<string, unknown>).choices || [];
+    if (Array.isArray(choices)) {
+      for (const choice of choices) {
+        const choiceObj = choice as Record<string, unknown>;
+        const message = choiceObj.message as Record<string, unknown> | undefined;
+        const delta = choiceObj.delta as Record<string, unknown> | undefined;
+
+        if (message?.content) {
+          const result = sanitizePII(message.content as string);
+          message.content = result.text;
+        }
+        if (delta?.content) {
+          const result = sanitizePII(delta.content as string);
+          delta.content = result.text;
+        }
       }
     }
   } catch {

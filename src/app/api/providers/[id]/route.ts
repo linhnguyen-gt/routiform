@@ -45,7 +45,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Hide sensitive fields
-    const result: Record<string, any> = { ...connection };
+    const result: Record<string, unknown> = { ...connection };
     delete result.apiKey;
     delete result.accessToken;
     delete result.refreshToken;
@@ -106,7 +106,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
     if (priority !== undefined) updateData.priority = priority;
     if (globalPriority !== undefined) updateData.globalPriority = globalPriority;
@@ -148,7 +148,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const updated = await updateProviderConnection(id, updateData);
 
     // Hide sensitive fields
-    const result: Record<string, any> = { ...updated };
+    const result: Record<string, unknown> = { ...updated };
     delete result.apiKey;
     delete result.accessToken;
     delete result.refreshToken;

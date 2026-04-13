@@ -1,8 +1,6 @@
-import { getDbInstance } from "../db/core";
-
 interface MemoryCache {
   key: string;
-  value: any;
+  value: unknown;
   timestamp: number;
   ttl: number;
 }
@@ -12,7 +10,7 @@ class MemoryCachingLayer {
   private maxSize: number = 1000;
   private defaultTtl: number = 300000;
 
-  async get(key: string): Promise<any | null> {
+  async get(key: string): Promise<unknown | null> {
     const entry = this.cache.get(key);
     if (!entry) return null;
 
@@ -24,7 +22,7 @@ class MemoryCachingLayer {
     return entry.value;
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
     if (this.cache.size >= this.maxSize) {
       const oldest = Array.from(this.cache.entries()).sort(
         (a, b) => a[1].timestamp - b[1].timestamp

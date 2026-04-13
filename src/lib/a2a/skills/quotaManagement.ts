@@ -12,7 +12,7 @@ const ROUTIFORM_BASE_URL =
   process.env.ROUTIFORM_BASE_URL || process.env.ROUTIFORM_BASE_URL || "http://localhost:20128";
 const ROUTIFORM_API_KEY = process.env.ROUTIFORM_API_KEY || process.env.ROUTIFORM_API_KEY || "";
 
-async function quotaFetch(path: string): Promise<any> {
+async function quotaFetch(path: string): Promise<unknown> {
   const url = `${ROUTIFORM_BASE_URL}${path}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -42,10 +42,10 @@ export async function executeQuotaManagement(task: A2ATask): Promise<QuotaManage
       : normalizeQuotaResponse({});
   const combos =
     combosRaw.status === "fulfilled"
-      ? Array.isArray((combosRaw.value as any)?.combos)
-        ? (combosRaw.value as any).combos
+      ? Array.isArray((combosRaw.value as Record<string, unknown>)?.combos)
+        ? (combosRaw.value as Record<string, unknown>).combos
         : Array.isArray(combosRaw.value)
-          ? (combosRaw.value as any[])
+          ? (combosRaw.value as Array<unknown>)
           : []
       : [];
   const providers = quota.providers;
@@ -79,8 +79,9 @@ export async function executeQuotaManagement(task: A2ATask): Promise<QuotaManage
   }
 
   if (query.includes("free") || query.includes("suggest")) {
-    const freeCombos = combos.filter((c: any) => {
-      const name = (c.name || "").toLowerCase();
+    const freeCombos = (Array.isArray(combos) ? combos : []).filter((c: unknown) => {
+      const combo = c as Record<string, unknown>;
+      const name = typeof combo.name === "string" ? combo.name.toLowerCase() : "";
       return name.includes("free") || name.includes("gratis");
     });
     return {
@@ -89,7 +90,12 @@ export async function executeQuotaManagement(task: A2ATask): Promise<QuotaManage
           type: "text",
           content:
             freeCombos.length > 0
-              ? `**Free combos available:**\n${freeCombos.map((c: any) => `- **${c.name}** (ID: ${c.id})`).join("\n")}`
+              ? `**Free combos available:**\n${freeCombos
+                  .map((c: unknown) => {
+                    const combo = c as Record<string, unknown>;
+                    return `- **${combo.name}** (ID: ${combo.id})`;
+                  })
+                  .join("\n")}`
               : "No free combos configured. Consider adding providers with free tiers (Gemini, Groq, etc.).",
         },
       ],

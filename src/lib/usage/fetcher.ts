@@ -2,7 +2,7 @@
  * Usage Fetcher - Get usage data from provider APIs
  */
 
-import { GITHUB_CONFIG, GEMINI_CONFIG, ANTIGRAVITY_CONFIG } from "@/lib/oauth/constants/oauth";
+import { GITHUB_CONFIG } from "@/lib/oauth/constants/oauth";
 import { getKiroUsage as getKiroUsageFromOpenSse } from "@routiform/open-sse/services/usage.ts";
 
 /**
@@ -140,7 +140,7 @@ async function getGeminiUsage(accessToken) {
     }
 
     return { message: "Gemini CLI connected. Usage tracked via Google Cloud Console." };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Gemini usage. Check Google Cloud Console." };
   }
 }
@@ -148,11 +148,11 @@ async function getGeminiUsage(accessToken) {
 /**
  * Antigravity Usage
  */
-async function getAntigravityUsage(accessToken) {
+async function getAntigravityUsage(_accessToken: string) {
   try {
     // Similar to Gemini, uses Google Cloud
     return { message: "Antigravity connected. Usage tracked via Google Cloud Console." };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Antigravity usage." };
   }
 }
@@ -167,7 +167,7 @@ async function getClaudeUsage(_accessToken?: string) {
       message:
         "Claude connected. Detailed quota windows are handled by the open-sse usage service.",
     };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Claude usage." };
   }
 }
@@ -177,17 +177,17 @@ async function getClaudeUsage(_accessToken?: string) {
  * Note: Actual quota tracking is handled by open-sse/services/usage.ts
  * This fallback returns a message directing users to the dashboard.
  */
-async function getCodexUsage(accessToken, providerSpecificData: Record<string, any> = {}) {
+async function getCodexUsage(accessToken, providerSpecificData: Record<string, unknown> = {}) {
   try {
     // Check if workspace is bound
     const workspaceId = providerSpecificData?.workspaceId;
     if (workspaceId) {
       return {
-        message: `Codex connected (workspace: ${workspaceId.slice(0, 8)}...). Check dashboard for quota.`,
+        message: `Codex connected (workspace: ${String(workspaceId).slice(0, 8)}...). Check dashboard for quota.`,
       };
     }
     return { message: "Codex connected. Check OpenAI dashboard for usage." };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Codex usage." };
   }
 }
@@ -204,7 +204,7 @@ async function getQwenUsage(accessToken, providerSpecificData) {
 
     // Qwen may have usage endpoint at resource URL
     return { message: "Qwen connected. Usage tracked per request." };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Qwen usage." };
   }
 }
@@ -212,11 +212,11 @@ async function getQwenUsage(accessToken, providerSpecificData) {
 /**
  * Qoder Usage
  */
-async function getIflowUsage(accessToken) {
+async function getIflowUsage(_accessToken: string) {
   try {
     // Qoder may have usage endpoint
     return { message: "Qoder connected. Usage tracked per request." };
-  } catch (error) {
+  } catch (_error) {
     return { message: "Unable to fetch Qoder usage." };
   }
 }

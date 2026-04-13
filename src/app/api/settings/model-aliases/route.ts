@@ -7,7 +7,7 @@ import {
   addCustomAlias,
   removeCustomAlias,
 } from "@routiform/open-sse/services/modelDeprecation.ts";
-import { getSettings, updateSettings } from "@/lib/db/settings";
+import { updateSettings } from "@/lib/db/settings";
 import {
   addModelAliasSchema,
   removeModelAliasSchema,

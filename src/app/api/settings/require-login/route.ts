@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const body = validation.data;
     const { requireLogin, password } = body;
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
 
     if (typeof requireLogin === "boolean") {
       updates.requireLogin = requireLogin;

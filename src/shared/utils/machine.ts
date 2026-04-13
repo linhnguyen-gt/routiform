@@ -7,7 +7,7 @@ export async function getMachineId() {
 
 // Keep sync functions for backward compatibility but make them no-ops
 // (Frontend sync is disabled - use backend sync instead)
-export async function syncProviderDataToCloud(cloudUrl) {
+export async function syncProviderDataToCloud(_cloudUrl: string) {
   console.log("Frontend sync is disabled. Use backend sync instead.");
   return Promise.resolve(true);
 }

@@ -32,7 +32,7 @@ function getRangeStartIso(range: string): string | null {
   return start.toISOString();
 }
 
-export async function GET(request) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get("range") || "30d";
@@ -66,7 +66,11 @@ export async function GET(request) {
       /* ignore */
     }
 
-    const analytics: any = await computeAnalytics(history, range, connectionMap);
+    const analytics: Record<string, unknown> = await computeAnalytics(
+      history,
+      range,
+      connectionMap
+    );
 
     // T01: fallback transparency metrics from call_logs (requested_model vs routed model).
     try {
@@ -98,15 +102,17 @@ export async function GET(request) {
       const withRequested = Number(row?.with_requested || 0);
       const fallbackCount = Number(row?.fallbacks || 0);
 
-      analytics.summary.fallbackCount = fallbackCount;
-      analytics.summary.fallbackRatePct =
+      const summary = analytics.summary as Record<string, unknown>;
+      summary.fallbackCount = fallbackCount;
+      summary.fallbackRatePct =
         withRequested > 0 ? Number(((fallbackCount / withRequested) * 100).toFixed(2)) : 0;
-      analytics.summary.requestedModelCoveragePct =
+      summary.requestedModelCoveragePct =
         total > 0 ? Number(((withRequested / total) * 100).toFixed(2)) : 0;
     } catch {
-      analytics.summary.fallbackCount = 0;
-      analytics.summary.fallbackRatePct = 0;
-      analytics.summary.requestedModelCoveragePct = 0;
+      const summary = analytics.summary as Record<string, unknown>;
+      summary.fallbackCount = 0;
+      summary.fallbackRatePct = 0;
+      summary.requestedModelCoveragePct = 0;
     }
 
     return NextResponse.json(analytics);

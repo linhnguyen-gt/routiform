@@ -10,7 +10,7 @@ import { spinner as createSpinner } from "../utils/ui";
  * Uses standard OAuth2 Authorization Code flow (similar to Gemini)
  */
 export class AntigravityService {
-  config: any;
+  config: Record<string, unknown>;
 
   constructor() {
     this.config = ANTIGRAVITY_CONFIG;
@@ -21,10 +21,12 @@ export class AntigravityService {
    */
   buildAuthUrl(redirectUri: string, state: string) {
     const params = new URLSearchParams({
-      client_id: this.config.clientId,
+      client_id: String(this.config.clientId),
       response_type: "code",
       redirect_uri: redirectUri,
-      scope: this.config.scopes.join(" "),
+      scope: Array.isArray(this.config.scopes)
+        ? this.config.scopes.join(" ")
+        : String(this.config.scopes),
       state: state,
       access_type: "offline",
       prompt: "consent",
@@ -37,7 +39,7 @@ export class AntigravityService {
    * Exchange authorization code for tokens
    */
   async exchangeCode(code: string, redirectUri: string) {
-    const response = await fetch(this.config.tokenUrl, {
+    const response = await fetch(String(this.config.tokenUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -45,8 +47,8 @@ export class AntigravityService {
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
+        client_id: String(this.config.clientId),
+        client_secret: String(this.config.clientSecret),
         code: code,
         redirect_uri: redirectUri,
       }),
@@ -86,9 +88,9 @@ export class AntigravityService {
     return {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
-      "User-Agent": this.config.loadCodeAssistUserAgent,
-      "X-Goog-Api-Client": this.config.loadCodeAssistApiClient,
-      "Client-Metadata": this.config.loadCodeAssistClientMetadata,
+      "User-Agent": String(this.config.loadCodeAssistUserAgent || ""),
+      "X-Goog-Api-Client": String(this.config.loadCodeAssistApiClient || ""),
+      "Client-Metadata": String(this.config.loadCodeAssistClientMetadata || ""),
     };
   }
 
@@ -107,7 +109,7 @@ export class AntigravityService {
    * Fetch Project ID and Tier from loadCodeAssist API
    */
   async loadCodeAssist(accessToken: string) {
-    const response = await fetch(this.config.loadCodeAssistEndpoint, {
+    const response = await fetch(String(this.config.loadCodeAssistEndpoint), {
       method: "POST",
       headers: this.getApiHeaders(accessToken),
       body: JSON.stringify({ metadata: this.getMetadata() }),
@@ -144,7 +146,7 @@ export class AntigravityService {
    * Onboard user to enable Gemini Code Assist for the project
    */
   async onboardUser(accessToken: string, projectId: string, tierId: string) {
-    const response = await fetch(this.config.onboardUserEndpoint, {
+    const response = await fetch(String(this.config.onboardUserEndpoint), {
       method: "POST",
       headers: this.getApiHeaders(accessToken),
       body: JSON.stringify({
@@ -209,7 +211,11 @@ export class AntigravityService {
   /**
    * Save Antigravity tokens to server
    */
-  async saveTokens(tokens: any, userInfo: any, projectId: string) {
+  async saveTokens(
+    tokens: Record<string, unknown>,
+    userInfo: Record<string, unknown>,
+    projectId: string
+  ) {
     const { server, token, userId } = getServerCredentials();
 
     const response = await fetch(`${server}/api/cli/providers/antigravity`, {
@@ -247,7 +253,7 @@ export class AntigravityService {
       spinner.text = "Starting local server...";
 
       // Start local server for callback
-      let callbackParams: any = null;
+      let callbackParams: Record<string, unknown> | null = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
       });
@@ -287,7 +293,7 @@ export class AntigravityService {
       close();
 
       if (callbackParams.error) {
-        throw new Error(callbackParams.error_description || callbackParams.error);
+        throw new Error(String(callbackParams.error_description || callbackParams.error));
       }
 
       if (!callbackParams.code) {
@@ -297,7 +303,7 @@ export class AntigravityService {
       spinner.start("Exchanging code for tokens...");
 
       // Exchange code for tokens
-      const tokens = await this.exchangeCode(callbackParams.code, redirectUri);
+      const tokens = await this.exchangeCode(String(callbackParams.code), redirectUri);
 
       spinner.text = "Fetching user info...";
 
@@ -330,8 +336,8 @@ export class AntigravityService {
         `Antigravity connected successfully! (${userInfo.email}, Project: ${finalProjectId})`
       );
       return true;
-    } catch (error: any) {
-      spinner.fail(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      spinner.fail(`Failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

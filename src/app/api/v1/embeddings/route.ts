@@ -55,7 +55,7 @@ export async function GET() {
 
   // Include custom models tagged for embeddings
   try {
-    const customModelsMap = (await getAllCustomModels()) as Record<string, any>;
+    const customModelsMap = (await getAllCustomModels()) as Record<string, unknown>;
     for (const [providerId, models] of Object.entries(customModelsMap)) {
       if (!Array.isArray(models)) continue;
       for (const model of models) {

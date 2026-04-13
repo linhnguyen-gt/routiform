@@ -102,7 +102,7 @@ export function formatResetTime(date) {
     const days = Math.floor(totalHours / 24);
     const remainingHours = totalHours % 24;
     return `${days}d ${remainingHours}h ${remainingMinutes}m`;
-  } catch (error) {
+  } catch (_error) {
     return "-";
   }
 }

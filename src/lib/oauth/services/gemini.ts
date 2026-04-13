@@ -10,7 +10,7 @@ import { spinner as createSpinner } from "../utils/ui";
  * Uses standard OAuth2 Authorization Code flow (no PKCE)
  */
 export class GeminiCLIService {
-  config: any;
+  config: Record<string, unknown>;
 
   constructor() {
     this.config = GEMINI_CONFIG;
@@ -21,10 +21,12 @@ export class GeminiCLIService {
    */
   buildAuthUrl(redirectUri: string, state: string) {
     const params = new URLSearchParams({
-      client_id: this.config.clientId,
+      client_id: String(this.config.clientId),
       response_type: "code",
       redirect_uri: redirectUri,
-      scope: this.config.scopes.join(" "),
+      scope: Array.isArray(this.config.scopes)
+        ? this.config.scopes.join(" ")
+        : String(this.config.scopes),
       state: state,
       access_type: "offline",
       prompt: "consent",
@@ -37,7 +39,7 @@ export class GeminiCLIService {
    * Exchange authorization code for tokens
    */
   async exchangeCode(code: string, redirectUri: string) {
-    const response = await fetch(this.config.tokenUrl, {
+    const response = await fetch(String(this.config.tokenUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -45,8 +47,8 @@ export class GeminiCLIService {
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
+        client_id: String(this.config.clientId),
+        client_secret: String(this.config.clientSecret),
         code: code,
         redirect_uri: redirectUri,
       }),
@@ -130,7 +132,11 @@ export class GeminiCLIService {
   /**
    * Save Gemini CLI tokens to server
    */
-  async saveTokens(tokens: any, userInfo: any, projectId: string) {
+  async saveTokens(
+    tokens: Record<string, unknown>,
+    userInfo: Record<string, unknown>,
+    projectId: string
+  ) {
     const { server, token, userId } = getServerCredentials();
 
     const response = await fetch(`${server}/api/cli/providers/gemini-cli`, {
@@ -168,7 +174,7 @@ export class GeminiCLIService {
       spinner.text = "Starting local server...";
 
       // Start local server for callback
-      let callbackParams: any = null;
+      let callbackParams: Record<string, unknown> | null = null;
       const { port, close } = await startLocalServer((params) => {
         callbackParams = params;
       });
@@ -208,7 +214,7 @@ export class GeminiCLIService {
       close();
 
       if (callbackParams.error) {
-        throw new Error(callbackParams.error_description || callbackParams.error);
+        throw new Error(String(callbackParams.error_description || callbackParams.error));
       }
 
       if (!callbackParams.code) {
@@ -218,7 +224,7 @@ export class GeminiCLIService {
       spinner.start("Exchanging code for tokens...");
 
       // Exchange code for tokens
-      const tokens = await this.exchangeCode(callbackParams.code, redirectUri);
+      const tokens = await this.exchangeCode(String(callbackParams.code), redirectUri);
 
       spinner.text = "Fetching user info...";
 
@@ -239,8 +245,8 @@ export class GeminiCLIService {
         `Gemini CLI connected successfully! (${userInfo.email}, Project: ${projectId})`
       );
       return true;
-    } catch (error: any) {
-      spinner.fail(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      spinner.fail(`Failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
