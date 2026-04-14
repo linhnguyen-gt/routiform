@@ -9,6 +9,7 @@ export interface UseProviderDetailConnectionsReturn {
   connections: unknown[];
   loading: boolean;
   providerNode: unknown;
+  setConnections: React.Dispatch<React.SetStateAction<unknown[]>>;
   fetchConnections: () => Promise<void>;
   handleUpdateNode: (formData: Record<string, unknown>) => Promise<void>;
 }
@@ -95,6 +96,7 @@ export function useProviderDetailConnections({
     loading,
     providerNode,
     fetchConnections,
+    setConnections,
     handleUpdateNode,
   };
 }

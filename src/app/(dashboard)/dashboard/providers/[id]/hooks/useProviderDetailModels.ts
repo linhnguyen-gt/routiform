@@ -24,6 +24,7 @@ export interface UseProviderDetailModelsReturn {
   models: Array<{ id: string; name: string; contextLength?: number }>;
   registryModels: Array<{ id: string; name: string }>;
   syncedModels: Array<{ id: string; name: string }>;
+  setOpencodeLiveCatalog: React.Dispatch<React.SetStateAction<any>>;
   fetchProviderModelMeta: () => Promise<void>;
 }
 
@@ -195,6 +196,7 @@ export function useProviderDetailModels({
     models,
     registryModels,
     syncedModels,
+    setOpencodeLiveCatalog,
     fetchProviderModelMeta,
   };
 }

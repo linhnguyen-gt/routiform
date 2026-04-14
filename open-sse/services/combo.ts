@@ -163,7 +163,17 @@ const rrCounters = new Map();
  */
 function normalizeModelEntry(entry) {
   if (typeof entry === "string") return { model: entry, weight: 0 };
-  return { model: entry.model, weight: entry.weight || 0 };
+  if (!entry || typeof entry !== "object") return { model: "", weight: 0 };
+
+  const model =
+    typeof entry.model === "string"
+      ? entry.model
+      : typeof entry.value === "string"
+        ? entry.value
+        : "";
+  const parsedWeight = typeof entry.weight === "number" ? entry.weight : Number(entry.weight) || 0;
+
+  return { model, weight: parsedWeight };
 }
 
 /**

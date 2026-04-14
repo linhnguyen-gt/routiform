@@ -45,6 +45,7 @@ export interface ProviderStats {
   errorTime: string | null;
   allDisabled: boolean;
   expiryStatus: "expired" | "expiring_soon" | null;
+  [key: string]: unknown;
 }
 
 export interface TestResult {

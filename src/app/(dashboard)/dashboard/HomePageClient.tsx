@@ -120,7 +120,7 @@ export default function HomePageClient({ machineId }) {
       const providerKeys = new Set([providerId, providerInfo.alias].filter(Boolean));
       const providerModels = models.filter((m) => providerKeys.has(m.provider));
 
-      const authType = FREE_PROVIDERS[providerId]
+      const authType: "free" | "oauth" | "apikey" = FREE_PROVIDERS[providerId]
         ? "free"
         : OAUTH_PROVIDERS[providerId]
           ? "oauth"

@@ -79,7 +79,7 @@ export function useProvidersPageData() {
 
   // Calculate provider stats - returns ProviderStats which is compatible with ProviderStatsSnapshot
   const getProviderStats = useCallback(
-    (providerId: string, authType: "oauth" | "free" | "apikey") => {
+    (providerId: string, authType: "oauth" | "free" | "apikey"): ProviderStatsSnapshot => {
       return calculateProviderStats(connections, providerId, authType, expirations);
     },
     [connections, expirations]
@@ -227,12 +227,12 @@ export function useProvidersPageData() {
 
   // Build provider entries for each section
   const oauthProviderEntries: ProviderEntry[] = filterConfiguredProviderEntries(
-    buildMergedOAuthProviderEntries(OAUTH_PROVIDERS, FREE_PROVIDERS, getProviderStats as any),
+    buildMergedOAuthProviderEntries(OAUTH_PROVIDERS, FREE_PROVIDERS, getProviderStats),
     showConfiguredOnly
   );
 
   const apiKeyProviderEntries: ProviderEntry[] = filterConfiguredProviderEntries(
-    buildMergedApiKeyProviderEntries(APIKEY_PROVIDERS, FREE_PROVIDERS, getProviderStats as any),
+    buildMergedApiKeyProviderEntries(APIKEY_PROVIDERS, FREE_PROVIDERS, getProviderStats),
     showConfiguredOnly
   );
 
@@ -243,7 +243,7 @@ export function useProvidersPageData() {
           (provider): ProviderEntry<CompatibleProviderInfo> => ({
             providerId: provider.id,
             provider,
-            stats: getProviderStats(provider.id, "apikey") as any,
+            stats: getProviderStats(provider.id, "apikey"),
             displayAuthType: "compatible" as const,
             toggleAuthType: "apikey" as const,
           })
@@ -252,7 +252,7 @@ export function useProvidersPageData() {
           (provider): ProviderEntry<CompatibleProviderInfo> => ({
             providerId: provider.id,
             provider,
-            stats: getProviderStats(provider.id, "apikey") as any,
+            stats: getProviderStats(provider.id, "apikey"),
             displayAuthType: "compatible" as const,
             toggleAuthType: "apikey" as const,
           })
@@ -261,7 +261,7 @@ export function useProvidersPageData() {
           (provider): ProviderEntry<CompatibleProviderInfo> => ({
             providerId: provider.id,
             provider,
-            stats: getProviderStats(provider.id, "apikey") as any,
+            stats: getProviderStats(provider.id, "apikey"),
             displayAuthType: "compatible" as const,
             toggleAuthType: "apikey" as const,
           })
