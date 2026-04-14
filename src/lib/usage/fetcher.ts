@@ -19,7 +19,7 @@ export async function getUsageForProvider(connection) {
     case "gemini-cli":
       return await getGeminiUsage(accessToken);
     case "antigravity":
-      return await getAntigravityUsage(accessToken);
+      return await getAntigravityUsage(accessToken, providerSpecificData);
     case "claude":
       return await getClaudeUsage(accessToken);
     case "codex":
@@ -148,9 +148,32 @@ async function getGeminiUsage(accessToken) {
 /**
  * Antigravity Usage
  */
-async function getAntigravityUsage(_accessToken: string) {
+async function getAntigravityUsage(
+  _accessToken: string,
+  providerSpecificData: Record<string, unknown> = {}
+) {
   try {
-    // Similar to Gemini, uses Google Cloud
+    // Account ID must match the key used in antigravity executor
+    const accountId =
+      (providerSpecificData?.email as string) || (providerSpecificData?.sub as string) || "unknown";
+
+    // Import credit balance getter from antigravityCredits service
+    const { getAntigravityRemainingCredits } =
+      await import("@/../../open-sse/services/antigravityCredits");
+    const creditBalance = getAntigravityRemainingCredits(accountId);
+
+    if (creditBalance !== null) {
+      return {
+        quotas: {
+          credits: {
+            remaining: creditBalance,
+            total: 0,
+            unlimited: false,
+          },
+        },
+      };
+    }
+
     return { message: "Antigravity connected. Usage tracked via Google Cloud Console." };
   } catch (_error) {
     return { message: "Unable to fetch Antigravity usage." };

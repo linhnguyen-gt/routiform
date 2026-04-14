@@ -289,6 +289,7 @@ export class AntigravityExecutor extends BaseExecutor {
       let textContent = "";
       let finishReason = "stop";
       let usage: Record<string, unknown> | null = null;
+      let remainingCredits: Array<{ creditType: string; creditAmount: string }> | null = null;
       const lines = rawSSE.split("\n");
       for (const line of lines) {
         const trimmed = line.trim();
@@ -319,6 +320,10 @@ export class AntigravityExecutor extends BaseExecutor {
               total_tokens: um.totalTokenCount || 0,
             };
           }
+          // Credit balance — arrives in the final chunk alongside consumedCredits
+          if (Array.isArray(parsed?.remainingCredits)) {
+            remainingCredits = parsed.remainingCredits;
+          }
         } catch (_e) {
           log?.debug?.("SSE_PARSE", `Skipping malformed SSE line: ${payload.slice(0, 80)}`);
         }
@@ -337,6 +342,8 @@ export class AntigravityExecutor extends BaseExecutor {
           },
         ],
         ...(usage && { usage }),
+        // Expose credit balance for upstream consumers (usage service, dashboard)
+        ...(remainingCredits && { _remainingCredits: remainingCredits }),
       };
 
       const syntheticStatus = timedOut ? 504 : response.status;
@@ -363,6 +370,12 @@ export class AntigravityExecutor extends BaseExecutor {
     // For non-streaming clients, we collect the SSE below and return a synthetic
     // non-streaming Response so chatCore's non-streaming path stays unchanged.
     const upstreamStream = true;
+
+    // Account ID for credits-exhausted tracking.
+    // Key must match getAntigravityUsage() in fetcher.ts (providerSpecificData?.email || sub).
+    // credentials.email and credentials.sub are populated from the same OAuth token store,
+    // so the cache keys written here and read in the fetcher will always match.
+    const accountId: string = credentials?.email || credentials?.sub || "unknown";
 
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
       const url = this.buildUrl(model, upstreamStream, urlIndex);
@@ -550,7 +563,7 @@ export class AntigravityExecutor extends BaseExecutor {
         // For non-streaming clients, collect the SSE stream and return a synthetic
         // non-streaming Response so chatCore doesn't need to handle SSE conversion.
         if (!stream) {
-          return this.collectStreamToResponse(
+          const collected = await this.collectStreamToResponse(
             response,
             model,
             url,
@@ -559,6 +572,25 @@ export class AntigravityExecutor extends BaseExecutor {
             log,
             signal
           );
+          // Parse _remainingCredits from the synthetic response and cache
+          try {
+            const syntheticJson = await collected.response.clone().json();
+            const rc = syntheticJson?._remainingCredits;
+            if (Array.isArray(rc)) {
+              const googleCredit = rc.find((c: any) => c.creditType === "GOOGLE_ONE_AI");
+              if (googleCredit) {
+                const balance = parseInt(googleCredit.creditAmount, 10);
+                if (!isNaN(balance)) {
+                  const { updateAntigravityRemainingCredits } =
+                    await import("../services/antigravityCredits.ts");
+                  updateAntigravityRemainingCredits(accountId, balance);
+                }
+              }
+            }
+          } catch {
+            /**/
+          }
+          return collected;
         }
 
         return { response, url, headers, transformedBody };

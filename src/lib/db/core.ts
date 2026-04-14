@@ -551,6 +551,38 @@ export function getDbInstance(): SqliteDatabase {
   );
   versionStmt.run();
 
+  // Run health check on startup (async, non-blocking)
+  (async () => {
+    try {
+      const { runDbHealthCheck } = await import("./healthCheck");
+      const { backupDbFile } = await import("./backup");
+      const healthResult = runDbHealthCheck(db, {
+        autoRepair: true,
+        createBackupBeforeRepair: () => {
+          try {
+            backupDbFile("startup-health-check");
+            return true;
+          } catch (error) {
+            console.error("[DB] Backup creation failed during health check:", error);
+            return false;
+          }
+        },
+        expectedSchemaVersion: "1",
+      });
+
+      if (!healthResult.isHealthy) {
+        console.warn(
+          `[DB] Health check found ${healthResult.issues.length} issue(s), repaired ${healthResult.repairedCount} item(s)`
+        );
+        if (healthResult.backupCreated) {
+          console.log("[DB] Backup created before auto-repair");
+        }
+      }
+    } catch (error) {
+      console.error("[DB] Health check failed on startup:", error);
+    }
+  })();
+
   setDb(db);
   console.log(`[DB] SQLite database ready: ${sqliteFile}`);
   return db;

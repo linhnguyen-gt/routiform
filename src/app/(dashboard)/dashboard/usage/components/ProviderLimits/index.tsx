@@ -665,6 +665,30 @@ export default function ProviderLimits() {
                           const shortName = formatQuotaLabel(q.name);
                           const staleAfterReset = q.staleAfterReset === true;
 
+                          // Credits display (special case)
+                          if ((q as any).isCredits) {
+                            return (
+                              <div
+                                key={i}
+                                className="flex min-h-[92px] flex-col items-center justify-center rounded-lg border border-border/50 bg-bg-subtle/20 p-2.5"
+                              >
+                                <span
+                                  className="mb-1 rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                                  style={{ background: colors.bg, color: colors.text }}
+                                >
+                                  🪙 {shortName}
+                                </span>
+                                <span
+                                  className="text-[20px] font-bold tabular-nums"
+                                  style={{ color: colors.text }}
+                                >
+                                  {(q as any).creditCount ?? q.remaining}
+                                </span>
+                                <span className="text-[10px] text-text-muted">left</span>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div
                               key={i}

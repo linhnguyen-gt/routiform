@@ -231,6 +231,23 @@ export function parseQuotaData(provider, data) {
       case "antigravity":
         if (data.quotas) {
           Object.entries(data.quotas).forEach(([modelKey, quota]: [string, any]) => {
+            if (modelKey === "credits") {
+              // Credit balance: render as "N credits remaining" counter, not a progress bar
+              const remaining = Number(quota?.remaining ?? 0);
+              normalizedQuotas.push({
+                name: "credits",
+                used: 0,
+                total: 0,
+                remaining,
+                resetAt: null,
+                unlimited: false,
+                isCredits: true,
+                // Show green if >50, yellow if >10, red if ≤10
+                remainingPercentage: remaining > 50 ? 100 : remaining > 10 ? 60 : 20,
+                creditCount: remaining,
+              });
+              return;
+            }
             // Unlike GitHub, Antigravity marks tab-completion / no-reset models as unlimited with total 0 — still show them.
             normalizedQuotas.push(
               normalizeQuotaEntry(modelKey, quota, {

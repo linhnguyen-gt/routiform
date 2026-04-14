@@ -11,6 +11,7 @@ export const HIDEABLE_SIDEBAR_ITEM_IDS = [
   "cache",
   "cli-tools",
   "agents",
+  "skills",
   "translator",
   "playground",
   "media",
@@ -62,6 +63,7 @@ const PRIMARY_SIDEBAR_ITEMS: readonly SidebarItemDefinition[] = [
 const CLI_SIDEBAR_ITEMS: readonly SidebarItemDefinition[] = [
   { id: "cli-tools", href: "/dashboard/cli-tools", i18nKey: "cliToolsShort", icon: "terminal" },
   { id: "agents", href: "/dashboard/agents", i18nKey: "agents", icon: "smart_toy" },
+  { id: "skills", href: "/dashboard/skills", i18nKey: "skills", icon: "auto_fix_high" },
 ];
 
 const DEBUG_SIDEBAR_ITEMS: readonly SidebarItemDefinition[] = [
