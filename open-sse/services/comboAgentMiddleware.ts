@@ -11,7 +11,7 @@
  *
  * 3. **Context Caching Protection** (#401): If the combo enables
  *    `context_cache_protection`, the proxy:
- *    a. On response: injects `<omniModel>provider/model</omniModel>` tag into
+ *    a. On response: injects `<routiformModel>provider/model</routiformModel>` tag into
  *       the first assistant message content string.
  *    b. On request: scans the message history for the tag, and if found,
  *       overrides the requested model with the pinned one.
@@ -35,10 +35,10 @@ interface Message {
 // ── Context Caching Tag ─────────────────────────────────────────────────────
 
 // Handles both actual newlines (U+000A) and literal \n sequences injected
-// by combo.ts streaming around the <omniModel> tag (#531). Non-global so that
+// by combo.ts streaming around the <routiformModel> tag (#531). Non-global so that
 // .exec() and .test() stay stateless; callers that need full replacement use
 // String.prototype.replace() which replaces all non-overlapping matches.
-const CACHE_TAG_PATTERN = /(?:\\n|\n)?<omniModel>([^<]+)<\/omniModel>(?:\\n|\n)?/;
+const CACHE_TAG_PATTERN = /(?:\\n|\n)?<routiformModel>([^<]+)<\/routiformModel>(?:\\n|\n)?/;
 
 /**
  * Inject the model tag into the last assistant message (or append a new one).
@@ -146,7 +146,7 @@ export function applyToolFilter(
 }
 
 /**
- * Strip all <omniModel> tags from message content before forwarding to the provider.
+ * Strip all <routiformModel> tags from message content before forwarding to the provider.
  * The tag is an internal Routiform marker; providers must never see it or their
  * cache will treat every tagged request as a new session (#454).
  */
@@ -179,7 +179,7 @@ export function applyComboAgentMiddleware(
   if (comboConfig.context_cache_protection) {
     pinnedModel = extractPinnedModel(messages);
     if (pinnedModel) {
-      // (#535) Model is pinned via <omniModel> tag — override body.model so the combo
+      // (#535) Model is pinned via <routiformModel> tag — override body.model so the combo
       // router uses exactly this model instead of picking a different one. Without this,
       // the extracted pinnedModel is returned but body.model is unchanged, breaking
       // context cache sessions by sending subsequent turns to a different model.
@@ -198,7 +198,7 @@ export function applyComboAgentMiddleware(
     comboConfig.tool_filter_regex
   );
 
-  // 4. Strip internal <omniModel> tags before forwarding to provider (#454)
+  // 4. Strip internal <routiformModel> tags before forwarding to provider (#454)
   //    These tags are Routiform-internal markers and must never reach the provider
   //    since providers would treat each tagged request as a new cache session.
   messages = stripModelTags(messages);

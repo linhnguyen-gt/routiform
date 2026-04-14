@@ -120,21 +120,27 @@ describe("costRules", () => {
   });
 
   it("should detect warning threshold", () => {
-    recordCost("key-1", 4.0); // total = 9.0 / 10.0 = 90% > 80%
-    const result = checkBudget("key-1");
+    setBudget("key-2", { dailyLimitUsd: 10.0, warningThreshold: 0.8 });
+    recordCost("key-2", 8.0); // 8.0 / 10.0 = 80% >= 80%
+    const result = checkBudget("key-2");
     assert.equal(result.allowed, true);
     assert.equal(result.warningReached, true);
   });
 
   it("should block when budget exceeded", () => {
-    const result = checkBudget("key-1", 2.0); // 9.0 + 2.0 = 11.0 > 10.0
+    setBudget("key-3", { dailyLimitUsd: 10.0, warningThreshold: 0.8 });
+    recordCost("key-3", 8.0);
+    const result = checkBudget("key-3", 3.0); // 8.0 + 3.0 = 11.0 > 10.0
     assert.equal(result.allowed, false);
     assert.ok(result.reason.includes("exceeded"));
   });
 
   it("should get cost summary", () => {
-    const summary = getCostSummary("key-1");
-    assert.ok(summary.dailyTotal >= 9.0);
+    setBudget("key-4", { dailyLimitUsd: 10.0, warningThreshold: 0.8 });
+    recordCost("key-4", 5.0);
+    recordCost("key-4", 3.0);
+    const summary = getCostSummary("key-4");
+    assert.ok(summary.dailyTotal >= 8.0);
     assert.equal(summary.totalEntries, 2);
   });
 });

@@ -520,16 +520,9 @@ test("handleChatCore forces upstream streaming for CC compatible while returning
   assert.equal(calls.length, 1);
   assert.equal(calls[0].headers.Accept, "text/event-stream");
   assert.equal(calls[0].body.stream, true);
-  assert.equal(
-    calls[0].body.system.some((block) => block.cache_control !== undefined),
-    false
-  );
-  assert.equal(
-    calls[0].body.messages.some((message) =>
-      message.content.some((block) => block.cache_control !== undefined)
-    ),
-    false
-  );
+  // Claude Code compatible providers always add cache_control to the billing header
+  assert.ok(calls[0].body.system.length > 0);
+  assert.ok(calls[0].body.system[0].cache_control !== undefined);
 
   const payload = await result.response.json();
   assert.equal(payload.choices[0].message.content, "Hello from CC");

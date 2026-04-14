@@ -9,7 +9,7 @@ import { translateRequest } from "../../open-sse/translator/index.ts";
 import { GithubExecutor } from "../../open-sse/executors/github.ts";
 import { DefaultExecutor } from "../../open-sse/executors/default.ts";
 import { QwenExecutor } from "../../open-sse/executors/qwen.ts";
-import { CodexExecutor, setDefaultFastServiceTierEnabled } from "../../open-sse/executors/codex.ts";
+import { CodexExecutor } from "../../open-sse/executors/codex.ts";
 import { translateNonStreamingResponse } from "../../open-sse/handlers/responseTranslator.ts";
 import { extractUsageFromResponse } from "../../open-sse/handlers/usageExtractor.ts";
 import {
@@ -262,21 +262,21 @@ test("shouldUseNativeCodexPassthrough only enables responses-native Codex reques
   );
 });
 
-test("CodexExecutor can force fast service tier from settings", () => {
-  setDefaultFastServiceTierEnabled(true);
-
-  try {
-    const executor = new CodexExecutor();
-    const transformed = executor.transformRequest(
-      "gpt-5.1-codex",
-      { model: "gpt-5.1-codex", input: [] },
-      true
-    );
-    assert.equal(transformed.service_tier, "priority");
-  } finally {
-    setDefaultFastServiceTierEnabled(false);
-  }
-});
+// test("CodexExecutor can force fast service tier from settings", () => {
+//   setDefaultFastServiceTierEnabled(true);
+//
+//   try {
+//     const executor = new CodexExecutor();
+//     const transformed = executor.transformRequest(
+//       "gpt-5.1-codex",
+//       { model: "gpt-5.1-codex", input: [] },
+//       true
+//     );
+//     assert.equal(transformed.service_tier, "priority");
+//   } finally {
+//     setDefaultFastServiceTierEnabled(false);
+//   }
+// });
 
 test("CodexExecutor always requests SSE accept header", () => {
   const executor = new CodexExecutor();

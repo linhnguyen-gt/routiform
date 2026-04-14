@@ -577,7 +577,9 @@ export class AntigravityExecutor extends BaseExecutor {
             const syntheticJson = await collected.response.clone().json();
             const rc = syntheticJson?._remainingCredits;
             if (Array.isArray(rc)) {
-              const googleCredit = rc.find((c: any) => c.creditType === "GOOGLE_ONE_AI");
+              const googleCredit = rc.find(
+                (c: { creditType?: string }) => c.creditType === "GOOGLE_ONE_AI"
+              );
               if (googleCredit) {
                 const balance = parseInt(googleCredit.creditAmount, 10);
                 if (!isNaN(balance)) {

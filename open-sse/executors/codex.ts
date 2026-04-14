@@ -353,6 +353,7 @@ export class CodexExecutor extends BaseExecutor {
     delete body.metadata; // Cursor sends this but Codex doesn't support it
     delete body.stream_options; // Cursor sends this but Codex doesn't support it
     delete body.safety_identifier; // Droid CLI sends this but Codex doesn't support it
+    delete body.session_id; // Generated internally but Codex API doesn't support it
 
     return body;
   }
