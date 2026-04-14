@@ -1,0 +1,71 @@
+import os from "node:os";
+
+/**
+ * Antigravity and Gemini CLI header utilities.
+ *
+ * Generates User-Agent strings and API client headers that match
+ * the real Antigravity and Gemini CLI binaries.
+ *
+ * Based on CLIProxyAPI's misc/header_utils.go.
+ */
+
+const ANTIGRAVITY_VERSION = "1.21.9";
+const GEMINI_CLI_VERSION = "0.31.0";
+const GEMINI_SDK_VERSION = "1.41.0";
+const NODE_VERSION = "v22.19.0";
+
+function getPlatform(): string {
+  const p = os.platform();
+  switch (p) {
+    case "win32":
+      return "win32";
+    case "darwin":
+      return "darwin";
+    default:
+      return p; // "linux", etc.
+  }
+}
+
+function getArch(): string {
+  const a = os.arch();
+  switch (a) {
+    case "x64":
+      return "x64";
+    case "ia32":
+      return "x86";
+    case "arm64":
+      return "arm64";
+    default:
+      return a;
+  }
+}
+
+/**
+ * Antigravity User-Agent: "antigravity/VERSION darwin/arm64"
+ *
+ * Always claims darwin/arm64 regardless of actual server OS.
+ * Real Antigravity is a macOS desktop tool — most users are on macOS.
+ * Claiming linux/amd64 from a datacenter IP is MORE suspicious than
+ * darwin/arm64. Matches CLIProxyAPI's proven production behavior.
+ */
+export function antigravityUserAgent(): string {
+  return `antigravity/${ANTIGRAVITY_VERSION} darwin/arm64`;
+}
+
+/**
+ * Gemini CLI User-Agent: "GeminiCLI/VERSION/MODEL (OS; ARCH)"
+ * Example: "GeminiCLI/0.31.0/gemini-3-flash (darwin; arm64)"
+ */
+export function geminiCLIUserAgent(model: string): string {
+  return `GeminiCLI/${GEMINI_CLI_VERSION}/${model || "unknown"} (${getPlatform()}; ${getArch()})`;
+}
+
+/**
+ * X-Goog-Api-Client header value matching the real Gemini SDK.
+ * Example: "google-genai-sdk/1.41.0 gl-node/v22.19.0"
+ */
+export function googApiClientHeader(): string {
+  return `google-genai-sdk/${GEMINI_SDK_VERSION} gl-node/${NODE_VERSION}`;
+}
+
+export { ANTIGRAVITY_VERSION, GEMINI_CLI_VERSION, GEMINI_SDK_VERSION };

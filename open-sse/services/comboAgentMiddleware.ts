@@ -62,7 +62,7 @@ export function injectModelTag(messages: Message[], providerModel: string): Mess
   if (lastAssistantIdx === -1) {
     return [
       ...cleaned,
-      { role: "assistant", content: `\n<omniModel>${providerModel}</omniModel>` },
+      { role: "assistant", content: `<routiformModel>${providerModel}</routiformModel>` },
     ];
   }
 
@@ -75,14 +75,14 @@ export function injectModelTag(messages: Message[], providerModel: string): Mess
     // message with the tag rather than silently failing.
     return [
       ...cleaned,
-      { role: "assistant", content: `\n<omniModel>${providerModel}</omniModel>` },
+      { role: "assistant", content: `<routiformModel>${providerModel}</routiformModel>` },
     ];
   }
 
   const tagged = [...cleaned];
   tagged[lastAssistantIdx] = {
     ...msg,
-    content: `${msg.content}\n<omniModel>${providerModel}</omniModel>`,
+    content: `${msg.content}<routiformModel>${providerModel}</routiformModel>`,
   };
   return tagged;
 }

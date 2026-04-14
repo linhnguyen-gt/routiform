@@ -42,6 +42,7 @@ export const UNSUPPORTED_SCHEMA_CONSTRAINTS = [
   "contentMediaType",
   "contentEncoding",
   // Non-standard schema fields (not recognized by Gemini API)
+  "deprecated",
   "optional",
   // UI/Styling properties (from Cursor tools - NOT JSON Schema standard)
   "cornerRadius",
@@ -136,9 +137,9 @@ function removeUnsupportedKeywords(obj, keywords) {
     }
   } else {
     // Delete unsupported keys at current level
-    for (const keyword of keywords) {
-      if (keyword in obj) {
-        delete obj[keyword];
+    for (const key of Object.keys(obj)) {
+      if (keywords.includes(key) || key.startsWith("x-")) {
+        delete obj[key];
       }
     }
     // Recurse into remaining values

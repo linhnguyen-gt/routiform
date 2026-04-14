@@ -121,6 +121,14 @@ export function getUpstreamTimeoutConfig(
   };
 }
 
+export function getStainlessTimeoutSeconds(
+  env: EnvSource = process.env,
+  logger?: TimeoutLogger
+): number {
+  const { fetchTimeoutMs } = getUpstreamTimeoutConfig(env, logger);
+  return Math.max(1, Math.ceil(fetchTimeoutMs / 1_000));
+}
+
 export function getTlsClientTimeoutConfig(
   env: EnvSource = process.env,
   logger?: TimeoutLogger

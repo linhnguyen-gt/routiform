@@ -53,7 +53,7 @@ export async function PUT(request) {
 
     // Persist to database (excluding stats)
     const { stats: _stats, ...persistable } = getBackgroundDegradationConfig();
-    await updateSettings({ backgroundDegradation: JSON.stringify(persistable) });
+    await updateSettings({ backgroundDegradation: persistable });
 
     return NextResponse.json({ success: true, ...getBackgroundDegradationConfig() });
   } catch (error) {

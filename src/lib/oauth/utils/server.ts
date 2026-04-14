@@ -69,7 +69,7 @@ export function startLocalServer(
 
     // Listen on fixed port or find available port
     const portToUse = fixedPort || 0;
-    server.listen(portToUse, "127.0.0.1", () => {
+    server.listen(portToUse, "0.0.0.0", () => {
       const addr = server.address() as { port: number };
       resolve({
         server,

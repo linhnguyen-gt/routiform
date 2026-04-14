@@ -1,6 +1,8 @@
 import { HTTP_STATUS, FETCH_TIMEOUT_MS } from "../config/constants.ts";
 import { applyFingerprint, isCliCompatEnabled } from "../config/cliFingerprints.ts";
 import { getRotatingApiKey } from "../services/apiKeyRotator.ts";
+import { isClaudeCodeCompatible } from "../services/provider.ts";
+import { signRequestBody } from "../services/claudeCodeCCH.ts";
 
 /**
  * Sanitizes a custom API path to prevent path traversal attacks.
@@ -318,6 +320,13 @@ export class BaseExecutor {
           const fingerprinted = applyFingerprint(this.provider, headers, transformedBody);
           finalHeaders = fingerprinted.headers;
           bodyString = fingerprinted.bodyString;
+        }
+
+        // CCH signing: Claude Code-compatible providers require an xxHash64 integrity
+        // token over the serialized body. Sign after fingerprint ordering so the hash
+        // covers the exact bytes that will be sent upstream.
+        if (isClaudeCodeCompatible(this.provider)) {
+          bodyString = await signRequestBody(bodyString);
         }
 
         mergeUpstreamExtraHeaders(finalHeaders, upstreamExtraHeaders);

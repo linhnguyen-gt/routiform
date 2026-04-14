@@ -27,7 +27,7 @@ export function geminiToOpenAIResponse(chunk, state) {
       choices: [
         {
           index: 0,
-          delta: { role: "assistant" },
+          delta: { role: "assistant", content: "" },
           finish_reason: null,
         },
       ],

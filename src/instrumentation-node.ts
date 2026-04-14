@@ -97,10 +97,7 @@ export async function registerNodejs(): Promise<void> {
   console.log("[STARTUP] Provider limits sync scheduler started");
 
   try {
-    const [{ setCustomAliases }, { setDefaultFastServiceTierEnabled }] = await Promise.all([
-      import("@routiform/open-sse/services/modelDeprecation.ts"),
-      import("@routiform/open-sse/executors/codex.ts"),
-    ]);
+    const { setCustomAliases } = await import("@routiform/open-sse/services/modelDeprecation.ts");
     const settings = await getSettings();
 
     if (settings.modelAliases) {
@@ -116,16 +113,33 @@ export async function registerNodejs(): Promise<void> {
       }
     }
 
-    const persisted =
-      typeof settings.codexServiceTier === "string"
-        ? JSON.parse(settings.codexServiceTier)
-        : settings.codexServiceTier;
+    // Migrate legacy Codex service tier settings to per-connection defaults
+    try {
+      const { migrateCodexConnectionDefaultsFromLegacySettings } =
+        await import("@/lib/providers/codexConnectionDefaults");
+      const migrationResult = await migrateCodexConnectionDefaultsFromLegacySettings();
+      if (migrationResult.migrated) {
+        console.log(
+          `[STARTUP] Migrated Codex connection defaults: ${migrationResult.updatedConnectionIds.length} connection(s) updated`
+        );
+      }
+    } catch (err: unknown) {
+      console.warn("[STARTUP] Codex connection defaults migration failed:", err);
+    }
 
-    if (typeof persisted?.enabled === "boolean") {
-      setDefaultFastServiceTierEnabled(persisted.enabled);
-      console.log(
-        `[STARTUP] Restored Codex fast service tier: ${persisted.enabled ? "on" : "off"}`
-      );
+    if (settings.backgroundDegradation) {
+      try {
+        const bgSettings =
+          typeof settings.backgroundDegradation === "string"
+            ? JSON.parse(settings.backgroundDegradation)
+            : settings.backgroundDegradation;
+        const { setBackgroundDegradationConfig } =
+          await import("@routiform/open-sse/services/backgroundTaskDetector.ts");
+        setBackgroundDegradationConfig(bgSettings);
+        console.log(`[STARTUP] Restored background task degradation config from settings`);
+      } catch (err: unknown) {
+        console.warn(`[STARTUP] Failed to parse background degradation settings:`, err);
+      }
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
