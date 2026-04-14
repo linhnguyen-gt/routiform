@@ -24,7 +24,13 @@ export interface UseProviderDetailModelsReturn {
   models: Array<{ id: string; name: string; contextLength?: number }>;
   registryModels: Array<{ id: string; name: string }>;
   syncedModels: Array<{ id: string; name: string }>;
-  setOpencodeLiveCatalog: React.Dispatch<React.SetStateAction<any>>;
+  setOpencodeLiveCatalog: React.Dispatch<
+    React.SetStateAction<{
+      status: "idle" | "loading" | "ready" | "no_connection" | "error";
+      models: Array<{ id: string; name: string; contextLength?: number }>;
+      errorMessage: string;
+    }>
+  >;
   fetchProviderModelMeta: () => Promise<void>;
 }
 

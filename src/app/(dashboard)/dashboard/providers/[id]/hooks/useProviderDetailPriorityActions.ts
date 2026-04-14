@@ -6,7 +6,7 @@ export function useProviderDetailPriorityActions({
   fetchConnections,
 }: Pick<ProviderDetailActionProps, "connections" | "fetchConnections">) {
   const handleSwapPriority = useCallback(
-    async (conn1: any, conn2: any) => {
+    async (conn1: { id: string; priority?: number }, conn2: { id: string; priority?: number }) => {
       if (!conn1 || !conn2) return;
       try {
         let p1 = conn2.priority;

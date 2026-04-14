@@ -1,41 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
-import { useNotificationStore } from "@/store/notificationStore";
+import { getCompatibleFallbackModels } from "@/lib/providers/managedAvailableModels";
+import { MODEL_COMPAT_PROTOCOL_KEYS } from "@/shared/constants/modelCompat";
 import {
+  APIKEY_PROVIDERS,
+  FREE_PROVIDERS,
+  OAUTH_PROVIDERS,
   getProviderAlias,
   isAnthropicCompatibleProvider,
   isClaudeCodeCompatibleProvider,
   isOpenAICompatibleProvider,
   supportsApiKeyOnFreeProvider,
-  FREE_PROVIDERS,
-  OAUTH_PROVIDERS,
-  APIKEY_PROVIDERS,
 } from "@/shared/constants/providers";
+import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { supportsProviderModelAutoSync } from "@/shared/utils/providerAutoSync";
-import { MODEL_COMPAT_PROTOCOL_KEYS } from "@/shared/constants/modelCompat";
+import { useNotificationStore } from "@/store/notificationStore";
+import { useTranslations } from "next-intl";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildCompatMap,
   effectiveNormalizeForProtocol,
   effectivePreserveForProtocol,
   effectiveUpstreamHeadersForProtocol,
 } from "../../providerDetailCompatUtils";
-import { getCompatibleFallbackModels } from "@/lib/providers/managedAvailableModels";
 
-import { useProviderDetailConnections } from "./useProviderDetailConnections";
-import { useProviderDetailModels } from "./useProviderDetailModels";
 import { useProviderDetailAliases } from "./useProviderDetailAliases";
-import { useProviderDetailModals } from "./useProviderDetailModals";
-import { useProviderDetailSelection } from "./useProviderDetailSelection";
-import { useProviderDetailModelActions } from "./useProviderDetailModelActions";
+import { useProviderDetailCodexActions } from "./useProviderDetailCodexActions";
 import { useProviderDetailConnectionActions } from "./useProviderDetailConnectionActions";
+import { useProviderDetailConnections } from "./useProviderDetailConnections";
+import { useProviderDetailFormActions } from "./useProviderDetailFormActions";
+import { useProviderDetailModals } from "./useProviderDetailModals";
+import { useProviderDetailModelActions } from "./useProviderDetailModelActions";
+import { useProviderDetailModels } from "./useProviderDetailModels";
+import { useProviderDetailPriorityActions } from "./useProviderDetailPriorityActions";
+import { useProviderDetailSelection } from "./useProviderDetailSelection";
 import { useProviderDetailSyncActions } from "./useProviderDetailSyncActions";
 import { useProviderDetailTestActions } from "./useProviderDetailTestActions";
 import { useProviderDetailTokenActions } from "./useProviderDetailTokenActions";
-import { useProviderDetailPriorityActions } from "./useProviderDetailPriorityActions";
-import { useProviderDetailCodexActions } from "./useProviderDetailCodexActions";
-import { useProviderDetailFormActions } from "./useProviderDetailFormActions";
 
 import { CC_COMPATIBLE_LABEL } from "../../providerDetailCompatUtils";
 
@@ -66,8 +66,11 @@ export function useProviderDetailOrchestrator() {
   const sortedConnectionIds = useMemo(
     () =>
       [...connections]
-        .sort((a: any, b: any) => (a.priority || 0) - (b.priority || 0))
-        .map((c: any) => c.id)
+        .sort(
+          (a: { priority?: number }, b: { priority?: number }) =>
+            (a.priority || 0) - (b.priority || 0)
+        )
+        .map((c: { id?: string }) => c.id)
         .filter((id): id is string => typeof id === "string" && id.length > 0),
     [connections]
   );
@@ -128,10 +131,10 @@ export function useProviderDetailOrchestrator() {
   const [retestingId, setRetestingId] = useState<string | null>(null);
   const [batchTesting, setBatchTesting] = useState(false);
   const [headerImgErrorProviderId, setHeaderImgErrorProviderId] = useState<string | null>(null);
-  const [proxyTarget, setProxyTarget] = useState<any>(null);
-  const [proxyConfig, setProxyConfig] = useState<any>(null);
+  const [proxyTarget, setProxyTarget] = useState<Record<string, unknown> | null>(null);
+  const [proxyConfig, setProxyConfig] = useState<Record<string, unknown> | null>(null);
   const [connProxyMap, setConnProxyMap] = useState<
-    Record<string, { proxy: any; level: string } | null>
+    Record<string, { proxy: Record<string, unknown>; level: string } | null>
   >({});
   const [modelTestResults, setModelTestResults] = useState<Record<string, "ok" | "error">>({});
   const [testingModelKey, setTestingModelKey] = useState<string | null>(null);
@@ -172,7 +175,7 @@ export function useProviderDetailOrchestrator() {
     providerId,
     providerAlias,
     providerDisplayAlias: isCompatible
-      ? (providerNode as any)?.prefix || providerId
+      ? (providerNode as Record<string, unknown> | null)?.prefix || providerId
       : providerAlias,
     providerStorageAlias: isCompatible ? providerId : providerAlias,
     connections,
@@ -257,8 +260,6 @@ export function useProviderDetailOrchestrator() {
     handleUpdateNode,
     setShowAddApiKeyModal,
     setShowEditModal,
-    setShowEditNodeModal,
-    setSelectedConnection,
     selectedConnection,
   });
 
@@ -282,7 +283,7 @@ export function useProviderDetailOrchestrator() {
   );
 
   // Provider info formatting
-  const providerNodeObj = providerNode as Record<string, any> | null;
+  const providerNodeObj = providerNode as Record<string, unknown> | null;
   const providerInfo = providerNodeObj
     ? {
         id: providerNodeObj.id,
@@ -309,12 +310,13 @@ export function useProviderDetailOrchestrator() {
         website: providerNodeObj.website,
         passthroughModels: providerNodeObj.passthroughModels,
       }
-    : (FREE_PROVIDERS as any)[providerId] ||
-      (OAUTH_PROVIDERS as any)[providerId] ||
-      (APIKEY_PROVIDERS as any)[providerId];
+    : (FREE_PROVIDERS as Record<string, unknown>)[providerId] ||
+      (OAUTH_PROVIDERS as Record<string, unknown>)[providerId] ||
+      (APIKEY_PROVIDERS as Record<string, unknown>)[providerId];
 
   const providerSupportsOAuth =
-    !!(FREE_PROVIDERS as any)[providerId] || !!(OAUTH_PROVIDERS as any)[providerId];
+    !!(FREE_PROVIDERS as Record<string, unknown>)[providerId] ||
+    !!(OAUTH_PROVIDERS as Record<string, unknown>)[providerId];
   const providerSupportsPat = supportsApiKeyOnFreeProvider(providerId);
   const isOAuth = providerSupportsOAuth && !providerSupportsPat;
   const allowQoderOAuthUi = providerId !== "qoder";
@@ -330,22 +332,35 @@ export function useProviderDetailOrchestrator() {
   );
 
   // Proxies
-  const loadConnProxies = useCallback(async (conns: any[]) => {
+  const loadConnProxies = useCallback(async (conns: Array<{ id?: string }>) => {
     if (!conns.length) return;
+    const parseResolvedProxy = (
+      data: unknown
+    ): { proxy: Record<string, unknown>; level: string } | null => {
+      if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+      const rec = data as Record<string, unknown>;
+      const proxy = rec.proxy;
+      if (proxy == null || typeof proxy !== "object" || Array.isArray(proxy)) return null;
+      const level = rec.level;
+      if (typeof level !== "string") return null;
+      return { proxy: proxy as Record<string, unknown>, level };
+    };
     try {
       const results = await Promise.all(
         conns
           .filter((c) => c.id)
           .map((c) =>
-            fetch(`/api/settings/proxy?resolve=${encodeURIComponent(c.id!)}`, { cache: "no-store" })
+            fetch(`/api/settings/proxy?resolve=${encodeURIComponent(c.id!)}`, {
+              cache: "no-store",
+            })
               .then((r) => (r.ok ? r.json() : null))
-              .then((data) => [c.id!, data] as [string, any])
-              .catch(() => [c.id!, null] as [string, any])
+              .then((data) => [c.id!, data] as [string, unknown])
+              .catch(() => [c.id!, null] as [string, null])
           )
       );
-      const map: Record<string, { proxy: any; level: string } | null> = {};
+      const map: Record<string, { proxy: Record<string, unknown>; level: string } | null> = {};
       for (const [id, data] of results) {
-        map[id] = data?.proxy ? data : null;
+        map[id] = parseResolvedProxy(data);
       }
       setConnProxyMap(map);
     } catch {
@@ -363,7 +378,6 @@ export function useProviderDetailOrchestrator() {
   useEffect(() => {
     if (!loading && connections.length > 0) {
       const timeoutId = setTimeout(() => {
-         
         void loadConnProxies(connections);
       }, 0);
       return () => clearTimeout(timeoutId);
@@ -371,13 +385,19 @@ export function useProviderDetailOrchestrator() {
   }, [loading, connections, loadConnProxies]);
 
   // Auto-sync effect
-  const autoSyncConnection = connections.find((conn: any) => conn.isActive !== false);
+  const autoSyncConnection = connections.find(
+    (conn: { isActive?: boolean }) => conn.isActive !== false
+  );
   const isAutoSyncEnabled =
-    supportsAutoSync && (autoSyncConnection as any)?.providerSpecificData?.autoSync !== false;
+    supportsAutoSync &&
+    (autoSyncConnection as { providerSpecificData?: { autoSync?: boolean } } | undefined)
+      ?.providerSpecificData?.autoSync !== false;
 
   useEffect(() => {
     if (loading || !supportsAutoSync || !isAutoSyncEnabled) return;
-    const activeConnection = connections.find((conn: any) => conn.isActive !== false) as any;
+    const activeConnection = connections.find(
+      (conn: { isActive?: boolean }) => conn.isActive !== false
+    ) as { id?: string } | undefined;
     if (!activeConnection?.id) return;
 
     const bootstrapKey = String(activeConnection.id);

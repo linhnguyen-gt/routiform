@@ -116,7 +116,9 @@ export function useProviderDetailConnectionActions({
             })
           )
         );
-        setConnections((prev) => prev.map((c) => (ids.includes(c.id!) ? { ...c, isActive } : c)));
+        setConnections((prev) =>
+          prev.map((c) => (c.id && ids.includes(String(c.id)) ? { ...c, isActive } : c))
+        );
         notify.success(
           isActive ? `Switched on selected connection(s)` : `Switched off selected connection(s)`
         );

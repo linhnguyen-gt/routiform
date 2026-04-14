@@ -9,8 +9,8 @@ export interface UseProviderDetailModalsReturn {
   setShowEditModal: (show: boolean) => void;
   showEditNodeModal: boolean;
   setShowEditNodeModal: (show: boolean) => void;
-  selectedConnection: unknown;
-  setSelectedConnection: (conn: unknown) => void;
+  selectedConnection: (Record<string, unknown> & { id: string }) | null;
+  setSelectedConnection: (conn: (Record<string, unknown> & { id: string }) | null) => void;
   batchTestResults: unknown;
   setBatchTestResults: (results: unknown) => void;
 }
@@ -20,7 +20,9 @@ export function useProviderDetailModals(): UseProviderDetailModalsReturn {
   const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditNodeModal, setShowEditNodeModal] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState<unknown>(null);
+  const [selectedConnection, setSelectedConnection] = useState<
+    (Record<string, unknown> & { id: string }) | null
+  >(null);
   const [batchTestResults, setBatchTestResults] = useState<unknown>(null);
 
   return {

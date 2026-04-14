@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import type { ProviderDetailActionProps } from "../types/actions";
 
 export function useProviderDetailSyncActions({
-  providerId,
   supportsAutoSync,
   isLiveCatalogProvider,
   fetchProviderModelMeta,
@@ -17,7 +16,6 @@ export function useProviderDetailSyncActions({
   clearingModels,
 }: Pick<
   ProviderDetailActionProps,
-  | "providerId"
   | "supportsAutoSync"
   | "isLiveCatalogProvider"
   | "fetchProviderModelMeta"
@@ -33,7 +31,10 @@ export function useProviderDetailSyncActions({
   clearingModels: boolean;
 }) {
   const handleToggleAutoSync = useCallback(
-    async (autoSyncConnection: any, isAutoSyncEnabled: boolean) => {
+    async (
+      autoSyncConnection: { id: string; providerSpecificData?: Record<string, unknown> },
+      isAutoSyncEnabled: boolean
+    ) => {
       if (!autoSyncConnection || togglingAutoSync || !supportsAutoSync) return;
       setTogglingAutoSync(true);
       try {
@@ -64,7 +65,7 @@ export function useProviderDetailSyncActions({
   );
 
   const handleRefreshModels = useCallback(
-    async (autoSyncConnection: any) => {
+    async (autoSyncConnection: { id: string }) => {
       if (!autoSyncConnection || refreshingModels || !supportsAutoSync) return;
       setRefreshingModels(true);
       try {
@@ -79,16 +80,16 @@ export function useProviderDetailSyncActions({
           }
           const raw = Array.isArray(data.models) ? data.models : [];
           const normalized = raw
-            .map((m: any) => {
+            .map((m: Record<string, unknown>) => {
               const id = String(m.id ?? m.name ?? "").trim();
               if (!id) return null;
               const name = String(m.name ?? m.displayName ?? m.id ?? "").trim() || id;
-              const row: any = { id, name };
+              const row: { id: string; name: string; contextLength?: number } = { id, name };
               if (typeof m.context_length === "number") row.contextLength = m.context_length;
               if (typeof m.inputTokenLimit === "number") row.contextLength = m.inputTokenLimit;
               return row;
             })
-            .filter((x: any) => x !== null);
+            .filter((x): x is { id: string; name: string; contextLength?: number } => x !== null);
           setOpencodeLiveCatalog({ status: "ready", models: normalized, errorMessage: "" });
         } else {
           const res = await fetch(
@@ -127,7 +128,7 @@ export function useProviderDetailSyncActions({
   const handleClearAllModels = useCallback(
     async (
       providerStorageAlias: string,
-      providerAliasEntries: [string, any][],
+      providerAliasEntries: Array<[string, unknown]>,
       fetchAliases: () => Promise<void>
     ) => {
       if (clearingModels) return;

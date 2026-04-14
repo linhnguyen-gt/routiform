@@ -7,19 +7,15 @@ export function useProviderDetailFormActions({
   handleUpdateNode,
   setShowAddApiKeyModal,
   setShowEditModal,
-  setShowEditNodeModal,
-  setSelectedConnection,
   selectedConnection,
   t,
 }: Pick<ProviderDetailActionProps, "providerId" | "fetchConnections" | "handleUpdateNode" | "t"> & {
   setShowAddApiKeyModal: (val: boolean) => void;
   setShowEditModal: (val: boolean) => void;
-  setShowEditNodeModal: (val: boolean) => void;
-  setSelectedConnection: (conn: any) => void;
-  selectedConnection: any;
+  selectedConnection: Record<string, unknown> & { id: string };
 }) {
   const handleSaveApiKey = useCallback(
-    async (formData: any) => {
+    async (formData: Record<string, unknown>) => {
       try {
         const res = await fetch("/api/providers", {
           method: "POST",
@@ -42,7 +38,7 @@ export function useProviderDetailFormActions({
   );
 
   const handleUpdateConnection = useCallback(
-    async (formData: any) => {
+    async (formData: Record<string, unknown>) => {
       try {
         const res = await fetch(`/api/providers/${selectedConnection.id}`, {
           method: "PUT",

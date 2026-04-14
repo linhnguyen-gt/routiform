@@ -6,10 +6,10 @@ export interface UseProviderDetailConnectionsParams {
 }
 
 export interface UseProviderDetailConnectionsReturn {
-  connections: unknown[];
+  connections: Array<Record<string, unknown>>;
   loading: boolean;
   providerNode: unknown;
-  setConnections: React.Dispatch<React.SetStateAction<unknown[]>>;
+  setConnections: React.Dispatch<React.SetStateAction<Array<Record<string, unknown>>>>;
   fetchConnections: () => Promise<void>;
   handleUpdateNode: (formData: Record<string, unknown>) => Promise<void>;
 }
@@ -18,7 +18,7 @@ export function useProviderDetailConnections({
   providerId,
   isCompatible,
 }: UseProviderDetailConnectionsParams): UseProviderDetailConnectionsReturn {
-  const [connections, setConnections] = useState<unknown[]>([]);
+  const [connections, setConnections] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [providerNode, setProviderNode] = useState<unknown>(null);
 

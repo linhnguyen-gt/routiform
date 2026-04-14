@@ -6,12 +6,11 @@ export function useProviderDetailCodexActions({
   connections,
   setConnections,
   notify,
-  t,
   setApplyingCodexAuthId,
   setExportingCodexAuthId,
   applyingCodexAuthId,
   exportingCodexAuthId,
-}: Pick<ProviderDetailActionProps, "connections" | "setConnections" | "notify" | "t"> & {
+}: Pick<ProviderDetailActionProps, "connections" | "setConnections" | "notify"> & {
   setApplyingCodexAuthId: (id: string | null) => void;
   setExportingCodexAuthId: (id: string | null) => void;
   applyingCodexAuthId: string | null;
@@ -25,12 +24,12 @@ export function useProviderDetailCodexActions({
 
         const providerSpecificData =
           target.providerSpecificData && typeof target.providerSpecificData === "object"
-            ? target.providerSpecificData
+            ? (target.providerSpecificData as Record<string, unknown>)
             : {};
         const existingPolicy =
           providerSpecificData.codexLimitPolicy &&
           typeof providerSpecificData.codexLimitPolicy === "object"
-            ? providerSpecificData.codexLimitPolicy
+            ? (providerSpecificData.codexLimitPolicy as Record<string, unknown>)
             : {};
 
         const nextPolicy = {
@@ -55,18 +54,19 @@ export function useProviderDetailCodexActions({
           return;
         }
 
-        setConnections((prev: any[]) =>
-          prev.map((connection) =>
-            connection.id === connectionId
-              ? {
-                  ...connection,
-                  providerSpecificData: {
-                    ...(connection.providerSpecificData || {}),
-                    codexLimitPolicy: nextPolicy,
-                  },
-                }
-              : connection
-          )
+        setConnections(
+          (prev: Array<{ id: string; providerSpecificData?: Record<string, unknown> }>) =>
+            prev.map((connection) =>
+              connection.id === connectionId
+                ? {
+                    ...connection,
+                    providerSpecificData: {
+                      ...(connection.providerSpecificData || {}),
+                      codexLimitPolicy: nextPolicy,
+                    },
+                  }
+                : connection
+            )
         );
         notify.success("Codex limit policy updated");
       } catch (error) {

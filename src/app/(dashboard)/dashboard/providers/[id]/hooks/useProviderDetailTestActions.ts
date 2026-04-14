@@ -14,17 +14,18 @@ export function useProviderDetailTestActions({
   setModelTestBannerError,
   setModelTestResults,
   batchTesting,
-  retestingId,
   modelTestInFlightRef,
 }: Pick<
   ProviderDetailActionProps,
   "providerId" | "providerDisplayAlias" | "connections" | "fetchConnections" | "notify" | "t"
 > & {
   setBatchTesting: (val: boolean) => void;
-  setBatchTestResults: (val: any) => void;
+  setBatchTestResults: (val: Record<string, unknown>) => void;
   setTestingModelKey: (key: string | null) => void;
   setModelTestBannerError: (err: string) => void;
-  setModelTestResults: (fn: (prev: any) => any) => void;
+  setModelTestResults: (
+    fn: (prev: Record<string, "ok" | "error">) => Record<string, "ok" | "error">
+  ) => void;
   batchTesting: boolean;
   retestingId: string | null;
   modelTestInFlightRef: { current: boolean };
@@ -41,11 +42,13 @@ export function useProviderDetailTestActions({
       setModelTestBannerError("");
       let success = false;
       try {
-        const activeConnectionId = connections.find((conn: any) => conn.isActive !== false)?.id;
+        const activeConnectionId = connections.find(
+          (conn: { isActive?: boolean; id?: string }) => conn.isActive !== false
+        )?.id;
         const request =
           providerId === "openrouter" && activeConnectionId
             ? {
-                url: `/api/providers/${encodeURIComponent(activeConnectionId)}/test`,
+                url: `/api/providers/${encodeURIComponent(String(activeConnectionId))}/test`,
                 body: JSON.stringify({
                   validationModelId: fullModel.startsWith(`${providerDisplayAlias}/`)
                     ? fullModel.slice(providerDisplayAlias.length + 1)
@@ -72,7 +75,7 @@ export function useProviderDetailTestActions({
         };
         const ok = request.fromConnectionTest ? Boolean(data.valid) : Boolean(data.ok);
         success = ok;
-        setModelTestResults((prev: any) => ({ ...prev, [fullModel]: ok ? "ok" : "error" }));
+        setModelTestResults((prev) => ({ ...prev, [fullModel]: ok ? "ok" : "error" }));
         if (ok) {
           setModelTestBannerError("");
           const ms = typeof data.latencyMs === "number" ? data.latencyMs : null;
@@ -84,7 +87,7 @@ export function useProviderDetailTestActions({
           notify.error(err);
         }
       } catch {
-        setModelTestResults((prev: any) => ({ ...prev, [fullModel]: "error" }));
+        setModelTestResults((prev) => ({ ...prev, [fullModel]: "error" }));
         const netErr = t("errorTypeNetworkError");
         setModelTestBannerError(netErr);
         notify.error(netErr);
@@ -121,7 +124,11 @@ export function useProviderDetailTestActions({
         body: JSON.stringify({ mode: "provider", providerId }),
         signal: controller.signal,
       });
-      let data: any;
+      let data: {
+        error?: string | { message?: string; error?: string };
+        results?: unknown[];
+        summary?: { passed: number; failed: number; total: number } | null;
+      };
       try {
         data = await res.json();
       } catch {
@@ -141,8 +148,8 @@ export function useProviderDetailTestActions({
         else notify.warning(t("testSummary", { passed, failed, total }));
       }
       await fetchConnections();
-    } catch (error: any) {
-      const isAbort = error?.name === "AbortError";
+    } catch (error) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
       const msg = isAbort ? t("providerTestTimeout") : t("providerTestFailed");
       setBatchTestResults({ error: msg, results: [], summary: null });
       notify.error(msg);

@@ -20,23 +20,37 @@ import { TestResultsView } from "./components/TestResultsView";
 import { COMBO_USAGE_GUIDE_STORAGE_KEY } from "./components/combo-constants";
 import { getI18nOrFallback } from "./components/combo-utils";
 
+interface Combo {
+  id: string;
+  name: string;
+  models: unknown[];
+  strategy?: string;
+  config?: Record<string, unknown>;
+  isActive?: boolean;
+}
+
+interface Provider {
+  id: string;
+  [key: string]: unknown;
+}
+
 export default function CombosPage() {
   const t = useTranslations("combos");
   const tc = useTranslations("common");
-  const [combos, setCombos] = useState<any[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingCombo, setEditingCombo] = useState<any>(null);
-  const [activeProviders, setActiveProviders] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<Record<string, any>>({});
-  const [testResults, setTestResults] = useState<any>(null);
+  const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
+  const [activeProviders, setActiveProviders] = useState<Provider[]>([]);
+  const [metrics, setMetrics] = useState<Record<string, Record<string, unknown>>>({});
+  const [testResults, setTestResults] = useState<Record<string, unknown> | null>(null);
   const [testingCombo, setTestingCombo] = useState<string | null>(null);
   const [testComboName, setTestComboName] = useState("");
   const { copied, copy } = useCopyToClipboard();
   const notify = useNotificationStore();
-  const [proxyTargetCombo, setProxyTargetCombo] = useState<any>(null);
-  const [proxyConfig, setProxyConfig] = useState<any>(null);
-  const [providerNodes, setProviderNodes] = useState<any[]>([]);
+  const [proxyTargetCombo, setProxyTargetCombo] = useState<Combo | null>(null);
+  const [proxyConfig, setProxyConfig] = useState<Record<string, unknown> | null>(null);
+  const [providerNodes, setProviderNodes] = useState<Array<Record<string, unknown>>>([]);
   const [showUsageGuide, setShowUsageGuide] = useState(true);
   const [recentlyCreatedCombo, setRecentlyCreatedCombo] = useState("");
   const [liveRegionText, setLiveRegionText] = useState("");
@@ -91,7 +105,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: Omit<Combo, "id">) => {
     try {
       const res = await fetch("/api/combos", {
         method: "POST",
@@ -114,7 +128,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleUpdate = async (id: string, data: any) => {
+  const handleUpdate = async (id: string, data: Partial<Combo>) => {
     try {
       const res = await fetch(`/api/combos/${id}`, {
         method: "PUT",
@@ -232,7 +246,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleDuplicate = async (combo: any) => {
+  const handleDuplicate = async (combo: Combo) => {
     const baseName = combo.name.replace(/-copy(-\d+)?$/, "");
     const existingNames = combos.map((c) => c.name);
     let newName = `${baseName}-copy`;
@@ -278,7 +292,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleToggleCombo = async (combo: any) => {
+  const handleToggleCombo = async (combo: Combo) => {
     const newActive = combo.isActive === false ? true : false;
     setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, isActive: newActive } : c)));
     try {
@@ -311,7 +325,7 @@ export default function CombosPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" role="status" aria-label="Loading combos">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -320,14 +334,24 @@ export default function CombosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{t("title")}</h1>
-          <p className="text-sm text-text-muted mt-1">{t("description")}</p>
+      {/* Header with improved spacing and hierarchy */}
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            {t("title")}
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
+            {t("description")}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {!showUsageGuide && (
-            <Button size="sm" variant="ghost" onClick={handleShowUsageGuide}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleShowUsageGuide}
+              aria-label="Show usage guide"
+            >
               {getI18nOrFallback(t, "usageGuideShow", "Show guide")}
             </Button>
           )}
@@ -335,11 +359,12 @@ export default function CombosPage() {
             data-testid="combos-header-create"
             icon="add"
             onClick={() => setShowCreateModal(true)}
+            aria-label="Create new combo"
           >
             {t("createCombo")}
           </Button>
         </div>
-      </div>
+      </header>
 
       {showUsageGuide && (
         <ComboUsageGuide
@@ -348,24 +373,27 @@ export default function CombosPage() {
         />
       )}
 
+      {/* Success banner with improved contrast and accessibility */}
       {recentlyCreatedCombo && (
         <Card
           padding="sm"
-          className="border border-emerald-500/20 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]"
+          className="border-2 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30"
+          role="status"
+          aria-live="polite"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
                 {getI18nOrFallback(
                   t,
                   "quickTestTitle",
                   `Combo "${recentlyCreatedCombo}" ready to validate`
                 )}
               </p>
-              <code className="inline-block text-[11px] mt-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <code className="inline-block text-xs mt-1.5 px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-100 font-mono">
                 {recentlyCreatedCombo}
               </code>
-              <p className="text-xs text-text-muted mt-0.5">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1.5">
                 {getI18nOrFallback(
                   t,
                   "quickTestDescription",
@@ -373,7 +401,7 @@ export default function CombosPage() {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 size="sm"
                 variant="secondary"
@@ -382,10 +410,16 @@ export default function CombosPage() {
                   handleTestCombo({ name: recentlyCreatedCombo });
                   setRecentlyCreatedCombo("");
                 }}
+                aria-label={`Test combo ${recentlyCreatedCombo}`}
               >
                 {getI18nOrFallback(t, "testNow", "Test now")}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setRecentlyCreatedCombo("")}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setRecentlyCreatedCombo("")}
+                aria-label="Dismiss notification"
+              >
                 {tc("close")}
               </Button>
             </div>
@@ -399,6 +433,7 @@ export default function CombosPage() {
 
       <ModelRoutingSection combos={combos} />
 
+      {/* Empty state with improved visual hierarchy */}
       {combos.length === 0 ? (
         <EmptyState
           icon="🧩"
@@ -440,11 +475,11 @@ export default function CombosPage() {
                   if (index < combos.length - 1) moveCombo(index, combos.length - 1);
                 }
               }}
-              className={`transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+              className={`transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl ${
                 comboDragOverIndex === index && comboDragIndex !== index
-                  ? "ring-2 ring-primary/40 rounded-xl"
+                  ? "ring-2 ring-blue-400 dark:ring-blue-500 scale-[1.02]"
                   : ""
-              } ${comboDragIndex === index ? "opacity-50" : ""}`}
+              } ${comboDragIndex === index ? "opacity-50 scale-95" : ""}`}
             >
               <ComboCard
                 combo={combo}

@@ -5,7 +5,6 @@ import type { ModelCompatSavePatch } from "../types/compat";
 
 export function useProviderDetailModelActions({
   providerId,
-  modelMeta,
   customMap,
   fetchProviderModelMeta,
   notify,
@@ -13,7 +12,7 @@ export function useProviderDetailModelActions({
   setCompatSavingModelId,
 }: Pick<
   ProviderDetailActionProps,
-  "providerId" | "modelMeta" | "customMap" | "fetchProviderModelMeta" | "notify" | "t"
+  "providerId" | "customMap" | "fetchProviderModelMeta" | "notify" | "t"
 > & {
   setCompatSavingModelId: (id: string | null) => void;
 }) {
