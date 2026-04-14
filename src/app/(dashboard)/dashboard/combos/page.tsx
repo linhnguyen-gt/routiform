@@ -1124,6 +1124,7 @@ function ComboCard({
 
   // Resolve provider UUID to user-defined name
   const formatModelDisplay = (modelValue) => {
+    if (!modelValue || typeof modelValue !== "string") return modelValue || "";
     const parts = modelValue.split("/");
     if (parts.length !== 2) return modelValue;
     const [providerIdentifier, modelId] = parts;
