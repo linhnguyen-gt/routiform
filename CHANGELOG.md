@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.10.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.2...v3.10.0) (2026-04-15)
+
+
+### Features
+
+* **dashboard:** implement new dashboard components and credit tracking ([c0f4b02](https://github.com/linhnguyen-gt/Routiform/commit/c0f4b02cef419318e4dfd3c403ab04c527070f47))
+* enhance OpenCode configuration and linting rules ([7661c98](https://github.com/linhnguyen-gt/Routiform/commit/7661c98ca27c94ab5ebef528b4229f431b9a65f5))
+* **gemini:** add tools sanitizer and fix codex connection defaults ([475f921](https://github.com/linhnguyen-gt/Routiform/commit/475f921e44ef2060eef8b7242819d070d1f8c0f0))
+* **providers:** add DeepInfra, SambaNova, Venice.ai + fix Claude tool_use orphan rehydration ([a665313](https://github.com/linhnguyen-gt/Routiform/commit/a665313f604ab0dbb02cd7a6b61b72844039189f))
+* **providers:** add models.dev integration for opencode-go catalog ([23f05db](https://github.com/linhnguyen-gt/Routiform/commit/23f05dbf14a7c1292d2225b66b69da3128ad76a0))
+* support OpenAI usage details and standard api parameters ([1db8b5a](https://github.com/linhnguyen-gt/Routiform/commit/1db8b5a91f987c6637ef969b3430490cc02bb889))
+
+
+### Bug Fixes
+
+* **api:** use safeParse instead of parse in skillssh install route ([c5847a4](https://github.com/linhnguyen-gt/Routiform/commit/c5847a4e62b39cd1067f4e50f0850e2f92013316))
+* **chat:** remove redundant assignment of max_tokens in fallback logic ([4c62f0c](https://github.com/linhnguyen-gt/Routiform/commit/4c62f0cf28e0cda26fb7a8e33e80de8da22af66d))
+* **claude:** rehydrate tool_result text blocks before sending to Anthropic ([259c328](https://github.com/linhnguyen-gt/Routiform/commit/259c3283d91015b0a92bee11f47a8ecda90d9f81))
+* **codex:** synthesize tool_calls when forced tool_choice ignored ([46ee603](https://github.com/linhnguyen-gt/Routiform/commit/46ee60338be4d807a3745416d7751931205c1936)), closes [#605](https://github.com/linhnguyen-gt/Routiform/issues/605)
+* **dashboard:** align combo pages and improve mobile layout ([fedcf4a](https://github.com/linhnguyen-gt/Routiform/commit/fedcf4abb70ea94cbab4dcf11930eb6d043629fd))
+* **dashboard:** enforce strict lint rules across UI ([78db6c7](https://github.com/linhnguyen-gt/Routiform/commit/78db6c7e029f50f3aa9116b9512aa54f4af2739b))
+* **dashboard:** resolve all ESLint warnings and improve type safety ([32ca13d](https://github.com/linhnguyen-gt/Routiform/commit/32ca13dc06dfd127dceb25030c05690ac4a99d13))
+* **e2e:** add data-testid to quick-test CTA button for reliable selector ([5440f36](https://github.com/linhnguyen-gt/Routiform/commit/5440f363ca2a271e096197dac010ac86e1c67d35))
+* **e2e:** update combos-flow test selector for quick test CTA button ([ca75054](https://github.com/linhnguyen-gt/Routiform/commit/ca7505462d662ee9f6aa68d12e9c463ababb9a6a))
+* **providers:** enable auto-sync for opencode-go and antigravity, fix live catalog providers ([b61910b](https://github.com/linhnguyen-gt/Routiform/commit/b61910b0626ef55b1208f163e39f432aff9a342e))
+* **providers:** fix opencode-go models.dev API parsing and live catalog hook ([86ca105](https://github.com/linhnguyen-gt/Routiform/commit/86ca10564ef97087b2c2ccb87e784f9e20d9e66d))
+* **providers:** type legacy page to satisfy lint ([2c838df](https://github.com/linhnguyen-gt/Routiform/commit/2c838df0c14f1a5a5c6798c016af4ab8fb4f6250))
+* resolve all ESLint warnings and TypeScript compilation errors ([b8e68ab](https://github.com/linhnguyen-gt/Routiform/commit/b8e68ab2b65e559cc355b6a7dc7613d280a90e60))
+* resolve all failing unit tests ([0682310](https://github.com/linhnguyen-gt/Routiform/commit/06823107f9dda4f8406c2ef7c88fa074ac534a62))
+* **tests:** update integration tests for modularized combos page and extracted helpers ([e23df57](https://github.com/linhnguyen-gt/Routiform/commit/e23df57f2c05ed701c022d179045d06af6678abf))
+
 ### [3.9.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.1...v3.9.2) (2026-04-12)
 
 
