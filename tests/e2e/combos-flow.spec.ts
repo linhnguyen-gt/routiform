@@ -214,9 +214,7 @@ test.describe("Combos flow", () => {
     await createPost;
     await expect(comboDialog).toBeHidden({ timeout: 15_000 });
 
-    const quickTestButton = page.locator('[role="status"]').getByRole("button", {
-      name: /test now|testar agora|testar|play_arrow/i,
-    });
+    const quickTestButton = page.getByTestId("quick-test-cta");
     await expect(quickTestButton).toBeVisible({ timeout: 10_000 });
     await quickTestButton.click();
 

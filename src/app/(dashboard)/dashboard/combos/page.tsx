@@ -378,6 +378,7 @@ export default function CombosPage() {
           padding="sm"
           className="border-2 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30"
           role="status"
+          data-testid="quick-test-banner"
           aria-live="polite"
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -410,6 +411,7 @@ export default function CombosPage() {
                   setRecentlyCreatedCombo("");
                 }}
                 aria-label={`Test combo ${recentlyCreatedCombo}`}
+                data-testid="quick-test-cta"
                 className="flex-1 sm:flex-none"
               >
                 {getI18nOrFallback(t, "testNow", "Test now")}
