@@ -12,7 +12,6 @@ const UNSUPPORTED_MODEL_LIST_PROVIDERS = new Set([
   "claude",
   "perplexity",
   "bailian-coding-plan",
-  "opencode-go",
   "qoder",
 ]);
 

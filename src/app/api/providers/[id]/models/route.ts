@@ -9,6 +9,7 @@ import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { getModelIsHidden, resolveProxyForProvider } from "@/lib/localDb";
 import { getStaticQoderModels } from "@routiform/open-sse/services/qoderCli.ts";
 import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
+import { getOpencodeGoModels } from "@/lib/providers/opencodeGoModelsCatalog";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -675,6 +676,25 @@ export async function GET(
     const connectionId = typeof connection.id === "string" ? connection.id : id;
     const apiKey = typeof connection.apiKey === "string" ? connection.apiKey : "";
     const accessToken = typeof connection.accessToken === "string" ? connection.accessToken : "";
+
+    // opencode-go: fetch from models.dev with fallback
+    if (provider === "opencode-go") {
+      try {
+        const models = await getOpencodeGoModels();
+        return buildResponse({
+          provider,
+          connectionId,
+          models,
+          source: "models.dev",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json(
+          { error: `Failed to fetch opencode-go models: ${message}` },
+          { status: 500 }
+        );
+      }
+    }
 
     if (provider === "codex") {
       const token = accessToken || apiKey;
