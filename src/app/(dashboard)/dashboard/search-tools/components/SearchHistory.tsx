@@ -7,7 +7,7 @@ interface HistoryEntry {
   query: string;
   provider: string;
   timestamp: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
 }
 
 interface SearchHistoryProps {
@@ -49,7 +49,7 @@ export default function SearchHistory({ onReplay }: SearchHistoryProps) {
         {t("searchHistory")}
       </span>
       <div className="mt-2 space-y-1.5">
-        {entries.map((entry, i) => (
+        {entries.map((entry, _i) => (
           <button
             key={`${entry.timestamp}:${entry.provider}:${entry.query}`}
             onClick={() => onReplay(entry)}

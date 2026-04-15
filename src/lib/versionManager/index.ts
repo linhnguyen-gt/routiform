@@ -1,10 +1,8 @@
 import {
-  getVersionManagerStatus,
   getVersionManagerTool,
   upsertVersionManagerTool,
   updateVersionManagerTool,
   setToolStatus,
-  updateToolVersion,
 } from "@/lib/db/versionManager";
 import { getLatestRelease, clearCache as clearReleaseCache } from "./releaseChecker.ts";
 import { installVersion, getCurrentBinaryPath, rollbackVersion } from "./binaryManager.ts";

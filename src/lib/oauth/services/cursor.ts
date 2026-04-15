@@ -15,7 +15,7 @@ import { CURSOR_CONFIG } from "../constants/oauth";
  */
 
 export class CursorService {
-  config: any;
+  config: Record<string, unknown>;
 
   constructor() {
     this.config = CURSOR_CONFIG;
@@ -158,14 +158,17 @@ export class CursorService {
    * Get token storage path instructions for user
    */
   getTokenStorageInstructions() {
+    const config = this.config as {
+      tokenStoragePaths: { linux: string; macos: string; windows: string };
+    };
     return {
       title: "How to get your Cursor token",
       steps: [
         "1. Open Cursor IDE and make sure you're logged in",
         "2. Find the state.vscdb file:",
-        `   - Linux: ${this.config.tokenStoragePaths.linux}`,
-        `   - macOS: ${this.config.tokenStoragePaths.macos}`,
-        `   - Windows: ${this.config.tokenStoragePaths.windows}`,
+        `   - Linux: ${config.tokenStoragePaths.linux}`,
+        `   - macOS: ${config.tokenStoragePaths.macos}`,
+        `   - Windows: ${config.tokenStoragePaths.windows}`,
         "3. Open the database with SQLite browser or CLI:",
         "   sqlite3 state.vscdb \"SELECT value FROM itemTable WHERE key='cursorAuth/accessToken'\"",
         "4. Also get the machine ID:",

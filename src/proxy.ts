@@ -8,8 +8,15 @@ import { isDraining } from "./lib/gracefulShutdown";
 import { isModelSyncInternalRequest } from "./shared/services/modelSyncScheduler";
 import { getJwtSecret } from "./shared/utils/jwtSecret";
 
-export async function proxy(request: any) {
-  const { pathname } = request.nextUrl;
+interface NextRequest extends Request {
+  nextUrl: { pathname: string; protocol?: string };
+  cookies: { get: (name: string) => { value: string } | undefined };
+  headers: Headers;
+}
+
+export async function proxy(request: unknown) {
+  const req = request as NextRequest;
+  const { pathname } = req.nextUrl;
 
   // Pipeline: Add request ID header for end-to-end tracing
   const requestId = generateRequestId();
@@ -31,8 +38,8 @@ export async function proxy(request: any) {
   }
 
   // ──────────────── Pre-flight: Reject oversized bodies ────────────────
-  if (pathname.startsWith("/api/") && request.method !== "GET" && request.method !== "OPTIONS") {
-    const bodySizeRejection = checkBodySize(request, getBodySizeLimit(pathname));
+  if (pathname.startsWith("/api/") && req.method !== "GET" && req.method !== "OPTIONS") {
+    const bodySizeRejection = checkBodySize(req, getBodySizeLimit(pathname));
     if (bodySizeRejection) return bodySizeRejection;
   }
 
@@ -45,7 +52,7 @@ export async function proxy(request: any) {
 
     // Allow the model auto-sync scheduler to reach only its internal provider routes.
     if (
-      isModelSyncInternalRequest(request) &&
+      isModelSyncInternalRequest(req) &&
       /^\/api\/providers\/[^/]+\/(sync-models|models)$/.test(pathname)
     ) {
       return response;
@@ -66,7 +73,7 @@ export async function proxy(request: any) {
     }
 
     // Verify authentication (JWT cookie or Bearer API key)
-    const authError = await verifyAuth(request);
+    const authError = await verifyAuth(req);
     if (authError) {
       return NextResponse.json(
         {
@@ -88,7 +95,7 @@ export async function proxy(request: any) {
       return response;
     }
 
-    const token = request.cookies.get("auth_token")?.value;
+    const token = req.cookies.get("auth_token")?.value;
 
     if (token) {
       try {
@@ -110,11 +117,11 @@ export async function proxy(request: any) {
               .sign(secret);
 
             // Detect secure context
-            const fwdProto = (request.headers.get("x-forwarded-proto") || "")
+            const fwdProto = (req.headers.get("x-forwarded-proto") || "")
               .split(",")[0]
               .trim()
               .toLowerCase();
-            const isHttps = fwdProto === "https" || request.nextUrl?.protocol === "https:";
+            const isHttps = fwdProto === "https" || req.nextUrl?.protocol === "https:";
             const useSecure = process.env.AUTH_COOKIE_SECURE === "true" || isHttps;
 
             response.cookies.set("auth_token", freshToken, {
@@ -128,20 +135,22 @@ export async function proxy(request: any) {
             );
           } catch (refreshErr) {
             // Refresh failed — continue with existing valid token
-            console.error("[Middleware] JWT auto-refresh failed:", refreshErr.message);
+            const errMsg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+            console.error("[Middleware] JWT auto-refresh failed:", errMsg);
           }
         }
 
         return response;
       } catch (err) {
         // FASE-01: Log auth errors instead of silently redirecting
-        console.error("[Middleware] auth_error: JWT verification failed:", err.message, {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error("[Middleware] auth_error: JWT verification failed:", errMsg, {
           path: pathname,
           tokenPresent: true,
           requestId,
         });
 
-        const redirectResponse = NextResponse.redirect(new URL("/login", request.url));
+        const redirectResponse = NextResponse.redirect(new URL("/login", req.url));
         redirectResponse.cookies.set("auth_token", "", {
           httpOnly: true,
           secure: process.env.AUTH_COOKIE_SECURE === "true",
@@ -176,18 +185,19 @@ export async function proxy(request: any) {
       }
     } catch (err) {
       // FASE-01: Log settings fetch errors instead of silencing them
-      console.error("[Middleware] settings_error: Settings read failed:", err.message, {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[Middleware] settings_error: Settings read failed:", errMsg, {
         path: pathname,
         requestId,
       });
       // On error, require login
     }
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // Redirect / to /dashboard if logged in, or /dashboard if it's the root
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return response;

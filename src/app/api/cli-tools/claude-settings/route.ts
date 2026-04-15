@@ -139,11 +139,11 @@ export async function POST(request: Request) {
     await createBackup("claude", settingsPath);
 
     // Read current settings (JSONC / JSON5 — same as Claude Code CLI)
-    let currentSettings: Record<string, any> = {};
+    let currentSettings: Record<string, unknown> = {};
     try {
       const content = await fs.readFile(settingsPath, "utf-8");
       try {
-        currentSettings = parseCliToolConfigJson(content) as Record<string, any>;
+        currentSettings = parseCliToolConfigJson(content) as Record<string, unknown>;
       } catch {
         currentSettings = {};
       }
@@ -162,10 +162,17 @@ export async function POST(request: Request) {
     }
 
     // Merge new env with existing settings
+    const currentEnv =
+      currentSettings.env &&
+      typeof currentSettings.env === "object" &&
+      !Array.isArray(currentSettings.env)
+        ? (currentSettings.env as Record<string, unknown>)
+        : {};
+
     const newSettings = {
       ...currentSettings,
       env: {
-        ...(currentSettings.env || {}),
+        ...currentEnv,
         ...env,
       },
     };
@@ -211,11 +218,11 @@ export async function DELETE() {
     const settingsPath = getClaudeSettingsPath();
 
     // Read current settings
-    let currentSettings: Record<string, any> = {};
+    let currentSettings: Record<string, unknown> = {};
     try {
       const content = await fs.readFile(settingsPath, "utf-8");
       try {
-        currentSettings = parseCliToolConfigJson(content) as Record<string, any>;
+        currentSettings = parseCliToolConfigJson(content) as Record<string, unknown>;
       } catch (parseErr: unknown) {
         const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
         return NextResponse.json(

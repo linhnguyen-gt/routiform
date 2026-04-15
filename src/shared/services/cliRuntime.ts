@@ -7,7 +7,7 @@ import { spawn, execFileSync } from "child_process";
 const VALID_RUNTIME_MODES = new Set(["auto", "host", "container"]);
 const FALSE_VALUES = new Set(["0", "false", "no", "off"]);
 
-const CLI_TOOLS: Record<string, any> = {
+const CLI_TOOLS: Record<string, Record<string, unknown>> = {
   claude: {
     defaultCommand: "claude",
     envBinKey: "CLI_CLAUDE_BIN",
@@ -129,7 +129,7 @@ const isWindows = () => process.platform === "win32";
  * instead of 'C:\\Program Files\\...'. Convert these so the path is usable
  * by Node's fs and child_process modules.
  */
-const normalizeMsys2Path = (p: string): string => {
+const _normalizeMsys2Path = (p: string): string => {
   if (!p || !isWindows()) return p;
   // Match /letter/rest-of-path — MSYS2 POSIX-style drive mount
   const msys2Match = p.match(/^\/([a-zA-Z])\/(.+)$/);
@@ -150,7 +150,7 @@ const runProcess = (
   command: string,
   args: string[],
   { env, timeoutMs = 3000 }: { env?: Record<string, string | undefined>; timeoutMs?: number } = {}
-): Promise<any> =>
+): Promise<unknown> =>
   new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
@@ -170,7 +170,7 @@ const runProcess = (
       child.kill("SIGKILL");
     }, timeoutMs);
 
-    const done = (result: any) => {
+    const done = (result: unknown) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -495,14 +495,14 @@ const getLookupEnv = () => {
 };
 
 const resolveToolCommands = (toolId: string): string[] => {
-  const tool = CLI_TOOLS[toolId];
+  const tool = CLI_TOOLS[toolId] as Record<string, unknown> | undefined;
   if (!tool) return [];
-  const envCommand = String(process.env[tool.envBinKey] || "").trim();
+  const envCommand = String(process.env[String(tool.envBinKey)] || "").trim();
   if (envCommand) return [envCommand];
   if (Array.isArray(tool.defaultCommands) && tool.defaultCommands.length > 0) {
-    return tool.defaultCommands.filter(Boolean);
+    return (tool.defaultCommands as string[]).filter(Boolean);
   }
-  return tool.defaultCommand ? [tool.defaultCommand] : [];
+  return tool.defaultCommand ? [String(tool.defaultCommand)] : [];
 };
 
 const checkExplicitPath = async (commandPath: string) => {
@@ -536,11 +536,12 @@ const locateCommand = async (command: string, env: Record<string, string | undef
 
   if (isWindows()) {
     const located = await runProcess("where", [command], { env, timeoutMs: 3000 });
-    if (located.ok && located.stdout) {
+    const locatedResult = located as { ok?: boolean; stdout?: string };
+    if (locatedResult.ok && locatedResult.stdout) {
       // `where` may return multiple matches (e.g. `opencode` + `opencode.cmd`).
       // npm global installs on Windows create both a Unix shell script (no extension)
       // and a .cmd wrapper. We must prefer the Windows executable extension.
-      const lines = located.stdout
+      const lines = String(locatedResult.stdout)
         .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean);
@@ -558,7 +559,8 @@ const locateCommand = async (command: string, env: Record<string, string | undef
     env,
     timeoutMs: 3000,
   });
-  if (located.ok && located.stdout) {
+  const locatedResult = located as { ok?: boolean; stdout?: string };
+  if (locatedResult.ok && locatedResult.stdout) {
     return { installed: true, commandPath: command, reason: null };
   }
   return { installed: false, commandPath: null, reason: "not_found" };
@@ -684,9 +686,15 @@ const checkRunnable = async (
 
   for (const args of [["--version"], ["-v"]]) {
     const result = await runProcess(commandPath, args, { env: minimalEnv, timeoutMs });
+    const resultObj = result as { ok?: boolean; stdout?: string };
     // Validate output: must be non-empty and reasonable length (< 4KB)
-    if (result.ok && result.stdout.length > 0 && result.stdout.length < 4096) {
-      return { runnable: true, reason: null, version: result.stdout.trim() };
+    if (
+      resultObj.ok &&
+      resultObj.stdout &&
+      resultObj.stdout.length > 0 &&
+      resultObj.stdout.length < 4096
+    ) {
+      return { runnable: true, reason: null, version: String(resultObj.stdout).trim() };
     }
   }
   return { runnable: false, reason: "healthcheck_failed" };
@@ -803,7 +811,9 @@ export const getCliRuntimeStatus = async (toolId: string) => {
     };
   }
 
-  const envCommand = String(process.env[tool.envBinKey] || "").trim();
+  const envCommand = String(
+    process.env[String((tool as Record<string, unknown>).envBinKey)] || ""
+  ).trim();
   const hasEnvOverride = !!envCommand;
 
   const located = await locateCommandCandidate(commands, env, hasEnvOverride ? undefined : toolId);

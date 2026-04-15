@@ -27,13 +27,17 @@ export default function RerankPanel({ query, results, onClose }: RerankPanelProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  interface ModelEntry {
+    id: string;
+  }
+
   useEffect(() => {
     fetch("/v1/models")
       .then((res) => res.json())
       .then((data) => {
         const rerankModels = (data?.data || [])
-          .filter((m: any) => m.id.toLowerCase().includes("rerank"))
-          .map((m: any) => ({ value: m.id, label: m.id }));
+          .filter((m: ModelEntry) => m.id.toLowerCase().includes("rerank"))
+          .map((m: ModelEntry) => ({ value: m.id, label: m.id }));
         setModels(rerankModels);
         if (rerankModels.length > 0) setSelectedModel(rerankModels[0].value);
       })
@@ -60,8 +64,13 @@ export default function RerankPanel({ query, results, onClose }: RerankPanelProp
         return;
       }
 
+      interface RerankApiResult {
+        index: number;
+        relevance_score: number;
+      }
+
       const rerankedResults: RerankResult[] = (data.results || []).map(
-        (r: any, newIndex: number) => {
+        (r: RerankApiResult, newIndex: number) => {
           const origIndex = r.index;
           return {
             index: newIndex,
@@ -74,8 +83,8 @@ export default function RerankPanel({ query, results, onClose }: RerankPanelProp
         }
       );
       setReranked(rerankedResults);
-    } catch (err: any) {
-      setError(err.message || "Rerank failed");
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : undefined) || "Rerank failed");
     } finally {
       setLoading(false);
     }
@@ -111,7 +120,7 @@ export default function RerankPanel({ query, results, onClose }: RerankPanelProp
                 </label>
                 <Select
                   value={selectedModel}
-                  onChange={(e: any) => setSelectedModel(e.target.value)}
+                  onChange={(e: { target: { value: string } }) => setSelectedModel(e.target.value)}
                   options={models}
                   className="w-full"
                 />

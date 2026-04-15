@@ -104,7 +104,7 @@ const providerConnectionTestBodySchema = z.object({
   validationModelId: z.string().max(500).optional(),
 });
 
-function toSafeMessage(value: any, fallback = "Unknown error"): string {
+function toSafeMessage(value: unknown, fallback = "Unknown error"): string {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
   return trimmed || fallback;
@@ -211,10 +211,22 @@ function classifyFailure({
   );
 }
 
-async function getProviderRuntimeStatus(connection: any) {
-  const provider = typeof connection?.provider === "string" ? connection.provider : "";
+async function getProviderRuntimeStatus(connection: unknown) {
+  const provider =
+    connection &&
+    typeof connection === "object" &&
+    "provider" in connection &&
+    typeof connection.provider === "string"
+      ? connection.provider
+      : "";
   let toolId = CLI_RUNTIME_PROVIDER_MAP[provider];
-  if (provider === "qoder" && connection?.authType !== "apikey") {
+  if (
+    provider === "qoder" &&
+    connection &&
+    typeof connection === "object" &&
+    "authType" in connection &&
+    connection.authType !== "apikey"
+  ) {
     toolId = null;
   }
   if (!toolId) return null;
@@ -240,7 +252,7 @@ async function getProviderRuntimeStatus(connection: any) {
       error: runtimeMessage,
     };
   } catch (error) {
-    const runtimeMessage = `Failed to check local CLI runtime: ${(error as any)?.message || "runtime_check_failed"}`;
+    const runtimeMessage = `Failed to check local CLI runtime: ${(error as Record<string, unknown>)?.message || "runtime_check_failed"}`;
     return {
       installed: false,
       runnable: false,
@@ -259,21 +271,30 @@ async function getProviderRuntimeStatus(connection: any) {
  *
  * @returns {object} { accessToken, expiresIn, refreshToken } or null if failed
  */
-async function refreshOAuthToken(connection: any) {
-  const { provider, refreshToken } = connection;
+async function refreshOAuthToken(connection: unknown) {
+  if (!connection || typeof connection !== "object") return null;
+
+  const provider =
+    "provider" in connection && typeof connection.provider === "string" ? connection.provider : "";
+  const refreshToken =
+    "refreshToken" in connection && typeof connection.refreshToken === "string"
+      ? connection.refreshToken
+      : "";
+
   if (!refreshToken) return null;
 
   try {
     // Kiro needs extra fields the generic function expects
+    const connectionObj = connection as Record<string, unknown>;
     const credentials = {
       refreshToken,
-      providerSpecificData: connection.providerSpecificData || {},
+      providerSpecificData: (connectionObj.providerSpecificData as Record<string, unknown>) || {},
     };
 
     const result = await getAccessToken(provider, credentials, console);
     return result; // { accessToken, expiresIn, refreshToken } or null
   } catch (err) {
-    console.log(`Error refreshing ${provider} token:`, (err as any).message);
+    console.log(`Error refreshing ${provider} token:`, (err as Error).message);
     return null;
   }
 }
@@ -281,10 +302,14 @@ async function refreshOAuthToken(connection: any) {
 /**
  * Check if token is expired or about to expire (within 5 minutes)
  */
-function isTokenExpired(connection: any) {
-  const expiresAtValue = connection.expiresAt || connection.tokenExpiresAt;
+function isTokenExpired(connection: unknown) {
+  if (!connection || typeof connection !== "object") return false;
+
+  const expiresAtValue =
+    ("expiresAt" in connection ? connection.expiresAt : null) ||
+    ("tokenExpiresAt" in connection ? connection.tokenExpiresAt : null);
   if (!expiresAtValue) return false;
-  const expiresAt = new Date(expiresAtValue).getTime();
+  const expiresAt = new Date(expiresAtValue as string | number | Date).getTime();
   const buffer = 5 * 60 * 1000; // 5 minutes
   return expiresAt <= Date.now() + buffer;
 }
@@ -309,8 +334,9 @@ async function syncToCloudIfEnabled() {
  * Auto-refreshes token if expired
  * @returns {{ valid: boolean, error: string|null, refreshed: boolean, newTokens: object|null }}
  */
-async function testOAuthConnection(connection: any) {
-  const config = OAUTH_TEST_CONFIG[connection.provider];
+async function testOAuthConnection(connection: unknown) {
+  const connectionObj = connection as Record<string, unknown>;
+  const config = OAUTH_TEST_CONFIG[connectionObj.provider as string];
 
   if (!config) {
     const error = "Provider test not supported";
@@ -323,10 +349,10 @@ async function testOAuthConnection(connection: any) {
   }
 
   // Check if token exists
-  if (!connection.accessToken) {
+  if (!connectionObj.accessToken) {
     // If the refresh token is also missing on a refreshable provider,
     // this means re-authentication is needed (e.g. after refresh_token_reused)
-    if (config.refreshable && !connection.refreshToken) {
+    if (config.refreshable && !connectionObj.refreshToken) {
       const error = "Refresh token expired. Please re-authenticate this account.";
       return {
         valid: false,
@@ -344,13 +370,13 @@ async function testOAuthConnection(connection: any) {
     };
   }
 
-  let accessToken = connection.accessToken;
+  let accessToken = connectionObj.accessToken as string;
   let refreshed = false;
   let newTokens = null;
 
   // Auto-refresh if token is expired and provider supports refresh
   const tokenExpired = isTokenExpired(connection);
-  if (config.refreshable && tokenExpired && connection.refreshToken) {
+  if (config.refreshable && tokenExpired && connectionObj.refreshToken) {
     const tokens = await refreshOAuthToken(connection);
     if (tokens) {
       accessToken = tokens.accessToken;
@@ -428,8 +454,8 @@ async function testOAuthConnection(connection: any) {
       (res.status === 401 || res.status === 403) &&
       !refreshed &&
       isTokenExpired(connection) &&
-      connection.refreshToken &&
-      typeof connection.refreshToken === "string"
+      connectionObj.refreshToken &&
+      typeof connectionObj.refreshToken === "string"
     ) {
       const tokens = await refreshOAuthToken(connection);
       if (tokens) {
@@ -486,7 +512,8 @@ async function testOAuthConnection(connection: any) {
       diagnosis: classifyFailure({ error, statusCode: res.status }),
     };
   } catch (err) {
-    const error = toSafeMessage(err?.message, "Connection test failed");
+    const errObj = err as { message?: string };
+    const error = toSafeMessage(errObj?.message, "Connection test failed");
     return {
       valid: false,
       error,
@@ -499,8 +526,9 @@ async function testOAuthConnection(connection: any) {
 /**
  * Test API key connection
  */
-async function testApiKeyConnection(connection: any) {
-  if (!connection.apiKey) {
+async function testApiKeyConnection(connection: unknown) {
+  const connectionObj = connection as Record<string, unknown>;
+  if (!connectionObj.apiKey) {
     const error = "Missing API key";
     return {
       valid: false,
@@ -510,12 +538,12 @@ async function testApiKeyConnection(connection: any) {
   }
 
   const result = await validateProviderApiKey({
-    provider: connection.provider,
-    apiKey: connection.apiKey,
-    providerSpecificData: connection.providerSpecificData,
+    provider: connectionObj.provider as string,
+    apiKey: connectionObj.apiKey as string,
+    providerSpecificData: connectionObj.providerSpecificData as Record<string, unknown>,
   });
 
-  if (result.unsupported) {
+  if ("unsupported" in result && result.unsupported) {
     const error = "Provider test not supported";
     return {
       valid: false,
@@ -532,7 +560,7 @@ async function testApiKeyConnection(connection: any) {
   return {
     valid: !!result.valid,
     error,
-    warning: result.warning || null,
+    warning: ("warning" in result ? result.warning : null) || null,
     diagnosis,
   };
 }
@@ -566,30 +594,33 @@ export async function testSingleConnection(connectionId: string, validationModel
   }
 
   // Resolve proxy for this connection (key → combo → provider → global → direct)
-  let proxyInfo: any = null;
+  let proxyInfo: Record<string, unknown> | null = null;
   try {
     proxyInfo = await resolveProxyForConnection(connectionId);
-  } catch (proxyErr: any) {
-    console.log(`[ConnectionTest] Failed to resolve proxy for ${connectionId}:`, proxyErr?.message);
+  } catch (proxyErr: unknown) {
+    console.log(
+      `[ConnectionTest] Failed to resolve proxy for ${connectionId}:`,
+      (proxyErr as Error)?.message
+    );
   }
 
   let result;
   const startTime = Date.now();
   const runtime = await getProviderRuntimeStatus(connection);
 
-  if ((runtime as any)?.diagnosis) {
+  if ((runtime as Record<string, unknown>)?.diagnosis) {
     result = {
       valid: false,
-      error: (runtime as any).error,
+      error: (runtime as Record<string, unknown>).error,
       refreshed: false,
-      diagnosis: (runtime as any).diagnosis,
+      diagnosis: (runtime as Record<string, unknown>).diagnosis,
     };
   } else if (connection.authType === "apikey") {
     const enrichedConnection = validationModelId
       ? {
           ...connection,
           providerSpecificData: {
-            ...((connection.providerSpecificData as any) || {}),
+            ...((connection.providerSpecificData as Record<string, unknown>) || {}),
             validationModelId,
           },
         }
@@ -598,7 +629,7 @@ export async function testSingleConnection(connectionId: string, validationModel
       testApiKeyConnection(enrichedConnection)
     );
   } else {
-    result = await runWithProxyContext(proxyInfo?.proxy || null, () =>
+    result = await runWithProxyContext((proxyInfo?.proxy as string) || null, () =>
       testOAuthConnection(connection)
     );
   }
@@ -613,7 +644,7 @@ export async function testSingleConnection(connectionId: string, validationModel
       ? makeDiagnosis("ok", "local", null, null)
       : classifyFailure({ error: result.error, statusCode: result.statusCode }));
 
-  const updateData: Record<string, any> = {
+  const updateData: Record<string, unknown> = {
     testStatus: result.valid ? "active" : "error",
     lastError: result.valid ? null : result.error,
     lastErrorAt: result.valid ? null : now,
@@ -665,11 +696,48 @@ export async function testSingleConnection(connectionId: string, validationModel
 
   // Log to Proxy tab (proxy_logs table)
   try {
+    const proxyType =
+      proxyInfo &&
+      typeof proxyInfo === "object" &&
+      "type" in proxyInfo &&
+      typeof proxyInfo.type === "string"
+        ? proxyInfo.type
+        : "";
+    const proxyHost =
+      proxyInfo &&
+      typeof proxyInfo === "object" &&
+      "host" in proxyInfo &&
+      typeof proxyInfo.host === "string"
+        ? proxyInfo.host
+        : "";
+    const proxyPort =
+      proxyInfo &&
+      typeof proxyInfo === "object" &&
+      "port" in proxyInfo &&
+      typeof proxyInfo.port === "string"
+        ? proxyInfo.port
+        : "";
+
     logProxyEvent({
       status: result.valid ? "success" : "error",
-      proxy: proxyInfo?.proxy || null,
-      level: proxyInfo?.level || "provider-test",
-      levelId: proxyInfo?.levelId || null,
+      proxy:
+        proxyType && proxyHost && proxyPort
+          ? { type: proxyType, host: proxyHost, port: proxyPort }
+          : null,
+      level:
+        proxyInfo &&
+        typeof proxyInfo === "object" &&
+        "level" in proxyInfo &&
+        typeof proxyInfo.level === "string"
+          ? proxyInfo.level
+          : "provider-test",
+      levelId:
+        proxyInfo &&
+        typeof proxyInfo === "object" &&
+        "levelId" in proxyInfo &&
+        typeof proxyInfo.levelId === "string"
+          ? proxyInfo.levelId
+          : null,
       provider,
       targetUrl: `${provider}/connection-test`,
       latencyMs,

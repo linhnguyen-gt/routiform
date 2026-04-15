@@ -72,7 +72,7 @@ export async function PATCH(request) {
     }
     const { profiles, defaults } = validation.data;
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     if (profiles) updates.providerProfiles = profiles;
     if (defaults) updates.rateLimitDefaults = defaults;
 

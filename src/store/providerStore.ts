@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-const useProviderStore = create((set, get) => ({
+const useProviderStore = create((set, _get) => ({
   providers: [],
   loading: false,
   error: null,
@@ -35,7 +35,7 @@ const useProviderStore = create((set, get) => ({
       } else {
         set({ error: data.error, loading: false });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: "Failed to fetch providers", loading: false });
     }
   },

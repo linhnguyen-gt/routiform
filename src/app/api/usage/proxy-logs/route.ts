@@ -1,4 +1,4 @@
-import { getProxyLogs, clearProxyLogs, getProxyLogStats } from "@/lib/proxyLogger";
+import { getProxyLogs, clearProxyLogs } from "@/lib/proxyLogger";
 
 /**
  * GET /api/usage/proxy-logs — get proxy usage logs
@@ -8,19 +8,20 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const filters: Record<string, any> = {};
+    const filters: Record<string, string | number | null> = {};
     if (searchParams.get("status")) filters.status = searchParams.get("status");
     if (searchParams.get("type")) filters.type = searchParams.get("type");
     if (searchParams.get("provider")) filters.provider = searchParams.get("provider");
     if (searchParams.get("level")) filters.level = searchParams.get("level");
     if (searchParams.get("search")) filters.search = searchParams.get("search");
-    if (searchParams.get("limit")) filters.limit = parseInt(searchParams.get("limit"), 10);
+    const limitParam = searchParams.get("limit");
+    if (limitParam) filters.limit = parseInt(limitParam, 10);
 
     const logs = getProxyLogs(filters);
     return Response.json(logs);
   } catch (error) {
     return Response.json(
-      { error: { message: (error as any).message, type: "server_error" } },
+      { error: { message: (error as Error).message, type: "server_error" } },
       { status: 500 }
     );
   }
@@ -35,7 +36,7 @@ export async function DELETE() {
     return Response.json({ cleared: true });
   } catch (error) {
     return Response.json(
-      { error: { message: (error as any).message, type: "server_error" } },
+      { error: { message: (error as Error).message, type: "server_error" } },
       { status: 500 }
     );
   }

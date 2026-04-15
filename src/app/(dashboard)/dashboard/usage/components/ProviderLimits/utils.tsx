@@ -79,7 +79,7 @@ export function formatResetTime(date) {
   try {
     const resetDate = typeof date === "string" ? new Date(date) : date;
     const now = new Date();
-    const diffMs = (resetDate as any) - (now as any);
+    const diffMs = resetDate.getTime() - now.getTime();
 
     if (diffMs <= 0) return "-";
 
@@ -102,7 +102,7 @@ export function formatResetTime(date) {
     const days = Math.floor(totalHours / 24);
     const remainingHours = totalHours % 24;
     return `${days}d ${remainingHours}h ${remainingMinutes}m`;
-  } catch (error) {
+  } catch (_error) {
     return "-";
   }
 }
@@ -174,7 +174,11 @@ function isPastResetWindow(resetAt) {
   return Date.now() >= resetTime;
 }
 
-function normalizeQuotaEntry(name: string, quota: any = {}, extras: any = {}) {
+function normalizeQuotaEntry(
+  name: string,
+  quota: Record<string, unknown> = {},
+  extras: Record<string, unknown> = {}
+) {
   const usedRaw = Number(quota?.used || 0);
   const totalRaw = Number(quota?.total || 0);
   const resetAt = quota?.resetAt || null;
@@ -219,41 +223,66 @@ export function parseQuotaData(provider, data) {
     switch (provider.toLowerCase()) {
       case "github":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([name, quota]: [string, any]) => {
-            if (quota?.unlimited && (!quota?.total || quota.total <= 0)) {
-              return;
+          Object.entries(data.quotas).forEach(
+            ([name, quota]: [string, Record<string, unknown>]) => {
+              if (quota?.unlimited && (!quota?.total || (quota.total as number) <= 0)) {
+                return;
+              }
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
             }
-            normalizedQuotas.push(normalizeQuotaEntry(name, quota));
-          });
+          );
         }
         break;
 
       case "antigravity":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([modelKey, quota]: [string, any]) => {
-            // Unlike GitHub, Antigravity marks tab-completion / no-reset models as unlimited with total 0 — still show them.
-            normalizedQuotas.push(
-              normalizeQuotaEntry(modelKey, quota, {
-                modelKey: modelKey,
-              })
-            );
-          });
+          Object.entries(data.quotas).forEach(
+            ([modelKey, quota]: [string, Record<string, unknown>]) => {
+              if (modelKey === "credits") {
+                // Credit balance: render as "N credits remaining" counter, not a progress bar
+                const remaining = Number(quota?.remaining ?? 0);
+                normalizedQuotas.push({
+                  name: "credits",
+                  used: 0,
+                  total: 0,
+                  remaining,
+                  resetAt: null,
+                  unlimited: false,
+                  isCredits: true,
+                  // Show green if >50, yellow if >10, red if ≤10
+                  remainingPercentage: remaining > 50 ? 100 : remaining > 10 ? 60 : 20,
+                  creditCount: remaining,
+                });
+                return;
+              }
+              // Unlike GitHub, Antigravity marks tab-completion / no-reset models as unlimited with total 0 — still show them.
+              normalizedQuotas.push(
+                normalizeQuotaEntry(modelKey, quota, {
+                  modelKey: modelKey,
+                })
+              );
+            }
+          );
         }
         break;
 
       case "codex":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([quotaType, quota]: [string, any]) => {
-            normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
-          });
+          Object.entries(data.quotas).forEach(
+            ([quotaType, quota]: [string, Record<string, unknown>]) => {
+              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
+            }
+          );
         }
         break;
 
       case "kiro":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([quotaType, quota]: [string, any]) => {
-            normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
-          });
+          Object.entries(data.quotas).forEach(
+            ([quotaType, quota]: [string, Record<string, unknown>]) => {
+              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
+            }
+          );
         }
         break;
 
@@ -268,26 +297,32 @@ export function parseQuotaData(provider, data) {
             message: data.message,
           });
         } else if (data.quotas) {
-          Object.entries(data.quotas).forEach(([name, quota]: [string, any]) => {
-            normalizedQuotas.push(normalizeQuotaEntry(name, quota));
-          });
+          Object.entries(data.quotas).forEach(
+            ([name, quota]: [string, Record<string, unknown>]) => {
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
+            }
+          );
         }
         break;
 
       case "gemini-cli":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([modelKey, quota]: [string, any]) => {
-            normalizedQuotas.push(normalizeQuotaEntry(modelKey, quota, { modelKey }));
-          });
+          Object.entries(data.quotas).forEach(
+            ([modelKey, quota]: [string, Record<string, unknown>]) => {
+              normalizedQuotas.push(normalizeQuotaEntry(modelKey, quota, { modelKey }));
+            }
+          );
         }
         break;
 
       default:
         // Generic fallback for unknown providers
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([name, quota]: [string, any]) => {
-            normalizedQuotas.push(normalizeQuotaEntry(name, quota));
-          });
+          Object.entries(data.quotas).forEach(
+            ([name, quota]: [string, Record<string, unknown>]) => {
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
+            }
+          );
         }
     }
   } catch (error) {

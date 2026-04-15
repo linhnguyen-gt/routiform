@@ -19,6 +19,8 @@ import {
   getPromptCacheCreationTokensOrNull,
   getPromptCacheReadTokensOrNull,
   getReasoningTokensOrNull,
+  getPromptTokenDetailsOrNull,
+  getCompletionTokenDetailsOrNull,
 } from "./tokenAccounting";
 import { isNoLog } from "../compliance";
 import { sanitizePII } from "../piiSanitizer";
@@ -51,6 +53,8 @@ type CallLogArtifact = {
       cacheRead: number | null;
       cacheCreation: number | null;
       reasoning: number | null;
+      promptDetails: Record<string, unknown> | null;
+      completionDetails: Record<string, unknown> | null;
     };
     requestType: string | null;
     sourceFormat: string | null;
@@ -197,6 +201,8 @@ function buildArtifact(
     tokensCacheRead: number | null;
     tokensCacheCreation: number | null;
     tokensReasoning: number | null;
+    tokensPromptDetails: Record<string, unknown> | null;
+    tokensCompletionDetails: Record<string, unknown> | null;
     requestType: string | null;
     sourceFormat: string | null;
     targetFormat: string | null;
@@ -229,6 +235,8 @@ function buildArtifact(
         cacheRead: logEntry.tokensCacheRead,
         cacheCreation: logEntry.tokensCacheCreation,
         reasoning: logEntry.tokensReasoning,
+        promptDetails: logEntry.tokensPromptDetails,
+        completionDetails: logEntry.tokensCompletionDetails,
       },
       requestType: logEntry.requestType,
       sourceFormat: logEntry.sourceFormat,
@@ -380,11 +388,11 @@ export function cleanupOverflowCallLogFiles(baseDir = CALL_LOGS_DIR, maxEntries?
   }
 }
 
-export async function saveCallLog(entry: any) {
+export async function saveCallLog(entry: Record<string, unknown>) {
   if (!shouldPersistToDisk) return;
 
   try {
-    const apiKeyId = entry.apiKeyId || null;
+    const apiKeyId = String(entry.apiKeyId || "");
     const noLogEnabled = Boolean(entry.noLog) || (apiKeyId ? isNoLog(apiKeyId) : false);
 
     const protectedRequestBody = noLogEnabled ? null : protectPayloadForLog(entry.requestBody);
@@ -394,25 +402,27 @@ export async function saveCallLog(entry: any) {
       : protectPipelinePayloads(entry.pipelinePayloads ?? entry.pipeline ?? null);
     const protectedError = sanitizeErrorForLog(entry.error);
 
-    const account = await resolveAccountName(entry.connectionId || null);
+    const account = await resolveAccountName(String(entry.connectionId || ""));
 
     const logEntry = {
       id: typeof entry.id === "string" && entry.id.length > 0 ? entry.id : generateLogId(),
       timestamp: typeof entry.timestamp === "string" ? entry.timestamp : new Date().toISOString(),
-      method: entry.method || "POST",
-      path: entry.path || "/v1/chat/completions",
-      status: entry.status || 0,
-      model: entry.model || "-",
-      requestedModel: entry.requestedModel || null,
-      provider: entry.provider || "-",
+      method: String(entry.method || "POST"),
+      path: String(entry.path || "/v1/chat/completions"),
+      status: typeof entry.status === "number" ? entry.status : 0,
+      model: String(entry.model || "-"),
+      requestedModel: String(entry.requestedModel || ""),
+      provider: String(entry.provider || "-"),
       account,
-      connectionId: entry.connectionId || null,
-      duration: entry.duration || 0,
+      connectionId: String(entry.connectionId || ""),
+      duration: typeof entry.duration === "number" ? entry.duration : 0,
       tokensIn: toNumber(getLoggedInputTokens(entry.tokens)),
       tokensOut: toNumber(getLoggedOutputTokens(entry.tokens)),
       tokensCacheRead: getPromptCacheReadTokensOrNull(entry.tokens),
       tokensCacheCreation: getPromptCacheCreationTokensOrNull(entry.tokens),
       tokensReasoning: getReasoningTokensOrNull(entry.tokens),
+      tokensPromptDetails: getPromptTokenDetailsOrNull(entry.tokens),
+      tokensCompletionDetails: getCompletionTokenDetailsOrNull(entry.tokens),
       requestType: entry.requestType || null,
       sourceFormat: entry.sourceFormat || null,
       targetFormat: entry.targetFormat || null,
@@ -444,8 +454,9 @@ export async function saveCallLog(entry: any) {
     ).run(logEntry);
 
     if (!noLogEnabled) {
+      const { requestBody: _rb, responseBody: _respb, error: _err, ...artifactEntry } = logEntry;
       const artifact = buildArtifact(
-        logEntry,
+        artifactEntry as Parameters<typeof buildArtifact>[0],
         protectedRequestBody,
         protectedResponseBody,
         protectedError,
@@ -524,7 +535,7 @@ if (shouldPersistToDisk) {
   }
 }
 
-export async function getCallLogs(filter: any = {}) {
+export async function getCallLogs(filter: Record<string, unknown> = {}) {
   const db = getDbInstance();
   let sql = "SELECT * FROM call_logs";
   const conditions: string[] = [];
@@ -536,7 +547,7 @@ export async function getCallLogs(filter: any = {}) {
     } else if (filter.status === "ok") {
       conditions.push("status >= 200 AND status < 300");
     } else {
-      const statusCode = parseInt(filter.status, 10);
+      const statusCode = parseInt(String(filter.status), 10);
       if (!Number.isNaN(statusCode)) {
         conditions.push("status = @statusCode");
         params.statusCode = statusCode;
@@ -601,6 +612,8 @@ export async function getCallLogs(filter: any = {}) {
         cacheRead: l.tokens_cache_read === null ? null : toNumber(l.tokens_cache_read),
         cacheCreation: l.tokens_cache_creation === null ? null : toNumber(l.tokens_cache_creation),
         reasoning: l.tokens_reasoning === null ? null : toNumber(l.tokens_reasoning),
+        promptDetails: null, // Only available from JSON artifact, not DB row
+        completionDetails: null, // Only available from JSON artifact, not DB row
       },
       sourceFormat: toStringOrNull(l.source_format),
       targetFormat: toStringOrNull(l.target_format),
@@ -653,6 +666,8 @@ export async function getCallLogById(id: string) {
       cacheCreation:
         entryRow.tokens_cache_creation === null ? null : toNumber(entryRow.tokens_cache_creation),
       reasoning: entryRow.tokens_reasoning === null ? null : toNumber(entryRow.tokens_reasoning),
+      promptDetails: null, // Read from JSON artifact later
+      completionDetails: null, // Read from JSON artifact later
     },
     sourceFormat: toStringOrNull(entryRow.source_format),
     targetFormat: toStringOrNull(entryRow.target_format),
@@ -668,8 +683,15 @@ export async function getCallLogById(id: string) {
 
   const artifact = readArtifactFromDisk(artifactRelPath);
   if (artifact) {
+    // Merge tokens to retain detail from artifact
+    const artifactTokens = artifact.summary?.tokens || {};
     return {
       ...entry,
+      tokens: {
+        ...entry.tokens,
+        promptDetails: (artifactTokens as Record<string, unknown>).promptDetails ?? null,
+        completionDetails: (artifactTokens as Record<string, unknown>).completionDetails ?? null,
+      },
       requestBody: artifact.requestBody ?? entry.requestBody,
       responseBody: artifact.responseBody ?? entry.responseBody,
       error: artifact.error ?? entry.error,

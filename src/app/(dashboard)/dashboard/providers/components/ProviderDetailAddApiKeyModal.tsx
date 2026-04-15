@@ -82,19 +82,19 @@ export function ProviderDetailAddApiKeyModal({
       const trimmedApiKey = formData.apiKey.trim();
       const isQoderOAuthToken = isQoder && trimmedApiKey.startsWith("pt-");
 
-      console.log('[Qoder Debug]', {
+      console.log("[Qoder Debug]", {
         provider,
         isQoder,
-        trimmedApiKey: trimmedApiKey.substring(0, 10) + '...',
+        trimmedApiKey: trimmedApiKey.substring(0, 10) + "...",
         startsWithPt: trimmedApiKey.startsWith("pt-"),
-        isQoderOAuthToken
+        isQoderOAuthToken,
       });
 
       if (!isQoderOAuthToken) {
         const isValid = await validateKey();
         if (!isValid) return setSaveError(t("apiKeyValidationFailed"));
       } else {
-        console.log('[Qoder Debug] Skipping validation for OAuth token');
+        console.log("[Qoder Debug] Skipping validation for OAuth token");
       }
 
       const providerSpecificData: Record<string, unknown> = {};
@@ -105,7 +105,7 @@ export function ProviderDetailAddApiKeyModal({
       else if (isVertex) providerSpecificData.region = formData.region;
       else if (isGlm) providerSpecificData.apiRegion = formData.apiRegion;
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         name: formData.name,
         apiKey: trimmedApiKey,
         priority: formData.priority,

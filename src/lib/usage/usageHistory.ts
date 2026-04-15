@@ -147,7 +147,7 @@ export async function getUsageDb(sinceIso?: string | null) {
 /**
  * Save request usage entry to SQLite.
  */
-export async function saveRequestUsage(entry: any) {
+export async function saveRequestUsage(entry: Record<string, unknown>) {
   if (!shouldPersistToDisk) return;
 
   try {
@@ -171,7 +171,9 @@ export async function saveRequestUsage(entry: any) {
       getLoggedOutputTokens(entry.tokens),
       getPromptCacheReadTokens(entry.tokens),
       getPromptCacheCreationTokens(entry.tokens),
-      entry.tokens?.reasoning ?? entry.tokens?.reasoning_tokens ?? 0,
+      (entry.tokens as Record<string, unknown>)?.reasoning ??
+        (entry.tokens as Record<string, unknown>)?.reasoning_tokens ??
+        0,
       entry.status || null,
       entry.success === false ? 0 : 1,
       Number.isFinite(Number(entry.latencyMs)) ? Number(entry.latencyMs) : 0,
@@ -193,7 +195,7 @@ export async function saveRequestUsage(entry: any) {
 /**
  * Get usage history with optional filters.
  */
-export async function getUsageHistory(filter: any = {}) {
+export async function getUsageHistory(filter: Record<string, unknown> = {}) {
   const db = getDbInstance();
   let sql = "SELECT * FROM usage_history";
   const conditions: string[] = [];
@@ -209,11 +211,11 @@ export async function getUsageHistory(filter: any = {}) {
   }
   if (filter.startDate) {
     conditions.push("timestamp >= @startDate");
-    params.startDate = new Date(filter.startDate).toISOString();
+    params.startDate = new Date(filter.startDate as string | number | Date).toISOString();
   }
   if (filter.endDate) {
     conditions.push("timestamp <= @endDate");
-    params.endDate = new Date(filter.endDate).toISOString();
+    params.endDate = new Date(filter.endDate as string | number | Date).toISOString();
   }
 
   if (conditions.length > 0) {
@@ -398,7 +400,7 @@ export async function appendRequestLog({
   model?: string;
   provider?: string;
   connectionId?: string;
-  tokens?: any;
+  tokens?: Record<string, unknown>;
   status?: string | number;
 }) {
   // Deprecated: request summaries now come from SQLite call_logs.
@@ -432,8 +434,11 @@ export async function getRecentLogs(limit = 200) {
       const status = typeof row.status === "number" ? row.status : String(row.status || "-");
       return `${timestamp} | ${model} | ${provider} | ${account} | ${tokensIn} | ${tokensOut} | ${status}`;
     });
-  } catch (error: any) {
-    console.error("[usageDb] Failed to read recent call logs:", error.message);
+  } catch (error: unknown) {
+    console.error(
+      "[usageDb] Failed to read recent call logs:",
+      error instanceof Error ? error.message : String(error)
+    );
     return [];
   }
 }

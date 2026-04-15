@@ -24,7 +24,14 @@ export class QoderExecutor extends BaseExecutor {
     super("qoder", PROVIDERS.qoder);
   }
 
-  async execute({ model, body, _stream, credentials, signal, upstreamExtraHeaders }: ExecuteInput) {
+  async execute({
+    model,
+    body,
+    stream: _stream,
+    credentials,
+    signal,
+    upstreamExtraHeaders,
+  }: ExecuteInput) {
     const token = getAuthToken(credentials);
 
     if (!token) {

@@ -58,13 +58,13 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
       let url;
       try {
         url = new URL(callbackUrl);
-      } catch (e) {
+      } catch (_e) {
         // If URL parsing fails, might be malformed
         throw new Error("Invalid callback URL format");
       }
 
       const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
+      const _state = url.searchParams.get("state");
       const errorParam = url.searchParams.get("error");
 
       if (errorParam) {

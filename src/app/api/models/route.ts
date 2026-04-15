@@ -17,14 +17,14 @@ export async function GET(request: Request) {
     if (!showAll) {
       try {
         const connections = await getProviderConnections();
-        const active = connections.filter((c: any) => c.isActive !== false);
+        const active = connections.filter((c: Record<string, unknown>) => c.isActive !== false);
         // Include both provider IDs and their aliases in the active set.
         // PROVIDER_MODELS keys are aliases (e.g. 'cc' for 'claude', 'gh' for 'github').
         // DB connections are stored under provider IDs ('claude', 'github').
         // Without this, models for aliased providers always appear unconfigured.
         activeProviders = new Set<string>();
         for (const c of active) {
-          const pId = String((c as any).provider);
+          const pId = String((c as Record<string, unknown>).provider);
           activeProviders.add(pId);
           const alias = PROVIDER_ID_TO_ALIAS[pId];
           if (alias) activeProviders.add(alias);
@@ -34,16 +34,18 @@ export async function GET(request: Request) {
       }
     }
 
-    const models = AI_MODELS.map((m: any) => {
-      const fullModel = `${m.provider}/${m.model}`;
-      const available = !activeProviders || activeProviders.has(m.provider);
-      return {
-        ...m,
-        fullModel,
-        alias: modelAliases[fullModel] || m.model,
-        available,
-      };
-    }).filter((m: any) => showAll || m.available);
+    const models = AI_MODELS.map(
+      (m: { provider: string; model: string; [key: string]: unknown }) => {
+        const fullModel = `${m.provider}/${m.model}`;
+        const available = !activeProviders || activeProviders.has(m.provider);
+        return {
+          ...m,
+          fullModel,
+          alias: modelAliases[fullModel] || m.model,
+          available,
+        };
+      }
+    ).filter((m: { available: boolean }) => showAll || m.available);
 
     return NextResponse.json({ models });
   } catch (error) {

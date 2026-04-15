@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, Button, Select, Badge } from "@/shared/components";
 import { ALIAS_TO_ID } from "@/shared/constants/providers";
 import dynamic from "next/dynamic";
@@ -149,10 +149,19 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+interface ImageItem {
+  url?: string;
+  b64_json?: string;
+  revised_prompt?: string;
+}
+
+interface ImageGenerationData {
+  data?: ImageItem[];
+}
+
 /** Render image results from OpenAI-compatible format */
-function ImageResultsInline({ data }: { data: any }) {
-  const images: Array<{ url?: string; b64_json?: string; revised_prompt?: string }> =
-    data?.data || [];
+function ImageResultsInline({ data }: { data: ImageGenerationData }) {
+  const images: ImageItem[] = data?.data || [];
   if (images.length === 0) return null;
   return (
     <div className="p-4 space-y-3">
@@ -198,7 +207,7 @@ export default function PlaygroundPage() {
   const [requestBody, setRequestBody] = useState("");
   const [responseBody, setResponseBody] = useState("");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [imageData, setImageData] = useState<any>(null);
+  const [imageData, setImageData] = useState<ImageGenerationData | null>(null);
   const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [responseStatus, setResponseStatus] = useState<number | null>(null);
@@ -271,7 +280,7 @@ export default function PlaygroundPage() {
   const generateDefaultBody = (endpoint: string, model: string) => {
     const template = { ...DEFAULT_BODIES[endpoint] };
     if ("model" in template) {
-      (template as any).model = model;
+      (template as Record<string, unknown>).model = model;
     }
     return JSON.stringify(template, null, 2);
   };
@@ -325,11 +334,14 @@ export default function PlaygroundPage() {
   };
 
   /** Inject uploaded images into chat messages body */
-  const buildChatBodyWithImages = (parsed: any, imageBase64s: string[]): any => {
+  const buildChatBodyWithImages = (
+    parsed: Record<string, unknown>,
+    imageBase64s: string[]
+  ): Record<string, unknown> => {
     if (!imageBase64s.length) return parsed;
-    const messages = [...(parsed.messages || [])];
+    const messages = [...((parsed.messages as unknown[]) || [])];
     if (messages.length === 0) return parsed;
-    const lastMsg = messages[messages.length - 1];
+    const lastMsg = messages[messages.length - 1] as Record<string, unknown>;
     const currentContent = typeof lastMsg.content === "string" ? lastMsg.content : "";
     messages[messages.length - 1] = {
       ...lastMsg,
@@ -384,7 +396,7 @@ export default function PlaygroundPage() {
           signal: controller.signal,
         });
       } else {
-        let parsed = JSON.parse(requestBody);
+        let parsed: Record<string, unknown> = JSON.parse(requestBody);
         // Inject vision images if available
         if (supportsVision && uploadedImages.length > 0) {
           parsed = buildChatBodyWithImages(parsed, uploadedImages);
@@ -435,11 +447,13 @@ export default function PlaygroundPage() {
           setTranscriptionText(data.text || "(empty result — check provider credentials)");
         }
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
         setResponseBody(JSON.stringify({ cancelled: true }, null, 2));
       } else {
-        setResponseBody(JSON.stringify({ error: err.message }, null, 2));
+        setResponseBody(
+          JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }, null, 2)
+        );
       }
       setResponseDuration(Date.now() - startTime);
     }
@@ -486,7 +500,7 @@ export default function PlaygroundPage() {
             </label>
             <Select
               value={selectedEndpoint}
-              onChange={(e: any) => handleEndpointChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) => handleEndpointChange(e.target.value)}
               options={ENDPOINT_OPTIONS}
               className="w-full"
             />
@@ -500,7 +514,9 @@ export default function PlaygroundPage() {
               </label>
               <Select
                 value={selectedProvider}
-                onChange={(e: any) => handleProviderChange(e.target.value)}
+                onChange={(e: { target: { value: string } }) =>
+                  handleProviderChange(e.target.value)
+                }
                 options={providers}
                 className="w-full"
               />
@@ -515,7 +531,7 @@ export default function PlaygroundPage() {
               </label>
               <Select
                 value={selectedModel}
-                onChange={(e: any) => handleModelChange(e.target.value)}
+                onChange={(e: { target: { value: string } }) => handleModelChange(e.target.value)}
                 options={filteredModels}
                 className="w-full"
               />
@@ -530,7 +546,9 @@ export default function PlaygroundPage() {
               </label>
               <Select
                 value={selectedConnection}
-                onChange={(e: any) => setSelectedConnection(e.target.value)}
+                onChange={(e: { target: { value: string } }) =>
+                  setSelectedConnection(e.target.value)
+                }
                 options={[
                   {
                     value: "",
@@ -696,7 +714,8 @@ export default function PlaygroundPage() {
                     <button
                       onClick={() => {
                         const template = { ...DEFAULT_BODIES[selectedEndpoint] };
-                        if ("model" in template) (template as any).model = selectedModel;
+                        if ("model" in template)
+                          (template as Record<string, unknown>).model = selectedModel;
                         setRequestBody(JSON.stringify(template, null, 2));
                       }}
                       className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-text-main transition-colors"

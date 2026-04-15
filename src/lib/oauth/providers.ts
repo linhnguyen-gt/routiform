@@ -7,7 +7,7 @@
  * @see ./providers/index.js for the registry
  */
 
-import { generatePKCE, generateState } from "./utils/pkce";
+import { generatePKCE } from "./utils/pkce";
 import { PROVIDERS } from "./providers/index";
 
 /**

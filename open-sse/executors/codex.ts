@@ -3,6 +3,8 @@ import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.ts";
 import { PROVIDERS } from "../config/constants.ts";
 import { generateSessionId } from "../services/sessionManager.ts";
 import { refreshCodexToken } from "../services/tokenRefresh.ts";
+import { getThinkingBudgetConfig, ThinkingMode } from "../services/thinkingBudget.ts";
+import { getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
 // ─── T09: Codex vs Spark Scope-Aware Rate Limiting ────────────────────────
 // Codex has two independent quota pools: "codex" (standard) and "spark" (premium).
@@ -114,7 +116,6 @@ export function getCodexResetTime(quota: CodexQuotaSnapshot): number | null {
 const EFFORT_ORDER = ["none", "low", "medium", "high", "xhigh"] as const;
 type EffortLevel = (typeof EFFORT_ORDER)[number];
 const CODEX_FAST_WIRE_VALUE = "priority";
-let defaultFastServiceTierEnabled = false;
 
 function getResponsesSubpath(endpointPath: unknown): string | null {
   const normalizedEndpoint = String(endpointPath || "").replace(/\/+$/, "");
@@ -135,8 +136,10 @@ function normalizeServiceTierValue(value: unknown): string | undefined {
   return normalized;
 }
 
-export function setDefaultFastServiceTierEnabled(enabled: boolean): void {
-  defaultFastServiceTierEnabled = enabled;
+function normalizeEffortValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toLowerCase();
+  return normalized || undefined;
 }
 
 /**
@@ -244,6 +247,9 @@ export class CodexExecutor extends BaseExecutor {
   transformRequest(model, body, stream, credentials) {
     const nativeCodexPassthrough = body?._nativeCodexPassthrough === true;
     const isCompactRequest = isCompactResponsesEndpoint(credentials?.requestEndpointPath);
+    const requestDefaults = getCodexRequestDefaults(credentials?.providerSpecificData);
+    const thinkingBudgetConfig = getThinkingBudgetConfig();
+    const allowConnectionReasoningDefaults = thinkingBudgetConfig.mode === ThinkingMode.PASSTHROUGH;
 
     // Codex /responses rejects stream=false, but /responses/compact rejects the stream field entirely.
     if (isCompactRequest) {
@@ -257,8 +263,8 @@ export class CodexExecutor extends BaseExecutor {
     const requestServiceTier = normalizeServiceTierValue(body.service_tier);
     if (requestServiceTier) {
       body.service_tier = requestServiceTier;
-    } else if (defaultFastServiceTierEnabled) {
-      body.service_tier = CODEX_FAST_WIRE_VALUE;
+    } else if (requestDefaults.serviceTier) {
+      body.service_tier = requestDefaults.serviceTier;
     }
 
     // If no instructions provided, inject default Codex instructions
@@ -271,19 +277,6 @@ export class CodexExecutor extends BaseExecutor {
     // Ensure store is false (Codex requirement)
     body.store = false;
 
-    // Normalize effort suffix early so generated session_id reflects effective Codex wire semantics.
-    const effortLevels = ["none", "low", "medium", "high", "xhigh"];
-    let modelEffort: string | null = null;
-    const rawModel = typeof body.model === "string" && body.model ? body.model : model;
-    let cleanModel = rawModel;
-    for (const level of effortLevels) {
-      if (rawModel.endsWith(`-${level}`)) {
-        modelEffort = level;
-        cleanModel = rawModel.replace(`-${level}`, "");
-        break;
-      }
-    }
-
     const normalizedSessionInput = Array.isArray(body.input)
       ? body.input
       : typeof body.input === "string" && body.input.trim()
@@ -294,7 +287,7 @@ export class CodexExecutor extends BaseExecutor {
     if (!body.session_id) {
       body.session_id = generateSessionId(
         {
-          model: cleanModel,
+          model: typeof body.model === "string" ? body.model : model,
           system: body.instructions,
           input: normalizedSessionInput,
           tools: Array.isArray(body.tools) ? body.tools : undefined,
@@ -308,52 +301,42 @@ export class CodexExecutor extends BaseExecutor {
     delete body.messages;
     delete body.prompt;
 
-    // Remove session_id - generated for internal tracking but not supported by upstream Codex API
-    delete body.session_id;
-
-    // Normalize suffixed model IDs before passthrough so upstream Codex receives
-    // the wire model name rather than the internal convenience suffix.
-    // e.g., gpt-5.3-codex-high → gpt-5.3-codex
-    if (modelEffort) {
-      body.model = cleanModel;
-      if (!body.reasoning) {
-        body.reasoning = { effort: clampEffort(cleanModel, modelEffort) };
-      } else if (body.reasoning.effort) {
-        body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
+    const effortLevels = ["none", "low", "medium", "high", "xhigh"];
+    let modelEffort: string | null = null;
+    let cleanModel = typeof body.model === "string" ? body.model : model;
+    for (const level of effortLevels) {
+      if (typeof cleanModel === "string" && cleanModel.endsWith(`-${level}`)) {
+        modelEffort = level;
+        body.model = cleanModel.slice(0, -`-${level}`.length);
+        cleanModel = body.model;
+        break;
       }
-      delete body.reasoning_effort;
     }
 
-    // Always normalize or remove reasoning_effort shorthand before passthrough
-    // to avoid leaking internal convenience fields upstream (even when no model suffix)
-    if (body.reasoning_effort) {
-      if (!body.reasoning) {
-        body.reasoning = { effort: clampEffort(cleanModel, body.reasoning_effort) };
-      } else if (body.reasoning.effort) {
-        // Keep reasoning.effort precedence if already set
-        body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
-      }
-      delete body.reasoning_effort;
+    const explicitReasoning = normalizeEffortValue(body?.reasoning?.effort);
+    const requestReasoningEffort = normalizeEffortValue(body.reasoning_effort);
+    const fallbackReasoningEffort = allowConnectionReasoningDefaults
+      ? requestDefaults.reasoningEffort || "medium"
+      : undefined;
+    const rawEffort =
+      explicitReasoning || requestReasoningEffort || modelEffort || fallbackReasoningEffort;
+
+    if (explicitReasoning) {
+      body.reasoning = {
+        ...(body.reasoning && typeof body.reasoning === "object" ? body.reasoning : {}),
+        effort: clampEffort(cleanModel, explicitReasoning),
+      };
+    } else if (rawEffort) {
+      body.reasoning = {
+        ...(body.reasoning && typeof body.reasoning === "object" ? body.reasoning : {}),
+        effort: clampEffort(cleanModel, rawEffort),
+      };
     }
+    delete body.reasoning_effort;
 
     if (nativeCodexPassthrough) {
       return body;
     }
-
-    // Apply normalized model/effect for the actual Codex wire request.
-    // e.g., gpt-5.3-codex-high → model gpt-5.3-codex with reasoning high
-
-    // Priority: explicit reasoning.effort > reasoning_effort param > model suffix > default (medium)
-    if (!body.reasoning) {
-      const rawEffort = body.reasoning_effort || modelEffort || "medium";
-      // Clamp effort to the model's maximum allowed level (feature-07)
-      const effort = clampEffort(cleanModel, rawEffort);
-      body.reasoning = { effort };
-    } else if (body.reasoning.effort) {
-      // Also clamp if reasoning object was provided directly
-      body.reasoning.effort = clampEffort(cleanModel, body.reasoning.effort);
-    }
-    delete body.reasoning_effort;
 
     // Remove unsupported parameters for Codex API
     delete body.temperature;
@@ -370,6 +353,7 @@ export class CodexExecutor extends BaseExecutor {
     delete body.metadata; // Cursor sends this but Codex doesn't support it
     delete body.stream_options; // Cursor sends this but Codex doesn't support it
     delete body.safety_identifier; // Droid CLI sends this but Codex doesn't support it
+    delete body.session_id; // Generated internally but Codex API doesn't support it
 
     return body;
   }

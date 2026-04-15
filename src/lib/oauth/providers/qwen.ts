@@ -54,7 +54,7 @@ export const qwen = {
         const decoded = decodeJwt(tokens.id_token);
         email = decoded.email || decoded.preferred_username || null;
         displayName = decoded.name || email;
-      } catch (e) {
+      } catch (_e) {
         // Ignore
       }
     }
@@ -64,7 +64,7 @@ export const qwen = {
         const decodedToken = decodeJwt(tokens.access_token);
         email = decodedToken.email || decodedToken.preferred_username || decodedToken.sub || null;
         displayName = decodedToken.name || email;
-      } catch (e) {
+      } catch (_e) {
         // Ignore
       }
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Card from "@/shared/components/Card";
 import Badge from "@/shared/components/Badge";
@@ -27,7 +26,7 @@ export default function ProviderLimitCard({
   onRefresh,
 }) {
   const [refreshing, setRefreshing] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [imgError, _setImgError] = useState(false);
   const t = useTranslations("usage");
 
   const handleRefresh = async () => {
@@ -54,7 +53,7 @@ export default function ProviderLimitCard({
   };
 
   const providerColor = getProviderColor();
-  const planVariant = planVariants[plan?.toLowerCase()] || "default";
+  const _planVariant = planVariants[plan?.toLowerCase()] || "default";
 
   return (
     <Card padding="md" className="flex flex-col gap-4">
@@ -79,8 +78,8 @@ export default function ProviderLimitCard({
             <h3 className="font-semibold text-text-primary">{name || provider}</h3>
             {plan && (
               <Badge
-                variant={(planVariants as any)[plan?.toLowerCase()] || "default"}
-                size={"xs" as any}
+                variant={(planVariants as Record<string, string>)[plan?.toLowerCase()] || "default"}
+                size="sm"
               >
                 {plan}
               </Badge>

@@ -133,8 +133,8 @@ export default function ProxyRegistryManager() {
       const ids = loaded.map((p) => p.id).filter(Boolean);
       void loadHealth();
       void loadAllUsage(ids);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load proxy registry");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load proxy registry");
       setItems([]);
     } finally {
       setLoading(false);
@@ -172,7 +172,7 @@ export default function ProxyRegistryManager() {
     setModalOpen(true);
   };
 
-  const loadUsage = async (proxyId: string) => {
+  const _loadUsage = async (proxyId: string) => {
     try {
       const res = await fetch(
         `/api/settings/proxies/assignments?proxyId=${encodeURIComponent(proxyId)}`
@@ -226,8 +226,11 @@ export default function ProxyRegistryManager() {
         return;
       }
       setTestById((prev) => ({ ...prev, [item.id]: { success: true, ...data } }));
-    } catch (e: any) {
-      setTestById((prev) => ({ ...prev, [item.id]: { success: false, error: e?.message } }));
+    } catch (e: unknown) {
+      setTestById((prev) => ({
+        ...prev,
+        [item.id]: { success: false, error: e instanceof Error ? e.message : String(e) },
+      }));
     } finally {
       setTestingId(null);
     }
@@ -277,8 +280,8 @@ export default function ProxyRegistryManager() {
       setModalOpen(false);
       setForm(EMPTY_FORM);
       await load();
-    } catch (e: any) {
-      setError(e?.message || "Failed to save proxy");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to save proxy");
     } finally {
       setSaving(false);
     }
@@ -318,8 +321,8 @@ export default function ProxyRegistryManager() {
       }
 
       setError(payload?.error?.message || "Failed to delete proxy");
-    } catch (e: any) {
-      setError(e?.message || "Failed to delete proxy");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to delete proxy");
     }
   };
 
@@ -338,8 +341,8 @@ export default function ProxyRegistryManager() {
         return;
       }
       await load();
-    } catch (e: any) {
-      setError(e?.message || "Failed to migrate legacy proxy config");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to migrate legacy proxy config");
     } finally {
       setMigrating(false);
     }
@@ -375,8 +378,8 @@ export default function ProxyRegistryManager() {
       setBulkOpen(false);
       setBulkScopeIds("");
       await load();
-    } catch (e: any) {
-      setError(e?.message || "Failed to run bulk assignment");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to run bulk assignment");
     } finally {
       setBulkSaving(false);
     }
@@ -446,7 +449,7 @@ export default function ProxyRegistryManager() {
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const usage = usageById[item.id];
+                  const _usage = usageById[item.id];
                   const health = healthById[item.id];
                   return (
                     <tr key={item.id} className="border-b border-border/60">

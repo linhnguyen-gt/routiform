@@ -156,6 +156,7 @@
     "playground": "Площадка",
     "searchTools": "Search Tools",
     "agents": "Агенты",
+    "skills": "Skills",
     "docs": "Документы",
     "issues": "Проблемы",
     "endpoints": "Конечные точки",
@@ -759,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCode требует настройки API-ключа.",
-          "1": "Установите базовый URL на ваш endpoint Routiform."
+          "1": "Установите базовый URL на ваш endpoint Routiform.",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {

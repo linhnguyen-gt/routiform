@@ -28,6 +28,41 @@ export function hasValidContent(msg) {
   return false;
 }
 
+// Re-hydrate text blocks that encode tool_result back to tool_result blocks.
+// chatCore.ts converts tool_result → "[Tool Result: <id>]\n<text>" when routing
+// through non-Claude providers. This reverses that conversion before sending to Claude.
+export function rehydrateToolResultTextBlocks(messages: unknown[]): void {
+  const TOOL_RESULT_RE = /^\[Tool Result: ([^\]]+)\]\n?([\s\S]*)$/;
+
+  const toolUseIds = new Set<string>();
+  for (const msg of messages) {
+    const message = msg as Record<string, unknown>;
+    if (message.role === "assistant" && Array.isArray(message.content)) {
+      for (const block of message.content) {
+        const contentBlock = block as Record<string, unknown>;
+        if (contentBlock.type === "tool_use" && contentBlock.id) {
+          toolUseIds.add(String(contentBlock.id));
+        }
+      }
+    }
+  }
+
+  for (const msg of messages) {
+    const message = msg as Record<string, unknown>;
+    if (message.role === "user" && Array.isArray(message.content)) {
+      const content = message.content as Array<{ type: string; text?: string }>;
+      message.content = content.flatMap((block: { type: string; text?: string }) => {
+        if (block.type !== "text") return [block];
+        const m = TOOL_RESULT_RE.exec(block.text ?? "");
+        if (!m) return [block];
+        const [, callId, resultText] = m;
+        if (!toolUseIds.has(callId)) return [block];
+        return [{ type: "tool_result", tool_use_id: callId, content: resultText.trim() }];
+      });
+    }
+  }
+}
+
 // Fix tool_use/tool_result ordering for Claude API
 // 1. Assistant message with tool_use: remove text AFTER tool_use (Claude doesn't allow)
 // 2. Merge consecutive same-role messages
@@ -130,11 +165,12 @@ function ensureMessageContentArray(msg) {
   return [];
 }
 
-function markMessageCacheControl(msg, ttl = undefined) {
+function markMessageCacheControl(msg: unknown, ttl: number | undefined = undefined) {
   const content = ensureMessageContentArray(msg);
   if (content.length === 0) return false;
   const lastIndex = content.length - 1;
-  content[lastIndex].cache_control =
+  const lastContent = content[lastIndex] as Record<string, unknown>;
+  lastContent.cache_control =
     ttl !== undefined ? { type: "ephemeral", ttl } : { type: "ephemeral" };
   return true;
 }
@@ -199,6 +235,9 @@ export function prepareClaudeRequest(body, provider = null, preserveCacheControl
     if (body.tools && Array.isArray(body.tools)) {
       body.tools = body.tools.filter((tool) => tool.name && tool.name?.trim());
     }
+
+    // Pass 1.45: Re-hydrate [Tool Result: id] text blocks → tool_result blocks
+    rehydrateToolResultTextBlocks(filtered);
 
     // Pass 1.5: Fix tool_use/tool_result ordering
     // Each tool_use must have tool_result in the NEXT message (not same message with other content)

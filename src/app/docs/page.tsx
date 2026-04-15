@@ -85,17 +85,23 @@ const TOC_ITEMS = [
   { href: "#troubleshooting", labelKey: "troubleshooting" },
 ] as const;
 
+interface ProviderEntry {
+  id: string;
+  name: string;
+  alias?: string;
+}
+
 function ProviderTable({
   title,
   providers,
   colorDot,
 }: {
   title: string;
-  providers: Record<string, any>;
+  providers: Record<string, ProviderEntry>;
   colorDot: string;
 }) {
   const t = useTranslations("docs");
-  const entries = Object.values(providers) as any[];
+  const entries = Object.values(providers);
 
   return (
     <div className="rounded-lg border border-border bg-bg p-4">

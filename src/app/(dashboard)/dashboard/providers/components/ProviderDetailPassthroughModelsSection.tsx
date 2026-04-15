@@ -26,12 +26,12 @@ export function PassthroughModelsSection({
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
 
-  const providerAliases = Object.entries(modelAliases).filter(([, model]: [string, any]) =>
-    (model as string).startsWith(`${providerAlias}/`)
+  const providerAliases = Object.entries(modelAliases).filter(([, model]: [string, string]) =>
+    model.startsWith(`${providerAlias}/`)
   );
 
-  const allModels = providerAliases.map(([alias, fullModel]: [string, any]) => {
-    const fmStr = fullModel as string;
+  const allModels = providerAliases.map(([alias, fullModel]: [string, string]) => {
+    const fmStr = fullModel;
     const prefix = `${providerAlias}/`;
     return {
       modelId: fmStr.startsWith(prefix) ? fmStr.slice(prefix.length) : fmStr,

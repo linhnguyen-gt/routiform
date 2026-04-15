@@ -21,7 +21,7 @@ import { sanitizeRequest } from "../shared/utils/inputSanitizer";
  * @param {GuardOptions} [options={}]
  * @returns {(req: Request) => { blocked: boolean, result: Object }|null}
  */
-export function createInjectionGuard(options: any = {}) {
+export function createInjectionGuard(options: Record<string, unknown> = {}) {
   const mode = options.mode || process.env.INJECTION_GUARD_MODE || "warn";
   const logger = options.logger || console;
 
@@ -31,23 +31,27 @@ export function createInjectionGuard(options: any = {}) {
    * @param {Object} body - The parsed request body
    * @returns {{ blocked: boolean, result: Object }}
    */
-  return function guardRequest(body: any) {
+  return function guardRequest(body: Record<string, unknown>) {
     if (!body || typeof body !== "object") {
       return { blocked: false, result: { flagged: false, detections: [], piiDetections: [] } };
     }
 
-    const result: any = sanitizeRequest(body, logger);
+    const result = sanitizeRequest(body, logger as Console);
 
     // Check if any detections were found (sanitizeRequest returns .detections, NOT .flagged)
-    if (result.detections.length === 0 && result.piiDetections.length === 0) {
+    const resultObj = result as {
+      detections: Array<{ pattern: string; severity: string }>;
+      piiDetections: unknown[];
+    };
+    if (resultObj.detections.length === 0 && resultObj.piiDetections.length === 0) {
       return { blocked: false, result };
     }
 
-    const highSeverity = result.detections.filter((d) => d.severity === "high");
+    const highSeverity = resultObj.detections.filter((d) => d.severity === "high");
 
     if (mode === "block" && highSeverity.length > 0) {
-      logger.warn("[InjectionGuard] Blocked request with high-severity injection:", {
-        detections: result.detections.map((d) => ({ pattern: d.pattern, severity: d.severity })),
+      (logger as Console).warn("[InjectionGuard] Blocked request with high-severity injection:", {
+        detections: resultObj.detections.map((d) => ({ pattern: d.pattern, severity: d.severity })),
       });
       return { blocked: true, result };
     }
@@ -56,8 +60,11 @@ export function createInjectionGuard(options: any = {}) {
       logger[mode === "warn" ? "warn" : "info"](
         "[InjectionGuard] Detected potential injection patterns:",
         {
-          detections: result.detections.map((d) => ({ pattern: d.pattern, severity: d.severity })),
-          pii: result.piiDetections.length,
+          detections: resultObj.detections.map((d) => ({
+            pattern: d.pattern,
+            severity: d.severity,
+          })),
+          pii: resultObj.piiDetections.length,
         }
       );
     }
@@ -73,10 +80,13 @@ export function createInjectionGuard(options: any = {}) {
  * @param {GuardOptions} [options={}]
  * @returns {Function} Wrapped handler
  */
-export function withInjectionGuard(handler: any, options: any = {}) {
+export function withInjectionGuard(
+  handler: (request: Request, context: unknown) => Promise<Response>,
+  options: Record<string, unknown> = {}
+) {
   const guard = createInjectionGuard(options);
 
-  return async function guardedHandler(request: any, context: any) {
+  return async function guardedHandler(request: Request, context: unknown) {
     // Only apply to POST/PUT/PATCH
     if (!["POST", "PUT", "PATCH"].includes(request.method)) {
       return handler(request, context);
@@ -88,15 +98,16 @@ export function withInjectionGuard(handler: any, options: any = {}) {
       const body = await cloned.json().catch(() => null);
 
       if (body) {
-        const { blocked, result }: any = guard(body);
+        const { blocked, result }: { blocked: boolean; result: unknown } = guard(body);
 
         if (blocked) {
+          const resultObj = result as { detections: unknown[] };
           return new Response(
             JSON.stringify({
               error: {
                 message: "Request blocked: potential prompt injection detected",
                 type: "injection_detected",
-                detections: result.detections.length,
+                detections: resultObj.detections.length,
               },
             }),
             { status: 400, headers: { "Content-Type": "application/json" } }
@@ -104,9 +115,10 @@ export function withInjectionGuard(handler: any, options: any = {}) {
         }
 
         // Attach sanitization result as header for downstream handlers
-        if (result.flagged) {
+        const resultObj = result as { flagged?: boolean; detections: unknown[] };
+        if (resultObj.flagged) {
           request.headers.set("X-Injection-Flagged", "true");
-          request.headers.set("X-Injection-Detections", String(result.detections.length));
+          request.headers.set("X-Injection-Detections", String(resultObj.detections.length));
         }
       }
     } catch {

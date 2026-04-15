@@ -1,5 +1,5 @@
 import { getCloudSyncScheduler } from "@/shared/services/cloudSyncScheduler";
-import { isCloudEnabled, cleanupProviderConnections } from "@/lib/localDb";
+import { cleanupProviderConnections } from "@/lib/localDb";
 
 /**
  * Initialize cloud sync scheduler

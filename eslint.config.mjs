@@ -14,15 +14,15 @@ const eslintConfig = [
   },
   // Relaxed rules for open-sse and tests (incremental adoption)
   {
-    files: ["open-sse/**/*.ts", "tests/**/*.ts"],
+    files: ["open-sse/**/*.ts", "src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
     },
     rules: {
       "no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",

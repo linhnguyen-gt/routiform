@@ -9,7 +9,7 @@ export default function AntigravityToolCard({
   tool,
   isExpanded,
   onToggle,
-  baseUrl,
+  baseUrl: _baseUrl,
   apiKeys,
   activeProviders,
   hasActiveProviders,

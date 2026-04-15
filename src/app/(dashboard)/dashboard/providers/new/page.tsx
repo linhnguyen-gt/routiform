@@ -28,7 +28,7 @@ export default function NewProviderPage() {
     displayName: "",
     isActive: true,
   });
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -38,7 +38,7 @@ export default function NewProviderPage() {
   };
 
   const validate = () => {
-    const newErrors: any = {};
+    const newErrors: Record<string, string> = {};
     if (!formData.provider) newErrors.provider = t("selectProvider");
     if (formData.authMethod === "api_key" && !formData.apiKey) {
       newErrors.apiKey = t("apiKeyRequired");
@@ -65,14 +65,16 @@ export default function NewProviderPage() {
         const data = await response.json();
         setErrors({ submit: data.error || t("failedCreate") });
       }
-    } catch (error) {
+    } catch (_error) {
       setErrors({ submit: t("errorOccurred") });
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedProvider = (AI_PROVIDERS as any)[formData.provider];
+  const selectedProvider = (
+    AI_PROVIDERS as Record<string, { name: string; color: string; icon: string } | undefined>
+  )[formData.provider];
 
   return (
     <div className="max-w-2xl mx-auto min-w-0">

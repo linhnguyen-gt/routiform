@@ -85,7 +85,7 @@ export default function OnboardingWizard() {
     if (step > 0) setStep(step - 1);
   };
 
-  const [errorMessage, setErrorMessage] = useState("");
+  const [_errorMessage, setErrorMessage] = useState("");
 
   const handleSetPassword = async () => {
     if (skipSecurity) {

@@ -41,7 +41,7 @@ export async function POST(request) {
 }
 
 // GET /api/sync/status - Check sync initialization status
-export async function GET(request) {
+export async function GET(_request: Request) {
   return NextResponse.json({
     initialized: syncInitialized,
     modelSyncInitialized,

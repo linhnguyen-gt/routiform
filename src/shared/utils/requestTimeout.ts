@@ -33,9 +33,13 @@ export async function fetchWithTimeout(url: string, options: RequestInit & Timeo
       signal: controller.signal,
     });
     return response;
-  } catch (error: any) {
-    if (error.name === "AbortError" || controller.signal.aborted) {
-      const timeoutError: any = new Error(`${label} timed out after ${timeoutMs}ms`);
+  } catch (error: unknown) {
+    if ((error as Error).name === "AbortError" || controller.signal.aborted) {
+      const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`) as Error & {
+        name: string;
+        originalUrl?: string;
+        timeoutMs?: number;
+      };
       timeoutError.name = "TimeoutError";
       timeoutError.originalUrl = url;
       timeoutError.timeoutMs = timeoutMs;
@@ -64,7 +68,10 @@ export async function withTimeout<T>(
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      const error: any = new Error(`${label} timed out after ${timeoutMs}ms`);
+      const error = new Error(`${label} timed out after ${timeoutMs}ms`) as Error & {
+        name: string;
+        timeoutMs?: number;
+      };
       error.name = "TimeoutError";
       error.timeoutMs = timeoutMs;
       reject(error);

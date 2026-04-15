@@ -38,7 +38,7 @@ function checkCertInstalledMac(certPath) {
   });
 }
 
-function checkCertInstalledWindows(certPath) {
+function checkCertInstalledWindows(_certPath: string) {
   return new Promise((resolve) => {
     // Check Root store for our cert by subject name
     exec("certutil -store Root daily-cloudcode-pa.googleapis.com", (error) => {
@@ -119,7 +119,7 @@ async function uninstallCertMac(sudoPassword, certPath) {
   try {
     await execWithPassword(command, sudoPassword);
     console.log("✅ Uninstalled certificate from system keychain");
-  } catch (err) {
+  } catch (_err) {
     throw new Error("Failed to uninstall certificate");
   }
 }

@@ -39,7 +39,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
         } else {
           setError(data.error || "Could not auto-detect token");
         }
-      } catch (err) {
+      } catch (_err) {
         setError("Failed to auto-detect token");
       } finally {
         setAutoDetecting(false);

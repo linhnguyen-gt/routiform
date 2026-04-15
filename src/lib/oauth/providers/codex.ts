@@ -72,7 +72,7 @@ function parseIdToken(idToken: string): { email: string | null; authInfo: CodexA
     const authInfo = decoded["https://api.openai.com/auth"] || null;
 
     return { email, authInfo };
-  } catch (e) {
+  } catch (_e) {
     return { email: null, authInfo: null };
   }
 }

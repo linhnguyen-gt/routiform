@@ -75,6 +75,11 @@ import {
   isClaudeCodeCompatibleProvider,
   resolveClaudeCodeCompatibleSessionId,
 } from "../services/claudeCodeCompatible.ts";
+import { remapToolNamesInRequest } from "../services/claudeCodeToolRemapper.ts";
+import {
+  enforceThinkingTemperature,
+  disableThinkingIfToolChoiceForced,
+} from "../services/claudeCodeConstraints.ts";
 import { getNextFamilyFallback } from "../services/modelFamilyFallback.ts";
 import {
   initializeRateLimits,
@@ -99,7 +104,10 @@ import {
   shouldAttemptModelFallback,
 } from "./phases/model-fallback-handler.ts";
 import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
-import { translateNonStreamingResponse } from "./responseTranslator.ts";
+import {
+  applyForcedToolChoiceFallback,
+  translateNonStreamingResponse,
+} from "./responseTranslator.ts";
 import {
   parseSSEToClaudeResponse,
   parseSSEToOpenAIResponse,
@@ -539,6 +547,17 @@ export async function handleChatCore({
         now: new Date(),
         preserveCacheControl,
       });
+
+      // Apply parity pipeline (synchronous steps — CCH signing is async and
+      // runs later in BaseExecutor over the serialized string).
+      // Only thinking constraints and tool remapping are applied here; cache-control
+      // limit enforcement (enforceCacheControlLimit) is intentionally omitted because
+      // the billing-header system block added by buildClaudeCodeCompatibleRequest counts
+      // toward the 4-block cap and would strip legitimate client cache markers.
+      remapToolNamesInRequest(translatedBody);
+      enforceThinkingTemperature(translatedBody);
+      disableThinkingIfToolChoiceForced(translatedBody);
+
       log?.debug?.("FORMAT", "claude-code-compatible bridge enabled");
     } else if (isClaudePassthrough && preserveCacheControl) {
       // Pure passthrough: when preserveCacheControl is true, forward the body
@@ -1868,6 +1887,10 @@ export async function handleChatCore({
           toolNameMap as Map<string, string> | null
         )
       : responseBody;
+
+    // Apply forced tool_choice fallback for Codex upstream that ignores tool_choice
+    // and returns JSON as plain text content instead of tool_calls
+    translatedResponse = applyForcedToolChoiceFallback(body, translatedResponse);
 
     // T26: Strip markdown code blocks if provider format is Claude
     if (sourceFormat === "claude" && !stream) {

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     // Read response
     const contentType = res.headers.get("content-type") || "";
-    let responseBody: any;
+    let responseBody: unknown;
 
     if (contentType.includes("application/json")) {
       responseBody = await res.json();
@@ -89,13 +89,13 @@ export async function POST(request: NextRequest) {
       latencyMs,
       contentType,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         status: 0,
         statusText: "Network Error",
         headers: {},
-        body: { error: error.message || "Request failed" },
+        body: { error: error instanceof Error ? error.message : String(error) || "Request failed" },
         latencyMs: 0,
         contentType: "application/json",
       },

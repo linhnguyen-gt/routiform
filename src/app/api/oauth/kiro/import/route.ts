@@ -11,7 +11,7 @@ import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
  * POST /api/oauth/kiro/import
  * Import and validate refresh token from Kiro IDE
  */
-export async function POST(request: any) {
+export async function POST(request: Request) {
   let rawBody;
   try {
     rawBody = await request.json();
@@ -48,7 +48,7 @@ export async function POST(request: any) {
     const email = kiroService.extractEmailFromJWT(tokenData.accessToken);
 
     // Save to database
-    const connection: any = await createProviderConnection({
+    const connection: Record<string, unknown> = await createProviderConnection({
       provider: "kiro",
       authType: "oauth",
       accessToken: tokenData.accessToken,
@@ -74,9 +74,12 @@ export async function POST(request: any) {
         email: connection.email,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Kiro import token error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
 

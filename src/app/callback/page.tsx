@@ -30,7 +30,7 @@ function CallbackContent() {
     let sent = false;
 
     // Check if this callback is from expected origin/port
-    const expectedOrigins = [
+    const _expectedOrigins = [
       window.location.origin, // Same origin (for most providers)
       "http://localhost:1455", // Codex specific port
     ];

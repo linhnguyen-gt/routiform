@@ -59,7 +59,7 @@ export async function POST(request, { params }) {
         );
     }
   } catch (error) {
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -76,7 +76,7 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
   await fs.mkdir(configDir, { recursive: true });
 
   // Read existing config if any
-  let existingConfig: any = {};
+  let existingConfig: Record<string, unknown> = {};
   try {
     const raw = await fs.readFile(configPath, "utf-8");
     existingConfig = JSON.parse(raw);
@@ -108,17 +108,20 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
   }
 
   // Check if Routiform entry already exists and update it, or add new
-  const existingIdx = models.findIndex(
+  const existingIdx = (models as unknown[]).findIndex(
     (m) =>
       m &&
-      (m.routiformManaged === true ||
-        m.routiformManaged === true ||
-        normalizeApiBase(m.apiBase) === normalizedBaseUrl.toLowerCase() ||
-        normalizeApiBase(m.apiBase).includes("routiform") ||
-        normalizeApiBase(m.apiBase).includes("routiform") ||
-        normalizeApiBase(m.apiBase).includes(`localhost:${apiPort}`) ||
-        normalizeApiBase(m.apiBase).includes(`127.0.0.1:${apiPort}`) ||
-        String(m.apiKey || "")
+      typeof m === "object" &&
+      m !== null &&
+      ((m as Record<string, unknown>).routiformManaged === true ||
+        (m as Record<string, unknown>).routiformManaged === true ||
+        normalizeApiBase((m as Record<string, unknown>).apiBase) ===
+          normalizedBaseUrl.toLowerCase() ||
+        normalizeApiBase((m as Record<string, unknown>).apiBase).includes("routiform") ||
+        normalizeApiBase((m as Record<string, unknown>).apiBase).includes("routiform") ||
+        normalizeApiBase((m as Record<string, unknown>).apiBase).includes(`localhost:${apiPort}`) ||
+        normalizeApiBase((m as Record<string, unknown>).apiBase).includes(`127.0.0.1:${apiPort}`) ||
+        String((m as Record<string, unknown>).apiKey || "")
           .toLowerCase()
           .includes("sk_routiform"))
   );
@@ -126,7 +129,7 @@ async function saveContinueConfig({ baseUrl, apiKey, model }) {
   if (existingIdx >= 0) {
     models[existingIdx] = routerModel;
   } else {
-    models.push(routerModel);
+    (models as unknown[]).push(routerModel);
   }
 
   existingConfig.models = models;
@@ -160,7 +163,7 @@ async function saveOpenCodeConfig({ baseUrl, apiKey, model, models }) {
     .replace(/\/+$/, "");
 
   // Read existing JSON to preserve other provider entries
-  let existingConfig: Record<string, any> = {};
+  let existingConfig: Record<string, unknown> = {};
   try {
     const raw = await fs.readFile(configPath, "utf-8");
     existingConfig = JSON.parse(raw);

@@ -106,7 +106,9 @@ export async function GET(
       let deviceData;
       if (provider === "github" || provider === "kiro" || provider === "kilocode") {
         // GitHub, Kiro, and KiloCode don't use PKCE for device code
-        deviceData = await runWithProxyContext(proxy, () => (requestDeviceCode as any)(provider));
+        deviceData = await runWithProxyContext(proxy, () =>
+          (requestDeviceCode as Function)(provider)
+        );
       } else {
         // Qwen and other providers use PKCE
         deviceData = await runWithProxyContext(proxy, () =>
@@ -127,7 +129,7 @@ export async function GET(
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.log("OAuth GET error:", error);
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -135,7 +137,7 @@ export async function GET(
  * Start Codex callback server on port 1455
  * Returns the auth URL and stores codeVerifier for later exchange
  */
-async function handleStartCallbackServer(provider: string, searchParams: URLSearchParams) {
+async function handleStartCallbackServer(provider: string, _searchParams: URLSearchParams) {
   if (provider !== "codex") {
     return NextResponse.json(
       { error: "Callback server only supported for codex" },
@@ -147,7 +149,7 @@ async function handleStartCallbackServer(provider: string, searchParams: URLSear
   if (globalThis.__codexCallbackState?.close) {
     try {
       globalThis.__codexCallbackState.close();
-    } catch (e) {
+    } catch (_e) {
       /* ignore */
     }
   }
@@ -180,7 +182,7 @@ async function handleStartCallbackServer(provider: string, searchParams: URLSear
       if (globalThis.__codexCallbackState?.startedAt === startedAt) {
         try {
           close();
-        } catch (e) {
+        } catch (_e) {
           /* ignore */
         }
         globalThis.__codexCallbackState = null;
@@ -194,7 +196,7 @@ async function handleStartCallbackServer(provider: string, searchParams: URLSear
       serverPort: port,
     });
   } catch (error) {
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -206,7 +208,7 @@ export async function POST(
 ) {
   try {
     const { provider, action } = await params;
-    let rawBody: any = {};
+    let rawBody: Record<string, unknown> = {};
     try {
       rawBody = await request.json();
     } catch {
@@ -223,7 +225,7 @@ export async function POST(
       }
     }
 
-    let body: any = rawBody;
+    let body: Record<string, unknown> = rawBody;
     if (action === "exchange") {
       const validation = validateBody(oauthExchangeSchema, rawBody);
       if (isValidationFailure(validation)) {
@@ -288,21 +290,35 @@ export async function POST(
         ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString()
         : null;
 
-      let connection: any;
+      let connection: Record<string, unknown> | undefined;
       if (tokenData.email) {
         const existing = await getProviderConnections({ provider });
-        const match = existing.find((c: any) => {
+        const match = existing.find((c: Record<string, unknown>) => {
           // safeEqual: constant-time comparison to prevent timing attacks (CWE-208, finding #258-6/7)
-          if (!safeEqual(c.email, tokenPayload.email as string) || c.authType !== "oauth") {
+          const email = typeof tokenPayload.email === "string" ? tokenPayload.email : "";
+          const cEmail = typeof c.email === "string" ? c.email : "";
+          if (!safeEqual(cEmail, email) || c.authType !== "oauth") {
             return false;
           }
           // For Codex, also check workspaceId to avoid overwriting different workspace connections
-          if (provider === "codex" && (tokenPayload.providerSpecificData as any)?.workspaceId) {
-            const existingWorkspace = c.providerSpecificData?.workspaceId;
-            return safeEqual(
-              existingWorkspace,
-              (tokenPayload.providerSpecificData as any).workspaceId
-            );
+          const providerData =
+            tokenPayload.providerSpecificData &&
+            typeof tokenPayload.providerSpecificData === "object" &&
+            !Array.isArray(tokenPayload.providerSpecificData)
+              ? (tokenPayload.providerSpecificData as Record<string, unknown>)
+              : null;
+          if (provider === "codex" && providerData?.workspaceId) {
+            const cProviderData =
+              c.providerSpecificData &&
+              typeof c.providerSpecificData === "object" &&
+              !Array.isArray(c.providerSpecificData)
+                ? (c.providerSpecificData as Record<string, unknown>)
+                : null;
+            const existingWorkspace =
+              typeof cProviderData?.workspaceId === "string" ? cProviderData.workspaceId : "";
+            const newWorkspace =
+              typeof providerData.workspaceId === "string" ? providerData.workspaceId : "";
+            return safeEqual(existingWorkspace, newWorkspace);
           }
           return true;
         });
@@ -351,12 +367,12 @@ export async function POST(
       if (provider === "github" || provider === "kimi-coding" || provider === "kilocode") {
         // For providers that don't use PKCE (like GitHub, Kiro, Kimi Coding), don't pass codeVerifier
         result = await runWithProxyContext(proxy, () =>
-          (pollForToken as any)(provider, deviceCode)
+          (pollForToken as Function)(provider, deviceCode)
         );
       } else if (provider === "kiro") {
         // Kiro needs extraData (clientId, clientSecret) from device code response
         result = await runWithProxyContext(proxy, () =>
-          (pollForToken as any)(provider, deviceCode, null, extraData)
+          (pollForToken as Function)(provider, deviceCode, null, extraData)
         );
       } else {
         // Qwen and other providers use PKCE
@@ -364,7 +380,7 @@ export async function POST(
           return NextResponse.json({ error: "Missing code verifier" }, { status: 400 });
         }
         result = await runWithProxyContext(proxy, () =>
-          (pollForToken as any)(provider, deviceCode, codeVerifier)
+          (pollForToken as Function)(provider, deviceCode, codeVerifier)
         );
       }
 
@@ -383,21 +399,35 @@ export async function POST(
           ? new Date(Date.now() + result.tokens.expiresIn * 1000).toISOString()
           : null;
 
-        let connection: any;
+        let connection: Record<string, unknown>;
         if (result.tokens.email) {
           const existing = await getProviderConnections({ provider });
-          const match = existing.find((c: any) => {
+          const match = existing.find((c: Record<string, unknown>) => {
             // safeEqual: constant-time comparison to prevent timing attacks (CWE-208, finding #258-8/9)
-            if (!safeEqual(c.email, tokenPayload.email as string) || c.authType !== "oauth") {
+            const email = typeof tokenPayload.email === "string" ? tokenPayload.email : "";
+            const cEmail = typeof c.email === "string" ? c.email : "";
+            if (!safeEqual(cEmail, email) || c.authType !== "oauth") {
               return false;
             }
             // For Codex, also check workspaceId to avoid overwriting different workspace connections
-            if (provider === "codex" && (tokenPayload.providerSpecificData as any)?.workspaceId) {
-              const existingWorkspace = c.providerSpecificData?.workspaceId;
-              return safeEqual(
-                existingWorkspace,
-                (tokenPayload.providerSpecificData as any).workspaceId
-              );
+            const providerData =
+              tokenPayload.providerSpecificData &&
+              typeof tokenPayload.providerSpecificData === "object" &&
+              !Array.isArray(tokenPayload.providerSpecificData)
+                ? (tokenPayload.providerSpecificData as Record<string, unknown>)
+                : null;
+            if (provider === "codex" && providerData?.workspaceId) {
+              const cProviderData =
+                c.providerSpecificData &&
+                typeof c.providerSpecificData === "object" &&
+                !Array.isArray(c.providerSpecificData)
+                  ? (c.providerSpecificData as Record<string, unknown>)
+                  : null;
+              const existingWorkspace =
+                typeof cProviderData?.workspaceId === "string" ? cProviderData.workspaceId : "";
+              const newWorkspace =
+                typeof providerData.workspaceId === "string" ? providerData.workspaceId : "";
+              return safeEqual(existingWorkspace, newWorkspace);
             }
             return true;
           });
@@ -473,7 +503,7 @@ export async function POST(
       // Clean up server
       try {
         close();
-      } catch (e) {
+      } catch (_e) {
         /* ignore */
       }
       globalThis.__codexCallbackState = null;
@@ -513,21 +543,35 @@ export async function POST(
           ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString()
           : null;
 
-        let connection: any;
+        let connection: Record<string, unknown>;
         if (tokenData.email) {
           const existing = await getProviderConnections({ provider });
-          const match = existing.find((c: any) => {
+          const match = existing.find((c: Record<string, unknown>) => {
             // safeEqual: constant-time comparison to prevent timing attacks (CWE-208, finding #258-6/7)
-            if (!safeEqual(c.email, tokenPayload.email as string) || c.authType !== "oauth") {
+            const email = typeof tokenPayload.email === "string" ? tokenPayload.email : "";
+            const cEmail = typeof c.email === "string" ? c.email : "";
+            if (!safeEqual(cEmail, email) || c.authType !== "oauth") {
               return false;
             }
             // For Codex, also check workspaceId to avoid overwriting different workspace connections
-            if (provider === "codex" && (tokenPayload.providerSpecificData as any)?.workspaceId) {
-              const existingWorkspace = c.providerSpecificData?.workspaceId;
-              return safeEqual(
-                existingWorkspace,
-                (tokenPayload.providerSpecificData as any).workspaceId
-              );
+            const providerData =
+              tokenPayload.providerSpecificData &&
+              typeof tokenPayload.providerSpecificData === "object" &&
+              !Array.isArray(tokenPayload.providerSpecificData)
+                ? (tokenPayload.providerSpecificData as Record<string, unknown>)
+                : null;
+            if (provider === "codex" && providerData?.workspaceId) {
+              const cProviderData =
+                c.providerSpecificData &&
+                typeof c.providerSpecificData === "object" &&
+                !Array.isArray(c.providerSpecificData)
+                  ? (c.providerSpecificData as Record<string, unknown>)
+                  : null;
+              const existingWorkspace =
+                typeof cProviderData?.workspaceId === "string" ? cProviderData.workspaceId : "";
+              const newWorkspace =
+                typeof providerData.workspaceId === "string" ? providerData.workspaceId : "";
+              return safeEqual(existingWorkspace, newWorkspace);
             }
             return true;
           });
@@ -562,15 +606,18 @@ export async function POST(
             displayName: connection.displayName,
           },
         });
-      } catch (exchangeErr: any) {
-        return NextResponse.json({ success: false, error: exchangeErr.message }, { status: 500 });
+      } catch (exchangeErr: unknown) {
+        return NextResponse.json(
+          { success: false, error: (exchangeErr as Record<string, unknown>).message },
+          { status: 500 }
+        );
       }
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.log("OAuth POST error:", error);
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 

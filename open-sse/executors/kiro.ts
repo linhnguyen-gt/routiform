@@ -1,3 +1,8 @@
+import { v4 as uuidv4 } from "uuid";
+import { CONTEXT_CONFIG } from "../../src/shared/constants/context";
+import { PROVIDERS } from "../config/constants.ts";
+import { refreshKiroToken } from "../services/tokenRefresh.ts";
+import { generateToolCallId } from "../translator/helpers/toolCallHelper.ts";
 import {
   BaseExecutor,
   mergeUpstreamExtraHeaders,
@@ -5,11 +10,6 @@ import {
   type ExecutorLog,
   type ProviderCredentials,
 } from "./base.ts";
-import { PROVIDERS } from "../config/constants.ts";
-import { v4 as uuidv4 } from "uuid";
-import { refreshKiroToken } from "../services/tokenRefresh.ts";
-import { generateToolCallId } from "../translator/helpers/toolCallHelper.ts";
-import { CONTEXT_CONFIG } from "../../src/shared/constants/context";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -94,15 +94,7 @@ export class KiroExecutor extends BaseExecutor {
   /**
    * Custom execute for Kiro - handles AWS EventStream binary response
    */
-  async execute({
-    model,
-    body,
-    stream,
-    credentials,
-    signal,
-    _log,
-    upstreamExtraHeaders,
-  }: ExecuteInput) {
+  async execute({ model, body, stream, credentials, signal, upstreamExtraHeaders }: ExecuteInput) {
     const url = this.buildUrl(model, stream, 0);
     const headers = this.buildHeaders(credentials, stream);
     mergeUpstreamExtraHeaders(headers, upstreamExtraHeaders);

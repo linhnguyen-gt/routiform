@@ -156,6 +156,7 @@
     "playground": "プレイグラウンド",
     "searchTools": "Search Tools",
     "agents": "エージェント",
+    "skills": "Skills",
     "docs": "ドキュメント",
     "issues": "問題点",
     "endpoints": "エンドポイント",
@@ -759,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCodeはAPIキー設定が必要です。",
-          "1": "ベースURLをRoutiformエンドポイントに設定してください。"
+          "1": "ベースURLをRoutiformエンドポイントに設定してください。",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {

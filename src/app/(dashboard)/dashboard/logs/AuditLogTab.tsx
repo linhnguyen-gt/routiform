@@ -14,7 +14,7 @@ interface AuditEntry {
   action: string;
   actor: string;
   target: string | null;
-  details: any;
+  details: Record<string, unknown> | null;
   ip_address: string | null;
 }
 
@@ -46,8 +46,9 @@ export default function AuditLogTab() {
 
       setHasMore(data.length > PAGE_SIZE);
       setEntries(data.slice(0, PAGE_SIZE));
-    } catch (err: any) {
-      setError(err.message || t("failedFetchAuditLog"));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t("failedFetchAuditLog");
+      setError(message);
     } finally {
       setLoading(false);
     }

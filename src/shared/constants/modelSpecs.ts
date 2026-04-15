@@ -100,7 +100,7 @@ export function getModelSpec(modelId: string): ModelSpec | undefined {
   if (MODEL_SPECS[modelId]) return MODEL_SPECS[modelId];
 
   // Buscas por alias
-  for (const [canonical, spec] of Object.entries(MODEL_SPECS)) {
+  for (const [_canonical, spec] of Object.entries(MODEL_SPECS)) {
     if (spec.aliases?.includes(modelId)) return spec;
   }
 

@@ -3,7 +3,6 @@ import { Modal, Input, Button } from "@/shared/components";
 import { useTranslations } from "next-intl";
 
 export default function AutoComboModal({ isOpen, onClose, onSave, combo, activeProviders = [] }) {
-  const t = useTranslations("combos");
   const tc = useTranslations("common");
   const [formData, setFormData] = useState({
     name: "",
@@ -26,7 +25,6 @@ export default function AutoComboModal({ isOpen, onClose, onSave, combo, activeP
         budgetCap: combo.config?.budgetCap || "",
       });
     } else {
-       
       setFormData({
         name: "",
         strategy: "auto",
@@ -123,7 +121,9 @@ export default function AutoComboModal({ isOpen, onClose, onSave, combo, activeP
             min="0"
             max="1"
             value={formData.explorationRate}
-            onChange={(e) => setFormData({ ...formData, explorationRate: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, explorationRate: parseFloat(e.target.value) || 0 })
+            }
           />
           <div>
             <label className="text-sm font-medium mb-1 block">Mode Pack</label>

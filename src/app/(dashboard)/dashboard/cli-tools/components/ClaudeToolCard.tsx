@@ -133,7 +133,7 @@ export default function ClaudeToolCard({
     setApplying(true);
     setMessage(null);
     try {
-      const env: any = { ANTHROPIC_BASE_URL: getEffectiveBaseUrl() };
+      const env: Record<string, string | null> = { ANTHROPIC_BASE_URL: getEffectiveBaseUrl() };
 
       // (#523) Prefer keyId lookup so the backend writes the real key to disk.
       // Fall back to sk_routiform for localhost-only setups without a key.

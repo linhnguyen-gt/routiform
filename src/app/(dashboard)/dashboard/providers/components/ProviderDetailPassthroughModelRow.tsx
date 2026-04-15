@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/shared/components";
 import { cn } from "@/shared/utils/cn";
 import type { PassthroughModelRowProps } from "../[id]/types";
 import { ModelCompatPopover } from "./ModelCompatPopover";

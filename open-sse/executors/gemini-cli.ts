@@ -1,5 +1,8 @@
 import { BaseExecutor } from "./base.ts";
 import { PROVIDERS, OAUTH_ENDPOINTS } from "../config/constants.ts";
+import { geminiCLIUserAgent, googApiClientHeader } from "../services/antigravityHeaders.ts";
+import { scrubProxyAndFingerprintHeaders } from "../services/antigravityHeaderScrub.ts";
+import { obfuscateSensitiveWords } from "../services/antigravityObfuscation.ts";
 
 const LOAD_CODE_ASSIST_URL = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
 const PROJECT_TTL_MS = 30_000; // 30 seconds — matches native Gemini CLI
@@ -22,18 +25,19 @@ export class GeminiCLIExecutor extends BaseExecutor {
   }
 
   buildHeaders(credentials, stream = true) {
-    return {
+    const raw = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${credentials.accessToken}`,
-      // Fingerprint headers matching native GeminiCLI client (prevents upstream rejection)
-      "User-Agent": "GeminiCLI/0.31.0/unknown (linux; x64)",
-      "X-Goog-Api-Client": "google-genai-sdk/1.41.0 gl-node/v22.19.0",
+      // Dynamic headers matching native GeminiCLI client
+      "User-Agent": geminiCLIUserAgent(this._currentModel || "unknown"),
+      "X-Goog-Api-Client": googApiClientHeader(),
       ...(stream && { Accept: "text/event-stream" }),
-      // NOTE: x-goog-user-project removed — the stored projectId can become stale for
-      // free-tier accounts, causing 403 "Cloud Code Private API has not been used in
-      // project X". The API resolves the correct project from the OAuth token alone.
     };
+    return scrubProxyAndFingerprintHeaders(raw);
   }
+
+  // Track current model for dynamic UA (set by transformRequest)
+  private _currentModel = "unknown";
 
   /**
    * Fetch the current cloudaicompanionProject via loadCodeAssist API.
@@ -134,15 +138,29 @@ export class GeminiCLIExecutor extends BaseExecutor {
   }
 
   async transformRequest(model, body, stream, credentials) {
+    // Track model for dynamic User-Agent
+    this._currentModel = model || "unknown";
+
     // Refresh the project ID via loadCodeAssist (cached for 30s).
-    // The translator builds the envelope with the stale stored projectId —
-    // we replace it here with the fresh one before sending to the API.
     if (body && typeof body === "object" && body.request && credentials.accessToken) {
       const freshProject = await this.refreshProject(credentials.accessToken);
       if (freshProject) {
         body.project = freshProject;
       }
-      // If refresh failed, keep the stale projectId as a best-effort fallback
+
+      // Obfuscate sensitive client names in user content
+      const contents = body.request?.contents;
+      if (Array.isArray(contents)) {
+        for (const msg of contents) {
+          if (Array.isArray(msg.parts)) {
+            for (const part of msg.parts) {
+              if (typeof part.text === "string") {
+                part.text = obfuscateSensitiveWords(part.text);
+              }
+            }
+          }
+        }
+      }
     }
     return body;
   }
@@ -165,10 +183,14 @@ export class GeminiCLIExecutor extends BaseExecutor {
         }),
       });
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Routiform] GeminiCLI refresh token error: ${errorText}`);
+        return null;
+      }
 
       const tokens = await response.json();
-      log?.info?.("TOKEN", "Gemini CLI refreshed");
+      log?.info?.("TOKEN", "GeminiCLI refreshed");
 
       return {
         accessToken: tokens.access_token,
@@ -177,7 +199,7 @@ export class GeminiCLIExecutor extends BaseExecutor {
         projectId: credentials.projectId,
       };
     } catch (error) {
-      log?.error?.("TOKEN", `Gemini CLI refresh error: ${error.message}`);
+      console.error(`[Routiform] GeminiCLI refresh error: ${error}`);
       return null;
     }
   }

@@ -119,9 +119,9 @@ export async function POST(request: Request) {
     );
   }
 
-  let credentials: Record<string, any> | null = null;
+  let credentials: Record<string, unknown> | null = null;
   let alternateProviderId: string | undefined;
-  let alternateCredentials: Record<string, any> | null = null;
+  let alternateCredentials: Record<string, unknown> | null = null;
 
   if (body.provider) {
     // Explicit provider — single credential lookup (with fallback)
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
     { filters: body.filters, offset: body.offset, time_range: body.time_range }
   );
 
-  const ttl = providerConfig.cacheTTLMs || SEARCH_CACHE_DEFAULT_TTL_MS;
+  const ttl = providerConfig.cacheTTLMs ?? SEARCH_CACHE_DEFAULT_TTL_MS;
 
   try {
     const { data: searchResult, cached } = await getOrCoalesce(cacheKey, ttl, async () => {
@@ -225,8 +225,12 @@ export async function POST(request: Request) {
     if (!cached && policy.apiKeyInfo?.id && searchResult.usage?.search_cost_usd > 0) {
       try {
         recordCost(policy.apiKeyInfo.id, searchResult.usage.search_cost_usd);
-      } catch (e: any) {
-        log.warn("SEARCH", `Cost recording failed: ${e?.message}`);
+      } catch (e: unknown) {
+        const message =
+          e && typeof e === "object" && "message" in e && typeof e.message === "string"
+            ? e.message
+            : String(e);
+        log.warn("SEARCH", `Cost recording failed: ${message}`);
       }
     }
 
@@ -241,7 +245,7 @@ export async function POST(request: Request) {
       status: 200,
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof SearchError) {
       const errorPayload = toJsonErrorPayload(err.message, "Search provider error");
       return new Response(JSON.stringify(errorPayload), {
@@ -250,8 +254,11 @@ export async function POST(request: Request) {
       });
     }
 
-    log.error("SEARCH", `Unexpected error: ${err.message}`);
-    const errorPayload = toJsonErrorPayload(err.message, "Internal search error");
+    log.error("SEARCH", `Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+    const errorPayload = toJsonErrorPayload(
+      err instanceof Error ? err.message : String(err),
+      "Internal search error"
+    );
     return new Response(JSON.stringify(errorPayload), {
       status: 500,
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },

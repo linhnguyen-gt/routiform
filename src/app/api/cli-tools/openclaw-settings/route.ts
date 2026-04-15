@@ -39,16 +39,19 @@ const readSettings = async () => {
     const settingsPath = getOpenClawSettingsPath();
     const content = await fs.readFile(settingsPath, "utf-8");
     return JSON.parse(content);
-  } catch (error: any) {
-    if (error.code === "ENOENT") return null;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+      return null;
     throw error;
   }
 };
 
 // Check if settings has Routiform config (legacy `routiform` key still counts)
-const hasRoutiformConfig = (settings: any) => {
-  if (!settings || !settings.models || !settings.models.providers) return false;
-  const p = settings.models.providers;
+const hasRoutiformConfig = (settings: Record<string, unknown>) => {
+  if (!settings || !settings.models) return false;
+  const models = settings.models as Record<string, unknown>;
+  if (!models.providers || typeof models.providers !== "object") return false;
+  const p = models.providers as Record<string, unknown>;
   return !!(p["routiform"] || p["routiform"]);
 };
 
@@ -157,7 +160,7 @@ export async function POST(request: Request) {
     await createBackup("openclaw", settingsPath);
 
     // Read existing settings or create new
-    let settings: Record<string, any> = {};
+    let settings: Record<string, unknown> = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
@@ -167,20 +170,25 @@ export async function POST(request: Request) {
 
     // Ensure structure exists
     if (!settings.agents) settings.agents = {};
-    if (!settings.agents.defaults) settings.agents.defaults = {};
-    if (!settings.agents.defaults.model) settings.agents.defaults.model = {};
+    const settingsAgents = settings.agents as Record<string, unknown>;
+    if (!settingsAgents.defaults) settingsAgents.defaults = {};
+    const settingsDefaults = settingsAgents.defaults as Record<string, unknown>;
+    if (!settingsDefaults.model) settingsDefaults.model = {};
     if (!settings.models) settings.models = {};
-    if (!settings.models.providers) settings.models.providers = {};
+    const settingsModels = settings.models as Record<string, unknown>;
+    if (!settingsModels.providers) settingsModels.providers = {};
 
     // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 
     // Update agents.defaults.model.primary
-    settings.agents.defaults.model.primary = `routiform/${model}`;
+    const modelConfig = settingsDefaults.model as Record<string, unknown>;
+    modelConfig.primary = `routiform/${model}`;
 
     // Update models.providers.routiform
-    delete settings.models.providers["routiform"];
-    settings.models.providers["routiform"] = {
+    const settingsProviders = settingsModels.providers as Record<string, unknown>;
+    delete settingsProviders["routiform"];
+    settingsProviders["routiform"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
       api: "openai-completions",
@@ -225,12 +233,12 @@ export async function DELETE() {
     await createBackup("openclaw", settingsPath);
 
     // Read existing settings
-    let settings: Record<string, any> = {};
+    let settings: Record<string, unknown> = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         return NextResponse.json({
           success: true,
           message: "No settings file to reset",
@@ -240,23 +248,43 @@ export async function DELETE() {
     }
 
     // Remove Routiform from models.providers
-    if (settings.models && settings.models.providers) {
-      delete settings.models.providers["routiform"];
-      delete settings.models.providers["routiform"];
+    if (settings.models && typeof settings.models === "object") {
+      const models = settings.models as Record<string, unknown>;
+      if (models.providers && typeof models.providers === "object") {
+        const providers = models.providers as Record<string, unknown>;
+        delete providers["routiform"];
+        delete providers["routiform"];
 
-      // Remove providers object if empty
-      if (Object.keys(settings.models.providers).length === 0) {
-        delete settings.models.providers;
+        // Remove providers object if empty
+        if (Object.keys(providers).length === 0) {
+          delete models.providers;
+        }
       }
     }
 
     // Reset agents.defaults.model.primary if it uses routiform or legacy routiform
-    const primary = settings.agents?.defaults?.model?.primary;
+    const agentsDefaults =
+      settings.agents && typeof settings.agents === "object" && !Array.isArray(settings.agents)
+        ? (settings.agents as Record<string, unknown>)
+        : null;
+    const defaults =
+      agentsDefaults?.defaults &&
+      typeof agentsDefaults.defaults === "object" &&
+      !Array.isArray(agentsDefaults.defaults)
+        ? (agentsDefaults.defaults as Record<string, unknown>)
+        : null;
+    const primary =
+      defaults?.model && typeof defaults.model === "object" && !Array.isArray(defaults.model)
+        ? (defaults.model as Record<string, unknown>).primary
+        : undefined;
     if (
       typeof primary === "string" &&
       (primary.startsWith("routiform/") || primary.startsWith("routiform/"))
     ) {
-      delete settings.agents.defaults.model.primary;
+      const agents = settings.agents as Record<string, unknown>;
+      const defaults = agents.defaults as Record<string, unknown>;
+      const modelConfig = defaults.model as Record<string, unknown>;
+      delete modelConfig.primary;
     }
 
     // Write updated settings

@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     if (isOpenAICompatibleProvider(provider)) {
-      const node: any = await getProviderNodeById(provider);
+      const node: Record<string, unknown> = await getProviderNodeById(provider);
       if (!node) {
         return NextResponse.json({ error: "OpenAI Compatible node not found" }, { status: 404 });
       }
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
         ...(node.modelsPath ? { modelsPath: node.modelsPath } : {}),
       };
     } else if (isAnthropicCompatibleProvider(provider)) {
-      const node: any = await getProviderNodeById(provider);
+      const node: Record<string, unknown> = await getProviderNodeById(provider);
       if (!node) {
         return NextResponse.json(
           {
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
     // Note: Gemini model sync is now triggered client-side with progress dialog
 
     // Hide sensitive fields
-    const result: Record<string, any> = { ...newConnection };
+    const result: Record<string, unknown> = { ...newConnection };
     delete result.apiKey;
     delete result.accessToken;
 

@@ -19,7 +19,7 @@ export default function AppearanceTab() {
   const { colorTheme, customColor, setColorTheme, setCustomColorTheme } = useThemeStore();
   const t = useTranslations("settings");
   const tSidebar = useTranslations("sidebar");
-  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [customThemeColor, setCustomThemeColor] = useState(customColor || "#3b82f6");
@@ -71,7 +71,7 @@ export default function AppearanceTab() {
       .catch(() => setLoading(false));
   }, []);
 
-  const updateSetting = async (key: string, value: any) => {
+  const updateSetting = async (key: string, value: unknown) => {
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",

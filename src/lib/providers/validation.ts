@@ -16,6 +16,7 @@ import {
 } from "@/shared/constants/providers";
 import { validateQoderCliPat } from "@routiform/open-sse/services/qoderCli.ts";
 
+type JsonRecord = Record<string, unknown>;
 const OPENAI_LIKE_FORMATS = new Set(["openai", "openai-responses"]);
 const GEMINI_LIKE_FORMATS = new Set(["gemini", "gemini-cli"]);
 
@@ -45,13 +46,24 @@ function addModelsSuffix(baseUrl: string) {
   return `${normalized}/models`;
 }
 
-function resolveBaseUrl(entry: any, providerSpecificData: any = {}) {
-  if (providerSpecificData?.baseUrl) return normalizeBaseUrl(providerSpecificData.baseUrl);
-  if (entry?.baseUrl) return normalizeBaseUrl(entry.baseUrl);
+function resolveBaseUrl(
+  entry: Record<string, unknown>,
+  providerSpecificData: Record<string, unknown> = {}
+) {
+  if (providerSpecificData?.baseUrl && typeof providerSpecificData.baseUrl === "string") {
+    return normalizeBaseUrl(providerSpecificData.baseUrl);
+  }
+  if (entry?.baseUrl && typeof entry.baseUrl === "string") {
+    return normalizeBaseUrl(entry.baseUrl);
+  }
   return "";
 }
 
-function resolveChatUrl(provider: string, baseUrl: string, providerSpecificData: any = {}) {
+function resolveChatUrl(
+  provider: string,
+  baseUrl: string,
+  providerSpecificData: Record<string, unknown> = {}
+) {
   const normalized = normalizeBaseUrl(baseUrl);
   if (!normalized) return "";
 
@@ -80,13 +92,16 @@ function resolveChatUrl(provider: string, baseUrl: string, providerSpecificData:
   return normalized;
 }
 
-function getCustomUserAgent(providerSpecificData: any = {}) {
+function getCustomUserAgent(providerSpecificData: Record<string, unknown> = {}) {
   if (typeof providerSpecificData?.customUserAgent !== "string") return null;
   const customUserAgent = providerSpecificData.customUserAgent.trim();
   return customUserAgent || null;
 }
 
-function applyCustomUserAgent(headers: Record<string, string>, providerSpecificData: any = {}) {
+function applyCustomUserAgent(
+  headers: Record<string, string>,
+  providerSpecificData: Record<string, unknown> = {}
+) {
   const customUserAgent = getCustomUserAgent(providerSpecificData);
   if (!customUserAgent) return headers;
   headers["User-Agent"] = customUserAgent;
@@ -96,7 +111,10 @@ function applyCustomUserAgent(headers: Record<string, string>, providerSpecificD
   return headers;
 }
 
-function withCustomUserAgent(init: RequestInit, providerSpecificData: any = {}) {
+function withCustomUserAgent(
+  init: RequestInit,
+  providerSpecificData: Record<string, unknown> = {}
+) {
   return {
     ...init,
     headers: applyCustomUserAgent(
@@ -106,7 +124,7 @@ function withCustomUserAgent(init: RequestInit, providerSpecificData: any = {}) 
   };
 }
 
-function buildBearerHeaders(apiKey: string, providerSpecificData: any = {}) {
+function buildBearerHeaders(apiKey: string, providerSpecificData: Record<string, unknown> = {}) {
   return applyCustomUserAgent(
     {
       "Content-Type": "application/json",
@@ -123,6 +141,13 @@ async function validateOpenAILikeProvider({
   providerSpecificData = {},
   modelId = "gpt-4o-mini",
   modelsUrl: customModelsUrl,
+}: {
+  provider: string;
+  apiKey: string;
+  baseUrl: string;
+  providerSpecificData?: Record<string, unknown>;
+  modelId?: string;
+  modelsUrl?: string;
 }) {
   if (!baseUrl) {
     return { valid: false, error: "Missing base URL" };
@@ -151,7 +176,10 @@ async function validateOpenAILikeProvider({
     return { valid: false, error: `Validation failed: ${modelsRes.status}` };
   }
 
-  const testModelId = (providerSpecificData as any)?.validationModelId || modelId;
+  const testModelId =
+    typeof providerSpecificData.validationModelId === "string"
+      ? providerSpecificData.validationModelId
+      : modelId;
 
   const testBody = {
     model: testModelId,
@@ -191,7 +219,13 @@ async function validateAnthropicLikeProvider({
   modelId,
   headers = {},
   providerSpecificData = {},
-}: any) {
+}: {
+  apiKey: string;
+  baseUrl: string;
+  modelId?: string;
+  headers?: Record<string, string>;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   if (!baseUrl) {
     return { valid: false, error: "Missing base URL" };
   }
@@ -213,7 +247,11 @@ async function validateAnthropicLikeProvider({
   }
 
   const testModelId =
-    providerSpecificData?.validationModelId || modelId || "claude-3-5-sonnet-20241022";
+    (typeof providerSpecificData?.validationModelId === "string"
+      ? providerSpecificData.validationModelId
+      : null) ||
+    modelId ||
+    "claude-3-5-sonnet-20241022";
 
   const response = await fetch(baseUrl, {
     method: "POST",
@@ -237,7 +275,12 @@ async function validateGeminiLikeProvider({
   baseUrl,
   authType,
   providerSpecificData = {},
-}: any) {
+}: {
+  apiKey: string;
+  baseUrl: string;
+  authType?: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   if (!baseUrl) {
     return { valid: false, error: "Missing base URL" };
   }
@@ -267,10 +310,15 @@ async function validateGeminiLikeProvider({
   // Google returns 400 (not 401/403) for invalid API keys on the models endpoint.
   // Parse the response body to detect auth failures.
   if (response.status === 400 || response.status === 401 || response.status === 403) {
-    const isAuthError = (body: any) => {
-      const message = (body?.error?.message || "").toLowerCase();
-      const reason = body?.error?.details?.[0]?.reason || "";
-      const status = body?.error?.status || "";
+    const isAuthError = (body: Record<string, unknown>) => {
+      const errorObj = body?.error as Record<string, unknown> | undefined;
+      const message = typeof errorObj?.message === "string" ? errorObj.message.toLowerCase() : "";
+      const details = Array.isArray(errorObj?.details) ? errorObj.details : [];
+      const reason =
+        details.length > 0 && typeof details[0] === "object" && details[0] !== null
+          ? (details[0] as Record<string, unknown>).reason
+          : "";
+      const status = typeof errorObj?.status === "string" ? errorObj.status : "";
       const authPatterns = [
         "api key not valid",
         "api key expired",
@@ -309,7 +357,13 @@ async function validateGeminiLikeProvider({
 
 // ── Specialty providers (non-standard APIs) ──
 
-async function validateDeepgramProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateDeepgramProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     const response = await fetch("https://api.deepgram.com/v1/auth/token", {
       method: "GET",
@@ -320,12 +374,18 @@ async function validateDeepgramProvider({ apiKey, providerSpecificData = {} }: a
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: false, error: `Validation failed: ${response.status}` };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateAssemblyAIProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateAssemblyAIProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     const response = await fetch("https://api.assemblyai.com/v2/transcript?limit=1", {
       method: "GET",
@@ -342,12 +402,18 @@ async function validateAssemblyAIProvider({ apiKey, providerSpecificData = {} }:
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: false, error: `Validation failed: ${response.status}` };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateNanoBananaProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateNanoBananaProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     // NanoBanana doesn't expose a lightweight validation endpoint,
     // so we send a minimal generate request that will succeed or fail on auth.
@@ -370,12 +436,18 @@ async function validateNanoBananaProvider({ apiKey, providerSpecificData = {} }:
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: true, error: null };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateElevenLabsProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateElevenLabsProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     // Lightweight auth check endpoint
     const response = await fetch("https://api.elevenlabs.io/v1/voices", {
@@ -395,12 +467,18 @@ async function validateElevenLabsProvider({ apiKey, providerSpecificData = {} }:
     }
 
     return { valid: false, error: `Validation failed: ${response.status}` };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateInworldProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateInworldProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     // Inworld TTS lacks a simple key-introspection endpoint.
     // Send a minimal synth request and treat non-auth 4xx as auth-pass.
@@ -426,16 +504,23 @@ async function validateInworldProvider({ apiKey, providerSpecificData = {} }: an
 
     // Any other response indicates auth is accepted (payload/model may still be wrong)
     return { valid: true, error: null };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateBailianCodingPlanProvider({ apiKey, providerSpecificData = {} }: any) {
+async function validateBailianCodingPlanProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   try {
     const rawBaseUrl =
-      normalizeBaseUrl(providerSpecificData.baseUrl) ||
-      "https://coding-intl.dashscope.aliyuncs.com/apps/anthropic/v1";
+      (typeof providerSpecificData.baseUrl === "string"
+        ? normalizeBaseUrl(providerSpecificData.baseUrl)
+        : null) || "https://coding-intl.dashscope.aliyuncs.com/apps/anthropic/v1";
     const baseUrl = rawBaseUrl.endsWith("/messages")
       ? rawBaseUrl.slice(0, -"/messages".length)
       : rawBaseUrl;
@@ -475,13 +560,22 @@ async function validateBailianCodingPlanProvider({ apiKey, providerSpecificData 
     }
 
     return { valid: false, error: `Validation failed: ${response.status}` };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
   }
 }
 
-async function validateOpenAICompatibleProvider({ apiKey, providerSpecificData = {} }: any) {
-  const baseUrl = normalizeBaseUrl(providerSpecificData.baseUrl);
+async function validateOpenAICompatibleProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
+  const baseUrl =
+    typeof providerSpecificData.baseUrl === "string"
+      ? normalizeBaseUrl(providerSpecificData.baseUrl)
+      : "";
   if (!baseUrl) {
     return { valid: false, error: "No base URL configured for OpenAI compatible provider" };
   }
@@ -533,7 +627,8 @@ async function validateOpenAICompatibleProvider({ apiKey, providerSpecificData =
 
   // Step 2: Fallback — try a minimal chat completion request
   // Many providers don't expose /models but accept chat completions fine
-  const apiType = providerSpecificData.apiType || "chat";
+  const apiType =
+    typeof providerSpecificData.apiType === "string" ? providerSpecificData.apiType : "chat";
   const chatSuffix = apiType === "responses" ? "/responses" : "/chat/completions";
   const chatUrl = `${baseUrl}${chatSuffix}`;
   const testModelId = validationModelId;
@@ -613,13 +708,25 @@ async function validateOpenAICompatibleProvider({ apiKey, providerSpecificData =
     }
 
     return { valid: false, error: `Provider unavailable (${pingRes.status})` };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Connection failed" };
+  } catch (error: unknown) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : String(error) || "Connection failed",
+    };
   }
 }
 
-async function validateAnthropicCompatibleProvider({ apiKey, providerSpecificData = {} }: any) {
-  let baseUrl = normalizeAnthropicBaseUrl(providerSpecificData.baseUrl);
+async function validateAnthropicCompatibleProvider({
+  apiKey,
+  providerSpecificData = {},
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
+  let baseUrl =
+    typeof providerSpecificData.baseUrl === "string"
+      ? normalizeAnthropicBaseUrl(providerSpecificData.baseUrl)
+      : "";
   if (!baseUrl) {
     return { valid: false, error: "No base URL configured for Anthropic compatible provider" };
   }
@@ -636,13 +743,14 @@ async function validateAnthropicCompatibleProvider({ apiKey, providerSpecificDat
 
   // Step 1: Try GET /models
   try {
-    const modelsRes = await fetch(
-      joinBaseUrlAndPath(baseUrl, providerSpecificData?.modelsPath || "/models"),
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    const modelsPath =
+      typeof providerSpecificData?.modelsPath === "string"
+        ? providerSpecificData.modelsPath
+        : "/models";
+    const modelsRes = await fetch(joinBaseUrlAndPath(baseUrl, modelsPath), {
+      method: "GET",
+      headers,
+    });
 
     if (modelsRes.ok) {
       return { valid: true, error: null };
@@ -656,20 +764,24 @@ async function validateAnthropicCompatibleProvider({ apiKey, providerSpecificDat
   }
 
   // Step 2: Fallback — try a minimal messages request
-  const testModelId = providerSpecificData?.validationModelId || "claude-3-5-sonnet-20241022";
+  const testModelId =
+    typeof providerSpecificData?.validationModelId === "string"
+      ? providerSpecificData.validationModelId
+      : "claude-3-5-sonnet-20241022";
   try {
-    const messagesRes = await fetch(
-      joinBaseUrlAndPath(baseUrl, providerSpecificData?.chatPath || "/messages"),
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: testModelId,
-          max_tokens: 1,
-          messages: [{ role: "user", content: "test" }],
-        }),
-      }
-    );
+    const chatPath =
+      typeof providerSpecificData?.chatPath === "string"
+        ? providerSpecificData.chatPath
+        : "/messages";
+    const messagesRes = await fetch(joinBaseUrlAndPath(baseUrl, chatPath), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: testModelId,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "test" }],
+      }),
+    });
 
     if (messagesRes.status === 401 || messagesRes.status === 403) {
       return { valid: false, error: "Invalid API key" };
@@ -677,22 +789,34 @@ async function validateAnthropicCompatibleProvider({ apiKey, providerSpecificDat
 
     // Any other response (200, 400, 422, etc.) means auth passed
     return { valid: true, error: null };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Connection failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
 export async function validateClaudeCodeCompatibleProvider({
   apiKey,
   providerSpecificData = {},
-}: any) {
-  const baseUrl = normalizeClaudeCodeCompatibleBaseUrl(providerSpecificData.baseUrl);
+}: {
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
+  const baseUrl =
+    typeof providerSpecificData.baseUrl === "string"
+      ? normalizeClaudeCodeCompatibleBaseUrl(providerSpecificData.baseUrl)
+      : "";
   if (!baseUrl) {
     return { valid: false, error: "No base URL configured for CC Compatible provider" };
   }
 
-  const modelsPath = providerSpecificData?.modelsPath || CLAUDE_CODE_COMPATIBLE_DEFAULT_MODELS_PATH;
-  const chatPath = providerSpecificData?.chatPath || CLAUDE_CODE_COMPATIBLE_DEFAULT_CHAT_PATH;
+  const modelsPath =
+    typeof providerSpecificData?.modelsPath === "string"
+      ? providerSpecificData.modelsPath
+      : CLAUDE_CODE_COMPATIBLE_DEFAULT_MODELS_PATH;
+  const chatPath =
+    typeof providerSpecificData?.chatPath === "string"
+      ? providerSpecificData.chatPath
+      : CLAUDE_CODE_COMPATIBLE_DEFAULT_CHAT_PATH;
   const defaultHeaders = applyCustomUserAgent(
     buildClaudeCodeCompatibleHeaders(apiKey, false),
     providerSpecificData
@@ -716,7 +840,9 @@ export async function validateClaudeCodeCompatibleProvider({
   }
 
   const payload = buildClaudeCodeCompatibleValidationPayload(
-    providerSpecificData?.validationModelId || "claude-sonnet-4-6"
+    typeof providerSpecificData?.validationModelId === "string"
+      ? providerSpecificData.validationModelId
+      : "claude-sonnet-4-6"
   );
   const sessionId = JSON.parse(payload.metadata.user_id).session_id;
 
@@ -757,8 +883,8 @@ export async function validateClaudeCodeCompatibleProvider({
       error: messagesRes.ok ? null : `Validation failed: ${messagesRes.status}`,
       method: "cc_bridge_request",
     };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Connection failed" };
+  } catch (error: unknown) {
+    return { valid: false, error: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
@@ -767,8 +893,8 @@ export async function validateClaudeCodeCompatibleProvider({
 async function validateSearchProvider(
   url: string,
   init: RequestInit,
-  providerSpecificData: any = {}
-): Promise<{ valid: boolean; error: string | null; unsupported: false }> {
+  providerSpecificData: Record<string, unknown> = {}
+): Promise<{ valid: boolean; error: string | null; unsupported?: false }> {
   try {
     const response = await fetch(url, withCustomUserAgent(init, providerSpecificData));
     if (response.ok) return { valid: true, error: null, unsupported: false };
@@ -782,8 +908,12 @@ async function validateSearchProvider(
       return { valid: true, error: null, unsupported: false };
     }
     return { valid: false, error: `Validation failed: ${response.status}`, unsupported: false };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed", unsupported: false };
+  } catch (error: unknown) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : "Validation failed",
+      unsupported: false,
+    };
   }
 }
 
@@ -832,7 +962,15 @@ const SEARCH_VALIDATOR_CONFIGS: Record<
   }),
 };
 
-export async function validateProviderApiKey({ provider, apiKey, providerSpecificData = {} }: any) {
+export async function validateProviderApiKey({
+  provider,
+  apiKey,
+  providerSpecificData = {},
+}: {
+  provider: string;
+  apiKey: string;
+  providerSpecificData?: Record<string, unknown>;
+}) {
   if (!provider || !apiKey) {
     return { valid: false, error: "Provider and API key required", unsupported: false };
   }
@@ -840,8 +978,12 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
   if (isOpenAICompatibleProvider(provider)) {
     try {
       return await validateOpenAICompatibleProvider({ apiKey, providerSpecificData });
-    } catch (error: any) {
-      return { valid: false, error: error.message || "Validation failed", unsupported: false };
+    } catch (error: unknown) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : "Validation failed",
+        unsupported: false,
+      };
     }
   }
 
@@ -851,15 +993,32 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
         return await validateClaudeCodeCompatibleProvider({ apiKey, providerSpecificData });
       }
       return await validateAnthropicCompatibleProvider({ apiKey, providerSpecificData });
-    } catch (error: any) {
-      return { valid: false, error: error.message || "Validation failed", unsupported: false };
+    } catch (error: unknown) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : "Validation failed",
+        unsupported: false,
+      };
     }
   }
 
-  // ── Specialty provider validation ──
-  const SPECIALTY_VALIDATORS = {
-    qoder: ({ apiKey, providerSpecificData }: any) =>
-      validateQoderCliPat({ apiKey, providerSpecificData }),
+  const SPECIALTY_VALIDATORS: Record<
+    string,
+    (
+      params: Record<string, unknown>
+    ) => Promise<{
+      valid: boolean;
+      error: string | null;
+      unsupported?: boolean;
+      method?: string;
+      warning?: string;
+    }>
+  > = {
+    qoder: ({ apiKey, providerSpecificData }: Record<string, unknown>) =>
+      validateQoderCliPat({
+        apiKey: String(apiKey || ""),
+        providerSpecificData: providerSpecificData as JsonRecord,
+      }),
     deepgram: validateDeepgramProvider,
     assemblyai: validateAssemblyAIProvider,
     nanobanana: validateNanoBananaProvider,
@@ -867,11 +1026,11 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
     inworld: validateInworldProvider,
     "bailian-coding-plan": validateBailianCodingPlanProvider,
     // LongCat AI — does not expose /v1/models; validate via chat completions directly (#592)
-    longcat: async ({ apiKey, providerSpecificData }: any) => {
+    longcat: async ({ apiKey, providerSpecificData }: Record<string, unknown>) => {
       try {
         const res = await fetch("https://api.longcat.chat/openai/v1/chat/completions", {
           method: "POST",
-          headers: buildBearerHeaders(apiKey, providerSpecificData),
+          headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
           body: JSON.stringify({
             model: "longcat",
             messages: [{ role: "user", content: "test" }],
@@ -883,17 +1042,20 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
         }
         // Any non-auth response (200, 400, 422) means auth passed
         return { valid: true, error: null };
-      } catch (error: any) {
-        return { valid: false, error: error.message || "Connection failed" };
+      } catch (error: unknown) {
+        return {
+          valid: false,
+          error: error instanceof Error ? error.message : "Connection failed",
+        };
       }
     },
     // Search providers — use factored validator
     ...Object.fromEntries(
       Object.entries(SEARCH_VALIDATOR_CONFIGS).map(([id, configFn]) => [
         id,
-        ({ apiKey, providerSpecificData }: any) => {
-          const { url, init } = configFn(apiKey);
-          return validateSearchProvider(url, init, providerSpecificData);
+        ({ apiKey, providerSpecificData }: Record<string, unknown>) => {
+          const { url, init } = configFn(String(apiKey || ""));
+          return validateSearchProvider(url, init, providerSpecificData as JsonRecord);
         },
       ])
     ),
@@ -902,8 +1064,12 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
   if (SPECIALTY_VALIDATORS[provider]) {
     try {
       return await SPECIALTY_VALIDATORS[provider]({ apiKey, providerSpecificData });
-    } catch (error: any) {
-      return { valid: false, error: error.message || "Validation failed", unsupported: false };
+    } catch (error: unknown) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : "Validation failed",
+        unsupported: false,
+      };
     }
   }
 
@@ -912,32 +1078,44 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
     return { valid: false, error: "Provider validation not supported", unsupported: true };
   }
 
-  const modelId = entry.models?.[0]?.id || null;
+  const entryRecord = entry as unknown as Record<string, unknown>;
+  const models = Array.isArray(entryRecord.models) ? entryRecord.models : [];
+  const firstModel = models[0] as Record<string, unknown> | undefined;
+  const modelId = firstModel?.id ? String(firstModel.id) : null;
   // Use testKeyBaseUrl if defined — validation base can differ from the registry chat base.
-  const validationEntry = entry.testKeyBaseUrl
-    ? { ...entry, baseUrl: entry.testKeyBaseUrl }
+  const validationEntry = entryRecord.testKeyBaseUrl
+    ? { ...entry, baseUrl: entryRecord.testKeyBaseUrl }
     : entry;
-  const baseUrl = resolveBaseUrl(validationEntry, providerSpecificData);
+  const baseUrl = resolveBaseUrl(
+    validationEntry as unknown as Record<string, unknown>,
+    providerSpecificData as Record<string, unknown>
+  );
 
   try {
-    if (OPENAI_LIKE_FORMATS.has(entry.format)) {
+    const format = typeof entryRecord.format === "string" ? entryRecord.format : "";
+    if (OPENAI_LIKE_FORMATS.has(format)) {
       return await validateOpenAILikeProvider({
         provider,
         apiKey,
         baseUrl,
         providerSpecificData,
-        modelId,
-        modelsUrl: entry.modelsUrl,
+        modelId: modelId || undefined,
+        modelsUrl: typeof entryRecord.modelsUrl === "string" ? entryRecord.modelsUrl : undefined,
       });
     }
 
-    if (entry.format === "claude") {
-      const requestBaseUrl = `${baseUrl}${entry.urlSuffix || ""}`;
-      const requestHeaders = {
-        ...(entry.headers || {}),
+    if (format === "claude") {
+      const urlSuffix = typeof entryRecord.urlSuffix === "string" ? entryRecord.urlSuffix : "";
+      const requestBaseUrl = `${baseUrl}${urlSuffix}`;
+      const requestHeaders: Record<string, string> = {
+        ...(entryRecord.headers && typeof entryRecord.headers === "object"
+          ? (entryRecord.headers as Record<string, string>)
+          : {}),
       };
 
-      if ((entry.authHeader || "").toLowerCase() === "x-api-key") {
+      const authHeader =
+        typeof entryRecord.authHeader === "string" ? entryRecord.authHeader.toLowerCase() : "";
+      if (authHeader === "x-api-key") {
         requestHeaders["x-api-key"] = apiKey;
       } else {
         requestHeaders["Authorization"] = `Bearer ${apiKey}`;
@@ -946,23 +1124,27 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
       return await validateAnthropicLikeProvider({
         apiKey,
         baseUrl: requestBaseUrl,
-        modelId,
+        modelId: modelId || undefined,
         headers: requestHeaders,
         providerSpecificData,
       });
     }
 
-    if (GEMINI_LIKE_FORMATS.has(entry.format)) {
+    if (GEMINI_LIKE_FORMATS.has(format)) {
       return await validateGeminiLikeProvider({
         apiKey,
         baseUrl,
         providerSpecificData,
-        authType: entry.authType,
+        authType: typeof entryRecord.authType === "string" ? entryRecord.authType : undefined,
       });
     }
 
     return { valid: false, error: "Provider validation not supported", unsupported: true };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Validation failed", unsupported: false };
+  } catch (error: unknown) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : "Validation failed",
+      unsupported: false,
+    };
   }
 }

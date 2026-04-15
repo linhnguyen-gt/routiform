@@ -10,7 +10,7 @@
  * @module lib/db/domainState
  */
 
-import { getDbInstance, isBuildPhase, isCloud } from "./core";
+import { getDbInstance } from "./core";
 
 type JsonRecord = Record<string, unknown>;
 

@@ -7,11 +7,19 @@ import { OAUTH_TIMEOUT } from "../constants/oauth";
 /**
  * Generic OAuth Authorization Code Flow with PKCE
  */
-export class OAuthService {
-  config: any;
 
-  constructor(config: any) {
-    this.config = config;
+interface OAuthConfig {
+  clientId: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  codeChallengeMethod: string;
+}
+
+export class OAuthService {
+  config: OAuthConfig;
+
+  constructor(config: unknown) {
+    this.config = config as OAuthConfig;
   }
 
   /**
@@ -43,7 +51,7 @@ export class OAuthService {
     const spinner = createSpinner("Starting local server...").start();
 
     // Start local server for callback
-    let callbackParams: any = null;
+    let callbackParams: Record<string, string> | null = null;
     const { port, close } = await startLocalServer((params) => {
       callbackParams = params;
     });

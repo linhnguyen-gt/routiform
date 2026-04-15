@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
 
     const validation = validateBody(memorySettingsUpdateSchema, rawBody);
     if (isValidationFailure(validation)) {
-      return validation.response;
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const updates = toMemorySettingsUpdates(validation.data);

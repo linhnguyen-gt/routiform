@@ -1,7 +1,21 @@
 "use client";
 
+interface BatchTestResultItem {
+  connectionId?: string;
+  connectionName?: string;
+  valid: boolean;
+  latencyMs?: number;
+  diagnosis?: { type: string };
+}
+
+interface BatchTestResults {
+  error?: string;
+  results?: BatchTestResultItem[];
+  summary?: { passed: number; failed: number; total: number };
+}
+
 interface ProviderDetailBatchTestResultsModalProps {
-  batchTestResults: any;
+  batchTestResults: BatchTestResults;
   providerName: string;
   t: (key: string, values?: Record<string, unknown>) => string;
   onClose: () => void;
@@ -59,7 +73,7 @@ export function ProviderDetailBatchTestResultsModal({
                   </span>
                 </div>
               )}
-              {(batchTestResults.results || []).map((r: any, i: number) => (
+              {(batchTestResults.results || []).map((r: BatchTestResultItem, i: number) => (
                 <div
                   key={r.connectionId || i}
                   className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03]"

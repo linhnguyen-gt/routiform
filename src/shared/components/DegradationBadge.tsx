@@ -16,7 +16,7 @@ export default function DegradationBadge() {
           const data = await res.json();
           setDegraded(data.isDegraded);
         }
-      } catch (err) {
+      } catch (_err) {
         // Ignore error
       }
     };

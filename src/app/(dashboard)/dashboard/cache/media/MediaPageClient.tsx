@@ -5,9 +5,21 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 type Modality = "image" | "video" | "music" | "speech" | "transcription";
+
+interface GenerationData {
+  /** Image/video results: array of items */
+  data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string; format?: string }>;
+  /** Speech: audio format */
+  format?: string;
+  /** Transcription: text content */
+  text?: string;
+  /** Transcription: word-level timestamps */
+  words?: Array<unknown>;
+}
+
 type GenerationResult = {
   type: Modality;
-  data: any;
+  data: GenerationData;
   timestamp: number;
   audioUrl?: string;
 };
@@ -347,13 +359,23 @@ function getVoiceList(providerId: string) {
 }
 
 /** Parse a human-readable error from the API error response */
-function parseApiError(raw: any, statusCode: number): { message: string; isCredentials: boolean } {
+function parseApiError(
+  raw: unknown,
+  statusCode: number
+): { message: string; isCredentials: boolean } {
+  type RawShape = {
+    error?: { message?: string } | string;
+    err_msg?: string;
+    message?: string;
+    detail?: string;
+  };
+  const r = raw as RawShape;
+  const errorMsg = typeof r?.error === "object" ? r?.error?.message : r?.error;
   const msg =
-    raw?.error?.message ||
-    raw?.err_msg ||
-    raw?.error ||
-    raw?.message ||
-    raw?.detail ||
+    errorMsg ||
+    r?.err_msg ||
+    r?.message ||
+    r?.detail ||
     (typeof raw === "string" ? raw : null) ||
     `Request failed (${statusCode})`;
 
@@ -379,7 +401,7 @@ function formatFileSize(bytes: number): string {
 }
 
 /** Render video result (OpenAI-style: data[].b64_json, format mp4) */
-function VideoResults({ data }: { data: any }) {
+function VideoResults({ data }: { data: GenerationData }) {
   const items: Array<{ b64_json?: string; format?: string }> = data?.data || [];
   if (items.length === 0) {
     return (
@@ -416,7 +438,7 @@ function VideoResults({ data }: { data: any }) {
 }
 
 /** Render image result thumbnails */
-function ImageResults({ data }: { data: any }) {
+function ImageResults({ data }: { data: GenerationData }) {
   const images: Array<{ url?: string; b64_json?: string; revised_prompt?: string }> =
     data?.data || [];
   if (images.length === 0) {
@@ -686,8 +708,8 @@ export default function MediaPageClient() {
       }
       const data = await res.json();
       setResult({ type: activeTab, data, timestamp: Date.now() });
-    } catch (err: any) {
-      setError(err.message || "Generation failed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
     }
     setLoading(false);
   };

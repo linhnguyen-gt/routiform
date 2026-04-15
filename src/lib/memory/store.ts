@@ -2,7 +2,7 @@
  * Memory store - CRUD operations with prepared statements and caching
  */
 
-import { getDbInstance, rowToCamel } from "../db/core";
+import { getDbInstance } from "../db/core";
 import { Memory, MemoryType } from "./types";
 interface CacheEntry<T> {
   value: T;
@@ -51,7 +51,7 @@ function evictIfNeeded<TKey, TValue>(cache: Map<TKey, TValue>) {
 /**
  * Get or compile regex for wildcard pattern
  */
-function getWildcardRegex(pattern: string): RegExp {
+function _getWildcardRegex(pattern: string): RegExp {
   // This function is copied from apiKeys.ts pattern
   let regex = _regexCache.get(pattern);
   if (!regex) {
@@ -77,7 +77,7 @@ const MEMORY_VALIDATION_CACHE_TTL = 60 * 1000; // 1 minute TTL
 /**
  * Check if memory exists with caching
  */
-async function memoryExists(id: string): Promise<boolean> {
+async function _memoryExists(id: string): Promise<boolean> {
   if (!id || typeof id !== "string") return false;
 
   const now = Date.now();
@@ -164,7 +164,7 @@ export async function getMemory(id: string): Promise<Memory | null> {
 
   const db = getDbInstance();
   const stmt = db.prepare("SELECT * FROM memory WHERE id = ?");
-  const row = stmt.get(id) as any;
+  const row = stmt.get(id) as Record<string, unknown> | undefined;
 
   if (!row) {
     // Cache negative result briefly to prevent repeated DB hits
@@ -207,7 +207,7 @@ export async function updateMemory(
 
   // Build dynamic update query
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
 
   if (updates.type !== undefined) {
     fields.push("type = ?");
@@ -288,7 +288,7 @@ export async function listMemories(filters: {
 
   // Build dynamic query
   let query = "SELECT * FROM memory";
-  const params: any[] = [];
+  const params: unknown[] = [];
   const whereClauses: string[] = [];
 
   if (filters.apiKeyId) {
@@ -326,7 +326,7 @@ export async function listMemories(filters: {
   const stmt = db.prepare(query);
   const rows = stmt.all(...params);
 
-  return (rows as any[]).map((row: any) => ({
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id),
     apiKeyId: String(row.apiKeyId),
     sessionId: String(row.sessionId),

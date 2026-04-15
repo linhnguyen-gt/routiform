@@ -19,7 +19,7 @@ interface PhaseTiming {
 
 const PHASES = ["parse", "validate", "policy", "resolve", "connect", "stream", "finalize"] as const;
 
-interface TelemetrySummary {
+interface _TelemetrySummary {
   requestId: string;
   totalMs: number;
   phases: PhaseTiming[];

@@ -25,9 +25,11 @@ export async function GET() {
       secret: w.secret ? `${w.secret.slice(0, 10)}...` : null,
     }));
     return NextResponse.json({ webhooks: masked });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Failed to list webhooks" },
+      {
+        error: error instanceof Error ? error.message : String(error) || "Failed to list webhooks",
+      },
       { status: 500 }
     );
   }
@@ -50,9 +52,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ webhook }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Failed to create webhook" },
+      {
+        error: error instanceof Error ? error.message : String(error) || "Failed to create webhook",
+      },
       { status: 500 }
     );
   }

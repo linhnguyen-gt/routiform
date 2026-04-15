@@ -6,20 +6,21 @@ export interface UseProviderDetailConnectionsParams {
 }
 
 export interface UseProviderDetailConnectionsReturn {
-  connections: any[];
+  connections: Array<Record<string, unknown>>;
   loading: boolean;
-  providerNode: any;
+  providerNode: unknown;
+  setConnections: React.Dispatch<React.SetStateAction<Array<Record<string, unknown>>>>;
   fetchConnections: () => Promise<void>;
-  handleUpdateNode: (formData: any) => Promise<void>;
+  handleUpdateNode: (formData: Record<string, unknown>) => Promise<void>;
 }
 
 export function useProviderDetailConnections({
   providerId,
   isCompatible,
 }: UseProviderDetailConnectionsParams): UseProviderDetailConnectionsReturn {
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
-  const [providerNode, setProviderNode] = useState<any>(null);
+  const [providerNode, setProviderNode] = useState<unknown>(null);
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -31,12 +32,15 @@ export function useProviderDetailConnections({
       const nodesData = await nodesRes.json();
       if (connectionsRes.ok) {
         const filtered = (connectionsData.connections || []).filter(
-          (c: any) => c.provider === providerId
+          (c: Record<string, unknown>) => c.provider === providerId
         );
         setConnections(filtered);
       }
       if (nodesRes.ok) {
-        let node = (nodesData.nodes || []).find((entry: any) => entry.id === providerId) || null;
+        let node =
+          (nodesData.nodes || []).find(
+            (entry: Record<string, unknown>) => entry.id === providerId
+          ) || null;
 
         // Newly created compatible nodes can be briefly unavailable on one worker.
         // Retry a few times before showing "Provider not found".
@@ -46,22 +50,25 @@ export function useProviderDetailConnections({
             const retryRes = await fetch("/api/provider-nodes", { cache: "no-store" });
             if (!retryRes.ok) continue;
             const retryData = await retryRes.json();
-            node = (retryData.nodes || []).find((entry: any) => entry.id === providerId) || null;
+            node =
+              (retryData.nodes || []).find(
+                (entry: Record<string, unknown>) => entry.id === providerId
+              ) || null;
             if (node) break;
           }
         }
 
         setProviderNode(node);
       }
-    } catch (error) {
-      console.log("Error fetching connections:", error);
+    } catch (err) {
+      console.log("Error fetching connections:", err);
     } finally {
       setLoading(false);
     }
   }, [providerId, isCompatible]);
 
   const handleUpdateNode = useCallback(
-    async (formData: any) => {
+    async (formData: Record<string, unknown>) => {
       try {
         const res = await fetch(`/api/provider-nodes/${providerId}`, {
           method: "PUT",
@@ -73,8 +80,8 @@ export function useProviderDetailConnections({
           setProviderNode(data.node);
           await fetchConnections();
         }
-      } catch (error) {
-        console.log("Error updating provider node:", error);
+      } catch (err) {
+        console.log("Error updating provider node:", err);
       }
     },
     [providerId, fetchConnections]
@@ -89,6 +96,7 @@ export function useProviderDetailConnections({
     loading,
     providerNode,
     fetchConnections,
+    setConnections,
     handleUpdateNode,
   };
 }

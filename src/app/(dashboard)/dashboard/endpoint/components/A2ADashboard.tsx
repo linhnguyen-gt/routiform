@@ -260,9 +260,9 @@ export default function A2ADashboardPage() {
         for (const part of parts) {
           if (!part.startsWith("data: ")) continue;
           const payload = part.slice("data: ".length);
-          let parsed: any;
+          let parsed: { params?: { task?: { id?: string; state?: string } } } | undefined;
           try {
-            parsed = JSON.parse(payload);
+            parsed = JSON.parse(payload) as typeof parsed;
           } catch {
             continue;
           }
@@ -441,7 +441,9 @@ export default function A2ADashboardPage() {
               <tbody>
                 {tasksData.tasks.map((task) => {
                   const fsmPhase =
-                    task.metadata?.fsmPhase || (task.metadata?.workflowFSM as any)?.currentPhase;
+                    task.metadata?.fsmPhase ||
+                    (task.metadata?.workflowFSM as { currentPhase?: string } | undefined)
+                      ?.currentPhase;
                   let fsmBadgeColor = "bg-gray-500/15 text-gray-500";
                   if (fsmPhase === "plan" || fsmPhase === "plan_review")
                     fsmBadgeColor = "bg-purple-500/15 text-purple-500";

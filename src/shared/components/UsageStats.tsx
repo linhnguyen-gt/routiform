@@ -56,6 +56,16 @@ MiniBarGraph.propTypes = {
   colorClass: PropTypes.string,
 };
 
+interface StatsEntry {
+  promptTokens?: number;
+  completionTokens?: number;
+  cost?: number;
+  provider?: string;
+  rawModel?: string;
+  connectionId?: string;
+  [key: string]: unknown;
+}
+
 export default function UsageStats() {
   const t = useTranslations("stats");
   const router = useRouter();
@@ -64,7 +74,7 @@ export default function UsageStats() {
   const sortBy = searchParams.get("sortBy") || "rawModel";
   const sortOrder = searchParams.get("sortOrder") || "asc";
 
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [viewMode, setViewMode] = useState("tokens"); // 'tokens' or 'costs'
@@ -83,9 +93,9 @@ export default function UsageStats() {
   };
 
   const sortData = useCallback(
-    (dataMap: Record<string, any>, pendingMap: Record<string, any> = {}) => {
+    (dataMap: Record<string, StatsEntry>, pendingMap: Record<string, unknown> = {}) => {
       return Object.entries(dataMap || {})
-        .map(([key, data]: [string, any]) => {
+        .map(([key, data]) => {
           const totalTokens = (data.promptTokens || 0) + (data.completionTokens || 0);
           const totalCost = data.cost || 0;
 
@@ -128,16 +138,18 @@ export default function UsageStats() {
   const sortedAccounts = useMemo(() => {
     // For accounts, pendingMap is by connectionId, but dataMap is by accountKey
     // We need to map connectionId pending counts to accountKeys
-    const accountPendingMap: Record<string, any> = {};
+    const accountPendingMap: Record<string, unknown> = {};
     if (stats?.pending?.byAccount) {
-      Object.entries(stats.byAccount || {}).forEach(([accountKey, data]: [string, any]) => {
-        const connPending = stats.pending.byAccount[data.connectionId];
-        if (connPending) {
-          // Get modelKey (rawModel (provider))
-          const modelKey = data.provider ? `${data.rawModel} (${data.provider})` : data.rawModel;
-          accountPendingMap[accountKey] = connPending[modelKey] || 0;
+      Object.entries((stats.byAccount as Record<string, StatsEntry>) || {}).forEach(
+        ([accountKey, data]) => {
+          const connPending = stats.pending.byAccount[data.connectionId];
+          if (connPending) {
+            // Get modelKey (rawModel (provider))
+            const modelKey = data.provider ? `${data.rawModel} (${data.provider})` : data.rawModel;
+            accountPendingMap[accountKey] = connPending[modelKey] || 0;
+          }
         }
-      });
+      );
     }
     return sortData(stats?.byAccount, accountPendingMap);
   }, [stats?.byAccount, stats?.pending?.byAccount, sortData]);

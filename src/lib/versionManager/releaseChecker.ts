@@ -1,5 +1,5 @@
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const releasesCache = new Map<string, { data: any; ts: number }>();
+const releasesCache = new Map<string, { data: unknown; ts: number }>();
 
 function getGitHubHeaders(): Record<string, string> {
   const headers: Record<string, string> = { Accept: "application/vnd.github+json" };
@@ -8,7 +8,7 @@ function getGitHubHeaders(): Record<string, string> {
   return headers;
 }
 
-async function fetchJSON(url: string): Promise<any> {
+async function fetchJSON(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: getGitHubHeaders(),
     signal: AbortSignal.timeout(15_000),
@@ -17,7 +17,7 @@ async function fetchJSON(url: string): Promise<any> {
   return res.json();
 }
 
-async function cachedFetch(url: string): Promise<any> {
+async function cachedFetch(url: string): Promise<unknown> {
   const cached = releasesCache.get(url);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
   const data = await fetchJSON(url);
@@ -33,17 +33,17 @@ interface ReleaseInfo {
   body: string;
 }
 
-function parseRelease(raw: any): ReleaseInfo {
+function parseRelease(raw: Record<string, unknown>): ReleaseInfo {
   return {
-    tag: raw.tag_name,
-    version: raw.tag_name.replace(/^v/, ""),
-    assets: (raw.assets || []).map((a: any) => ({
-      name: a.name,
-      url: a.browser_download_url,
-      size: a.size,
+    tag: String(raw.tag_name),
+    version: String(raw.tag_name).replace(/^v/, ""),
+    assets: (Array.isArray(raw.assets) ? raw.assets : []).map((a: unknown) => ({
+      name: String((a as Record<string, unknown>).name),
+      url: String((a as Record<string, unknown>).browser_download_url),
+      size: Number((a as Record<string, unknown>).size),
     })),
-    publishedAt: raw.published_at,
-    body: raw.body || "",
+    publishedAt: String(raw.published_at),
+    body: String(raw.body || ""),
   };
 }
 
@@ -51,7 +51,7 @@ export async function getLatestRelease(): Promise<ReleaseInfo> {
   const raw = await cachedFetch(
     "https://api.github.com/repos/router-for-me/CLIProxyAPI/releases/latest"
   );
-  return parseRelease(raw);
+  return parseRelease(raw as Record<string, unknown>);
 }
 
 export async function getReleaseByVersion(version: string): Promise<ReleaseInfo | null> {
@@ -60,7 +60,7 @@ export async function getReleaseByVersion(version: string): Promise<ReleaseInfo 
     const raw = await cachedFetch(
       `https://api.github.com/repos/router-for-me/CLIProxyAPI/releases/tags/${tag}`
     );
-    return parseRelease(raw);
+    return parseRelease(raw as Record<string, unknown>);
   } catch {
     return null;
   }
@@ -70,7 +70,9 @@ export async function getAvailableVersions(): Promise<string[]> {
   const raw = await cachedFetch(
     "https://api.github.com/repos/router-for-me/CLIProxyAPI/releases?per_page=30"
   );
-  return (Array.isArray(raw) ? raw : []).map((r: any) => r.tag_name);
+  return (Array.isArray(raw) ? raw : []).map((r: unknown) =>
+    String((r as Record<string, unknown>).tag_name)
+  );
 }
 
 export async function getChecksums(version: string): Promise<Map<string, string>> {

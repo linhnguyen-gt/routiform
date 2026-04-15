@@ -156,6 +156,7 @@
     "playground": "Spielwiese",
     "searchTools": "Search Tools",
     "agents": "Agenten",
+    "skills": "Skills",
     "docs": "Dokumente",
     "issues": "Probleme",
     "endpoints": "Endpunkte",
@@ -759,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCode erfordert API-Schlüssel-Konfiguration.",
-          "1": "Base URL auf Ihren Routiform-Endpunkt setzen."
+          "1": "Base URL auf Ihren Routiform-Endpunkt setzen.",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {

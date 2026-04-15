@@ -1,17 +1,41 @@
 "use client";
 
-import { Badge, Button, Input, Modal } from "@/shared/components";
+import { Badge, Button, Input, Modal, Select, Toggle } from "@/shared/components";
 import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { getCodexRequestDefaults as _getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
 import { normalizeAndValidateHttpBaseUrl } from "../providerDetailApiUtils";
 import { ERROR_TYPE_LABELS } from "../providerDetailErrorUtils";
 import type { EditConnectionModalProps } from "../[id]/types";
 import { ProviderDetailExtraApiKeysField } from "./ProviderDetailExtraApiKeysField";
+
+const CODEX_REASONING_STRENGTH_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "xhigh", label: "XHigh" },
+];
+
+/**
+ * UI adapter around the canonical getCodexRequestDefaults from requestDefaults.ts.
+ * Adds the "medium" fallback for reasoningEffort required by the connection form.
+ */
+function getCodexRequestDefaults(providerSpecificData: unknown): {
+  reasoningEffort: string;
+  serviceTier?: "priority";
+} {
+  const defaults = _getCodexRequestDefaults(providerSpecificData);
+  return {
+    reasoningEffort: defaults.reasoningEffort ?? "medium",
+    ...(defaults.serviceTier ? { serviceTier: defaults.serviceTier } : {}),
+  };
+}
 
 export function ProviderDetailEditConnectionModal({
   isOpen,
@@ -31,9 +55,15 @@ export function ProviderDetailEditConnectionModal({
     validationModelId: "",
     tag: "",
     customUserAgent: "",
+    codexReasoningEffort: "medium",
+    codexFastServiceTier: false,
   });
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<{
+    valid: boolean;
+    diagnosis: { type: string } | null;
+    message: string | null;
+  } | null>(null);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<"success" | "failed" | null>(null);
   const [saving, setSaving] = useState(false);
@@ -45,6 +75,7 @@ export function ProviderDetailEditConnectionModal({
   const isBailian = connection?.provider === "bailian-coding-plan";
   const isVertex = connection?.provider === "vertex";
   const isGlm = connection?.provider === "glm";
+  const isCodex = connection?.provider === "codex";
   const defaultBailianUrl = "https://coding-intl.dashscope.aliyuncs.com/apps/anthropic/v1";
   const defaultRegion = "us-central1";
 
@@ -62,6 +93,7 @@ export function ProviderDetailEditConnectionModal({
       typeof connection.providerSpecificData?.customUserAgent === "string"
         ? connection.providerSpecificData.customUserAgent
         : "";
+    const codexRequestDefaults = getCodexRequestDefaults(connection.providerSpecificData);
     setFormData({
       name: connection.name || "",
       priority: connection.priority || 1,
@@ -73,6 +105,8 @@ export function ProviderDetailEditConnectionModal({
       validationModelId: (connection.providerSpecificData?.validationModelId as string) || "",
       tag: (connection.providerSpecificData?.tag as string) || "",
       customUserAgent,
+      codexReasoningEffort: codexRequestDefaults.reasoningEffort,
+      codexFastServiceTier: codexRequestDefaults.serviceTier === "priority",
     });
     const existing = connection.providerSpecificData?.extraApiKeys;
     setExtraApiKeys(Array.isArray(existing) ? existing : []);
@@ -115,7 +149,7 @@ export function ProviderDetailEditConnectionModal({
     setSaving(true);
     setSaveError(null);
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         name: formData.name,
         priority: formData.priority,
         healthCheckInterval: formData.healthCheckInterval,
@@ -157,6 +191,12 @@ export function ProviderDetailEditConnectionModal({
                   ? { apiRegion: formData.apiRegion }
                   : {}),
           };
+      if (isCodex) {
+        updates.providerSpecificData.requestDefaults = {
+          reasoningEffort: formData.codexReasoningEffort,
+          ...(formData.codexFastServiceTier ? { serviceTier: "priority" } : {}),
+        };
+      }
       const error = await onSave(updates);
       if (error) setSaveError(typeof error === "string" ? error : t("failedSaveConnection"));
     } finally {
@@ -217,6 +257,23 @@ export function ProviderDetailEditConnectionModal({
           placeholder="e.g. personal, work, team-a"
           hint="Used to group accounts in the provider view"
         />
+        {isCodex && (
+          <div className="flex flex-col gap-4 rounded-lg border border-border/50 bg-surface/20 p-4">
+            <Select
+              label="Default thinking strength"
+              value={formData.codexReasoningEffort}
+              options={CODEX_REASONING_STRENGTH_OPTIONS}
+              onChange={(e) => setFormData({ ...formData, codexReasoningEffort: e.target.value })}
+              hint="Used when the client does not send a reasoning effort and the global Thinking Budget mode is passthrough."
+            />
+            <Toggle
+              checked={formData.codexFastServiceTier}
+              onChange={(checked) => setFormData({ ...formData, codexFastServiceTier: checked })}
+              label="Codex Fast Service Tier"
+              description="When enabled, injects `service_tier=priority` for this connection if the client leaves the tier unset."
+            />
+          </div>
+        )}
         {isOAuth && connection.email && (
           <div className="bg-sidebar/50 p-3 rounded-lg">
             <p className="text-sm text-text-muted mb-1">{t("email")}</p>

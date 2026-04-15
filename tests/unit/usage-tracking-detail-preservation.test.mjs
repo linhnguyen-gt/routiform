@@ -11,9 +11,13 @@ test("normalizeUsage preserves nested prompt and completion token details", () =
       cached_tokens: 15,
       cache_creation_tokens: 4,
       cache_write_tokens: 4,
+      audio_tokens: 10,
     },
     completion_tokens_details: {
       reasoning_tokens: 7,
+      accepted_prediction_tokens: 3,
+      rejected_prediction_tokens: 1,
+      audio_tokens: 5,
     },
   });
 
@@ -21,9 +25,13 @@ test("normalizeUsage preserves nested prompt and completion token details", () =
     cached_tokens: 15,
     cache_creation_tokens: 4,
     cache_write_tokens: 4,
+    audio_tokens: 10,
   });
   assert.deepEqual(usage.completion_tokens_details, {
     reasoning_tokens: 7,
+    accepted_prediction_tokens: 3,
+    rejected_prediction_tokens: 1,
+    audio_tokens: 5,
   });
 });
 
@@ -37,9 +45,13 @@ test("extractUsage preserves nested details from OpenAI Responses usage payloads
         input_tokens_details: {
           cached_tokens: 11,
           cache_creation_tokens: 5,
+          audio_tokens: 8,
         },
         output_tokens_details: {
           reasoning_tokens: 9,
+          audio_tokens: 2,
+          accepted_prediction_tokens: 4,
+          rejected_prediction_tokens: 1,
         },
       },
     },
@@ -50,8 +62,12 @@ test("extractUsage preserves nested details from OpenAI Responses usage payloads
   assert.deepEqual(usage.prompt_tokens_details, {
     cached_tokens: 11,
     cache_creation_tokens: 5,
+    audio_tokens: 8,
   });
   assert.deepEqual(usage.completion_tokens_details, {
     reasoning_tokens: 9,
+    audio_tokens: 2,
+    accepted_prediction_tokens: 4,
+    rejected_prediction_tokens: 1,
   });
 });

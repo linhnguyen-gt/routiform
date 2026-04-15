@@ -69,8 +69,8 @@ export default function ConsoleLogViewer() {
       setLogs(data);
       setLastUpdated(new Date());
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch logs");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch logs");
     } finally {
       setLoading(false);
     }

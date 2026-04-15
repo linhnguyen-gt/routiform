@@ -503,9 +503,13 @@ export function getDbInstance(): SqliteDatabase {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      console.warn("[DB] Could not probe existing DB, will create fresh:", message);
+      console.warn("[DB] Could not probe existing DB:", message);
+      // SAFETY: Never delete the database — rename to backup so data can be recovered.
+      // The old code would silently destroy all user data on any probe failure.
+      const failedPath = sqliteFile + `.probe-failed-${Date.now()}`;
       try {
-        fs.unlinkSync(sqliteFile);
+        fs.renameSync(sqliteFile, failedPath);
+        console.warn(`[DB] Renamed corrupt DB to ${path.basename(failedPath)}`);
       } catch {
         /* ok */
       }
@@ -546,6 +550,38 @@ export function getDbInstance(): SqliteDatabase {
     "INSERT OR REPLACE INTO db_meta (key, value) VALUES ('schema_version', '1')"
   );
   versionStmt.run();
+
+  // Run health check on startup (async, non-blocking)
+  (async () => {
+    try {
+      const { runDbHealthCheck } = await import("./healthCheck");
+      const { backupDbFile } = await import("./backup");
+      const healthResult = runDbHealthCheck(db, {
+        autoRepair: true,
+        createBackupBeforeRepair: () => {
+          try {
+            backupDbFile("startup-health-check");
+            return true;
+          } catch (error) {
+            console.error("[DB] Backup creation failed during health check:", error);
+            return false;
+          }
+        },
+        expectedSchemaVersion: "1",
+      });
+
+      if (!healthResult.isHealthy) {
+        console.warn(
+          `[DB] Health check found ${healthResult.issues.length} issue(s), repaired ${healthResult.repairedCount} item(s)`
+        );
+        if (healthResult.backupCreated) {
+          console.log("[DB] Backup created before auto-repair");
+        }
+      }
+    } catch (error) {
+      console.error("[DB] Health check failed on startup:", error);
+    }
+  })();
 
   setDb(db);
   console.log(`[DB] SQLite database ready: ${sqliteFile}`);

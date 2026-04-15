@@ -122,7 +122,7 @@ export function formatCost(usd) {
  */
 export function preflightEstimate(body, model, pricingOverrides) {
   const inputTokens = estimateInputTokens(body);
-  const maxOutput = body.max_tokens || body.maxOutputTokens || 1000;
+  const maxOutput = body.max_completion_tokens || body.max_tokens || body.maxOutputTokens || 1000;
   const result = estimateCost({ model, inputTokens, maxOutputTokens: maxOutput, pricingOverrides });
 
   return {

@@ -28,7 +28,7 @@ describe("Context pinning — tool call responses (#721)", () => {
     assert.equal(result.length, 3, "Should have 3 messages (original 2 + synthetic)");
     assert.equal(result[2].role, "assistant");
     assert.ok(
-      result[2].content.includes("<omniModel>ollamacloud/glm-5</omniModel>"),
+      result[2].content.includes("<routiformModel>ollamacloud/glm-5</routiformModel>"),
       "Synthetic message should contain the pin tag"
     );
   });
@@ -50,7 +50,7 @@ describe("Context pinning — tool call responses (#721)", () => {
     // Array content → should append synthetic message
     assert.equal(result.length, 3);
     assert.equal(result[2].role, "assistant");
-    assert.ok(result[2].content.includes("<omniModel>nvidia/llama-3.4-70b</omniModel>"));
+    assert.ok(result[2].content.includes("<routiformModel>nvidia/llama-3.4-70b</routiformModel>"));
   });
 
   test("extractPinnedModel finds tag in synthetic message after tool_calls", () => {
@@ -63,7 +63,7 @@ describe("Context pinning — tool call responses (#721)", () => {
           { id: "call_abc", type: "function", function: { name: "read", arguments: "{}" } },
         ],
       },
-      { role: "assistant", content: "\n<omniModel>ollamacloud/glm-5</omniModel>" },
+      { role: "assistant", content: "\n<routiformModel>ollamacloud/glm-5</routiformModel>" },
     ];
 
     const pinned = extractPinnedModel(messages);
@@ -79,7 +79,7 @@ describe("Context pinning — tool call responses (#721)", () => {
     const result = injectModelTag(messages, "openai/gpt-4o");
 
     assert.equal(result.length, 2, "Should not add a new message");
-    assert.ok(result[1].content.includes("<omniModel>openai/gpt-4o</omniModel>"));
+    assert.ok(result[1].content.includes("<routiformModel>openai/gpt-4o</routiformModel>"));
     assert.ok(result[1].content.startsWith("Hi there!"));
   });
 
@@ -108,7 +108,7 @@ describe("Context pinning — tool call responses (#721)", () => {
   test("re-injection clears old pin and sets new one", () => {
     const messages = [
       { role: "user", content: "Follow up" },
-      { role: "assistant", content: "Previous answer\n<omniModel>old/model</omniModel>" },
+      { role: "assistant", content: "Previous answer\n<routiformModel>old/model</routiformModel>" },
       { role: "user", content: "Continue" },
       {
         role: "assistant",

@@ -40,7 +40,7 @@ export const cline = {
         lastName: tokenData.lastName,
         expires_at: tokenData.expiresAt,
       };
-    } catch (e) {
+    } catch (_e) {
       const response = await fetch(config.tokenExchangeUrl, {
         method: "POST",
         headers: {

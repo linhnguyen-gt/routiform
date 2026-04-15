@@ -156,7 +156,6 @@
     "playground": "Playground",
     "searchTools": "Search Tools",
     "agents": "Agentes",
-    "memory": "Memória",
     "skills": "Habilidades",
     "docs": "Documentação",
     "issues": "Problemas",
@@ -761,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCode requer configuração de chave API.",
-          "1": "Configure a URL base para seu endpoint do Routiform."
+          "1": "Configure a URL base para seu endpoint do Routiform.",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {
@@ -1332,30 +1332,6 @@
     "metadata": "Metadados",
     "events": "Eventos",
     "artifacts": "Artefatos"
-  },
-  "memory": {
-    "title": "Gerenciamento de Memória",
-    "description": "Visualize e gerencie entradas de memória armazenadas",
-    "memories": "Memórias",
-    "totalEntries": "Total de Entradas",
-    "tokensUsed": "Tokens Usados",
-    "hitRate": "Taxa de Acerto",
-    "loading": "Carregando memórias...",
-    "noMemories": "Nenhuma memória encontrada",
-    "search": "Buscar memórias...",
-    "allTypes": "Todos os Tipos",
-    "export": "Exportar",
-    "import": "Importar",
-    "addMemory": "Adicionar Memória",
-    "type": "Tipo",
-    "key": "Chave",
-    "content": "Conteúdo",
-    "created": "Criado",
-    "actions": "Ações",
-    "factual": "Factual",
-    "episodic": "Episódica",
-    "procedural": "Procedural",
-    "semantic": "Semântica"
   },
   "skills": {
     "title": "Skills",

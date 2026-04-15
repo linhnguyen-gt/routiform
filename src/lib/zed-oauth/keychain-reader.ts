@@ -131,8 +131,8 @@ export async function discoverZedCredentials(): Promise<ZedCredential[]> {
           token: cred.password,
         });
       }
-    } catch (error: any) {
-      console.debug(`No credentials found for ${pattern}:`, error?.message || error);
+    } catch (error: unknown) {
+      console.debug(`No credentials found for ${pattern}:`, (error as Error)?.message || error);
       // Continue to next pattern
     }
   }
@@ -185,8 +185,8 @@ export async function getZedCredential(provider: string): Promise<ZedCredential 
           };
         }
       }
-    } catch (error: any) {
-      console.debug(`Failed to get credential for ${pattern}:`, error?.message || error);
+    } catch (error: unknown) {
+      console.debug(`Failed to get credential for ${pattern}:`, (error as Error)?.message || error);
     }
   }
 

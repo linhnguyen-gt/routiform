@@ -3,11 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardSkeleton } from "@/shared/components";
 import { CLI_TOOLS } from "@/shared/constants/cliTools";
-import {
-  PROVIDER_MODELS,
-  getModelsByProviderId,
-  PROVIDER_ID_TO_ALIAS,
-} from "@/shared/constants/models";
+import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import {
   ClaudeToolCard,
   CodexToolCard,
@@ -23,7 +19,7 @@ import { useTranslations } from "next-intl";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
 
-export default function CLIToolsPageClient({ machineId }) {
+export default function CLIToolsPageClient({ machineId: _machineId }) {
   const t = useTranslations("cliTools");
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);

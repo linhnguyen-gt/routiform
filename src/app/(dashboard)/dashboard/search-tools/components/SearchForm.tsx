@@ -113,7 +113,7 @@ export default function SearchForm({ onSearch, loading, onCancel, providers }: S
             </label>
             <Select
               value={provider}
-              onChange={(e: any) => setProvider(e.target.value)}
+              onChange={(e: { target: { value: string } }) => setProvider(e.target.value)}
               options={[
                 { value: "auto", label: t("providerAuto") },
                 ...activeProviders.map((p) => ({
@@ -130,7 +130,7 @@ export default function SearchForm({ onSearch, loading, onCancel, providers }: S
             </label>
             <Select
               value={searchType}
-              onChange={(e: any) => setSearchType(e.target.value)}
+              onChange={(e: { target: { value: string } }) => setSearchType(e.target.value)}
               options={[
                 { value: "web", label: t("searchTypeWeb") },
                 { value: "news", label: t("searchTypeNews") },
@@ -191,7 +191,7 @@ export default function SearchForm({ onSearch, loading, onCancel, providers }: S
               <label className="block text-[10px] text-text-muted mb-1">{t("timeRange")}</label>
               <Select
                 value={timeRange}
-                onChange={(e: any) => setTimeRange(e.target.value)}
+                onChange={(e: { target: { value: string } }) => setTimeRange(e.target.value)}
                 options={[
                   { value: "", label: t("optionAny") },
                   { value: "day", label: t("timeRangeDay") },
@@ -273,7 +273,7 @@ export default function SearchForm({ onSearch, loading, onCancel, providers }: S
               <label className="block text-[10px] text-text-muted mb-1">{t("safeSearch")}</label>
               <Select
                 value={safeSearch}
-                onChange={(e: any) => setSafeSearch(e.target.value)}
+                onChange={(e: { target: { value: string } }) => setSafeSearch(e.target.value)}
                 options={[
                   { value: "off", label: t("safeSearchOff") },
                   { value: "moderate", label: t("safeSearchModerate") },

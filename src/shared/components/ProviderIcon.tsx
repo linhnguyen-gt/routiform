@@ -42,6 +42,7 @@ const LOBEHUB_PROVIDER_MAP: Record<string, string> = {
   openrouter: "openrouter",
   "open-router": "openrouter",
   ollama: "ollama",
+  "ollama-cloud": "ollama",
   minimax: "minimax",
   qwen: "qwen",
   alibaba: "qwen",

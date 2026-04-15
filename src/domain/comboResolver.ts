@@ -23,14 +23,26 @@ const roundRobinCounters = new Map();
  * @returns {{ model: string, index: number }}
  * @throws {Error} If combo has no models
  */
-export function resolveComboModel(combo: any, context: any = {}) {
+export function resolveComboModel(
+  combo: Record<string, unknown>,
+  context: Record<string, unknown> = {}
+) {
   const models = combo.models || [];
-  if (models.length === 0) {
+  if (!Array.isArray(models) || models.length === 0) {
     throw new Error(`Combo "${combo.name}" has no models configured`);
   }
 
   // Normalize models to { model, weight } format
-  const normalized = models.map((m) => (typeof m === "string" ? { model: m, weight: 1 } : m));
+  const normalized = (models as unknown[]).map((m) => {
+    if (typeof m === "string") {
+      return { model: m, weight: 1 };
+    }
+    const mObj = m as Record<string, unknown>;
+    return {
+      model: String(mObj.model || ""),
+      weight: typeof mObj.weight === "number" ? mObj.weight : 1,
+    };
+  });
 
   const strategy = combo.strategy || "priority";
 
@@ -40,11 +52,11 @@ export function resolveComboModel(combo: any, context: any = {}) {
 
     case "round-robin": {
       // Persistent counter per combo for deterministic round-robin
-      const comboKey = combo.id || combo.name || "default";
+      const comboKey = String(combo.id || combo.name || "default");
       if (!roundRobinCounters.has(comboKey)) {
         roundRobinCounters.set(comboKey, 0);
       }
-      const counter = roundRobinCounters.get(comboKey);
+      const counter = roundRobinCounters.get(comboKey) || 0;
       const index = counter % normalized.length;
       roundRobinCounters.set(comboKey, counter + 1);
       return { model: normalized[index].model, index };

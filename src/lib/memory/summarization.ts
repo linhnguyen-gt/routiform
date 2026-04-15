@@ -21,7 +21,7 @@ export async function summarizeMemories(
 
   const memories = db
     .prepare(`SELECT * FROM memories ${whereClause} ORDER BY created_at DESC`)
-    .all(...params) as any[];
+    .all(...params) as Array<Record<string, unknown>>;
 
   if (memories.length === 0) {
     return { originalCount: 0, summarizedCount: 0, tokensSaved: 0 };
@@ -32,33 +32,33 @@ export async function summarizeMemories(
   const toKeep: Memory[] = [];
 
   for (const mem of memories) {
-    const tokens = estimateTokens(mem.content);
+    const tokens = estimateTokens(String(mem.content || ""));
     if (totalTokens + tokens <= maxTokens) {
       toKeep.push({
-        id: mem.id,
-        apiKeyId: mem.api_key_id,
-        sessionId: mem.session_id,
+        id: String(mem.id),
+        apiKeyId: String(mem.api_key_id),
+        sessionId: String(mem.session_id),
         type: mem.type as MemoryType,
-        key: mem.key,
-        content: mem.content,
-        metadata: mem.metadata ? JSON.parse(mem.metadata) : {},
-        createdAt: new Date(mem.created_at),
-        updatedAt: new Date(mem.updated_at),
-        expiresAt: mem.expires_at ? new Date(mem.expires_at) : null,
+        key: String(mem.key),
+        content: String(mem.content),
+        metadata: typeof mem.metadata === "string" ? JSON.parse(mem.metadata) : {},
+        createdAt: new Date(mem.created_at as string | number | Date),
+        updatedAt: new Date(mem.updated_at as string | number | Date),
+        expiresAt: mem.expires_at ? new Date(mem.expires_at as string | number | Date) : null,
       });
       totalTokens += tokens;
     } else {
       toSummarize.push({
-        id: mem.id,
-        apiKeyId: mem.api_key_id,
-        sessionId: mem.session_id,
+        id: String(mem.id),
+        apiKeyId: String(mem.api_key_id),
+        sessionId: String(mem.session_id),
         type: mem.type as MemoryType,
-        key: mem.key,
-        content: mem.content,
-        metadata: mem.metadata ? JSON.parse(mem.metadata) : {},
-        createdAt: new Date(mem.created_at),
-        updatedAt: new Date(mem.updated_at),
-        expiresAt: mem.expires_at ? new Date(mem.expires_at) : null,
+        key: String(mem.key),
+        content: String(mem.content),
+        metadata: typeof mem.metadata === "string" ? JSON.parse(mem.metadata) : {},
+        createdAt: new Date(mem.created_at as string | number | Date),
+        updatedAt: new Date(mem.updated_at as string | number | Date),
+        expiresAt: mem.expires_at ? new Date(mem.expires_at as string | number | Date) : null,
       });
     }
   }

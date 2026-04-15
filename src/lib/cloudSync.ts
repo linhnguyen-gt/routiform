@@ -85,7 +85,7 @@ export async function syncToCloud(machineId, createdKey = null) {
     await updateLocalTokens(result.data.providers);
   }
 
-  const responseData: any = {
+  const responseData: Record<string, unknown> = {
     success: true,
     message: "Synced successfully",
     changes: result.changes,

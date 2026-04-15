@@ -125,6 +125,28 @@ export function getLoggedOutputTokens(tokens: unknown): number {
   return toFiniteNumber(tokenRecord.completion_tokens ?? tokenRecord.output_tokens);
 }
 
+export function getPromptTokenDetailsOrNull(tokens: unknown): JsonRecord | null {
+  const tokenRecord = asRecord(tokens);
+  if (tokenRecord.prompt_tokens_details !== undefined) {
+    return asRecord(tokenRecord.prompt_tokens_details);
+  }
+  if (tokenRecord.input_tokens_details !== undefined) {
+    return asRecord(tokenRecord.input_tokens_details);
+  }
+  return null;
+}
+
+export function getCompletionTokenDetailsOrNull(tokens: unknown): JsonRecord | null {
+  const tokenRecord = asRecord(tokens);
+  if (tokenRecord.completion_tokens_details !== undefined) {
+    return asRecord(tokenRecord.completion_tokens_details);
+  }
+  if (tokenRecord.output_tokens_details !== undefined) {
+    return asRecord(tokenRecord.output_tokens_details);
+  }
+  return null;
+}
+
 export function formatUsageLog(tokens: unknown): string {
   const input = getLoggedInputTokens(tokens);
   const output = getLoggedOutputTokens(tokens);

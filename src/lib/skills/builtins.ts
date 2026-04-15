@@ -26,7 +26,7 @@ export const builtinSkills: Record<string, SkillHandler> = {
   },
 
   web_search: async (input, context) => {
-    const { query, limit = 10 } = input as { query: string; limit?: number };
+    const { query, limit: _limit = 10 } = input as { query: string; limit?: number };
     if (!query) {
       throw new Error("Missing required field: query");
     }
@@ -61,7 +61,9 @@ export const builtinSkills: Record<string, SkillHandler> = {
   },
 };
 
-export function registerBuiltinSkills(executor: any): void {
+export function registerBuiltinSkills(executor: {
+  registerHandler: (name: string, handler: unknown) => void;
+}): void {
   for (const [name, handler] of Object.entries(builtinSkills)) {
     executor.registerHandler(name, handler);
   }

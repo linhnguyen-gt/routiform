@@ -1,5 +1,4 @@
 import { CORS_ORIGIN, CORS_HEADERS } from "@/shared/utils/cors";
-import { callCloudWithMachineId } from "@/shared/utils/cloud";
 import { handleChat } from "@/sse/handlers/chat";
 import { initTranslators } from "@routiform/open-sse/translator/index.ts";
 import { createInjectionGuard } from "@/middleware/promptInjectionGuard";
@@ -44,13 +43,14 @@ export async function POST(request) {
     if (body) {
       const { blocked, result } = injectionGuard(body);
       if (blocked) {
+        const detections = (result as Record<string, unknown>).detections;
         return new Response(
           JSON.stringify({
             error: {
               message: "Request blocked: potential prompt injection detected",
               type: "injection_detected",
               code: "SECURITY_001",
-              detections: result.detections.length,
+              detections: Array.isArray(detections) ? detections.length : 0,
             },
           }),
           { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }

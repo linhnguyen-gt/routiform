@@ -7,16 +7,30 @@
 
 import { getProviderConnections } from "@/lib/localDb";
 
-function isRefreshFailureWarning(conn: any) {
-  return conn.isActive !== false && conn.lastErrorType === "token_refresh_failed";
+function isRefreshFailureWarning(conn: unknown) {
+  if (!conn || typeof conn !== "object") return false;
+  const c = conn as Record<string, unknown>;
+  const isActive = "isActive" in c ? c.isActive : true;
+  const lastErrorType =
+    "lastErrorType" in c && typeof c.lastErrorType === "string" ? c.lastErrorType : "";
+  return isActive !== false && lastErrorType === "token_refresh_failed";
 }
 
-function isErroredConnection(conn: any) {
-  return !isRefreshFailureWarning(conn) && ["error", "expired", "unavailable"].includes(conn.testStatus);
+function isErroredConnection(conn: unknown) {
+  return (
+    !isRefreshFailureWarning(conn) &&
+    ["error", "expired", "unavailable"].includes(
+      String((conn as Record<string, unknown>).testStatus)
+    )
+  );
 }
 
-function isHealthyConnection(conn: any) {
-  return !isRefreshFailureWarning(conn) && !isErroredConnection(conn) && !conn.lastError;
+function isHealthyConnection(conn: unknown) {
+  return (
+    !isRefreshFailureWarning(conn) &&
+    !isErroredConnection(conn) &&
+    !(conn as Record<string, unknown>).lastError
+  );
 }
 
 export async function GET() {

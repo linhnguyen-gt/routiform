@@ -79,7 +79,7 @@ describe("MemoryCards", () => {
     });
 
     it("renders with null stats gracefully", () => {
-      const { container } = render(<MemoryCards stats={null} />);
+      const { container } = render(<MemoryCards />);
       expect(container).toBeInTheDocument();
     });
   });

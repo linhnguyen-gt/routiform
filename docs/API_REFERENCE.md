@@ -179,15 +179,17 @@ Response example:
 
 ### Provider Management
 
-| Endpoint                     | Method          | Description              |
-| ---------------------------- | --------------- | ------------------------ |
-| `/api/providers`             | GET/POST        | List / create providers  |
-| `/api/providers/[id]`        | GET/PUT/DELETE  | Manage a provider        |
-| `/api/providers/[id]/test`   | POST            | Test provider connection |
-| `/api/providers/[id]/models` | GET             | List provider models     |
-| `/api/providers/validate`    | POST            | Validate provider config |
-| `/api/provider-nodes*`       | Various         | Provider node management |
-| `/api/provider-models`       | GET/POST/DELETE | Custom models            |
+| Endpoint                     | Method          | Description                                    |
+| ---------------------------- | --------------- | ---------------------------------------------- |
+| `/api/providers`             | GET/POST        | List / create providers                        |
+| `/api/providers/[id]`        | GET/PUT/DELETE  | Manage a provider                              |
+| `/api/providers/[id]/test`   | POST            | Test provider connection                       |
+| `/api/providers/[id]/models` | GET             | List provider models from the upstream catalog |
+| `/api/providers/validate`    | POST            | Validate provider config                       |
+| `/api/provider-nodes*`       | Various         | Provider node management                       |
+| `/api/provider-models`       | GET/POST/DELETE | Custom models                                  |
+
+Recent first-class provider catalog additions on `/api/providers/[id]/models` include `deepinfra`, `sambanova`, and `venice`.
 
 ### OAuth Flows
 

@@ -83,10 +83,10 @@ export function injectSkills(options: InjectionOptions): unknown[] {
 }
 
 export function injectSkillTools(
-  messages: any[],
+  messages: unknown[],
   provider: "openai" | "anthropic" | "google" | "other",
   apiKeyId: string
-): any[] {
+): unknown[] {
   const tools = injectSkills({ provider, apiKeyId });
 
   if (tools.length === 0) {
@@ -95,8 +95,12 @@ export function injectSkillTools(
 
   const lastMessage = messages[messages.length - 1];
 
-  if (lastMessage.role === "user" && !lastMessage.tools) {
-    return [...messages.slice(0, -1), { ...lastMessage, tools }];
+  if (
+    (lastMessage as Record<string, unknown>).role === "user" &&
+    !(lastMessage as Record<string, unknown>).tools
+  ) {
+    const toolsArray = Array.isArray(tools) ? tools : [];
+    return [...messages.slice(0, -1), { ...(lastMessage as object), tools: toolsArray }];
   }
 
   return messages;

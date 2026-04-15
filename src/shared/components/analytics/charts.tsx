@@ -35,6 +35,14 @@ function createDateFormatter(locale: string, options: Intl.DateTimeFormatOptions
   }
 }
 
+interface TooltipPayloadItem {
+  color?: string;
+  name?: string;
+  value?: number | string;
+  dataKey?: string;
+  [key: string]: unknown;
+}
+
 // ── Custom Tooltip for dark theme ──────────────────────────────────────────
 
 function DarkTooltip({
@@ -44,8 +52,8 @@ function DarkTooltip({
   formatter,
 }: {
   active?: boolean;
-  payload?: any[];
-  label?: any;
+  payload?: TooltipPayloadItem[];
+  label?: string | number;
   formatter?: Function;
 }) {
   if (!active || !payload?.length) return null;
@@ -95,10 +103,10 @@ export function StatCard({
   color = "text-text-main",
   tone = "default",
 }: {
-  icon: any;
-  label: any;
-  value: any;
-  subValue?: any;
+  icon: React.ReactNode;
+  label: React.ReactNode;
+  value: React.ReactNode;
+  subValue?: React.ReactNode;
   color?: string;
   /** warning = cost/fallback attention; keeps layout consistent */
   tone?: "default" | "warning";
@@ -399,8 +407,8 @@ function CostTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: any[];
-  label?: any;
+  payload?: TooltipPayloadItem[];
+  label?: string | number;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -917,7 +925,7 @@ export function WeeklySquares7d({ activityMap }) {
 
 // ── ModelTable ──────────────────────────────────────────────────────────────
 
-export function ModelTable({ byModel, summary }) {
+export function ModelTable({ byModel, summary: _summary }) {
   const [sortBy, setSortBy] = useState("totalTokens");
   const [sortOrder, setSortOrder] = useState("desc");
 

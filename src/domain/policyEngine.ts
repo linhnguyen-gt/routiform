@@ -39,6 +39,7 @@ interface Policy {
   actions?: {
     prefer_provider?: string[];
     block_model?: string[];
+    max_completion_tokens?: number;
     max_tokens?: number;
     [key: string]: unknown;
   };
@@ -182,7 +183,9 @@ export class PolicyEngine {
           break;
 
         case "budget":
-          if (policy.actions?.max_tokens != null) {
+          if (policy.actions?.max_completion_tokens != null) {
+            result.maxTokens = policy.actions.max_completion_tokens;
+          } else if (policy.actions?.max_tokens != null) {
             result.maxTokens = policy.actions.max_tokens;
           }
           result.appliedPolicies.push(policy.name);

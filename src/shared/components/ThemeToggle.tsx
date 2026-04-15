@@ -7,10 +7,10 @@ export default function ThemeToggle({
   className,
   variant = "default",
 }: {
-  className?: any;
+  className?: string;
   variant?: string;
 }) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme: _theme, toggleTheme, isDark } = useTheme();
 
   const variants = {
     default: cn(

@@ -79,12 +79,28 @@ export default function DefaultToolCard({
     const baseUrlWithV1 = normalizedBaseUrl.endsWith("/v1")
       ? normalizedBaseUrl
       : `${normalizedBaseUrl}/v1`;
+
+    // Generate models JSON for OpenCode config
+    const modelsJson =
+      isOpenCode && modelValues.length > 0
+        ? modelValues
+            .map(
+              (m) => `        "${m}": {
+          "name": "${m}"
+        }`
+            )
+            .join(",\n")
+        : `        "${primaryModelValue || t("modelPlaceholder")}": {
+          "name": "${primaryModelValue || t("modelPlaceholder")}"
+        }`;
+
     return {
       baseUrl: baseUrlWithV1,
       apiKey: keyToUse,
       model: primaryModelValue || t("modelPlaceholder"),
+      models: modelsJson,
     };
-  }, [selectedApiKey, cloudEnabled, baseUrl, primaryModelValue, t]);
+  }, [selectedApiKey, cloudEnabled, baseUrl, primaryModelValue, modelValues, isOpenCode, t]);
 
   // Persist and restore model selection per tool via localStorage
   useEffect(() => {
@@ -165,11 +181,12 @@ export default function DefaultToolCard({
   const replaceVars = useCallback(
     (text) => {
       if (text == null || text === "") return text;
-      const { baseUrl, apiKey, model } = substitutionVars;
+      const { baseUrl, apiKey, model, models } = substitutionVars;
       return String(text)
         .replace(/\{\{baseUrl\}\}/g, baseUrl)
         .replace(/\{\{apiKey\}\}/g, apiKey)
-        .replace(/\{\{model\}\}/g, model);
+        .replace(/\{\{model\}\}/g, model)
+        .replace(/\{\{models\}\}/g, models);
     },
     [substitutionVars]
   );

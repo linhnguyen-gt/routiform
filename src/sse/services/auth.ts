@@ -605,11 +605,16 @@ export async function getProviderCredentials(
 
       if (!isFallbackScenario) {
         // Sort by lastUsed (most recent first) to find current candidate
-        const byRecency = [...orderedConnections].sort((a: any, b: any) => {
-          if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
-          if (!a.lastUsedAt) return 1;
-          if (!b.lastUsedAt) return -1;
-          return new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime();
+        const byRecency = [...orderedConnections].sort((a, b) => {
+          const aLastUsed = a.lastUsedAt;
+          const bLastUsed = b.lastUsedAt;
+          const aPriority = typeof a.priority === "number" ? a.priority : 999;
+          const bPriority = typeof b.priority === "number" ? b.priority : 999;
+
+          if (!aLastUsed && !bLastUsed) return aPriority - bPriority;
+          if (!aLastUsed) return 1;
+          if (!bLastUsed) return -1;
+          return new Date(bLastUsed).getTime() - new Date(aLastUsed).getTime();
         });
 
         const current = byRecency[0];
@@ -631,15 +636,21 @@ export async function getProviderCredentials(
           // Pick the least recently used (excluding current if possible)
           // Also penalize accounts with high backoffLevel (previously rate-limited)
           // so they don't get immediately re-selected after cooldown (#340)
-          const sortedByOldest = [...orderedConnections].sort((a: any, b: any) => {
+          const sortedByOldest = [...orderedConnections].sort((a, b) => {
             // Penalize previously rate-limited accounts (backoffLevel > 0)
-            const aBackoff = a.backoffLevel || 0;
-            const bBackoff = b.backoffLevel || 0;
+            const aBackoff = typeof a.backoffLevel === "number" ? a.backoffLevel : 0;
+            const bBackoff = typeof b.backoffLevel === "number" ? b.backoffLevel : 0;
             if (aBackoff !== bBackoff) return aBackoff - bBackoff; // lower backoff first
-            if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
-            if (!a.lastUsedAt) return -1;
-            if (!b.lastUsedAt) return 1;
-            return new Date(a.lastUsedAt).getTime() - new Date(b.lastUsedAt).getTime();
+
+            const aLastUsed = a.lastUsedAt;
+            const bLastUsed = b.lastUsedAt;
+            const aPriority = typeof a.priority === "number" ? a.priority : 999;
+            const bPriority = typeof b.priority === "number" ? b.priority : 999;
+
+            if (!aLastUsed && !bLastUsed) return aPriority - bPriority;
+            if (!aLastUsed) return -1;
+            if (!bLastUsed) return 1;
+            return new Date(aLastUsed).getTime() - new Date(bLastUsed).getTime();
           });
 
           connection = sortedByOldest[0];
@@ -658,14 +669,20 @@ export async function getProviderCredentials(
         // Fallback scenario: excluded an account due to failure
         // Always pick the least recently used to ensure proper cycling
         // Also penalize accounts with high backoffLevel (#340)
-        const sortedByOldest = [...orderedConnections].sort((a: any, b: any) => {
-          const aBackoff = a.backoffLevel || 0;
-          const bBackoff = b.backoffLevel || 0;
+        const sortedByOldest = [...orderedConnections].sort((a, b) => {
+          const aBackoff = typeof a.backoffLevel === "number" ? a.backoffLevel : 0;
+          const bBackoff = typeof b.backoffLevel === "number" ? b.backoffLevel : 0;
           if (aBackoff !== bBackoff) return aBackoff - bBackoff;
-          if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
-          if (!a.lastUsedAt) return -1;
-          if (!b.lastUsedAt) return 1;
-          return new Date(a.lastUsedAt).getTime() - new Date(b.lastUsedAt).getTime();
+
+          const aLastUsed = a.lastUsedAt;
+          const bLastUsed = b.lastUsedAt;
+          const aPriority = typeof a.priority === "number" ? a.priority : 999;
+          const bPriority = typeof b.priority === "number" ? b.priority : 999;
+
+          if (!aLastUsed && !bLastUsed) return aPriority - bPriority;
+          if (!aLastUsed) return -1;
+          if (!bLastUsed) return 1;
+          return new Date(aLastUsed).getTime() - new Date(bLastUsed).getTime();
         });
 
         connection = sortedByOldest[0];
@@ -871,7 +888,7 @@ export async function markAccountUnavailable(
       | string
       | undefined;
 
-    const isPassthroughProvider = provider && getPassthroughProviders().has(provider);
+    const _isPassthroughProvider = provider && getPassthroughProviders().has(provider);
     const isPerModelQuotaProvider = hasPerModelQuota(provider);
     if (
       (isLocalProvider(connBaseUrl) || isPerModelQuotaProvider) &&

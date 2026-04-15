@@ -20,8 +20,9 @@ const readGlobalState = async () => {
   try {
     const content = await fs.readFile(GLOBAL_STATE_PATH, "utf-8");
     return JSON.parse(content);
-  } catch (error: any) {
-    if (error.code === "ENOENT") return null;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+      return null;
     throw error;
   }
 };
@@ -31,23 +32,24 @@ const readSecrets = async () => {
   try {
     const content = await fs.readFile(SECRETS_PATH, "utf-8");
     return JSON.parse(content);
-  } catch (error: any) {
-    if (error.code === "ENOENT") return {};
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return {};
     throw error;
   }
 };
 
 // Check if Routiform is configured as OpenAI-compatible provider
-const hasRoutiformConfig = (globalState: any) => {
+const hasRoutiformConfig = (globalState: Record<string, unknown>) => {
   if (!globalState) return false;
   const isOpenAi =
     globalState.actModeApiProvider === "openai" || globalState.planModeApiProvider === "openai";
   const baseUrl = globalState.openAiBaseUrl || "";
+  const baseUrlStr = String(baseUrl);
   return (
     isOpenAi &&
-    (baseUrl.includes("localhost") ||
-      baseUrl.includes("127.0.0.1") ||
-      baseUrl.includes("routiform"))
+    (baseUrlStr.includes("localhost") ||
+      baseUrlStr.includes("127.0.0.1") ||
+      baseUrlStr.includes("routiform"))
   );
 };
 
@@ -73,7 +75,7 @@ export async function GET() {
     }
 
     const globalState = await readGlobalState();
-    const secrets = await readSecrets();
+    const _secrets = await readSecrets();
 
     return NextResponse.json({
       installed: runtime.installed,
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
     await createBackup("cline", SECRETS_PATH);
 
     // Read existing globalState or create new
-    let globalState: Record<string, any> = {};
+    let globalState: Record<string, unknown> = {};
     try {
       const existing = await fs.readFile(GLOBAL_STATE_PATH, "utf-8");
       globalState = JSON.parse(existing);
@@ -169,7 +171,7 @@ export async function POST(request: Request) {
     await fs.writeFile(GLOBAL_STATE_PATH, JSON.stringify(globalState, null, 2));
 
     // Write API key to secrets
-    let secrets: Record<string, any> = {};
+    let secrets: Record<string, unknown> = {};
     try {
       const existing = await fs.readFile(SECRETS_PATH, "utf-8");
       secrets = JSON.parse(existing);
@@ -212,12 +214,12 @@ export async function DELETE() {
     await createBackup("cline", SECRETS_PATH);
 
     // Read existing state
-    let globalState: Record<string, any> = {};
+    let globalState: Record<string, unknown> = {};
     try {
       const existing = await fs.readFile(GLOBAL_STATE_PATH, "utf-8");
       globalState = JSON.parse(existing);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         return NextResponse.json({ success: true, message: "No settings file to reset" });
       }
       throw error;
@@ -236,7 +238,7 @@ export async function DELETE() {
     await fs.writeFile(GLOBAL_STATE_PATH, JSON.stringify(globalState, null, 2));
 
     // Remove API key from secrets
-    let secrets: Record<string, any> = {};
+    let secrets: Record<string, unknown> = {};
     try {
       const existing = await fs.readFile(SECRETS_PATH, "utf-8");
       secrets = JSON.parse(existing);

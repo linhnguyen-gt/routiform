@@ -116,15 +116,22 @@ export async function POST(request) {
 
   if (result.success) {
     await clearRecoveredProviderState(credentials);
-    return new Response(JSON.stringify((result as any).data), {
+    return new Response(JSON.stringify((result as Record<string, unknown>).data), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const errorPayload = toJsonErrorPayload((result as any).error, "Video generation provider error");
+  const errorPayload = toJsonErrorPayload(
+    (result as Record<string, unknown>).error,
+    "Video generation provider error"
+  );
+  const status =
+    typeof (result as Record<string, unknown>).status === "number"
+      ? ((result as Record<string, unknown>).status as number)
+      : 500;
   return new Response(JSON.stringify(errorPayload), {
-    status: (result as any).status,
+    status,
     headers: { "Content-Type": "application/json" },
   });
 }

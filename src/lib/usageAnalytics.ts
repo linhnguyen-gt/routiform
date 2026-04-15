@@ -73,7 +73,7 @@ function shortModelName(model: string) {
  * @returns {Object} Analytics data
  */
 export async function computeAnalytics(
-  history: any[],
+  history: unknown[],
   range = "30d",
   connectionMap: Record<string, string> = {}
 ) {
@@ -81,7 +81,8 @@ export async function computeAnalytics(
 
   // ---- Filtered entries ----
   const entries = history.filter((e) => {
-    const t = new Date(e.timestamp);
+    const entry = e as Record<string, unknown>;
+    const t = new Date(entry.timestamp as string | number | Date);
     return t >= start && t <= end;
   });
 
@@ -98,7 +99,7 @@ export async function computeAnalytics(
   };
 
   // ---- Daily trend ----
-  const dailyMap: Record<string, any> = {}; // "YYYY-MM-DD" → { requests, promptTokens, completionTokens, cost }
+  const dailyMap: Record<string, Record<string, unknown>> = {}; // "YYYY-MM-DD" → { requests, promptTokens, completionTokens, cost }
   const dailyByModelMap: Record<string, Record<string, number>> = {}; // "YYYY-MM-DD" → { modelShort → tokens }
 
   // ---- Activity heatmap (always last 365 days, regardless of range filter) ----
@@ -107,10 +108,10 @@ export async function computeAnalytics(
   const activityMap: Record<string, number> = {};
 
   // ---- By model / account / provider ----
-  const byModelMap: Record<string, any> = {};
-  const byAccountMap: Record<string, any> = {};
-  const byProviderMap: Record<string, any> = {};
-  const byApiKeyMap: Record<string, any> = {};
+  const byModelMap: Record<string, Record<string, unknown>> = {};
+  const byAccountMap: Record<string, Record<string, unknown>> = {};
+  const byProviderMap: Record<string, Record<string, unknown>> = {};
+  const byApiKeyMap: Record<string, Record<string, unknown>> = {};
 
   // ---- Weekly pattern (0=Sun..6=Sat) ----
   const weeklyTokens = [0, 0, 0, 0, 0, 0, 0];
@@ -118,13 +119,15 @@ export async function computeAnalytics(
 
   // ---- Single pass over ALL history for heatmap ----
   for (const entry of history) {
-    const entryDate = new Date(entry.timestamp);
+    const entryObj = entry as Record<string, unknown>;
+    const entryDate = new Date(entryObj.timestamp as string | number | Date);
     if (entryDate >= heatmapStart) {
       const key = toDateKey(entryDate);
-      const tokens =
-        (entry.tokens?.input ?? entry.tokens?.prompt_tokens ?? 0) +
-        (entry.tokens?.output ?? entry.tokens?.completion_tokens ?? 0);
-      activityMap[key] = (activityMap[key] || 0) + tokens;
+      const tokens = entryObj.tokens as Record<string, unknown> | undefined;
+      const inputTokens = tokens?.input ?? tokens?.prompt_tokens ?? 0;
+      const outputTokens = tokens?.output ?? tokens?.completion_tokens ?? 0;
+      const totalTokens = (inputTokens as number) + (outputTokens as number);
+      activityMap[key] = (activityMap[key] || 0) + totalTokens;
     }
   }
 
@@ -133,10 +136,14 @@ export async function computeAnalytics(
   const pricingPairs = new Map<string, { provider: string; model: string }>();
 
   for (const entry of entries) {
-    if (!entry?.provider || !entry?.model) continue;
-    const pairKey = `${entry.provider}::${entry.model}`;
+    const entryObj = entry as Record<string, unknown>;
+    if (!entryObj?.provider || !entryObj?.model) continue;
+    const pairKey = `${entryObj.provider}::${entryObj.model}`;
     if (!pricingPairs.has(pairKey)) {
-      pricingPairs.set(pairKey, { provider: entry.provider, model: entry.model });
+      pricingPairs.set(pairKey, {
+        provider: String(entryObj.provider),
+        model: String(entryObj.model),
+      });
     }
   }
 
@@ -161,28 +168,30 @@ export async function computeAnalytics(
   }
 
   for (const entry of entries) {
-    const pt = entry.tokens?.input ?? entry.tokens?.prompt_tokens ?? 0;
-    const ct = entry.tokens?.output ?? entry.tokens?.completion_tokens ?? 0;
+    const entryObj = entry as Record<string, unknown>;
+    const tokens = entryObj.tokens as Record<string, unknown> | undefined;
+    const pt = (tokens?.input ?? tokens?.prompt_tokens ?? 0) as number;
+    const ct = (tokens?.output ?? tokens?.completion_tokens ?? 0) as number;
     const totalTkns = pt + ct;
-    const entryDate = new Date(entry.timestamp);
+    const entryDate = new Date(entryObj.timestamp as string | number | Date);
     const dateKey = toDateKey(entryDate);
     const dayOfWeek = entryDate.getDay();
-    const modelShort = shortModelName(entry.model);
+    const modelShort = shortModelName(String(entryObj.model || ""));
 
     // Cost
-    const pairKey = `${entry.provider}::${entry.model}`;
+    const pairKey = `${entryObj.provider}::${entryObj.model}`;
     const pricing = pricingByPair.get(pairKey) ?? null;
-    const cost = computeCostFromPricing(pricing, entry.tokens);
+    const cost = computeCostFromPricing(pricing, tokens);
 
     // Summary
     summary.promptTokens += pt;
     summary.completionTokens += ct;
     summary.totalTokens += totalTkns;
     summary.totalCost += cost;
-    if (entry.model) summary.uniqueModels.add(modelShort);
-    if (entry.connectionId) summary.uniqueAccounts.add(entry.connectionId);
-    if (entry.apiKeyId || entry.apiKeyName) {
-      summary.uniqueApiKeys.add(entry.apiKeyId || entry.apiKeyName);
+    if (entryObj.model) summary.uniqueModels.add(modelShort);
+    if (entryObj.connectionId) summary.uniqueAccounts.add(String(entryObj.connectionId));
+    if (entryObj.apiKeyId || entryObj.apiKeyName) {
+      summary.uniqueApiKeys.add(String(entryObj.apiKeyId || entryObj.apiKeyName));
     }
 
     // Daily trend
@@ -195,10 +204,11 @@ export async function computeAnalytics(
         cost: 0,
       };
     }
-    dailyMap[dateKey].requests++;
-    dailyMap[dateKey].promptTokens += pt;
-    dailyMap[dateKey].completionTokens += ct;
-    dailyMap[dateKey].cost += cost;
+    const dailyEntry = dailyMap[dateKey];
+    (dailyEntry.requests as number)++;
+    (dailyEntry.promptTokens as number) += pt;
+    (dailyEntry.completionTokens as number) += ct;
+    (dailyEntry.cost as number) += cost;
 
     // Daily by model
     if (!dailyByModelMap[dateKey]) dailyByModelMap[dateKey] = {};
@@ -212,7 +222,7 @@ export async function computeAnalytics(
     if (!byModelMap[modelShort]) {
       byModelMap[modelShort] = {
         model: modelShort,
-        provider: entry.provider,
+        provider: entryObj.provider,
         requests: 0,
         promptTokens: 0,
         completionTokens: 0,
@@ -220,25 +230,28 @@ export async function computeAnalytics(
         cost: 0,
       };
     }
-    byModelMap[modelShort].requests++;
-    byModelMap[modelShort].promptTokens += pt;
-    byModelMap[modelShort].completionTokens += ct;
-    byModelMap[modelShort].totalTokens += totalTkns;
-    byModelMap[modelShort].cost += cost;
+    const modelEntry = byModelMap[modelShort];
+    (modelEntry.requests as number)++;
+    (modelEntry.promptTokens as number) += pt;
+    (modelEntry.completionTokens as number) += ct;
+    (modelEntry.totalTokens as number) += totalTkns;
+    (modelEntry.cost as number) += cost;
 
     // By account
-    const accountName = entry.connectionId
-      ? connectionMap[entry.connectionId] || `Account ${entry.connectionId.slice(0, 8)}`
-      : entry.provider || "unknown";
+    const accountName = entryObj.connectionId
+      ? connectionMap[String(entryObj.connectionId)] ||
+        `Account ${String(entryObj.connectionId).slice(0, 8)}`
+      : String(entryObj.provider || "unknown");
     if (!byAccountMap[accountName]) {
       byAccountMap[accountName] = { account: accountName, totalTokens: 0, requests: 0, cost: 0 };
     }
-    byAccountMap[accountName].totalTokens += totalTkns;
-    byAccountMap[accountName].requests++;
-    byAccountMap[accountName].cost += cost;
+    const accountEntry = byAccountMap[accountName];
+    (accountEntry.totalTokens as number) += totalTkns;
+    (accountEntry.requests as number)++;
+    (accountEntry.cost as number) += cost;
 
     // By provider
-    const prov = entry.provider || "unknown";
+    const prov = String(entryObj.provider || "unknown");
     if (!byProviderMap[prov]) {
       byProviderMap[prov] = {
         provider: prov,
@@ -249,20 +262,21 @@ export async function computeAnalytics(
         cost: 0,
       };
     }
-    byProviderMap[prov].requests++;
-    byProviderMap[prov].promptTokens += pt;
-    byProviderMap[prov].completionTokens += ct;
-    byProviderMap[prov].totalTokens += totalTkns;
-    byProviderMap[prov].cost += cost;
+    const provEntry = byProviderMap[prov];
+    (provEntry.requests as number)++;
+    (provEntry.promptTokens as number) += pt;
+    (provEntry.completionTokens as number) += ct;
+    (provEntry.totalTokens as number) += totalTkns;
+    (provEntry.cost as number) += cost;
 
     // By API key
-    if (entry.apiKeyId || entry.apiKeyName) {
-      const keyName = entry.apiKeyName || entry.apiKeyId || "unknown";
-      const keyLabel = entry.apiKeyId ? `${keyName} (${entry.apiKeyId})` : keyName;
+    if (entryObj.apiKeyId || entryObj.apiKeyName) {
+      const keyName = String(entryObj.apiKeyName || entryObj.apiKeyId || "unknown");
+      const keyLabel = entryObj.apiKeyId ? `${keyName} (${entryObj.apiKeyId})` : keyName;
       if (!byApiKeyMap[keyLabel]) {
         byApiKeyMap[keyLabel] = {
           apiKey: keyLabel,
-          apiKeyId: entry.apiKeyId || null,
+          apiKeyId: entryObj.apiKeyId || null,
           apiKeyName: keyName,
           requests: 0,
           promptTokens: 0,
@@ -271,16 +285,21 @@ export async function computeAnalytics(
           cost: 0,
         };
       }
-      byApiKeyMap[keyLabel].requests++;
-      byApiKeyMap[keyLabel].promptTokens += pt;
-      byApiKeyMap[keyLabel].completionTokens += ct;
-      byApiKeyMap[keyLabel].totalTokens += totalTkns;
-      byApiKeyMap[keyLabel].cost += cost;
+      const keyEntry = byApiKeyMap[keyLabel];
+      (keyEntry.requests as number)++;
+      (keyEntry.promptTokens as number) += pt;
+      (keyEntry.completionTokens as number) += ct;
+      (keyEntry.totalTokens as number) += totalTkns;
+      (keyEntry.cost as number) += cost;
     }
   }
 
   // ---- Build sorted arrays ----
-  const dailyTrend = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+  const dailyTrend = Object.values(dailyMap).sort((a, b) => {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    return String(aObj.date).localeCompare(String(bObj.date));
+  });
 
   // Daily by model — collect all unique model names
   const allModels = new Set<string>();
@@ -288,23 +307,46 @@ export async function computeAnalytics(
     for (const m of Object.keys(day)) allModels.add(m);
   }
   const dailyByModel = dailyTrend.map((d) => {
-    const row = { date: d.date };
+    const dObj = d as Record<string, unknown>;
+    const row: Record<string, unknown> = { date: dObj.date };
     for (const m of allModels) {
-      row[m] = dailyByModelMap[d.date]?.[m] || 0;
+      row[m] = dailyByModelMap[String(dObj.date)]?.[m] || 0;
     }
     return row;
   });
 
   const byModel = Object.values(byModelMap)
-    .sort((a, b) => b.totalTokens - a.totalTokens)
-    .map((m) => ({
-      ...m,
-      pct: summary.totalTokens > 0 ? ((m.totalTokens / summary.totalTokens) * 100).toFixed(1) : "0",
-    }));
+    .sort((a, b) => {
+      const aObj = a as Record<string, unknown>;
+      const bObj = b as Record<string, unknown>;
+      return (bObj.totalTokens as number) - (aObj.totalTokens as number);
+    })
+    .map((m) => {
+      const mObj = m as Record<string, unknown>;
+      return {
+        ...mObj,
+        pct:
+          summary.totalTokens > 0
+            ? (((mObj.totalTokens as number) / summary.totalTokens) * 100).toFixed(1)
+            : "0",
+      };
+    });
 
-  const byAccount = Object.values(byAccountMap).sort((a, b) => b.totalTokens - a.totalTokens);
-  const byProvider = Object.values(byProviderMap).sort((a, b) => b.totalTokens - a.totalTokens);
-  const byApiKey = Object.values(byApiKeyMap).sort((a, b) => b.totalTokens - a.totalTokens);
+  const byAccount = Object.values(byAccountMap).sort((a, b) => {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    return (bObj.totalTokens as number) - (aObj.totalTokens as number);
+  });
+  const byProvider = Object.values(byProviderMap).sort((a, b) => {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    return (bObj.totalTokens as number) - (aObj.totalTokens as number);
+  });
+  const byApiKey = Object.values(byApiKeyMap).sort((a, b) => {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    return (bObj.totalTokens as number) - (aObj.totalTokens as number);
+  });
 
   // Weekly pattern (avg tokens per day of week)
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

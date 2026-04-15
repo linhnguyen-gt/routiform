@@ -19,8 +19,8 @@ export const a2aMemorySkill = {
       },
     },
   },
-  handler: async (input: any, context: any) => {
-    const { task, contextRequired = false } = input;
+  handler: async (input: Record<string, unknown>, _context: unknown) => {
+    const { _task, contextRequired = false } = input;
     return {
       recommendedProvider: "auto",
       reason: "Memory-aware routing requires memories to be loaded",
@@ -29,6 +29,11 @@ export const a2aMemorySkill = {
   },
 };
 
-export function registerA2ASkill(registry: any): void {
-  registry.registerHandler("memory_aware_routing", a2aMemorySkill.handler);
+export function registerA2ASkill(registry: {
+  registerSkill: (name: string, skill: unknown) => void;
+  registerHandler?: (name: string, handler: unknown) => void;
+}): void {
+  if (registry.registerHandler) {
+    registry.registerHandler("memory_aware_routing", a2aMemorySkill.handler);
+  }
 }

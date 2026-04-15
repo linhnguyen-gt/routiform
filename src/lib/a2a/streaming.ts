@@ -55,7 +55,7 @@ export function createCompletionEvent(taskId: string, metadata: Record<string, u
 /**
  * Create a heartbeat event to keep the connection alive.
  */
-export function createHeartbeat(taskId: string): string {
+export function createHeartbeat(_taskId: string): string {
   return `: heartbeat ${new Date().toISOString()}\n\n`;
 }
 

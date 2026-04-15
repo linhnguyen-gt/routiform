@@ -38,7 +38,12 @@ export class GitHubService extends OAuthService {
   /**
    * Poll for access token using device code
    */
-  async pollAccessToken(deviceCode, verificationUri, userCode, interval = 5000) {
+  async pollAccessToken(
+    deviceCode: string,
+    verificationUri: string,
+    userCode: string,
+    interval = 5000
+  ) {
     const spinner = createSpinner("Waiting for GitHub authentication...").start();
 
     // Show user code and verification URL
@@ -49,7 +54,7 @@ export class GitHubService extends OAuthService {
     try {
       const open = (await import("open")).default;
       await open(verificationUri);
-    } catch (error) {
+    } catch (_error) {
       console.log("Could not open browser automatically. Please visit the URL above manually.");
     }
 
@@ -102,7 +107,7 @@ export class GitHubService extends OAuthService {
   /**
    * Get Copilot token using GitHub access token
    */
-  async getCopilotToken(accessToken) {
+  async getCopilotToken(accessToken: string) {
     const response = await fetch(`${GITHUB_CONFIG.copilotTokenUrl}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`, // GitHub API typically uses Bearer
@@ -123,7 +128,7 @@ export class GitHubService extends OAuthService {
   /**
    * Get user info using GitHub access token
    */
-  async getUserInfo(accessToken) {
+  async getUserInfo(accessToken: string) {
     const response = await fetch(`${GITHUB_CONFIG.userInfoUrl}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`, // GitHub API typically uses Bearer
@@ -144,7 +149,12 @@ export class GitHubService extends OAuthService {
   /**
    * Complete GitHub Copilot authentication flow
    */
-  async authenticate(): Promise<any> {
+  async authenticate(): Promise<{
+    code: string;
+    state: string;
+    codeVerifier: string;
+    redirectUri: string;
+  }> {
     try {
       // Get device code
       const deviceResponse = await this.getDeviceCode();
@@ -157,7 +167,7 @@ export class GitHubService extends OAuthService {
       );
 
       // Get Copilot token
-      const copilotToken = await this.getCopilotToken(tokenResponse.access_token);
+      const _copilotToken = await this.getCopilotToken(tokenResponse.access_token);
 
       // Get user info
       const userInfo = await this.getUserInfo(tokenResponse.access_token);
@@ -165,20 +175,14 @@ export class GitHubService extends OAuthService {
       console.log(`\n✅ Successfully authenticated as ${userInfo.login}`);
 
       return {
-        accessToken: tokenResponse.access_token,
-        copilotToken: copilotToken.token,
-        refreshToken: null, // GitHub device flow doesn't return refresh token
-        expiresIn: copilotToken.expires_at,
-        userInfo: {
-          id: userInfo.id,
-          login: userInfo.login,
-          name: userInfo.name,
-          email: userInfo.email,
-        },
-        copilotTokenInfo: copilotToken,
+        code: tokenResponse.access_token,
+        state: "",
+        codeVerifier: "",
+        redirectUri: "",
       };
     } catch (error) {
-      throw new Error(`GitHub authentication failed: ${error.message}`);
+      console.error("GitHub authentication failed:", error);
+      throw error;
     }
   }
 
@@ -204,10 +208,10 @@ export class GitHubService extends OAuthService {
           "X-User-Id": userId,
         },
         body: JSON.stringify({
-          accessToken: authResult.accessToken,
-          copilotToken: authResult.copilotToken,
-          userInfo: authResult.userInfo,
-          copilotTokenInfo: authResult.copilotTokenInfo,
+          accessToken: authResult.code,
+          copilotToken: authResult.code,
+          userInfo: {},
+          copilotTokenInfo: {},
         }),
       });
 
@@ -217,10 +221,11 @@ export class GitHubService extends OAuthService {
       }
 
       spinner.succeed("GitHub Copilot connected successfully!");
-      console.log(`\nConnected as: ${authResult.userInfo.login}`);
+      console.log(`\nConnected as: ${authResult.code}`);
     } catch (error) {
       const { error: showError } = await import("../utils/ui");
-      showError(`GitHub connection failed: ${error.message}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      showError(`GitHub connection failed: ${errMsg}`);
       throw error;
     }
   }

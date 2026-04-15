@@ -156,6 +156,7 @@
     "playground": "Playground",
     "searchTools": "Search Tools",
     "agents": "Tác nhân",
+    "skills": "Skills",
     "docs": "Tài liệu",
     "issues": "vấn đề",
     "endpoints": "Điểm cuối",
@@ -759,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCode yêu cầu cấu hình khóa API.",
-          "1": "Đặt URL cơ sở cho điểm cuối Routiform của bạn."
+          "1": "Đặt URL cơ sở cho điểm cuối Routiform của bạn.",
+          "2": "Sử dụng gói npm @ai-sdk/anthropic để hỗ trợ tốt hơn cho hình ảnh/media trong kết quả tool. Điều này cho phép phân tích ảnh cục bộ qua công cụ filesystem_read_media_file."
         }
       },
       "kiro": {

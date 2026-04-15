@@ -57,8 +57,12 @@ describe("Chat Pipeline — handleSingleModelChat decomposition", () => {
   });
 
   it("handleSingleModelChat should use resolveModelOrError", () => {
-    // Extract handleSingleModelChat body
-    assert.match(src, /resolveModelOrError\(modelStr/);
+    // resolveModelOrError may be inlined or extracted to chatHelpers.ts
+    const helpersSrc = readSrc("sse/handlers/chatHelpers.ts") || "";
+    assert.ok(
+      src.includes("resolveModelOrError") || helpersSrc.includes("resolveModelOrError"),
+      "resolveModelOrError should exist in chat.ts or chatHelpers.ts"
+    );
   });
 
   it("handleSingleModelChat should use checkPipelineGates", () => {

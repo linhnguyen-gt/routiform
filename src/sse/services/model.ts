@@ -28,7 +28,7 @@ async function lookupCustomModelApiFormat(
   try {
     const models = await getCustomModels(providerId);
     if (!Array.isArray(models)) return undefined;
-    const match = models.find((m: any) => m.id === modelId);
+    const match = models.find((m: Record<string, unknown>) => m.id === modelId);
     return match?.apiFormat === "responses" ? "responses" : undefined;
   } catch {
     return undefined;
@@ -106,8 +106,11 @@ export async function getModelInfo(modelStr) {
 export async function getCombo(modelStr) {
   // Check combo DB first (supports names with /)
   const combo = await getComboByName(modelStr);
-  if (combo && combo.models && combo.models.length > 0) {
-    return combo;
+  if (combo && combo.models) {
+    const models = (combo as Record<string, unknown>).models;
+    if (Array.isArray(models) && models.length > 0) {
+      return combo;
+    }
   }
   return null;
 }
@@ -130,7 +133,11 @@ export async function getComboForModel(modelStr) {
   try {
     const { resolveComboForModel } = await import("@/lib/localDb");
     const mapped = await resolveComboForModel(modelStr);
-    if (mapped && (mapped as any).models?.length > 0) {
+    if (
+      mapped &&
+      Array.isArray((mapped as Record<string, unknown>).models) &&
+      ((mapped as Record<string, unknown>).models as unknown[]).length > 0
+    ) {
       return mapped;
     }
   } catch {
@@ -147,5 +154,7 @@ export async function getComboForModel(modelStr) {
 export async function getComboModels(modelStr) {
   const combo = await getCombo(modelStr);
   if (!combo) return null;
-  return combo.models.map((m) => (typeof m === "string" ? m : m.model));
+  const models = (combo as Record<string, unknown>).models;
+  if (!Array.isArray(models)) return null;
+  return models.map((m) => (typeof m === "string" ? m : (m as { model: string }).model));
 }

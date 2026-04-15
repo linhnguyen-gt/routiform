@@ -19,7 +19,7 @@ function parseModelList(value) {
   );
 }
 
-function formatModelList(models) {
+function _formatModelList(models) {
   return Array.isArray(models) ? models.join("\n") : "";
 }
 

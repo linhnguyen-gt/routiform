@@ -4,14 +4,15 @@ import { useTranslations } from "next-intl";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardSkeleton, Button, Modal } from "@/shared/components";
+import { CardSkeleton, Button, Modal } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, FREE_PROVIDERS, OAUTH_PROVIDERS } from "@/shared/constants/providers";
 import { useNotificationStore } from "@/store/notificationStore";
 import { copyToClipboard } from "@/shared/utils/clipboard";
+import DashboardHeader from "./DashboardHeader";
+import QuickStart from "./QuickStart";
+import ProvidersOverview from "./ProvidersOverview";
 
 type UpdateStep = {
   step: string;
@@ -21,7 +22,14 @@ type UpdateStep = {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function isRefreshFailureWarning(conn: any) {
+interface ProviderConnection {
+  provider?: string;
+  isActive?: boolean;
+  testStatus?: string;
+  lastErrorType?: string;
+}
+
+function isRefreshFailureWarning(conn: ProviderConnection) {
   return conn.isActive !== false && conn.lastErrorType === "token_refresh_failed";
 }
 
@@ -36,10 +44,7 @@ function mergeUpdateStep(steps: UpdateStep[], nextStep: UpdateStep) {
   return next;
 }
 
-export default function HomePageClient({ machineId }) {
-  const t = useTranslations("home");
-  const tc = useTranslations("common");
-  const ts = useTranslations("sidebar");
+export default function HomePageClient({ machineId: _machineId }: { machineId?: string }) {
   const [providerConnections, setProviderConnections] = useState([]);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +52,14 @@ export default function HomePageClient({ machineId }) {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [providerMetrics, setProviderMetrics] = useState({});
 
-  const [versionInfo, setVersionInfo] = useState<any>(null);
+  interface VersionInfo {
+    updateAvailable?: boolean;
+    latest?: string;
+    current?: string;
+    autoUpdateSupported?: boolean;
+    autoUpdateError?: string;
+  }
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateSteps, setUpdateSteps] = useState<UpdateStep[]>([]);
   const [updatePhase, setUpdatePhase] = useState<"idle" | "running" | "done" | "failed">("idle");
@@ -117,7 +129,7 @@ export default function HomePageClient({ machineId }) {
       const providerKeys = new Set([providerId, providerInfo.alias].filter(Boolean));
       const providerModels = models.filter((m) => providerKeys.has(m.provider));
 
-      const authType = FREE_PROVIDERS[providerId]
+      const authType: "free" | "oauth" | "apikey" = FREE_PROVIDERS[providerId]
         ? "free"
         : OAUTH_PROVIDERS[providerId]
           ? "oauth"
@@ -136,6 +148,41 @@ export default function HomePageClient({ machineId }) {
     });
   }, [providerConnections, models]);
 
+  const dashboardStats = useMemo(() => {
+    const totalProviders = providerStats.length;
+    const activeProviders = providerStats.filter((p) => p.connected > 0).length;
+    const totalModels = models.length;
+
+    // Calculate total requests and average latency from provider metrics
+    let totalRequests = 0;
+    let totalLatency = 0;
+    let metricsCount = 0;
+
+    interface ProviderMetric {
+      totalRequests?: number;
+      avgLatencyMs?: number;
+    }
+    Object.values(providerMetrics).forEach((metric: ProviderMetric) => {
+      if (metric?.totalRequests) {
+        totalRequests += metric.totalRequests;
+      }
+      if (metric?.avgLatencyMs) {
+        totalLatency += metric.avgLatencyMs;
+        metricsCount++;
+      }
+    });
+
+    const avgLatency = metricsCount > 0 ? totalLatency / metricsCount : 0;
+
+    return {
+      totalProviders,
+      activeProviders,
+      totalModels,
+      totalRequests,
+      avgLatency,
+    };
+  }, [providerStats, models, providerMetrics]);
+
   const selectedProviderModels = useMemo(() => {
     if (!selectedProvider) return [];
     const providerKeys = new Set(
@@ -143,21 +190,6 @@ export default function HomePageClient({ machineId }) {
     );
     return models.filter((m) => providerKeys.has(m.provider));
   }, [selectedProvider, models]);
-
-  const quickStartLinks = [
-    { label: t("documentation"), href: "/docs", icon: "menu_book" },
-    { label: ts("providers"), href: "/dashboard/providers", icon: "dns" },
-    { label: ts("combos"), href: "/dashboard/combos", icon: "layers" },
-    { label: ts("analytics"), href: "/dashboard/analytics", icon: "analytics" },
-    { label: t("healthMonitor"), href: "/dashboard/health", icon: "health_and_safety" },
-    { label: ts("cliTools"), href: "/dashboard/cli-tools", icon: "terminal" },
-    {
-      label: t("reportIssue"),
-      href: "https://github.com/linhnguyen-gt/Routiform/issues",
-      external: true,
-      icon: "bug_report",
-    },
-  ];
 
   const pollBackgroundUpdate = useCallback(
     async ({
@@ -402,14 +434,6 @@ export default function HomePageClient({ machineId }) {
     return () => clearTimeout(timer);
   }, [updatePhase]);
 
-  const stepIcons: Record<string, string> = {
-    install: "download",
-    rebuild: "build",
-    restart: "restart_alt",
-    complete: "check_circle",
-    error: "error",
-  };
-
   const stepLabels: Record<string, string> = {
     install: "Install Package",
     rebuild: "Rebuild Native Modules",
@@ -422,6 +446,7 @@ export default function HomePageClient({ machineId }) {
   if (loading) {
     return (
       <div className="flex flex-col gap-8">
+        <div className="h-64 rounded-2xl bg-surface animate-pulse"></div>
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -431,7 +456,7 @@ export default function HomePageClient({ machineId }) {
   const currentEndpoint = baseUrl;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 pb-12">
       {/* Update Progress Overlay */}
       {showUpdateOverlay && (
         <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -546,183 +571,23 @@ export default function HomePageClient({ machineId }) {
         </div>
       )}
 
-      {/* Update Notification Banner */}
-      {versionInfo?.updateAvailable && !showUpdateOverlay && (
-        <div className="bg-primary/10 border border-primary/20 text-primary px-5 py-4 rounded-xl flex items-center justify-between min-h-[64px]">
-          <div className="flex items-center gap-4">
-            <span className="material-symbols-outlined text-[24px]">system_update_alt</span>
-            <div>
-              <p className="font-semibold text-sm">Update Available: v{versionInfo.latest}</p>
-              <p className="text-xs opacity-80 mt-0.5">
-                {versionInfo.autoUpdateSupported
-                  ? t("updateAvailableDesc") ||
-                    `You are currently using v${versionInfo.current}. Update to access the latest features and bug fixes.`
-                  : versionInfo.autoUpdateError ||
-                    "Manual update required for this installation type."}
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={versionInfo.autoUpdateSupported ? handleUpdate : undefined}
-            disabled={updating || !versionInfo.autoUpdateSupported}
-            className="shrink-0 ml-4 font-semibold"
-            title={versionInfo.autoUpdateError || ""}
-          >
-            {versionInfo.autoUpdateSupported ? t("updateNow") || "Update Now" : "Manual Update"}
-          </Button>
-        </div>
-      )}
+      {/* Dashboard Header */}
+      <DashboardHeader
+        versionInfo={versionInfo}
+        onUpdate={handleUpdate}
+        updating={updating}
+        stats={dashboardStats}
+      />
 
       {/* Quick Start */}
-      <Card>
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">{t("quickStart")}</h2>
-              <p className="text-sm text-text-muted">{t("quickStartDesc")}</p>
-            </div>
-            <Link
-              href="/docs"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-text-muted hover:text-text-main hover:bg-bg-subtle transition-colors"
-            >
-              <span className="material-symbols-outlined text-[14px]">menu_book</span>
-              {t("fullDocs")}
-            </Link>
-          </div>
-
-          <ol className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <li className="rounded-lg border border-border bg-bg-subtle p-4 flex gap-3">
-              <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary shrink-0">
-                <span className="material-symbols-outlined text-[18px]">key</span>
-              </div>
-              <div>
-                <span className="font-semibold">{t("step1Title")}</span>
-                <p className="text-text-muted mt-0.5">
-                  {t.rich("step1Desc", {
-                    endpoint: (chunks) => (
-                      <Link href="/dashboard/endpoint" className="text-primary hover:underline">
-                        {chunks}
-                      </Link>
-                    ),
-                  })}
-                </p>
-              </div>
-            </li>
-            <li className="rounded-lg border border-border bg-bg-subtle p-4 flex gap-3">
-              <div className="flex items-center justify-center size-8 rounded-lg bg-green-500/10 text-green-500 shrink-0">
-                <span className="material-symbols-outlined text-[18px]">dns</span>
-              </div>
-              <div>
-                <span className="font-semibold">{t("step2Title")}</span>
-                <p className="text-text-muted mt-0.5">
-                  {t.rich("step2Desc", {
-                    providers: (chunks) => (
-                      <Link href="/dashboard/providers" className="text-primary hover:underline">
-                        {chunks}
-                      </Link>
-                    ),
-                  })}
-                </p>
-              </div>
-            </li>
-            <li className="rounded-lg border border-border bg-bg-subtle p-4 flex gap-3">
-              <div className="flex items-center justify-center size-8 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
-                <span className="material-symbols-outlined text-[18px]">link</span>
-              </div>
-              <div>
-                <span className="font-semibold">{t("step3Title")}</span>
-                <p className="text-text-muted mt-0.5">{t("step3Desc", { url: currentEndpoint })}</p>
-              </div>
-            </li>
-            <li className="rounded-lg border border-border bg-bg-subtle p-4 flex gap-3">
-              <div className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
-                <span className="material-symbols-outlined text-[18px]">analytics</span>
-              </div>
-              <div>
-                <span className="font-semibold">{t("step4Title")}</span>
-                <p className="text-text-muted mt-0.5">
-                  {t.rich("step4Desc", {
-                    logs: (chunks) => (
-                      <Link href="/dashboard/usage" className="text-primary hover:underline">
-                        {chunks}
-                      </Link>
-                    ),
-                    analytics: (chunks) => (
-                      <Link href="/dashboard/analytics" className="text-primary hover:underline">
-                        {chunks}
-                      </Link>
-                    ),
-                  })}
-                </p>
-              </div>
-            </li>
-          </ol>
-
-          <div className="flex flex-wrap gap-2">
-            {quickStartLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target={link.external ? "_blank" : undefined}
-                rel={link.external ? "noopener noreferrer" : undefined}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-text-muted hover:text-text-main hover:bg-bg-subtle transition-colors"
-              >
-                <span className="material-symbols-outlined text-[14px]">
-                  {link.icon || (link.external ? "open_in_new" : "arrow_forward")}
-                </span>
-                {link.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      </Card>
+      <QuickStart currentEndpoint={currentEndpoint} />
 
       {/* Providers Overview */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold">{t("providersOverview")}</h2>
-            <p className="text-sm text-text-muted">
-              {t("configuredOf", {
-                configured: providerStats.filter((item) => item.total > 0).length,
-                total: providerStats.length,
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-text-muted">
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-green-500" /> {tc("free")}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-blue-500" /> {t("oauthLabel")}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-amber-500" /> {t("apiKeyLabel")}
-              </span>
-            </div>
-            <Link
-              href="/dashboard/providers"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-text-muted hover:text-text-main hover:bg-bg-subtle transition-colors"
-            >
-              <span className="material-symbols-outlined text-[14px]">settings</span>
-              {tc("manage")}
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {providerStats.map((item) => (
-            <ProviderOverviewCard
-              key={item.id}
-              item={item}
-              metrics={providerMetrics[item.provider.alias] || providerMetrics[item.id]}
-              onClick={() => setSelectedProvider(item)}
-            />
-          ))}
-        </div>
-      </Card>
+      <ProvidersOverview
+        providerStats={providerStats}
+        providerMetrics={providerMetrics}
+        onProviderClick={setSelectedProvider}
+      />
 
       {/* Provider Models Modal */}
       {selectedProvider && (

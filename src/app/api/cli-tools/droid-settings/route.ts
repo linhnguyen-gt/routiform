@@ -23,8 +23,9 @@ const readSettings = async () => {
     const settingsPath = getDroidSettingsPath();
     const content = await fs.readFile(settingsPath, "utf-8");
     return JSON.parse(content);
-  } catch (error: any) {
-    if (error.code === "ENOENT") return null;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+      return null;
     throw error;
   }
 };
@@ -34,11 +35,14 @@ const DROID_ROUTIFORM_CUSTOM_ID = "custom:Routiform-0";
 const DROID_LEGACY_CUSTOM_ID = "custom:Routiform-0";
 
 // Check if settings has Routiform (or legacy Routiform) customModels
-const hasRoutiformConfig = (settings: any) => {
+const hasRoutiformConfig = (settings: Record<string, unknown>) => {
   if (!settings || !settings.customModels) return false;
-  return settings.customModels.some(
-    (m) => m.id === DROID_ROUTIFORM_CUSTOM_ID || m.id === DROID_LEGACY_CUSTOM_ID
-  );
+  const customModels = settings.customModels;
+  if (!Array.isArray(customModels)) return false;
+  return customModels.some((m: unknown) => {
+    const model = m as Record<string, unknown>;
+    return model.id === DROID_ROUTIFORM_CUSTOM_ID || model.id === DROID_LEGACY_CUSTOM_ID;
+  });
 };
 
 // GET - Check droid CLI and read current settings
@@ -134,7 +138,7 @@ export async function POST(request: Request) {
     await createBackup("droid", settingsPath);
 
     // Read existing settings or create new
-    let settings: Record<string, any> = {};
+    let settings: Record<string, unknown> = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
@@ -148,9 +152,12 @@ export async function POST(request: Request) {
     }
 
     // Remove existing Routiform / legacy Routiform config if any
-    settings.customModels = settings.customModels.filter(
-      (m) => m.id !== DROID_ROUTIFORM_CUSTOM_ID && m.id !== DROID_LEGACY_CUSTOM_ID
-    );
+    if (Array.isArray(settings.customModels)) {
+      settings.customModels = (settings.customModels as unknown[]).filter((m: unknown) => {
+        const model = m as Record<string, unknown>;
+        return model.id !== DROID_ROUTIFORM_CUSTOM_ID && model.id !== DROID_LEGACY_CUSTOM_ID;
+      });
+    }
 
     // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
@@ -168,7 +175,9 @@ export async function POST(request: Request) {
       provider: "openai",
     };
 
-    settings.customModels.unshift(customModel);
+    if (Array.isArray(settings.customModels)) {
+      (settings.customModels as unknown[]).unshift(customModel);
+    }
 
     // Write settings
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
@@ -205,12 +214,12 @@ export async function DELETE() {
     await createBackup("droid", settingsPath);
 
     // Read existing settings
-    let settings: Record<string, any> = {};
+    let settings: Record<string, unknown> = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         return NextResponse.json({
           success: true,
           message: "No settings file to reset",
@@ -220,13 +229,14 @@ export async function DELETE() {
     }
 
     // Remove Routiform / legacy Routiform customModels
-    if (settings.customModels) {
-      settings.customModels = settings.customModels.filter(
-        (m) => m.id !== DROID_ROUTIFORM_CUSTOM_ID && m.id !== DROID_LEGACY_CUSTOM_ID
-      );
+    if (settings.customModels && Array.isArray(settings.customModels)) {
+      settings.customModels = settings.customModels.filter((m: unknown) => {
+        const model = m as Record<string, unknown>;
+        return model.id !== DROID_ROUTIFORM_CUSTOM_ID && model.id !== DROID_LEGACY_CUSTOM_ID;
+      });
 
       // Remove customModels array if empty
-      if (settings.customModels.length === 0) {
+      if (Array.isArray(settings.customModels) && settings.customModels.length === 0) {
         delete settings.customModels;
       }
     }

@@ -47,13 +47,14 @@ export async function POST(request: Request) {
     if (body) {
       const { blocked, result } = injectionGuard(body);
       if (blocked) {
+        const detections = (result as Record<string, unknown>).detections;
         return new Response(
           JSON.stringify({
             error: {
               message: "Request blocked: potential prompt injection detected",
               type: "injection_detected",
               code: "SECURITY_001",
-              detections: result.detections.length,
+              detections: Array.isArray(detections) ? detections.length : 0,
             },
           }),
           { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
@@ -75,7 +76,8 @@ export async function POST(request: Request) {
           headers: request.headers,
           body: JSON.stringify(normalized),
         });
-        return await handleChat(newRequest, buildClientRawRequest(request, body));
+        const clientRawRequest = buildClientRawRequest(request, body);
+        return await handleChat(newRequest, clientRawRequest);
       }
     }
   } catch (error) {

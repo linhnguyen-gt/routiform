@@ -103,21 +103,57 @@ export const resilienceProfileSchema = z.object({
 
 // ─── Chat Completion Request (basic validation) ───────────────────
 
-export const chatCompletionSchema = z.object({
-  model: z.string().min(1, "Model is required"),
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant", "tool"]),
-        content: z.union([z.string(), z.array(z.any())]),
+export const chatCompletionSchema = z
+  .object({
+    model: z.string().min(1, "Model is required"),
+    messages: z
+      .array(
+        z
+          .object({
+            role: z.enum(["system", "user", "assistant", "tool", "developer"]),
+            content: z.union([z.string(), z.array(z.any())]).optional(),
+            name: z.string().optional(),
+            tool_calls: z.array(z.any()).optional(),
+            tool_call_id: z.string().optional(),
+          })
+          .passthrough()
+      )
+      .min(1, "At least one message is required"),
+    stream: z.boolean().optional(),
+    stream_options: z.record(z.string(), z.any()).optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    max_tokens: z.number().int().min(1).optional(),
+    max_completion_tokens: z.number().int().min(1).optional(),
+    top_p: z.number().min(0).max(1).optional(),
+    frequency_penalty: z.number().min(-2.0).max(2.0).optional(),
+    presence_penalty: z.number().min(-2.0).max(2.0).optional(),
+    stop: z.union([z.string(), z.array(z.string()).max(4)]).optional(),
+    logit_bias: z.record(z.string(), z.number()).optional(),
+    logprobs: z.boolean().optional(),
+    top_logprobs: z.number().int().min(0).max(20).optional(),
+    n: z.number().int().min(1).optional(),
+    response_format: z
+      .object({
+        type: z.enum(["text", "json_object", "json_schema"]).optional(),
       })
-    )
-    .min(1, "At least one message is required"),
-  stream: z.boolean().optional(),
-  temperature: z.number().min(0).max(2).optional(),
-  max_tokens: z.number().int().min(1).optional(),
-  top_p: z.number().min(0).max(1).optional(),
-});
+      .passthrough()
+      .optional(),
+    seed: z.number().int().optional(),
+    service_tier: z.enum(["auto", "default", "flex", "scale", "priority"]).optional(),
+    tools: z.array(z.any()).optional(),
+    tool_choice: z
+      .union([
+        z.string(),
+        z.object({
+          type: z.enum(["function"]),
+          function: z.object({ name: z.string() }),
+        }),
+      ])
+      .optional(),
+    parallel_tool_calls: z.boolean().optional(),
+    user: z.string().optional(),
+  })
+  .passthrough();
 
 // ─── Helper ───────────────────────────────────────────────────────
 

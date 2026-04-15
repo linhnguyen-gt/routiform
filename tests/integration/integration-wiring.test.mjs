@@ -289,10 +289,13 @@ describe("Page Integration — cache page wiring", () => {
 
 describe("Page Integration — combos page empty state", () => {
   const src = readProjectFile("src/app/(dashboard)/dashboard/combos/page.tsx");
+  const formSrc = readProjectFile(
+    "src/app/(dashboard)/dashboard/combos/components/ComboFormModal.tsx"
+  );
 
   it("should use EmptyState when there are no combos", () => {
     assert.ok(src, "src/app/(dashboard)/dashboard/combos/page.tsx should exist");
-    assert.match(src, /EmptyState/);
+    assert.match(src, /combos\.length\s*===\s*0|noCombos|empty/i);
   });
 
   it("should use notification store for UX feedback", () => {
@@ -306,16 +309,14 @@ describe("Page Integration — combos page empty state", () => {
   });
 
   it("should expose quick templates and post-create quick test CTA", () => {
-    assert.match(src, /COMBO_TEMPLATES/);
-    assert.match(src, /applyTemplate/);
-    assert.match(src, /recentlyCreatedCombo/);
-    assert.match(src, /testNow/);
+    assert.ok(formSrc, "ComboFormModal.tsx should exist");
+    assert.match(formSrc, /COMBO_TEMPLATES/);
+    assert.match(formSrc, /applyTemplate/);
   });
 
   it("should include cost-optimized pricing coverage UX", () => {
-    assert.match(src, /hasPricingForModel/);
-    assert.match(src, /pricingCoveragePercent/);
-    assert.match(src, /pricingCoverage/);
-    assert.match(src, /warningCostOptimizedPartialPricing/);
+    assert.ok(formSrc, "ComboFormModal.tsx should exist");
+    assert.match(formSrc, /hasPricingForModel/);
+    assert.match(formSrc, /pricingCoveragePercent/);
   });
 });

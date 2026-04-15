@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const source = url.searchParams.get("source") as AuditSource | null;
     const since = url.searchParams.get("since");
 
-    const options: any = { limit, offset };
+    const options: Record<string, unknown> = { limit, offset };
     if (target) options.target = target;
     if (action) options.action = action;
     if (source) options.source = source;

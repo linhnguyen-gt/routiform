@@ -62,7 +62,7 @@ export async function GET(request: Request) {
           refreshToken = data.refreshToken;
           foundFile = kiroTokenFile;
         }
-      } catch (error) {
+      } catch (_error) {
         // Continue to search other files
       }
     }
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
             foundFile = file;
             break;
           }
-        } catch (error) {
+        } catch (_error) {
           // Skip invalid JSON files
           continue;
         }

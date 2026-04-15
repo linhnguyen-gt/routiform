@@ -3,8 +3,12 @@
 import { useState, useEffect } from "react";
 import ConfigAuditViewer from "./ConfigAuditViewer";
 
+interface AuditSummary {
+  totalEntries: number;
+}
+
 export default function ConfigAuditPage() {
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<AuditSummary | null>(null);
 
   useEffect(() => {
     fetch("/api/audit?summary=true")

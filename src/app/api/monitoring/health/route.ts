@@ -45,9 +45,11 @@ export async function GET() {
       };
     }
 
-    const configuredProviders = new Set(connections.map((c: any) => c.provider));
+    const configuredProviders = new Set(connections.map((c: { provider: string }) => c.provider));
     const activeProviders = new Set(
-      connections.filter((c: any) => c.isActive !== false).map((c: any) => c.provider)
+      connections
+        .filter((c: { isActive?: boolean }) => c.isActive !== false)
+        .map((c: { provider: string }) => c.provider)
     );
 
     return NextResponse.json({

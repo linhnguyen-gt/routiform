@@ -29,7 +29,7 @@ export default function ClineToolCard({
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [modelAliases, setModelAliases] = useState({});
+  const [_modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
@@ -203,7 +203,7 @@ export default function ClineToolCard({
     setModalOpen(false);
   };
 
-  const handleManualConfig = (config) => {
+  const _handleManualConfig = (config) => {
     if (config.model) setSelectedModel(config.model);
     if (config.apiKey) setSelectedApiKey(config.apiKey);
     if (config.baseUrl) setCustomBaseUrl(config.baseUrl);
@@ -467,14 +467,6 @@ export default function ClineToolCard({
           isOpen={showManualConfigModal}
           onClose={() => setShowManualConfigModal(false)}
           title={t("clineManualConfiguration")}
-          {...({
-            onApply: handleManualConfig,
-            currentConfig: {
-              model: selectedModel,
-              apiKey: selectedApiKey,
-              baseUrl: customBaseUrl || baseUrl,
-            },
-          } as any)}
         />
       )}
     </Card>

@@ -140,7 +140,7 @@ export async function startMitm(apiKey, sudoPassword) {
     // Remove PID file
     try {
       fs.unlinkSync(PID_FILE);
-    } catch (error) {
+    } catch (_error) {
       // Ignore
     }
   });
@@ -155,7 +155,7 @@ export async function startMitm(apiKey, sudoPassword) {
       }
     }, 2000);
 
-    serverProcess.on("exit", (code) => {
+    serverProcess.on("exit", (_code) => {
       clearTimeout(timeout);
       if (!resolved) {
         resolved = true;
@@ -231,7 +231,7 @@ export async function stopMitm(sudoPassword) {
   clearCachedPassword(); // Clear password from memory when proxy stops
   try {
     fs.unlinkSync(PID_FILE);
-  } catch (error) {
+  } catch (_error) {
     // Ignore
   }
 

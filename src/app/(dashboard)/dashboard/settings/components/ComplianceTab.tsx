@@ -9,7 +9,7 @@ export default function ComplianceTab() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const [visibleCols, setVisibleCols] = useState({
     timestamp: true,
     action: true,

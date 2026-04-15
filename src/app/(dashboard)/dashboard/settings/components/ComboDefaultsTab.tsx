@@ -6,8 +6,26 @@ import { cn } from "@/shared/utils/cn";
 import { ROUTING_STRATEGIES } from "@/shared/constants/routingStrategies";
 import { useTranslations } from "next-intl";
 
+interface ComboDefaults {
+  strategy: string;
+  maxRetries: number;
+  retryDelayMs: number;
+  timeoutMs: number;
+  healthCheckEnabled: boolean;
+  healthCheckTimeoutMs: number;
+  maxComboDepth: number;
+  trackMetrics: boolean;
+  concurrencyPerModel?: number;
+  queueTimeoutMs?: number;
+}
+
+interface ProviderOverrideConfig {
+  maxRetries: number;
+  timeoutMs: number;
+}
+
 export default function ComboDefaultsTab() {
-  const [comboDefaults, setComboDefaults] = useState<any>({
+  const [comboDefaults, setComboDefaults] = useState<ComboDefaults>({
     strategy: "priority",
     maxRetries: 1,
     retryDelayMs: 2000,
@@ -17,7 +35,9 @@ export default function ComboDefaultsTab() {
     maxComboDepth: 3,
     trackMetrics: true,
   });
-  const [providerOverrides, setProviderOverrides] = useState<any>({});
+  const [providerOverrides, setProviderOverrides] = useState<
+    Record<string, ProviderOverrideConfig>
+  >({});
   const [newOverrideProvider, setNewOverrideProvider] = useState("");
   const [saving, setSaving] = useState(false);
   const t = useTranslations("settings");
@@ -216,57 +236,59 @@ export default function ComboDefaultsTab() {
           <p className="font-medium text-sm mb-2">{t("providerOverrides")}</p>
           <p className="text-xs text-text-muted mb-3">{t("providerOverridesDesc")}</p>
 
-          {Object.entries(providerOverrides).map(([provider, config]: [string, any]) => (
-            <div
-              key={provider}
-              className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.02]"
-            >
-              <span className="text-xs font-mono font-medium min-w-[80px]">{provider}</span>
-              <Input
-                type="number"
-                min="0"
-                max="5"
-                value={config.maxRetries ?? 1}
-                onChange={(e) =>
-                  setProviderOverrides((prev) => ({
-                    ...prev,
-                    [provider]: { ...prev[provider], maxRetries: parseInt(e.target.value) || 0 },
-                  }))
-                }
-                className="text-xs w-16"
-                aria-label={t("providerMaxRetriesAria", { provider })}
-              />
-              <span className="text-[10px] text-text-muted">{t("retries")}</span>
-              <Input
-                type="number"
-                min="5000"
-                max="300000"
-                step="5000"
-                value={config.timeoutMs ?? 120000}
-                onChange={(e) =>
-                  setProviderOverrides((prev) => ({
-                    ...prev,
-                    [provider]: {
-                      ...prev[provider],
-                      timeoutMs: parseInt(e.target.value) || 120000,
-                    },
-                  }))
-                }
-                className="text-xs w-24"
-                aria-label={t("providerTimeoutAria", { provider })}
-              />
-              <span className="text-[10px] text-text-muted">{t("ms")}</span>
-              <button
-                onClick={() => removeProviderOverride(provider)}
-                className="ml-auto text-red-400 hover:text-red-500 transition-colors"
-                aria-label={t("removeProviderOverrideAria", { provider })}
+          {Object.entries(providerOverrides).map(
+            ([provider, config]: [string, ProviderOverrideConfig]) => (
+              <div
+                key={provider}
+                className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.02]"
               >
-                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
-                  close
-                </span>
-              </button>
-            </div>
-          ))}
+                <span className="text-xs font-mono font-medium min-w-[80px]">{provider}</span>
+                <Input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={config.maxRetries ?? 1}
+                  onChange={(e) =>
+                    setProviderOverrides((prev) => ({
+                      ...prev,
+                      [provider]: { ...prev[provider], maxRetries: parseInt(e.target.value) || 0 },
+                    }))
+                  }
+                  className="text-xs w-16"
+                  aria-label={t("providerMaxRetriesAria", { provider })}
+                />
+                <span className="text-[10px] text-text-muted">{t("retries")}</span>
+                <Input
+                  type="number"
+                  min="5000"
+                  max="300000"
+                  step="5000"
+                  value={config.timeoutMs ?? 120000}
+                  onChange={(e) =>
+                    setProviderOverrides((prev) => ({
+                      ...prev,
+                      [provider]: {
+                        ...prev[provider],
+                        timeoutMs: parseInt(e.target.value) || 120000,
+                      },
+                    }))
+                  }
+                  className="text-xs w-24"
+                  aria-label={t("providerTimeoutAria", { provider })}
+                />
+                <span className="text-[10px] text-text-muted">{t("ms")}</span>
+                <button
+                  onClick={() => removeProviderOverride(provider)}
+                  className="ml-auto text-red-400 hover:text-red-500 transition-colors"
+                  aria-label={t("removeProviderOverrideAria", { provider })}
+                >
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                    close
+                  </span>
+                </button>
+              </div>
+            )
+          )}
 
           <div className="flex items-center gap-2 mt-2">
             <Input

@@ -87,7 +87,7 @@ routiform/
 │   ├── translator/            ← Format translation engine
 │   │   ├── request/           ← Request translators (8 files)
 │   │   ├── response/          ← Response translators (7 files)
-│   │   └── helpers/           ← Shared translation utilities (6 files)
+│   │   └── helpers/           ← Shared translation utilities (7 files)
 │   └── utils/                 ← Utility functions
 ├── src/                       ← Application layer (Express/Worker runtime)
 │   ├── app/                   ← Web UI, API routes, middleware
@@ -212,44 +212,44 @@ classDiagram
 
 The **orchestration layer** — coordinates translation, execution, streaming, and error handling.
 
-| File                  | Purpose                                                                                                                                                                                                                |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                  | Purpose                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `chatCore.ts`         | **Central orchestrator** (~2,094 lines, modularized). Handles the complete request lifecycle: format detection → translation → executor dispatch → streaming/non-streaming response → token refresh → error handling → usage logging. Delegates to phase handlers for idempotency, sanitization, caching, validation, and fallback logic. |
-| `responsesHandler.ts` | Adapter for OpenAI's Responses API: converts Responses format → Chat Completions → sends to `chatCore` → converts SSE back to Responses format.                                                                        |
-| `embeddings.ts`       | Embedding generation handler: resolves embedding model → provider, dispatches to provider API, returns OpenAI-compatible embedding response. Supports 6+ providers.                                                    |
-| `imageGeneration.ts`  | Image generation handler: resolves image model → provider, supports OpenAI-compatible, Gemini-image (Antigravity), and fallback (Nebius) modes. Returns base64 or URL images.                                          |
+| `responsesHandler.ts` | Adapter for OpenAI's Responses API: converts Responses format → Chat Completions → sends to `chatCore` → converts SSE back to Responses format.                                                                                                                                                                                           |
+| `embeddings.ts`       | Embedding generation handler: resolves embedding model → provider, dispatches to provider API, returns OpenAI-compatible embedding response. Supports 6+ providers.                                                                                                                                                                       |
+| `imageGeneration.ts`  | Image generation handler: resolves image model → provider, supports OpenAI-compatible, Gemini-image (Antigravity), and fallback (Nebius) modes. Returns base64 or URL images.                                                                                                                                                             |
 
 **Phase Handlers** (`phases/` subdirectory):
 
-| File                              | Purpose                                                                                                                                                                                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `idempotency-check.ts`            | Duplicate request detection using idempotency keys from request headers. Returns cached response if key matches previous request.                                                                                      |
-| `input-sanitizer.ts`              | Request normalization: strips empty name fields, enforces media/URL tools, downgrades incompatible tool_choice values, injects memory context when enabled.                                                            |
-| `semantic-cache-handler.ts`       | Semantic cache lookup based on request signature. Returns cached response for identical requests within time window.                                                                                                   |
-| `background-task-redirector.ts`   | Routes async/background tasks to appropriate handlers based on request characteristics.                                                                                                                                |
-| `context-validator.ts`            | Context window validation and compression. Ensures request fits within model limits, applies compression strategies when needed.                                                                                       |
-| `model-fallback-handler.ts`       | Model-level fallback logic. Attempts alternative models when primary model fails with fallback-eligible errors.                                                                                                        |
-| `emergency-fallback-handler.ts`   | Last-resort fallback strategies when all primary and model-level fallbacks are exhausted.                                                                                                                              |
+| File                            | Purpose                                                                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `idempotency-check.ts`          | Duplicate request detection using idempotency keys from request headers. Returns cached response if key matches previous request.                           |
+| `input-sanitizer.ts`            | Request normalization: strips empty name fields, enforces media/URL tools, downgrades incompatible tool_choice values, injects memory context when enabled. |
+| `semantic-cache-handler.ts`     | Semantic cache lookup based on request signature. Returns cached response for identical requests within time window.                                        |
+| `background-task-redirector.ts` | Routes async/background tasks to appropriate handlers based on request characteristics.                                                                     |
+| `context-validator.ts`          | Context window validation and compression. Ensures request fits within model limits, applies compression strategies when needed.                            |
+| `model-fallback-handler.ts`     | Model-level fallback logic. Attempts alternative models when primary model fails with fallback-eligible errors.                                             |
+| `emergency-fallback-handler.ts` | Last-resort fallback strategies when all primary and model-level fallbacks are exhausted.                                                                   |
 
 **Handler Utilities** (`utils/` subdirectory):
 
-| File                              | Purpose                                                                                                                                                                                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cache-log-helpers.ts`            | Cache usage logging utilities: builds log metadata for prompt caching (Claude) and semantic caching, attaches cache metrics to usage logs.                                                                             |
-| `claude-passthrough-helpers.ts`   | Claude tool name mapping for OAuth passthrough mode. Prefixes tool names with `CLAUDE_OAUTH_TOOL_PREFIX` and restores original names in responses.                                                                     |
-| `header-helpers.ts`               | Case-insensitive header access utility for reading HTTP headers regardless of casing.                                                                                                                                  |
+| File                            | Purpose                                                                                                                                            |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache-log-helpers.ts`          | Cache usage logging utilities: builds log metadata for prompt caching (Claude) and semantic caching, attaches cache metrics to usage logs.         |
+| `claude-passthrough-helpers.ts` | Claude tool name mapping for OAuth passthrough mode. Prefixes tool names with `CLAUDE_OAUTH_TOOL_PREFIX` and restores original names in responses. |
+| `header-helpers.ts`             | Case-insensitive header access utility for reading HTTP headers regardless of casing.                                                              |
 
 **Handler Services** (`services/` subdirectory):
 
-| File                              | Purpose                                                                                                                                                                                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `codex-quota-manager.ts`          | Codex quota state persistence. Parses quota headers from Codex responses, persists per-model quota state, manages reset times.                                                                                         |
+| File                     | Purpose                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `codex-quota-manager.ts` | Codex quota state persistence. Parses quota headers from Codex responses, persists per-model quota state, manages reset times. |
 
 **Handler Types** (`types/` subdirectory):
 
-| File                              | Purpose                                                                                                                                                                                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `chat-request-context.ts`         | TypeScript type definitions for request context objects passed through the handler pipeline. Encapsulates body, model info, credentials, callbacks, and metadata.                                                      |
+| File                      | Purpose                                                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chat-request-context.ts` | TypeScript type definitions for request context objects passed through the handler pipeline. Encapsulates body, model info, credentials, callbacks, and metadata. |
 
 #### Request Lifecycle (chatCore.ts)
 
@@ -406,13 +406,13 @@ graph TD
     end
 ```
 
-| Directory    | Files         | Description                                                                                                                                                                                                                                                      |
-| ------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `request/`   | 8 translators | Convert request bodies between formats. Each file self-registers via `register(from, to, fn)` on import.                                                                                                                                                         |
-| `response/`  | 7 translators | Convert streaming response chunks between formats. Handles SSE event types, thinking blocks, tool calls.                                                                                                                                                         |
-| `helpers/`   | 6 helpers     | Shared utilities: `claudeHelper` (system prompt extraction, thinking config), `geminiHelper` (parts/contents mapping), `openaiHelper` (format filtering), `toolCallHelper` (ID generation, missing response injection), `maxTokensHelper`, `responsesApiHelper`. |
-| `index.ts`   | —             | Translation engine: `translateRequest()`, `translateResponse()`, state management, registry.                                                                                                                                                                     |
-| `formats.ts` | —             | Format constants: `OPENAI`, `CLAUDE`, `GEMINI`, `ANTIGRAVITY`, `KIRO`, `CURSOR`, `OPENAI_RESPONSES`.                                                                                                                                                             |
+| Directory    | Files         | Description                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request/`   | 8 translators | Convert request bodies between formats. Each file self-registers via `register(from, to, fn)` on import.                                                                                                                                                                                                                                                                                                                        |
+| `response/`  | 7 translators | Convert streaming response chunks between formats. Handles SSE event types, thinking blocks, tool calls.                                                                                                                                                                                                                                                                                                                        |
+| `helpers/`   | 8 helpers     | Shared utilities: `claudeHelper` (system prompt extraction, thinking config, tool-result rehydration for cross-provider round-trips), `geminiHelper` (parts/contents mapping, schema sanitization), `geminiToolsSanitizer` (tools normalization for Gemini format), `openaiHelper` (format filtering), `toolCallHelper` (ID generation, missing response injection), `maxTokensHelper`, `responsesApiHelper`, `schemaCoercion`. |
+| `index.ts`   | —             | Translation engine: `translateRequest()`, `translateResponse()`, state management, registry.                                                                                                                                                                                                                                                                                                                                    |
+| `formats.ts` | —             | Format constants: `OPENAI`, `CLAUDE`, `GEMINI`, `ANTIGRAVITY`, `KIRO`, `CURSOR`, `OPENAI_RESPONSES`.                                                                                                                                                                                                                                                                                                                            |
 
 #### Key Design: Self-Registering Plugins
 
@@ -573,6 +573,9 @@ A 2000-token buffer is added to reported usage to prevent clients from hitting c
 | Qwen                     | OAuth                  | Default     | Standard auth                                 |
 | Qoder                    | OAuth (Basic + Bearer) | Default     | Dual auth header                              |
 | OpenRouter               | API key                | Default     | Standard Bearer auth                          |
+| DeepInfra                | API key                | Default     | Standard Bearer auth, provider model listing  |
+| SambaNova                | API key                | Default     | Standard Bearer auth, provider model listing  |
+| Venice.ai                | API key                | Default     | Standard Bearer auth, provider model listing  |
 | GLM, Kimi, MiniMax       | API key                | Default     | Claude-compatible, use `x-api-key`            |
 | `openai-compatible-*`    | API key                | Default     | Dynamic: any OpenAI-compatible endpoint       |
 | `anthropic-compatible-*` | API key                | Default     | Dynamic: any Claude-compatible endpoint       |

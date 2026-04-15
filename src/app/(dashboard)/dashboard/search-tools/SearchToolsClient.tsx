@@ -94,7 +94,7 @@ export default function SearchToolsClient() {
     const start = Date.now();
 
     try {
-      const body: any = { ...formData };
+      const body: Record<string, unknown> = { ...formData };
       if (!body.provider) delete body.provider;
 
       const res = await fetch("/api/v1/search", {
@@ -116,12 +116,12 @@ export default function SearchToolsClient() {
       } else {
         setError(data.error?.message || data.error || `Error ${res.status}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setDuration(Date.now() - start);
-      if (err.name === "AbortError") {
+      if (err instanceof Error && err.name === "AbortError") {
         setError(t("requestTimedOut", { seconds: 15 }));
       } else {
-        setError(err?.message || t("networkError"));
+        setError((err instanceof Error ? err.message : undefined) || t("networkError"));
       }
     } finally {
       setLoading(false);
@@ -181,9 +181,9 @@ export default function SearchToolsClient() {
           cost: data.usage?.search_cost_usd || 0,
           resultCount: data.results?.length || 0,
           responseSize: respJson.length,
-          urls: (data.results || []).map((r: any) => r.url),
+          urls: (data.results || []).map((r: { url: string }) => r.url),
         } as CompareResult;
-      } catch (err: any) {
+      } catch (err: unknown) {
         return {
           provider: providerId,
           latency: Date.now() - start,
@@ -191,7 +191,7 @@ export default function SearchToolsClient() {
           resultCount: 0,
           responseSize: 0,
           urls: [],
-          error: err.message,
+          error: err instanceof Error ? err.message : "Unknown error",
         } as CompareResult;
       }
     });
@@ -219,7 +219,13 @@ export default function SearchToolsClient() {
     abortRef.current?.abort();
   };
 
-  const handleHistoryReplay = (entry: any) => {
+  interface HistoryReplayEntry {
+    query: string;
+    provider?: string;
+    filters?: Record<string, unknown>;
+  }
+
+  const handleHistoryReplay = (entry: HistoryReplayEntry) => {
     handleSearch({
       query: entry.query,
       provider: entry.provider || "",

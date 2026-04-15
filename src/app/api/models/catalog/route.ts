@@ -14,7 +14,14 @@ export async function GET() {
     const activeProviders = new Set(connections.map((c) => c.provider));
     const customModelsMap = await getAllCustomModels().catch(() => ({}));
 
-    const catalog: Record<string, any> = {};
+    const catalog: Record<
+      string,
+      {
+        provider: string;
+        active: boolean;
+        models: Array<{ id: string; name: string; type: string; custom: boolean }>;
+      }
+    > = {};
 
     // Built-in chat models
     for (const [alias, models] of Object.entries(PROVIDER_MODELS)) {
@@ -85,7 +92,7 @@ export async function GET() {
         };
       }
 
-      for (const model of models as any[]) {
+      for (const model of models as Array<{ id: string; name?: string; source?: string }>) {
         const fullId = `${alias}/${model.id}`;
         // Skip duplicates
         if (catalog[alias].models.some((m) => m.id === fullId)) continue;
@@ -103,7 +110,7 @@ export async function GET() {
     return Response.json({ catalog });
   } catch (error) {
     return Response.json(
-      { error: { message: (error as any).message, type: "server_error" } },
+      { error: { message: (error as Error).message, type: "server_error" } },
       { status: 500 }
     );
   }

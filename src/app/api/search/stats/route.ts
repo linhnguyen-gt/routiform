@@ -29,12 +29,12 @@ export async function GET(request: Request) {
       string,
       { requests: number; avg_latency_ms: number; total_cost: number }
     > = {};
-    for (const row of providerStats as any[]) {
-      const costPerQuery = SEARCH_PROVIDERS[row.provider]?.costPerQuery || 0;
-      providers[row.provider] = {
-        requests: row.requests,
-        avg_latency_ms: row.avg_latency_ms,
-        total_cost: parseFloat((row.requests * costPerQuery).toFixed(4)),
+    for (const row of providerStats as Array<Record<string, unknown>>) {
+      const costPerQuery = SEARCH_PROVIDERS[row.provider as string]?.costPerQuery || 0;
+      providers[row.provider as string] = {
+        requests: row.requests as number,
+        avg_latency_ms: row.avg_latency_ms as number,
+        total_cost: parseFloat(((row.requests as number) * costPerQuery).toFixed(4)),
       };
     }
 
@@ -51,11 +51,11 @@ export async function GET(request: Request) {
       )
       .all();
 
-    const recent_searches = (recentRows as any[]).map((row) => {
+    const recent_searches = (recentRows as Array<Record<string, unknown>>).map((row) => {
       let query = "";
       let filters = {};
       try {
-        const body = JSON.parse(row.request_body);
+        const body = JSON.parse(row.request_body as string);
         query = body.query || "";
         const { query: _q, provider: _p, ...rest } = body;
         filters = rest;
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ cache, providers, recent_searches });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Failed to get stats" }, { status: 500 });
   }
 }

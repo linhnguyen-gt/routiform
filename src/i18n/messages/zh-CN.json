@@ -156,6 +156,7 @@
     "playground": "演练场",
     "searchTools": "搜索工具",
     "agents": "智能体",
+    "skills": "Skills",
     "docs": "文档",
     "issues": "问题反馈",
     "endpoints": "端点",
@@ -759,7 +760,8 @@
         },
         "notes": {
           "0": "OpenCode 需要配置 API 密钥。",
-          "1": "将基础 URL 设置为您的 Routiform 端点。"
+          "1": "将基础 URL 设置为您的 Routiform 端点。",
+          "2": "Uses @ai-sdk/anthropic npm package for better image/media support in tool results. This enables local image analysis via filesystem_read_media_file tool."
         }
       },
       "kiro": {

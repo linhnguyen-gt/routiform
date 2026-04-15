@@ -63,7 +63,7 @@ function getBarColor(usedPercentage) {
 function formatCountdown(resetAt) {
   if (!resetAt) return null;
   try {
-    const diff = (new Date(resetAt) as any) - (new Date() as any);
+    const diff = new Date(resetAt).getTime() - new Date().getTime();
     if (diff <= 0) return null;
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
@@ -664,6 +664,31 @@ export default function ProviderLimits() {
                           const cd = formatCountdown(q.resetAt);
                           const shortName = formatQuotaLabel(q.name);
                           const staleAfterReset = q.staleAfterReset === true;
+
+                          // Credits display (special case)
+                          if ((q as Record<string, unknown>).isCredits) {
+                            return (
+                              <div
+                                key={i}
+                                className="flex min-h-[92px] flex-col items-center justify-center rounded-lg border border-border/50 bg-bg-subtle/20 p-2.5"
+                              >
+                                <span
+                                  className="mb-1 rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                                  style={{ background: colors.bg, color: colors.text }}
+                                >
+                                  🪙 {shortName}
+                                </span>
+                                <span
+                                  className="text-[20px] font-bold tabular-nums"
+                                  style={{ color: colors.text }}
+                                >
+                                  {((q as Record<string, unknown>).creditCount as number) ??
+                                    q.remaining}
+                                </span>
+                                <span className="text-[10px] text-text-muted">left</span>
+                              </div>
+                            );
+                          }
 
                           return (
                             <div

@@ -74,9 +74,13 @@ export const updateSettingsSchema = z.object({
   skillsmpApiKey: z.string().max(200).optional(),
   // models.dev sync settings
   modelsDevSyncEnabled: z.boolean().optional(),
-  modelsDevSyncInterval: z.number().int().min(3600).max(604800).optional(),
+  modelsDevSyncInterval: z.number().int().min(1000).max(604800000).optional(),
   /** After a combo exhausts all models, retry once with this model if response status matches. */
   globalFallbackModel: z.string().max(500).nullable().optional(),
   /** HTTP statuses that trigger global fallback (default: 502, 503). Add 429/504 to opt in. */
   globalFallbackStatusCodes: z.array(z.number().int().min(100).max(599)).max(20).optional(),
+  // Background degradation config (stored as structured object, not JSON string)
+  backgroundDegradation: z.unknown().optional(),
+  // LKGP (Least Known Good Provider) toggle
+  lkgpEnabled: z.boolean().optional(),
 });

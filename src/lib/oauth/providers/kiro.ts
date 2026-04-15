@@ -77,7 +77,7 @@ export const kiro = {
     let data;
     try {
       data = await response.json();
-    } catch (e) {
+    } catch (_e) {
       const text = await response.text();
       data = { error: "invalid_response", error_description: text };
     }

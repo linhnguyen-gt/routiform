@@ -17,7 +17,7 @@ type ServiceStatus = {
 
 type McpTransport = "stdio" | "sse" | "streamable-http";
 
-/* ────── Toggle Switch ────── */
+/* ────── Modern Service Toggle ────── */
 function ServiceToggle({
   label,
   status,
@@ -32,65 +32,56 @@ function ServiceToggle({
   toggling: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 ml-auto">
+    <div className="flex items-center gap-4">
+      {/* Status Badge */}
       <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
-        style={{
-          borderColor: status.loading
-            ? "var(--color-border)"
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all duration-200",
+          status.loading
+            ? "border-border bg-surface text-text-muted"
             : status.online
-              ? "rgba(34,197,94,0.3)"
-              : "rgba(239,68,68,0.3)",
-          background: status.loading
-            ? "transparent"
-            : status.online
-              ? "rgba(34,197,94,0.1)"
-              : "rgba(239,68,68,0.1)",
-          color: status.loading
-            ? "var(--color-text-muted)"
-            : status.online
-              ? "rgb(34,197,94)"
-              : "rgb(239,68,68)",
-        }}
+              ? "border-green-500/30 bg-green-500/10 text-green-400"
+              : "border-red-500/30 bg-red-500/10 text-red-400"
+        )}
       >
         <span
-          className="inline-block w-2 h-2 rounded-full"
-          style={{
-            background: status.loading
-              ? "var(--color-text-muted)"
+          className={cn(
+            "w-2 h-2 rounded-full",
+            status.loading
+              ? "bg-text-muted"
               : status.online
-                ? "rgb(34,197,94)"
-                : "rgb(239,68,68)",
-            animation: status.online ? "pulse 2s infinite" : "none",
-          }}
+                ? "bg-green-400 animate-pulse"
+                : "bg-red-400"
+          )}
         />
-        {status.loading ? "..." : status.online ? "Online" : "Offline"}
+        {status.loading ? "Checking..." : status.online ? "Online" : "Offline"}
       </div>
 
+      {/* Toggle Switch */}
       <button
         onClick={onToggle}
         disabled={toggling}
-        className="relative inline-flex items-center h-7 w-[52px] rounded-full transition-all duration-300 focus:outline-none border"
-        style={{
-          background: enabled ? "rgb(34,197,94)" : "var(--color-bg-tertiary)",
-          borderColor: enabled ? "rgba(34,197,94,0.5)" : "var(--color-border)",
-          opacity: toggling ? 0.6 : 1,
-          cursor: toggling ? "wait" : "pointer",
-        }}
+        className={cn(
+          "relative inline-flex items-center h-8 w-14 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/20 border-2",
+          enabled ? "bg-green-500 border-green-400/50" : "bg-surface-hover border-border",
+          toggling && "opacity-50 cursor-wait"
+        )}
         title={enabled ? `Disable ${label}` : `Enable ${label}`}
       >
         <span
-          className="inline-block w-5 h-5 rounded-full shadow-md transition-all duration-300"
-          style={{
-            transform: enabled ? "translateX(26px)" : "translateX(3px)",
-            background: enabled ? "#fff" : "var(--color-text-muted)",
-          }}
+          className={cn(
+            "inline-block w-6 h-6 rounded-full shadow-lg transition-all duration-300",
+            enabled ? "translate-x-7 bg-white" : "translate-x-1 bg-text-muted"
+          )}
         />
       </button>
 
+      {/* Status Text */}
       <span
-        className="text-xs font-medium min-w-[24px]"
-        style={{ color: enabled ? "rgb(34,197,94)" : "var(--color-text-muted)" }}
+        className={cn(
+          "text-sm font-bold min-w-[32px] transition-colors duration-200",
+          enabled ? "text-green-400" : "text-text-muted"
+        )}
       >
         {toggling ? "..." : enabled ? "ON" : "OFF"}
       </span>
@@ -98,7 +89,7 @@ function ServiceToggle({
   );
 }
 
-/* ────── Transport Selector ────── */
+/* ────── Modern Transport Selector ────── */
 function TransportSelector({
   value,
   onChange,
@@ -110,13 +101,24 @@ function TransportSelector({
   disabled: boolean;
   baseUrl: string;
 }) {
-  const options: { value: McpTransport; label: string; desc: string }[] = [
-    { value: "stdio", label: "stdio", desc: "Local — IDE spawns process via routiform --mcp" },
-    { value: "sse", label: "SSE", desc: "Remote — Server-Sent Events over HTTP" },
+  const options: { value: McpTransport; label: string; desc: string; icon: string }[] = [
+    {
+      value: "stdio",
+      label: "stdio",
+      desc: "Local — IDE spawns process via routiform --mcp",
+      icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+    },
+    {
+      value: "sse",
+      label: "SSE",
+      desc: "Remote — Server-Sent Events over HTTP",
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    },
     {
       value: "streamable-http",
       label: "Streamable HTTP",
       desc: "Remote — Modern bidirectional HTTP",
+      icon: "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z",
     },
   ];
 
@@ -127,13 +129,27 @@ function TransportSelector({
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-border/60 bg-bg-subtle/40 p-4 shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.06]">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="material-symbols-rounded text-base text-primary">swap_horiz</span>
-        <span className="text-sm font-semibold text-text-main">Transport Mode</span>
+    <div className="rounded-xl border-2 border-border bg-surface p-6 shadow-lg">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-blue-500/10">
+          <svg
+            className="w-5 h-5 text-blue-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+            />
+          </svg>
+        </div>
+        <span className="text-lg font-bold text-text-main">Transport Mode</span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -141,35 +157,91 @@ function TransportSelector({
             onClick={() => onChange(opt.value)}
             disabled={disabled}
             className={cn(
-              "flex min-w-[140px] flex-col items-start rounded-lg border px-4 py-2.5 text-left transition-all duration-200",
+              "group relative overflow-hidden rounded-xl border-2 p-4 text-left transition-all duration-200",
               value === opt.value
-                ? "border-primary/50 bg-primary/10 shadow-sm"
-                : "border-border/60 bg-surface/50 hover:border-border",
-              disabled ? "cursor-wait opacity-50" : "cursor-pointer"
+                ? "border-blue-500 bg-blue-500/10 shadow-lg"
+                : "border-border bg-surface-hover hover:border-blue-500/50 hover:shadow-md",
+              disabled && "cursor-wait opacity-50"
             )}
           >
-            <span
-              className={cn(
-                "text-sm font-semibold",
-                value === opt.value ? "text-primary" : "text-text-main"
-              )}
-            >
-              {opt.label}
-            </span>
-            <span className="mt-0.5 text-xs text-text-muted">{opt.desc}</span>
+            <div className="relative z-10 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg
+                  className={cn(
+                    "w-5 h-5 transition-colors duration-200",
+                    value === opt.value
+                      ? "text-blue-400"
+                      : "text-text-muted group-hover:text-blue-400"
+                  )}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={opt.icon} />
+                </svg>
+                <span
+                  className={cn(
+                    "text-base font-bold transition-colors duration-200",
+                    value === opt.value ? "text-blue-400" : "text-text-main"
+                  )}
+                >
+                  {opt.label}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">{opt.desc}</p>
+            </div>
+
+            {/* Selection Indicator */}
+            {value === opt.value && (
+              <div className="absolute top-2 right-2">
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {/* Hover Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-violet-500/0 group-hover:from-blue-500/5 group-hover:to-violet-500/5 transition-all duration-300 pointer-events-none"></div>
           </button>
         ))}
       </div>
 
-      <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/50 bg-bg-subtle/60 px-3 py-2">
-        <span className="material-symbols-rounded text-sm text-text-muted">
-          {value === "stdio" ? "terminal" : "link"}
-        </span>
-        <code className="min-w-0 flex-1 break-all text-xs text-text-muted">{urlMap[value]}</code>
+      {/* URL Display */}
+      <div className="mt-4 flex items-center gap-3 rounded-lg border-2 border-border bg-surface-hover p-3">
+        <svg
+          className="w-5 h-5 text-text-muted shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d={
+              value === "stdio"
+                ? "M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                : "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+            }
+          />
+        </svg>
+        <code className="flex-1 text-sm font-mono text-text-muted break-all">{urlMap[value]}</code>
         {value !== "stdio" && (
           <button
             type="button"
-            className="ml-auto shrink-0 rounded-md border border-border/60 px-2 py-0.5 text-xs text-text-muted transition-colors hover:bg-sidebar hover:text-primary"
+            className="shrink-0 px-3 py-1.5 rounded-lg border-2 border-border text-xs font-semibold text-text-muted hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 active:scale-95"
             onClick={() => void copyToClipboard(urlMap[value])}
             title="Copy URL"
           >
@@ -309,27 +381,25 @@ export default function EndpointPage() {
   }, [refreshMcpStatus, refreshA2aStatus]);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 pb-8">
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-surface via-surface to-bg-subtle/40 p-6 shadow-sm ring-1 ring-black/[0.03] dark:to-white/[0.03] dark:ring-white/[0.06] sm:p-7">
-        <div
-          className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
-          aria-hidden
-        />
-        <div className="relative flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-text-main">
-              {th("endpoint")}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-text-muted">
-              {th("endpointDescription")}
-            </p>
-          </div>
+    <div className="flex flex-col gap-8 pb-12">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-violet-600 p-8 shadow-xl">
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold text-white tracking-tight">{th("endpoint")}</h1>
+          <p className="mt-2 max-w-2xl text-base text-blue-50 leading-relaxed">
+            {th("endpointDescription")}
+          </p>
         </div>
+
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="rounded-xl border border-border/50 bg-surface/70 p-3 shadow-sm sm:p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-          <div className="min-w-0 flex-1 overflow-x-auto">
+      {/* Tab Navigation with Service Toggles */}
+      <div className="rounded-xl border-2 border-border bg-surface p-4 shadow-lg">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1 overflow-x-auto">
             <SegmentedControl
               options={[
                 { value: "endpoint-proxy", label: t("tabProxy"), icon: "api" },
@@ -341,7 +411,9 @@ export default function EndpointPage() {
               onChange={setActiveTab}
             />
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/40 pt-3 lg:border-t-0 lg:pt-0">
+
+          {/* Service Toggles */}
+          <div className="flex items-center gap-4 border-t-2 border-border pt-4 lg:border-t-0 lg:pt-0 lg:pl-4 lg:border-l-2">
             {activeTab === "mcp" && (
               <ServiceToggle
                 label="MCP"
@@ -364,6 +436,7 @@ export default function EndpointPage() {
         </div>
       </div>
 
+      {/* Transport Selector (MCP only) */}
       {activeTab === "mcp" && mcpEnabled && (
         <TransportSelector
           value={mcpTransport}
@@ -373,7 +446,8 @@ export default function EndpointPage() {
         />
       )}
 
-      <div className="flex min-h-0 flex-col gap-6">
+      {/* Tab Content */}
+      <div className="flex flex-col gap-6">
         {activeTab === "endpoint-proxy" && <EndpointPageClient machineId="" />}
         {activeTab === "mcp" && <McpDashboardPage />}
         {activeTab === "a2a" && <A2ADashboardPage />}

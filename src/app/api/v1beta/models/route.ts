@@ -40,10 +40,8 @@ export async function GET() {
     // Gemini: always replace hardcoded entries with synced models (no fallback)
     // Always remove hardcoded gemini entries — even if sync returns empty
     for (let i = models.length - 1; i >= 0; i--) {
-      if (
-        typeof (models[i] as any).name === "string" &&
-        (models[i] as any).name.startsWith("models/gemini/")
-      ) {
+      const model = models[i] as Record<string, unknown>;
+      if (typeof model.name === "string" && model.name.startsWith("models/gemini/")) {
         models.splice(i, 1);
       }
     }
@@ -72,7 +70,11 @@ export async function GET() {
         // Skip Gemini — handled by syncedAvailableModels above
         if (providerId === "gemini") continue;
         for (const model of rawModels) {
-          if (!model || typeof model !== "object" || typeof (model as any).id !== "string")
+          if (
+            !model ||
+            typeof model !== "object" ||
+            typeof (model as Record<string, unknown>).id !== "string"
+          )
             continue;
           const m = model as Record<string, unknown>;
           if (m.isHidden === true) continue;
@@ -92,8 +94,11 @@ export async function GET() {
     }
 
     return Response.json({ models });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error fetching models:", error);
-    return Response.json({ error: { message: error.message } }, { status: 500 });
+    return Response.json(
+      { error: { message: error instanceof Error ? error.message : String(error) } },
+      { status: 500 }
+    );
   }
 }

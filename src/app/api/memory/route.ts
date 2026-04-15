@@ -18,7 +18,11 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const apiKeyId = searchParams.get("apiKeyId") || undefined;
-    const type = (searchParams.get("type") as any) || undefined;
+    const typeParam = searchParams.get("type");
+    const type =
+      typeParam && Object.values(MemoryType).includes(typeParam as MemoryType)
+        ? (typeParam as MemoryType)
+        : undefined;
     const sessionId = searchParams.get("sessionId") || undefined;
     const limitParams = searchParams.get("limit");
     const offsetParams = searchParams.get("offset");

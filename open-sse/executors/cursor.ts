@@ -22,11 +22,7 @@ declare const EdgeRuntime: string | undefined;
 
 import { BaseExecutor, mergeUpstreamExtraHeaders } from "./base.ts";
 import { PROVIDERS, HTTP_STATUS } from "../config/constants.ts";
-import {
-  generateCursorBody,
-  _parseConnectRPCFrame,
-  extractTextFromResponse,
-} from "../utils/cursorProtobuf.ts";
+import { generateCursorBody, extractTextFromResponse } from "../utils/cursorProtobuf.ts";
 import { estimateUsage } from "../utils/usageTracking.ts";
 import { FORMATS } from "../translator/formats.ts";
 import crypto from "crypto";

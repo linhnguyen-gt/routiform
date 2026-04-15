@@ -155,15 +155,22 @@ function earliestResetAt(quotas: Record<string, QuotaInfo>): string | null {
   return earliest;
 }
 
-function normalizeQuotas(rawQuotas: Record<string, any>): Record<string, QuotaInfo> {
+function normalizeQuotas(rawQuotas: Record<string, unknown>): Record<string, QuotaInfo> {
   const result: Record<string, QuotaInfo> = {};
   for (const [key, q] of Object.entries(rawQuotas)) {
-    if (q && typeof q === "object") {
+    if (q && typeof q === "object" && !Array.isArray(q)) {
+      const qObj = q as Record<string, unknown>;
+      const total = typeof qObj.total === "number" ? qObj.total : 0;
+      const used = typeof qObj.used === "number" ? qObj.used : 0;
+      const remainingPercentage =
+        typeof qObj.remainingPercentage === "number" ? qObj.remainingPercentage : null;
+      const resetAt = qObj.resetAt != null ? qObj.resetAt : null;
+
       result[key] = {
         remainingPercentage:
-          safePercentage(q.remainingPercentage) ??
-          (q.total > 0 ? Math.round(((q.total - (q.used || 0)) / q.total) * 100) : 0),
-        resetAt: q.resetAt || null,
+          safePercentage(remainingPercentage) ??
+          (total > 0 ? Math.round(((total - used) / total) * 100) : 0),
+        resetAt: typeof resetAt === "string" ? resetAt : null,
       };
     }
   }
@@ -178,7 +185,7 @@ function normalizeQuotas(rawQuotas: Record<string, any>): Record<string, QuotaIn
 export function setQuotaCache(
   connectionId: string,
   provider: string,
-  rawQuotas: Record<string, any>
+  rawQuotas: Record<string, unknown>
 ) {
   const quotas = normalizeQuotas(rawQuotas);
   const exhausted = isExhausted(quotas);
@@ -194,12 +201,21 @@ export function setQuotaCache(
 
   if (entry && rawQuotas) {
     for (const [windowKey, quotaInfo] of Object.entries(rawQuotas)) {
-      if (!quotaInfo || typeof quotaInfo !== "object") continue;
+      if (!quotaInfo || typeof quotaInfo !== "object" || Array.isArray(quotaInfo)) continue;
+      const qObj = quotaInfo as Record<string, unknown>;
+      const total = typeof qObj.total === "number" ? qObj.total : 0;
+      const used = typeof qObj.used === "number" ? qObj.used : 0;
+      const qRemainingPercentage =
+        typeof qObj.remainingPercentage === "number" ? qObj.remainingPercentage : null;
+      const resetAt =
+        qObj.resetAt != null &&
+        (typeof qObj.resetAt === "string" || typeof qObj.resetAt === "number")
+          ? String(qObj.resetAt)
+          : null;
+
       const remainingPercentage =
-        safePercentage(quotaInfo.remainingPercentage) ??
-        (quotaInfo.total > 0
-          ? Math.round(((quotaInfo.total - (quotaInfo.used || 0)) / quotaInfo.total) * 100)
-          : 0);
+        safePercentage(qRemainingPercentage) ??
+        (total > 0 ? Math.round(((total - used) / total) * 100) : 0);
       try {
         saveQuotaSnapshot({
           provider,
@@ -207,7 +223,7 @@ export function setQuotaCache(
           window_key: windowKey,
           remaining_percentage: remainingPercentage,
           is_exhausted: entry.exhausted ? 1 : 0,
-          next_reset_at: quotaInfo.resetAt ?? null,
+          next_reset_at: resetAt,
           window_duration_ms: entry.windowDurationMs ?? null,
           raw_data: null,
         });
@@ -333,7 +349,7 @@ async function refreshEntry(entry: QuotaCacheEntry) {
   } catch (err) {
     console.warn(
       `[QuotaCache] Refresh failed for ${entry.connectionId.slice(0, 8)}:`,
-      (err as any)?.message || err
+      (err as Record<string, unknown>)?.message || err
     );
   } finally {
     refreshingSet.delete(entry.connectionId);

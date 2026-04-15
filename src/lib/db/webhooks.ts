@@ -91,7 +91,7 @@ export function updateWebhook(
   if (!existing) return null;
 
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
 
   if (data.url !== undefined) {
     fields.push("url = ?");
@@ -125,7 +125,9 @@ export function updateWebhook(
 export function deleteWebhook(id: string): boolean {
   const db = getDbInstance();
   const result = db.prepare("DELETE FROM webhooks WHERE id = ?").run(id);
-  return (result as any).changes > 0;
+  const resultObj = result as unknown as Record<string, unknown>;
+  const changes = typeof resultObj.changes === "number" ? resultObj.changes : 0;
+  return changes > 0;
 }
 
 export function recordWebhookDelivery(id: string, status: number, success: boolean): void {
@@ -145,6 +147,6 @@ export function disableWebhooksWithHighFailures(threshold = 10): number {
   const db = getDbInstance();
   const result = db
     .prepare(`UPDATE webhooks SET enabled = 0 WHERE failure_count >= ? AND enabled = 1`)
-    .run(threshold);
-  return (result as any).changes;
+    .run(threshold) as unknown as Record<string, unknown>;
+  return typeof result.changes === "number" ? result.changes : 0;
 }

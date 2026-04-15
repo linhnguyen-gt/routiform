@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getModelsByProviderId } from "@/shared/constants/models";
 import type { CompatModelRow } from "../types";
 
@@ -15,7 +15,7 @@ export interface UseProviderDetailModelsReturn {
     customModels: CompatModelRow[];
     modelCompatOverrides: Array<CompatModelRow & { id: string }>;
   };
-  syncedAvailableModels: any[];
+  syncedAvailableModels: unknown[];
   opencodeLiveCatalog: {
     status: "idle" | "loading" | "ready" | "no_connection" | "error";
     models: Array<{ id: string; name: string; contextLength?: number }>;
@@ -24,6 +24,13 @@ export interface UseProviderDetailModelsReturn {
   models: Array<{ id: string; name: string; contextLength?: number }>;
   registryModels: Array<{ id: string; name: string }>;
   syncedModels: Array<{ id: string; name: string }>;
+  setOpencodeLiveCatalog: React.Dispatch<
+    React.SetStateAction<{
+      status: "idle" | "loading" | "ready" | "no_connection" | "error";
+      models: Array<{ id: string; name: string; contextLength?: number }>;
+      errorMessage: string;
+    }>
+  >;
   fetchProviderModelMeta: () => Promise<void>;
 }
 
@@ -47,7 +54,9 @@ export function useProviderDetailModels({
     customModels: CompatModelRow[];
     modelCompatOverrides: Array<CompatModelRow & { id: string }>;
   }>({ customModels: [], modelCompatOverrides: [] });
-  const [syncedAvailableModels, setSyncedAvailableModels] = useState<any[]>([]);
+  const [syncedAvailableModels, setSyncedAvailableModels] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [opencodeLiveCatalog, setOpencodeLiveCatalog] = useState<{
     status: "idle" | "loading" | "ready" | "no_connection" | "error";
     models: Array<{ id: string; name: string; contextLength?: number }>;
@@ -174,7 +183,12 @@ export function useProviderDetailModels({
   }, [providerId, loading, isSearchProvider, sortedConnectionIds, isLiveCatalogProvider]);
 
   useEffect(() => {
-    if (providerId !== "opencode-zen" && providerId !== "kilocode" && providerId !== "codex") {
+    if (
+      providerId !== "opencode-zen" &&
+      providerId !== "opencode-go" &&
+      providerId !== "kilocode" &&
+      providerId !== "codex"
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpencodeLiveCatalog({ status: "idle", models: [], errorMessage: "" });
     }
@@ -193,6 +207,7 @@ export function useProviderDetailModels({
     models,
     registryModels,
     syncedModels,
+    setOpencodeLiveCatalog,
     fetchProviderModelMeta,
   };
 }

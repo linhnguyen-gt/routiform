@@ -163,7 +163,17 @@ const rrCounters = new Map();
  */
 function normalizeModelEntry(entry) {
   if (typeof entry === "string") return { model: entry, weight: 0 };
-  return { model: entry.model, weight: entry.weight || 0 };
+  if (!entry || typeof entry !== "object") return { model: "", weight: 0 };
+
+  const model =
+    typeof entry.model === "string"
+      ? entry.model
+      : typeof entry.value === "string"
+        ? entry.value
+        : "";
+  const parsedWeight = typeof entry.weight === "number" ? entry.weight : Number(entry.weight) || 0;
+
+  return { model, weight: parsedWeight };
 }
 
 /**
@@ -647,12 +657,12 @@ export async function handleComboChat({
           return res;
         }
 
-        // Streaming (Fix #490 + #511): prepend omniModel tag into the first
+        // Streaming (Fix #490 + #511): prepend routiformModel tag into the first
         // non-empty content chunk so it arrives BEFORE finish_reason:stop.
         // SDKs close the connection on finish_reason, so anything sent after
         // that marker is silently dropped.
         if (!res.body) return res;
-        const tagContent = `\\n<omniModel>${modelStr}</omniModel>\\n`;
+        const tagContent = `<routiformModel>${modelStr}</routiformModel>`;
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
         let tagInjected = false;
@@ -724,7 +734,7 @@ export async function handleComboChat({
           },
         });
 
-        // FIX #585: Sanitize outbound stream — strip <omniModel> tags from
+        // FIX #585: Sanitize outbound stream — strip <routiformModel> tags from
         // visible content so they don't leak to the user. The tag is still
         // present in the full response for round-trip context pinning, but
         // we clean it from each SSE chunk's content field before delivery.
@@ -737,8 +747,11 @@ export async function handleComboChat({
           transform(chunk, controller) {
             const text = sanitizeDecoder.decode(chunk, { stream: true });
             if (text) {
-              if (text.includes("<omniModel>")) {
-                const cleaned = text.replace(/\n?<omniModel>[^<]+<\/omniModel>\n?/g, "");
+              if (text.includes("<routiformModel>")) {
+                const cleaned = text.replace(
+                  /(?:\\n|\n)?<routiformModel>[^<]+<\/routiformModel>(?:\\n|\n)?/g,
+                  ""
+                );
                 if (cleaned) controller.enqueue(encoder.encode(cleaned));
               } else {
                 controller.enqueue(encoder.encode(text));
@@ -748,8 +761,11 @@ export async function handleComboChat({
           flush(controller) {
             const tail = sanitizeDecoder.decode();
             if (tail) {
-              if (tail.includes("<omniModel>")) {
-                const cleaned = tail.replace(/\n?<omniModel>[^<]+<\/omniModel>\n?/g, "");
+              if (tail.includes("<routiformModel>")) {
+                const cleaned = tail.replace(
+                  /(?:\\n|\n)?<routiformModel>[^<]+<\/routiformModel>(?:\\n|\n)?/g,
+                  ""
+                );
                 if (cleaned) controller.enqueue(encoder.encode(cleaned));
               } else {
                 controller.enqueue(encoder.encode(tail));

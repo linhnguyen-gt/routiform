@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 
-let cachedSpec: { data: any; mtime: number } | null = null;
+let cachedSpec: { data: unknown; mtime: number } | null = null;
 
 export async function GET() {
   try {
@@ -39,33 +39,46 @@ export async function GET() {
     }
 
     const content = fs.readFileSync(specPath, "utf-8");
-    const raw: any = yaml.load(content);
+    const raw: Record<string, unknown> = yaml.load(content) as Record<string, unknown>;
 
     // Build a structured catalog
-    const catalog: any = {
-      info: raw.info || {},
-      servers: raw.servers || [],
+    const catalog: {
+      info: unknown;
+      servers: unknown[];
+      tags: unknown[];
+      endpoints: Array<{
+        method: string;
+        path: string;
+        tags: unknown[];
+        summary?: string;
+        description?: string;
+        operationId?: string;
+      }>;
+      schemas: string[];
+    } = {
+      info: (raw.info as Record<string, unknown>) || {},
+      servers: (raw.servers as unknown[]) || [],
       tags: Array.isArray(raw.tags) ? raw.tags : [],
-      endpoints: [] as any[],
-      schemas: Object.keys(raw.components?.schemas || {}),
+      endpoints: [],
+      schemas: Object.keys(
+        ((raw.components as Record<string, unknown>)?.schemas as Record<string, unknown>) || {}
+      ),
     };
 
     // Parse paths into flat endpoint list
-    const paths = raw.paths || {};
-    for (const [pathStr, methods] of Object.entries(paths as Record<string, any>)) {
+    const paths = (raw.paths as Record<string, unknown>) || {};
+    for (const [pathStr, methods] of Object.entries(paths)) {
       if (!methods || typeof methods !== "object") continue;
-      for (const [method, spec] of Object.entries(methods as Record<string, any>)) {
+      for (const [method, spec] of Object.entries(methods as Record<string, unknown>)) {
         if (["get", "post", "put", "patch", "delete"].includes(method) && spec) {
+          const specObj = spec as Record<string, unknown>;
           catalog.endpoints.push({
             method: method.toUpperCase(),
             path: pathStr,
-            tags: Array.isArray(spec.tags) ? spec.tags : [],
-            summary: spec.summary || "",
-            description: spec.description || "",
-            security: spec.security ? true : false,
-            parameters: spec.parameters || [],
-            requestBody: spec.requestBody ? true : false,
-            responses: Object.keys(spec.responses || {}),
+            tags: Array.isArray(specObj.tags) ? specObj.tags : [],
+            summary: (specObj.summary as string) || "",
+            description: (specObj.description as string) || "",
+            operationId: specObj.operationId as string | undefined,
           });
         }
       }
@@ -74,9 +87,12 @@ export async function GET() {
     cachedSpec = { data: catalog, mtime };
 
     return NextResponse.json(catalog);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Failed to parse OpenAPI spec" },
+      {
+        error:
+          error instanceof Error ? error.message : String(error) || "Failed to parse OpenAPI spec",
+      },
       { status: 500 }
     );
   }

@@ -43,7 +43,7 @@ export async function retrieveMemories(
   // Build base query
   let query =
     "SELECT * FROM memory WHERE apiKeyId = ? AND (expiresAt IS NULL OR datetime(expiresAt) > datetime('now'))";
-  const params: any[] = [apiKeyId];
+  const params: unknown[] = [apiKeyId];
 
   if (normalizedConfig.retentionDays > 0) {
     const cutoff = new Date(
@@ -78,22 +78,24 @@ export async function retrieveMemories(
   // Process memories until budget exceeded
   for (const row of rows) {
     const memory: Memory = {
-      id: String((row as any).id),
-      apiKeyId: String((row as any).apiKeyId),
-      sessionId: String((row as any).sessionId),
-      type: (row as any).type as MemoryType,
-      key: String((row as any).key),
-      content: String((row as any).content),
+      id: String((row as Record<string, unknown>).id),
+      apiKeyId: String((row as Record<string, unknown>).apiKeyId),
+      sessionId: String((row as Record<string, unknown>).sessionId),
+      type: (row as Record<string, unknown>).type as MemoryType,
+      key: String((row as Record<string, unknown>).key),
+      content: String((row as Record<string, unknown>).content),
       metadata: (() => {
         try {
-          return JSON.parse(String((row as any).metadata));
+          return JSON.parse(String((row as Record<string, unknown>).metadata));
         } catch {
           return {};
         }
       })(),
-      createdAt: new Date(String((row as any).createdAt)),
-      updatedAt: new Date(String((row as any).updatedAt)),
-      expiresAt: (row as any).expiresAt ? new Date(String((row as any).expiresAt)) : null,
+      createdAt: new Date(String((row as Record<string, unknown>).createdAt)),
+      updatedAt: new Date(String((row as Record<string, unknown>).updatedAt)),
+      expiresAt: (row as Record<string, unknown>).expiresAt
+        ? new Date(String((row as Record<string, unknown>).expiresAt))
+        : null,
     };
 
     // Estimate tokens for this memory
