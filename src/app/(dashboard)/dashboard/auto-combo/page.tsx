@@ -11,6 +11,12 @@ import { Card, Button } from "@/shared/components";
 import AutoComboModal from "./AutoComboModal";
 import { useNotificationStore } from "@/store/notificationStore";
 
+interface ModePack {
+  id: string;
+  label: string;
+  icon: string;
+}
+
 interface ProviderScore {
   provider: string;
   model: string;
@@ -246,50 +252,85 @@ export default function AutoComboDashboard() {
   };
 
   const FACTOR_LABELS: Record<string, string> = {
-    quota: "📊 Quota",
-    health: "💚 Health",
-    costInv: "💰 Cost",
-    latencyInv: "⚡ Latency",
-    taskFit: "🎯 Task Fit",
-    stability: "📈 Stability",
-    tierPriority: "🏷️ Tier",
+    quota: "Quota",
+    health: "Health",
+    costInv: "Cost",
+    latencyInv: "Latency",
+    taskFit: "Task Fit",
+    stability: "Stability",
+    tierPriority: "Tier",
   };
 
-  const MODE_PACKS = [
-    { id: "ship-fast", label: "🚀 Ship Fast" },
-    { id: "cost-saver", label: "💰 Cost Saver" },
-    { id: "quality-first", label: "🎯 Quality First" },
-    { id: "offline-friendly", label: "📡 Offline Friendly" },
+  const MODE_PACKS: ModePack[] = [
+    { id: "ship-fast", label: "Ship Fast", icon: "rocket_launch" },
+    { id: "cost-saver", label: "Cost Saver", icon: "savings" },
+    { id: "quality-first", label: "Quality First", icon: "workspace_premium" },
+    { id: "offline-friendly", label: "Offline Friendly", icon: "network_check" },
   ];
 
+  const selectedModePack = MODE_PACKS.find((m) => m.id === modePack);
+  const statusTone = incidentMode
+    ? {
+        wrapper: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+        icon: "warning",
+        title: "Incident Mode",
+        description: "High circuit breaker trip rate detected",
+      }
+    : {
+        wrapper: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        icon: "check_circle",
+        title: "Normal Operation",
+        description: "All providers reporting healthy metrics",
+      };
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-semibold">⚡ Auto-Combo Engine</h1>
-          <p className="text-sm text-text-muted mt-1">
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[24px]" aria-hidden="true">
+              auto_awesome
+            </span>
+            Auto-Combo Engine
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Smart routing automatically adapting to latency, health, and throughput
           </p>
         </div>
-        <Button icon="add" onClick={() => setShowCreateModal(true)}>
-          Create Auto-Combo
-        </Button>
-      </div>
+        {combos.length > 0 && (
+          <Button
+            icon="add"
+            onClick={() => setShowCreateModal(true)}
+            aria-label="Create auto combo"
+            className="flex-shrink-0"
+          >
+            Create Auto-Combo
+          </Button>
+        )}
+      </header>
 
       {/* ──── CRUD Auto Combos List ──── */}
-      {combos.length > 0 && (
-        <Card className="mb-2">
-          <h2 className="text-lg font-semibold mb-4">Configured Auto-Combos</h2>
+      {combos.length > 0 ? (
+        <Card className="border border-border-subtle bg-surface/70" padding="lg">
+          <div className="flex items-center gap-2 mb-4">
+            <span
+              className="material-symbols-outlined text-[18px] text-blue-500"
+              aria-hidden="true"
+            >
+              deployed_code
+            </span>
+            <h2 className="text-lg font-semibold">Configured Auto-Combos</h2>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {combos.map((combo) => (
               <div
                 key={combo.id}
-                className="p-4 border rounded-lg bg-surface flex justify-between items-center"
+                className="p-4 border border-border-subtle rounded-xl bg-bg-secondary/40 flex justify-between items-center gap-3"
               >
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-semibold text-text-main flex items-center gap-2">
-                    {combo.name}
-                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">
+                    <span className="truncate">{combo.name}</span>
+                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 flex-shrink-0">
                       {combo.strategy}
                     </span>
                   </h3>
@@ -298,16 +339,44 @@ export default function AutoComboDashboard() {
                     {combo.config?.modePack || "fast"}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button size="sm" variant="secondary" onClick={() => setEditingCombo(combo)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(combo.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(combo.id)}
+                    aria-label={`Delete ${combo.name}`}
+                  >
                     Delete
                   </Button>
                 </div>
               </div>
             ))}
+          </div>
+        </Card>
+      ) : (
+        <Card className="border border-dashed border-border-subtle bg-surface/60" padding="lg">
+          <div className="flex flex-col items-center justify-center text-center py-10 px-4 gap-2">
+            <span
+              className="material-symbols-outlined text-[32px] text-text-muted"
+              aria-hidden="true"
+            >
+              account_tree
+            </span>
+            <p className="font-medium text-text-main">No auto-combo configured yet</p>
+            <p className="text-sm text-text-muted max-w-md">
+              Create one to automatically route traffic based on provider health, latency, and cost.
+            </p>
+            <Button
+              size="sm"
+              icon="add"
+              onClick={() => setShowCreateModal(true)}
+              aria-label="Create auto combo"
+            >
+              Create Auto-Combo
+            </Button>
           </div>
         </Card>
       )}
@@ -332,43 +401,31 @@ export default function AutoComboDashboard() {
         />
       )}
 
-      <Card>
+      <Card className="border border-border-subtle bg-surface/70" padding="lg">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
             <h2 className="text-lg font-semibold mb-4">Status Overview</h2>
             <div className="flex flex-col gap-3">
               <div
-                className={`p-4 rounded-lg border flex items-center justify-between ${
-                  incidentMode
-                    ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300"
-                    : "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300"
-                }`}
+                role="status"
+                aria-live="polite"
+                className={`p-4 rounded-xl border flex items-center justify-between ${statusTone.wrapper}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[24px]">
-                    {incidentMode ? "warning" : "check_circle"}
-                  </span>
+                  <span className="material-symbols-outlined text-[24px]">{statusTone.icon}</span>
                   <div>
-                    <h3 className="font-semibold">
-                      {incidentMode ? "Incident Mode" : "Normal Operation"}
-                    </h3>
-                    <p className="text-sm opacity-80">
-                      {incidentMode
-                        ? "High circuit breaker trip rate detected"
-                        : "All providers reporting healthy metrics"}
-                    </p>
+                    <h3 className="font-semibold">{statusTone.title}</h3>
+                    <p className="text-sm opacity-80">{statusTone.description}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg border border-border/50 bg-surface/30 flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-border-subtle bg-bg-secondary/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-[24px] text-blue-500">tune</span>
                   <div>
                     <h3 className="font-semibold">Active Mode Pack</h3>
-                    <p className="text-sm text-text-muted">
-                      {MODE_PACKS.find((m) => m.id === modePack)?.label || modePack}
-                    </p>
+                    <p className="text-sm text-text-muted">{selectedModePack?.label || modePack}</p>
                   </div>
                 </div>
               </div>
@@ -382,12 +439,17 @@ export default function AutoComboDashboard() {
                 <button
                   key={mp.id}
                   onClick={() => setModePack(mp.id)}
+                  aria-pressed={modePack === mp.id}
+                  aria-label={`Set ${mp.label} mode pack`}
                   className={`flex flex-col items-start p-3 rounded-lg border transition-all ${
                     modePack === mp.id
                       ? "border-blue-500/50 bg-blue-500/5 ring-1 ring-blue-500/20"
                       : "border-border/50 hover:border-border hover:bg-surface/30"
                   }`}
                 >
+                  <span className="material-symbols-outlined text-base mb-1" aria-hidden="true">
+                    {mp.icon}
+                  </span>
                   <span className={`font-medium ${modePack === mp.id ? "text-blue-500" : ""}`}>
                     {mp.label}
                   </span>
@@ -399,7 +461,7 @@ export default function AutoComboDashboard() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border border-border-subtle bg-surface/70" padding="lg">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
               <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
@@ -418,7 +480,7 @@ export default function AutoComboDashboard() {
               {scores.map((s) => (
                 <div
                   key={s.provider}
-                  className="p-3 bg-surface/30 rounded-lg border border-border/50"
+                  className="p-3 bg-bg-secondary/40 rounded-xl border border-border-subtle"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium text-sm">
@@ -431,8 +493,13 @@ export default function AutoComboDashboard() {
                   {/* Score Bar */}
                   <div className="h-1.5 bg-border/50 rounded-full overflow-hidden mb-3">
                     <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                      className="h-full bg-blue-500 rounded-full transition-all duration-1000 motion-reduce:transition-none"
                       style={{ width: `${s.score * 100}%` }}
+                      role="progressbar"
+                      aria-label={`${s.provider} score`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(s.score * 100)}
                     />
                   </div>
                   {/* Factor Breakdown */}
@@ -440,7 +507,7 @@ export default function AutoComboDashboard() {
                     {Object.entries(s.factors || {}).map(([key, val]) => (
                       <div
                         key={key}
-                        className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-border/30"
+                        className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-border-subtle"
                       >
                         {FACTOR_LABELS[key] || key}:{" "}
                         <span className="font-medium text-text-main">
@@ -455,7 +522,7 @@ export default function AutoComboDashboard() {
           )}
         </Card>
 
-        <Card>
+        <Card className="border border-border-subtle bg-surface/70" padding="lg">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
               <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
@@ -477,7 +544,7 @@ export default function AutoComboDashboard() {
               {exclusions.map((e) => (
                 <div
                   key={e.provider}
-                  className="p-3 bg-red-500/5 rounded-lg border border-red-500/20"
+                  className="p-3 bg-red-500/5 rounded-xl border border-red-500/20"
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">

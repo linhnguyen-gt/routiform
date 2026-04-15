@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  CardSkeleton,
-  EmptyState,
-  Modal,
-  ProxyConfigModal,
-} from "@/shared/components";
+import { Button, Card, CardSkeleton, Modal, ProxyConfigModal } from "@/shared/components";
 import ModelRoutingSection from "@/shared/components/ModelRoutingSection";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -15,42 +8,34 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ComboCard } from "./components/ComboCard";
 import { ComboFormModal } from "./components/ComboFormModal";
+import type {
+  ComboMetrics,
+  ComboRecord,
+  ComboTestResults,
+  ProviderNode,
+} from "./components/combo-types";
 import { ComboUsageGuide } from "./components/ComboUsageGuide";
 import { TestResultsView } from "./components/TestResultsView";
 import { COMBO_USAGE_GUIDE_STORAGE_KEY } from "./components/combo-constants";
 import { getI18nOrFallback } from "./components/combo-utils";
 
-interface Combo {
-  id: string;
-  name: string;
-  models: unknown[];
-  strategy?: string;
-  config?: Record<string, unknown>;
-  isActive?: boolean;
-}
-
-interface Provider {
-  id: string;
-  [key: string]: unknown;
-}
-
 export default function CombosPage() {
   const t = useTranslations("combos");
   const tc = useTranslations("common");
-  const [combos, setCombos] = useState<Combo[]>([]);
+  const [combos, setCombos] = useState<ComboRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
-  const [activeProviders, setActiveProviders] = useState<Provider[]>([]);
-  const [metrics, setMetrics] = useState<Record<string, Record<string, unknown>>>({});
-  const [testResults, setTestResults] = useState<Record<string, unknown> | null>(null);
+  const [editingCombo, setEditingCombo] = useState<ComboRecord | null>(null);
+  const [activeProviders, setActiveProviders] = useState<ProviderNode[]>([]);
+  const [metrics, setMetrics] = useState<Record<string, ComboMetrics>>({});
+  const [testResults, setTestResults] = useState<ComboTestResults | null>(null);
   const [testingCombo, setTestingCombo] = useState<string | null>(null);
   const [testComboName, setTestComboName] = useState("");
   const { copied, copy } = useCopyToClipboard();
   const notify = useNotificationStore();
-  const [proxyTargetCombo, setProxyTargetCombo] = useState<Combo | null>(null);
+  const [proxyTargetCombo, setProxyTargetCombo] = useState<ComboRecord | null>(null);
   const [proxyConfig, setProxyConfig] = useState<Record<string, unknown> | null>(null);
-  const [providerNodes, setProviderNodes] = useState<Array<Record<string, unknown>>>([]);
+  const [providerNodes, setProviderNodes] = useState<ProviderNode[]>([]);
   const [showUsageGuide, setShowUsageGuide] = useState(true);
   const [recentlyCreatedCombo, setRecentlyCreatedCombo] = useState("");
   const [liveRegionText, setLiveRegionText] = useState("");
@@ -58,6 +43,7 @@ export default function CombosPage() {
   const [comboDragOverIndex, setComboDragOverIndex] = useState<number | null>(null);
   const combosRef = useRef(combos);
   combosRef.current = combos;
+  const activeComboCount = combos.filter((combo) => combo.isActive !== false).length;
 
   useEffect(() => {
     fetchData();
@@ -105,7 +91,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleCreate = async (data: Omit<Combo, "id">) => {
+  const handleCreate = async (data: Omit<ComboRecord, "id">) => {
     try {
       const res = await fetch("/api/combos", {
         method: "POST",
@@ -128,7 +114,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleUpdate = async (id: string, data: Partial<Combo>) => {
+  const handleUpdate = async (id: string, data: Partial<ComboRecord>) => {
     try {
       const res = await fetch(`/api/combos/${id}`, {
         method: "PUT",
@@ -246,7 +232,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleDuplicate = async (combo: Combo) => {
+  const handleDuplicate = async (combo: ComboRecord) => {
     const baseName = combo.name.replace(/-copy(-\d+)?$/, "");
     const existingNames = combos.map((c) => c.name);
     let newName = `${baseName}-copy`;
@@ -292,7 +278,7 @@ export default function CombosPage() {
     }
   };
 
-  const handleToggleCombo = async (combo: Combo) => {
+  const handleToggleCombo = async (combo: ComboRecord) => {
     const newActive = combo.isActive === false ? true : false;
     setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, isActive: newActive } : c)));
     try {
@@ -343,14 +329,26 @@ export default function CombosPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             {t("description")}
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-surface/60 px-3 py-1.5 text-xs text-text-muted">
+            <span className="material-symbols-outlined text-base" aria-hidden="true">
+              layers
+            </span>
+            <span>
+              {getI18nOrFallback(t, "comboCountSummary", "{active} active of {total} combos", {
+                active: activeComboCount,
+                total: combos.length,
+              })}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap w-full sm:w-auto">
           {!showUsageGuide && (
             <Button
               size="sm"
               variant="ghost"
               onClick={handleShowUsageGuide}
-              aria-label="Show usage guide"
+              aria-label={getI18nOrFallback(t, "usageGuideShow", "Show guide")}
+              className="flex-1 sm:flex-none"
             >
               {getI18nOrFallback(t, "usageGuideShow", "Show guide")}
             </Button>
@@ -359,7 +357,8 @@ export default function CombosPage() {
             data-testid="combos-header-create"
             icon="add"
             onClick={() => setShowCreateModal(true)}
-            aria-label="Create new combo"
+            aria-label={t("createCombo")}
+            className="flex-1 sm:flex-none"
           >
             {t("createCombo")}
           </Button>
@@ -401,7 +400,7 @@ export default function CombosPage() {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
               <Button
                 size="sm"
                 variant="secondary"
@@ -411,6 +410,7 @@ export default function CombosPage() {
                   setRecentlyCreatedCombo("");
                 }}
                 aria-label={`Test combo ${recentlyCreatedCombo}`}
+                className="flex-1 sm:flex-none"
               >
                 {getI18nOrFallback(t, "testNow", "Test now")}
               </Button>
@@ -418,7 +418,8 @@ export default function CombosPage() {
                 size="sm"
                 variant="ghost"
                 onClick={() => setRecentlyCreatedCombo("")}
-                aria-label="Dismiss notification"
+                aria-label={tc("close")}
+                className="flex-1 sm:flex-none"
               >
                 {tc("close")}
               </Button>
@@ -431,21 +432,46 @@ export default function CombosPage() {
         {liveRegionText}
       </div>
 
+      {combos.length > 1 && (
+        <p id="combo-reorder-instructions" className="text-xs text-text-muted">
+          {getI18nOrFallback(
+            t,
+            "reorderInstructions",
+            "Drag to reorder, or focus a combo and use Arrow Up/Down, Home, or End."
+          )}
+        </p>
+      )}
+
       <ModelRoutingSection combos={combos} />
 
       {/* Empty state with improved visual hierarchy */}
       {combos.length === 0 ? (
-        <EmptyState
-          icon="🧩"
-          title={t("noCombosYet")}
-          description={t("description")}
-          actionLabel={t("createCombo")}
-          onAction={() => setShowCreateModal(true)}
-        />
+        <Card className="border border-dashed border-border-subtle bg-surface/60" padding="lg">
+          <div className="mx-auto flex max-w-xl flex-col items-center text-center gap-3 py-3">
+            <div className="rounded-xl border border-border-subtle bg-bg-secondary p-3">
+              <span
+                className="material-symbols-outlined text-3xl text-text-muted"
+                aria-hidden="true"
+              >
+                account_tree
+              </span>
+            </div>
+            <h2 className="text-lg font-semibold text-text-main">{t("noCombosYet")}</h2>
+            <p className="text-sm text-text-muted leading-relaxed">{t("description")}</p>
+            <Button
+              icon="add"
+              onClick={() => setShowCreateModal(true)}
+              aria-label={t("createCombo")}
+            >
+              {t("createCombo")}
+            </Button>
+          </div>
+        </Card>
       ) : (
         <div
           role="list"
           aria-label={t("comboList", { defaultValue: "Combos" })}
+          aria-describedby={combos.length > 1 ? "combo-reorder-instructions" : undefined}
           className="flex flex-col gap-4"
         >
           {combos.map((combo, index) => (
@@ -475,11 +501,11 @@ export default function CombosPage() {
                   if (index < combos.length - 1) moveCombo(index, combos.length - 1);
                 }
               }}
-              className={`transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl ${
+              className={`transition-all duration-200 motion-reduce:transition-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl ${
                 comboDragOverIndex === index && comboDragIndex !== index
-                  ? "ring-2 ring-blue-400 dark:ring-blue-500 scale-[1.02]"
+                  ? "ring-2 ring-blue-400 dark:ring-blue-500 motion-safe:scale-[1.02]"
                   : ""
-              } ${comboDragIndex === index ? "opacity-50 scale-95" : ""}`}
+              } ${comboDragIndex === index ? "opacity-50 motion-safe:scale-95" : ""}`}
             >
               <ComboCard
                 combo={combo}

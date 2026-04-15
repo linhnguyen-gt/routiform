@@ -58,13 +58,13 @@ export function ComboCard({
 
   return (
     <Card padding="sm" className={`group ${isDisabled ? "opacity-50" : ""}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <code className="text-sm font-medium font-mono truncate">{combo.name}</code>
               <Tooltip content={strategyDescription}>
                 <span
@@ -89,7 +89,7 @@ export function ComboCard({
                   e.stopPropagation();
                   onCopy(combo.name, `combo-${combo.id}`);
                 }}
-                className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0"
                 title={t("copyComboName")}
               >
                 <span className="material-symbols-outlined text-[14px]">
@@ -123,7 +123,7 @@ export function ComboCard({
             </div>
 
             {metrics && (
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-x-3 gap-y-1 mt-1 flex-wrap">
                 <span className="text-[10px] text-text-muted">
                   <span className="text-emerald-500">{metrics.totalSuccesses}</span>/
                   {metrics.totalRequests} {t("reqs")}
@@ -157,18 +157,18 @@ export function ComboCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-1.5 sm:shrink-0 sm:ml-2">
           <Toggle
             size="sm"
             checked={!isDisabled}
             onChange={onToggle}
             title={isDisabled ? t("enableCombo") : t("disableCombo")}
           />
-          <div className="flex items-center gap-1 transition-opacity">
+          <div className="grid grid-cols-4 gap-1 transition-opacity sm:flex sm:items-center sm:gap-1">
             <button
               onClick={onTest}
               disabled={testing}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-emerald-500 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-emerald-500 transition-colors"
               title={t("testCombo")}
             >
               <span
@@ -180,7 +180,7 @@ export function ComboCard({
             <button
               onClick={onMoveUp}
               disabled={!canMoveUp}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label={t("moveUp", { defaultValue: "Move combo up" })}
               title={t("moveUp", { defaultValue: "Move up" })}
             >
@@ -189,7 +189,7 @@ export function ComboCard({
             <button
               onClick={onMoveDown}
               disabled={!canMoveDown}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label={t("moveDown", { defaultValue: "Move combo down" })}
               title={t("moveDown", { defaultValue: "Move down" })}
             >
@@ -197,28 +197,28 @@ export function ComboCard({
             </button>
             <button
               onClick={onDuplicate}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
               title={t("duplicate")}
             >
               <span className="material-symbols-outlined text-[16px]">content_copy</span>
             </button>
             <button
               onClick={onProxy}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
               title={t("proxyConfig")}
             >
               <span className="material-symbols-outlined text-[16px]">vpn_lock</span>
             </button>
             <button
               onClick={onEdit}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
               title={tc("edit")}
             >
               <span className="material-symbols-outlined text-[16px]">edit</span>
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 hover:bg-red-500/10 rounded text-red-500 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center p-1.5 hover:bg-red-500/10 rounded text-red-500 transition-colors"
               title={tc("delete")}
             >
               <span className="material-symbols-outlined text-[16px]">delete</span>
