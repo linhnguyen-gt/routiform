@@ -29,16 +29,22 @@ import { useTranslations } from "next-intl";
 import {
   buildMergedApiKeyProviderEntries,
   buildMergedOAuthProviderEntries,
-  buildProviderEntries,
   filterConfiguredProviderEntries,
 } from "./providerPageUtils";
 import { readConfiguredOnlyPreference, writeConfiguredOnlyPreference } from "./providerPageStorage";
+import type {
+  Connection,
+  ExpirationData,
+  ExpirationEntry,
+  ProviderNode,
+  TestResults,
+} from "./types";
 
 const CC_COMPATIBLE_LABEL = "CC Compatible";
 const ADD_CC_COMPATIBLE_LABEL = "Add CC Compatible";
 const CC_COMPATIBLE_DEFAULT_CHAT_PATH = "/v1/messages?beta=true";
 
-function isRefreshFailureWarning(conn: any) {
+function isRefreshFailureWarning(conn: Connection) {
   return conn.isActive !== false && conn.lastErrorType === "token_refresh_failed";
 }
 
@@ -116,16 +122,16 @@ function getConnectionErrorTag(connection) {
 }
 
 export default function ProvidersPage() {
-  const [connections, setConnections] = useState<any[]>([]);
-  const [providerNodes, setProviderNodes] = useState<any[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [providerNodes, setProviderNodes] = useState<ProviderNode[]>([]);
   const [ccCompatibleProviderEnabled, setCcCompatibleProviderEnabled] = useState(false);
-  const [expirations, setExpirations] = useState<any>(null);
+  const [expirations, setExpirations] = useState<ExpirationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCompatibleModal, setShowAddCompatibleModal] = useState(false);
   const [showAddAnthropicCompatibleModal, setShowAddAnthropicCompatibleModal] = useState(false);
   const [showAddCcCompatibleModal, setShowAddCcCompatibleModal] = useState(false);
   const [testingMode, setTestingMode] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
   const [importingZed, setImportingZed] = useState(false);
   const [showConfiguredOnly, setShowConfiguredOnly] = useState(false);
   const [configuredOnlyPreferenceReady, setConfiguredOnlyPreferenceReady] = useState(false);
@@ -234,17 +240,19 @@ export default function ProvidersPage() {
 
     // Get latest error info
     const latestError = errorConns.sort(
-      (a: any, b: any) =>
-        (new Date(b.lastErrorAt || 0) as any) - (new Date(a.lastErrorAt || 0) as any)
+      (a: Connection, b: Connection) =>
+        new Date(b.lastErrorAt || 0).getTime() - new Date(a.lastErrorAt || 0).getTime()
     )[0];
     const errorCode = latestError ? getConnectionErrorTag(latestError) : null;
     const errorTime = latestError?.lastErrorAt ? getRelativeTime(latestError.lastErrorAt) : null;
 
     // Check expirations
     const providerExpirations =
-      expirations?.list?.filter((e: any) => e.provider === providerId) || [];
-    const hasExpired = providerExpirations.some((e: any) => e.status === "expired");
-    const hasExpiringSoon = providerExpirations.some((e: any) => e.status === "expiring_soon");
+      expirations?.list?.filter((e: ExpirationEntry) => e.provider === providerId) || [];
+    const hasExpired = providerExpirations.some((e: ExpirationEntry) => e.status === "expired");
+    const hasExpiringSoon = providerExpirations.some(
+      (e: ExpirationEntry) => e.status === "expiring_soon"
+    );
     let expiryStatus = null;
     if (hasExpired) expiryStatus = "expired";
     else if (hasExpiringSoon) expiryStatus = "expiring_soon";
@@ -292,7 +300,7 @@ export default function ProvidersPage() {
         body: JSON.stringify({ mode, providerId }),
         signal: controller.signal,
       });
-      let data: any;
+      let data: TestResults;
       try {
         data = await res.json();
       } catch {
@@ -313,8 +321,8 @@ export default function ProvidersPage() {
         if (failed === 0) notify.success(t("allTestsPassed", { total }));
         else notify.warning(t("testSummary", { passed, failed, total }));
       }
-    } catch (error: any) {
-      const isAbort = error?.name === "AbortError";
+    } catch (error: unknown) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
       const msg = isAbort ? t("providerTestTimeout") : t("providerTestFailed");
       setTestResults({ error: msg, results: [], summary: null });
       notify.error(msg);
