@@ -10,14 +10,13 @@ const originalFetch = globalThis.fetch;
 
 describe("opencodeGoModelsCatalog", () => {
   it("should fetch models from models.dev successfully", async () => {
+    // models.dev returns providers at top level (not nested under "providers")
     const mockResponse = {
-      providers: {
-        "opencode-go": {
-          id: "opencode-go",
-          models: {
-            "glm-5": { id: "glm-5", name: "GLM-5", limit: { context: 128000 } },
-            "kimi-k2.5": { id: "kimi-k2.5", name: "Kimi K2.5", limit: { context: 200000 } },
-          },
+      "opencode-go": {
+        id: "opencode-go",
+        models: {
+          "glm-5": { id: "glm-5", name: "GLM-5", limit: { context: 128000 } },
+          "kimi-k2.5": { id: "kimi-k2.5", name: "Kimi K2.5", limit: { context: 200000 } },
         },
       },
     };
@@ -91,13 +90,12 @@ describe("opencodeGoModelsCatalog", () => {
   });
 
   it("should cache models for TTL duration", async () => {
+    // models.dev returns providers at top level
     const mockResponse = {
-      providers: {
-        "opencode-go": {
-          id: "opencode-go",
-          models: {
-            "test-model": { id: "test-model", name: "Test Model" },
-          },
+      "opencode-go": {
+        id: "opencode-go",
+        models: {
+          "test-model": { id: "test-model", name: "Test Model" },
         },
       },
     };

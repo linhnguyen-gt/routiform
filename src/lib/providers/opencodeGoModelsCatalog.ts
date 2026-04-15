@@ -27,9 +27,9 @@ interface ModelsDevProvider {
   models: Record<string, ModelsDevModel>;
 }
 
-interface ModelsDevResponse {
-  providers: Record<string, ModelsDevProvider>;
-}
+// models.dev API returns providers at the TOP LEVEL, not nested under a "providers" key.
+// Example: { "opencode-go": { id, models: {...} }, "openai": { ... } }
+type ModelsDevResponse = Record<string, ModelsDevProvider>;
 
 export interface OpencodeGoModel {
   id: string;
@@ -78,22 +78,21 @@ async function fetchModelsDevData(): Promise<OpencodeGoModel[]> {
 
     const data = (await response.json()) as ModelsDevResponse;
 
-    if (!data.providers || typeof data.providers !== "object") {
-      throw new Error("models.dev response missing providers object");
-    }
-
-    const opencodeGoProvider = data.providers["opencode-go"];
+    // models.dev returns providers as top-level keys (not nested under "providers")
+    const opencodeGoProvider = data["opencode-go"];
 
     if (!opencodeGoProvider || !opencodeGoProvider.models) {
       logger.warn("models.dev: opencode-go provider not found or has no models");
       return STATIC_FALLBACK_MODELS;
     }
 
-    const models: OpencodeGoModel[] = Object.values(opencodeGoProvider.models).map((m) => ({
-      id: m.id,
-      name: m.name,
-      contextLength: m.limit?.context,
-    }));
+    const models: OpencodeGoModel[] = Object.values(opencodeGoProvider.models).map(
+      (m: ModelsDevModel) => ({
+        id: m.id,
+        name: m.name,
+        contextLength: m.limit?.context,
+      })
+    );
 
     if (models.length === 0) {
       logger.warn("models.dev: opencode-go returned 0 models, using fallback");

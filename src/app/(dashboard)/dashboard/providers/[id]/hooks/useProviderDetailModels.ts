@@ -183,7 +183,12 @@ export function useProviderDetailModels({
   }, [providerId, loading, isSearchProvider, sortedConnectionIds, isLiveCatalogProvider]);
 
   useEffect(() => {
-    if (providerId !== "opencode-zen" && providerId !== "kilocode" && providerId !== "codex") {
+    if (
+      providerId !== "opencode-zen" &&
+      providerId !== "opencode-go" &&
+      providerId !== "kilocode" &&
+      providerId !== "codex"
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpencodeLiveCatalog({ status: "idle", models: [], errorMessage: "" });
     }

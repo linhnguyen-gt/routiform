@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Card } from "@/shared/components";
+import { Button, Card } from "@/shared/components";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { useTranslations } from "next-intl";
 
@@ -151,28 +151,31 @@ export default function HealthPage() {
 
   if (!data && !error) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          <p className="text-text-muted mt-4">{t("loadingHealth")}</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[320px]">
+        <Card className="w-full max-w-md border border-border-subtle bg-surface/70" padding="lg">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <p className="text-text-muted mt-4">{t("loadingHealth")}</p>
+          </div>
+        </Card>
       </div>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="p-6">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
-          <span className="material-symbols-outlined text-red-500 text-[32px] mb-2">error</span>
-          <p className="text-red-400">{t("failedToLoad", { error })}</p>
-          <button
-            onClick={fetchHealth}
-            className="mt-4 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors"
-          >
-            {t("retry")}
-          </button>
-        </div>
+      <div>
+        <Card className="bg-red-500/10 border border-red-500/30" padding="lg">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-red-500 text-[32px] mb-2">error</span>
+            <p className="text-red-400">{t("failedToLoad", { error })}</p>
+            <div className="mt-4 flex justify-center">
+              <Button size="sm" variant="secondary" onClick={fetchHealth} icon="refresh">
+                {t("retry")}
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -182,40 +185,45 @@ export default function HealthPage() {
   const lockoutEntries = Object.entries(lockouts || {});
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-text-main">{t("title")}</h1>
-          <p className="text-sm text-text-muted mt-1">{t("description")}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{t("description")}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:justify-end">
           {lastRefresh && (
-            <span className="text-xs text-text-muted">
+            <span className="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface/60 px-2.5 py-1 text-xs text-text-muted">
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                schedule
+              </span>
               {t("updatedAt", { time: lastRefresh.toLocaleTimeString() })}
             </span>
           )}
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
+            icon="refresh"
             onClick={() => {
               fetchHealth();
               fetchExtras();
             }}
-            className="p-2 rounded-lg bg-surface hover:bg-surface/80 text-text-muted hover:text-text-main transition-colors"
-            title={tc("refresh")}
+            aria-label={tc("refresh")}
           >
-            <span className="material-symbols-outlined text-[18px]">refresh</span>
-          </button>
+            {tc("refresh")}
+          </Button>
         </div>
-      </div>
+      </header>
 
       {/* Status Banner */}
       <div
         role="status"
         aria-live="polite"
-        className={`rounded-xl p-4 flex items-center gap-3 ${
+        className={`rounded-xl p-4 border flex items-center gap-3 ${
           data.status === "healthy"
-            ? "bg-green-500/10 border border-green-500/20"
-            : "bg-red-500/10 border border-red-500/20"
+            ? "bg-green-500/10 border-green-500/20"
+            : "bg-red-500/10 border-red-500/20"
         }`}
       >
         <span
@@ -232,7 +240,7 @@ export default function HealthPage() {
 
       {/* System Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary">
               <span className="material-symbols-outlined text-[18px]">timer</span>
@@ -242,7 +250,7 @@ export default function HealthPage() {
           <p className="text-xl font-semibold text-text-main">{formatUptime(system.uptime)}</p>
         </Card>
 
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center size-8 rounded-lg bg-blue-500/10 text-blue-500">
               <span className="material-symbols-outlined text-[18px]">info</span>
@@ -255,7 +263,7 @@ export default function HealthPage() {
           </p>
         </Card>
 
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center size-8 rounded-lg bg-purple-500/10 text-purple-500">
               <span className="material-symbols-outlined text-[18px]">memory</span>
@@ -271,7 +279,7 @@ export default function HealthPage() {
           </p>
         </Card>
 
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 text-amber-500">
               <span className="material-symbols-outlined text-[18px]">dns</span>
@@ -281,47 +289,50 @@ export default function HealthPage() {
           <p className="text-xl font-semibold text-text-main">
             {providerSummary?.configuredCount ?? cbEntries.length}
           </p>
-          <p
-            className="text-[11px] text-text-muted mt-1 inline-flex items-center gap-1"
-            title={t("configuredProvidersHint")}
-          >
-            {t("configuredProvidersLabel")}
-            <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
-              help
-            </span>
-          </p>
-          <p
-            className="text-xs text-text-muted inline-flex items-center gap-1"
-            title={t("activeProvidersHint")}
-          >
-            {t("activeProviders", { count: providerSummary?.activeCount ?? 0 })}
-            <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
-              info
-            </span>
-          </p>
-          <p
-            className="text-xs text-text-muted inline-flex items-center gap-1"
-            title={t("monitoredProvidersHint")}
-          >
-            {t("monitoredProviders", {
-              count: providerSummary?.monitoredCount ?? cbEntries.length,
-            })}
-            <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
-              info
-            </span>
-          </p>
+          <div className="mt-2 space-y-1.5">
+            <p
+              className="text-[11px] text-text-muted inline-flex items-center gap-1"
+              title={t("configuredProvidersHint")}
+            >
+              {t("configuredProvidersLabel")}
+              <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+                help
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <span
+                className="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-400"
+                title={t("activeProvidersHint")}
+              >
+                {t("activeProviders", { count: providerSummary?.activeCount ?? 0 })}
+              </span>
+              <span
+                className="inline-flex items-center rounded-md border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-400"
+                title={t("monitoredProvidersHint")}
+              >
+                {t("monitoredProviders", {
+                  count: providerSummary?.monitoredCount ?? cbEntries.length,
+                })}
+              </span>
+            </div>
+          </div>
         </Card>
       </div>
 
       {/* Graceful Degradation Status */}
       {degradation && degradation.features && degradation.features.length > 0 && (
-        <Card className="p-5" role="region" aria-label="Graceful Degradation Status">
-          <div className="flex items-center justify-between mb-4">
+        <Card
+          className="border border-border-subtle bg-surface/70"
+          padding="lg"
+          role="region"
+          aria-label="Graceful Degradation Status"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px] text-primary">healing</span>
               Graceful Degradation Status
             </h2>
-            <div className="flex items-center gap-3 text-xs text-text-muted font-medium">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted font-medium">
               <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-400">
                 Full: {degradation.summary.full}
               </span>
@@ -390,7 +401,7 @@ export default function HealthPage() {
       {/* Telemetry Cards — Latency & Prompt Cache */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Latency Card */}
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <h3 className="text-sm font-semibold text-text-muted mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">speed</span>
             {t("latency")}
@@ -420,7 +431,7 @@ export default function HealthPage() {
         </Card>
 
         {/* Prompt Cache Card */}
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <h3 className="text-sm font-semibold text-text-muted mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">cached</span>
             {t("promptCache")}
@@ -450,7 +461,7 @@ export default function HealthPage() {
         </Card>
 
         {/* Signature Cache Card */}
-        <Card className="p-4">
+        <Card className="border border-border-subtle bg-surface/70" padding="sm">
           <h3 className="text-sm font-semibold text-text-muted mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">database</span>
             {t("signatureCache")}
@@ -481,7 +492,7 @@ export default function HealthPage() {
               ].map(({ label, value, color }) => (
                 <div
                   key={label}
-                  className="text-center p-2 rounded-lg bg-surface/30 border border-border/30"
+                  className="text-center p-2 rounded-lg bg-surface/30 border border-border-subtle"
                 >
                   <p className={`text-lg font-bold tabular-nums ${color}`}>{value}</p>
                   <p className="text-xs text-text-muted mt-0.5">{label}</p>
@@ -495,43 +506,35 @@ export default function HealthPage() {
       </div>
 
       {/* Provider Health */}
-      <Card className="p-5" role="region" aria-label={t("providerHealthStatusAria")}>
-        <div className="flex items-center justify-between mb-4">
+      <Card
+        className="border border-border-subtle bg-surface/70"
+        padding="lg"
+        role="region"
+        aria-label={t("providerHealthStatusAria")}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-primary">
               health_and_safety
             </span>
             {t("providerHealth")}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             {cbEntries.some(([, cb]: [string, CircuitBreakerEntry]) => cb.state !== "CLOSED") && (
-              <button
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={resetting ? "progress_activity" : "restart_alt"}
                 onClick={handleResetHealth}
                 disabled={resetting}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  resetting
-                    ? "bg-surface/50 text-text-muted cursor-wait"
-                    : "bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20"
-                }`}
-                title={t("resetAllTitle")}
+                aria-label={t("resetAllTitle")}
+                className={resetting ? "cursor-wait" : "text-red-400 hover:text-red-300"}
               >
-                {resetting ? (
-                  <>
-                    <span className="material-symbols-outlined text-[14px] animate-spin">
-                      progress_activity
-                    </span>
-                    {t("resetting")}
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-                    {t("resetAll")}
-                  </>
-                )}
-              </button>
+                {resetting ? t("resetting") : t("resetAll")}
+              </Button>
             )}
             {cbEntries.length > 0 && (
-              <div className="flex items-center gap-3 text-xs text-text-muted">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
                 <span className="flex items-center gap-1">
                   <span className="size-2 rounded-full bg-green-500" /> {t("healthy")}
                 </span>
@@ -698,8 +701,8 @@ export default function HealthPage() {
           });
 
           return (
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4">
+            <Card className="border border-border-subtle bg-surface/70" padding="lg">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                 <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
                   <span className="material-symbols-outlined text-[20px] text-amber-500">
                     speed
@@ -732,7 +735,7 @@ export default function HealthPage() {
                             ? "bg-amber-500/5 border-amber-500/20"
                             : isActive
                               ? "bg-blue-500/5 border-blue-500/15"
-                              : "bg-surface/30 border-white/5"
+                              : "bg-surface/30 border-border-subtle"
                         }`}
                         title={key}
                       >
@@ -796,7 +799,7 @@ export default function HealthPage() {
 
       {/* Active Lockouts */}
       {lockoutEntries.length > 0 && (
-        <Card className="p-5">
+        <Card className="border border-border-subtle bg-surface/70" padding="lg">
           <h2 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-red-500">lock</span>
             {t("activeLockouts")}
