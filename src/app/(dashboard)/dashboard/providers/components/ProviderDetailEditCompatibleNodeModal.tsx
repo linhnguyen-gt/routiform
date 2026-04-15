@@ -62,7 +62,7 @@ export function ProviderDetailEditCompatibleNodeModal({
     if (!formData.name.trim() || !formData.prefix.trim() || !formData.baseUrl.trim()) return;
     setSaving(true);
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         name: formData.name,
         prefix: formData.prefix,
         baseUrl: formData.baseUrl,

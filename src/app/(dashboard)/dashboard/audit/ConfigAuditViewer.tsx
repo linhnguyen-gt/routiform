@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
 
 interface ConfigDiff {
   added: string[];
   removed: string[];
-  changed: Array<{ key: string; from: any; to: any }>;
+  changed: Array<{ key: string; from: unknown; to: unknown }>;
   isEmpty: boolean;
 }
 
@@ -18,14 +17,13 @@ interface AuditEntry {
   targetId: string;
   targetName: string;
   source: string;
-  before: any;
-  after: any;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
   diff: ConfigDiff;
   note: string | null;
 }
 
 export default function ConfigAuditViewer() {
-  const t = useTranslations("logs");
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);

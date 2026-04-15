@@ -4,10 +4,8 @@ import { useTranslations } from "next-intl";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardSkeleton, Button, Modal } from "@/shared/components";
+import { CardSkeleton, Button, Modal } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, FREE_PROVIDERS, OAUTH_PROVIDERS } from "@/shared/constants/providers";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -24,7 +22,14 @@ type UpdateStep = {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function isRefreshFailureWarning(conn: any) {
+interface ProviderConnection {
+  provider?: string;
+  isActive?: boolean;
+  testStatus?: string;
+  lastErrorType?: string;
+}
+
+function isRefreshFailureWarning(conn: ProviderConnection) {
   return conn.isActive !== false && conn.lastErrorType === "token_refresh_failed";
 }
 
@@ -39,10 +44,7 @@ function mergeUpdateStep(steps: UpdateStep[], nextStep: UpdateStep) {
   return next;
 }
 
-export default function HomePageClient({ machineId }) {
-  const t = useTranslations("home");
-  const tc = useTranslations("common");
-  const ts = useTranslations("sidebar");
+export default function HomePageClient({ machineId: _machineId }: { machineId?: string }) {
   const [providerConnections, setProviderConnections] = useState([]);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,14 @@ export default function HomePageClient({ machineId }) {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [providerMetrics, setProviderMetrics] = useState({});
 
-  const [versionInfo, setVersionInfo] = useState<any>(null);
+  interface VersionInfo {
+    updateAvailable?: boolean;
+    latest?: string;
+    current?: string;
+    autoUpdateSupported?: boolean;
+    autoUpdateError?: string;
+  }
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateSteps, setUpdateSteps] = useState<UpdateStep[]>([]);
   const [updatePhase, setUpdatePhase] = useState<"idle" | "running" | "done" | "failed">("idle");
@@ -149,7 +158,11 @@ export default function HomePageClient({ machineId }) {
     let totalLatency = 0;
     let metricsCount = 0;
 
-    Object.values(providerMetrics).forEach((metric: any) => {
+    interface ProviderMetric {
+      totalRequests?: number;
+      avgLatencyMs?: number;
+    }
+    Object.values(providerMetrics).forEach((metric: ProviderMetric) => {
       if (metric?.totalRequests) {
         totalRequests += metric.totalRequests;
       }
@@ -177,21 +190,6 @@ export default function HomePageClient({ machineId }) {
     );
     return models.filter((m) => providerKeys.has(m.provider));
   }, [selectedProvider, models]);
-
-  const quickStartLinks = [
-    { label: t("documentation"), href: "/docs", icon: "menu_book" },
-    { label: ts("providers"), href: "/dashboard/providers", icon: "dns" },
-    { label: ts("combos"), href: "/dashboard/combos", icon: "layers" },
-    { label: ts("analytics"), href: "/dashboard/analytics", icon: "analytics" },
-    { label: t("healthMonitor"), href: "/dashboard/health", icon: "health_and_safety" },
-    { label: ts("cliTools"), href: "/dashboard/cli-tools", icon: "terminal" },
-    {
-      label: t("reportIssue"),
-      href: "https://github.com/linhnguyen-gt/Routiform/issues",
-      external: true,
-      icon: "bug_report",
-    },
-  ];
 
   const pollBackgroundUpdate = useCallback(
     async ({
@@ -435,14 +433,6 @@ export default function HomePageClient({ machineId }) {
     }, 8000);
     return () => clearTimeout(timer);
   }, [updatePhase]);
-
-  const stepIcons: Record<string, string> = {
-    install: "download",
-    rebuild: "build",
-    restart: "restart_alt",
-    complete: "check_circle",
-    error: "error",
-  };
 
   const stepLabels: Record<string, string> = {
     install: "Install Package",

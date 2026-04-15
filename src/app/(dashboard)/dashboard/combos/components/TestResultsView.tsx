@@ -2,9 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { getI18nOrFallback } from "./combo-utils";
+import type { ComboTestResultItem, ComboTestResults } from "./combo-types";
 
 interface TestResultsViewProps {
-  results: any;
+  results: ComboTestResults;
 }
 
 export function TestResultsView({ results }: TestResultsViewProps) {
@@ -22,7 +23,7 @@ export function TestResultsView({ results }: TestResultsViewProps) {
   const softenFailedRows =
     Boolean(results.resolvedBy) &&
     Array.isArray(results.results) &&
-    results.results.some((r: any) => r.status === "error");
+    results.results.some((r: ComboTestResultItem) => r.status === "error");
 
   return (
     <div className="flex flex-col gap-2">
@@ -48,7 +49,7 @@ export function TestResultsView({ results }: TestResultsViewProps) {
           )}
         </p>
       ) : null}
-      {results.results?.map((r: any, i: number) => {
+      {results.results?.map((r: ComboTestResultItem, i: number) => {
         const rowFailed = r.status !== "ok" && r.status !== "skipped";
         const warnRow = softenFailedRows && rowFailed;
         return (

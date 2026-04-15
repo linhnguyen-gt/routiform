@@ -1,6 +1,6 @@
 "use client";
 
-import { CardSkeleton, Button, Toggle } from "@/shared/components";
+import { CardSkeleton, Button } from "@/shared/components";
 import { useTranslations } from "next-intl";
 import { ExpirationBanner } from "./components/ExpirationBanner";
 import { ProviderCard } from "./components/ProviderCard";
@@ -15,11 +15,12 @@ import { AddAnthropicCompatibleModal } from "./components/AddAnthropicCompatible
 import { AddCcCompatibleModal } from "./components/AddCcCompatibleModal";
 import { useProvidersPageData } from "./hooks/useProvidersPageData";
 import { ADD_CC_COMPATIBLE_LABEL } from "./provider-page-helpers.tsx";
+import type { ProviderStats } from "./types";
 import { useState } from "react";
 
 export default function ProvidersPageClient() {
   const t = useTranslations("providers");
-  const tc = useTranslations("common");
+  const _tc = useTranslations("common");
   const data = useProvidersPageData();
 
   const [showAddCompatibleModal, setShowAddCompatibleModal] = useState(false);
@@ -33,14 +34,14 @@ export default function ProvidersPageClient() {
     data.compatibleProviderEntries.length;
 
   const connectedCount =
-    data.oauthProviderEntries.filter((e) => (e.stats as any).connected > 0).length +
-    data.apiKeyProviderEntries.filter((e) => (e.stats as any).connected > 0).length +
-    data.compatibleProviderEntries.filter((e) => (e.stats as any).connected > 0).length;
+    data.oauthProviderEntries.filter((e) => (e.stats as ProviderStats).connected > 0).length +
+    data.apiKeyProviderEntries.filter((e) => (e.stats as ProviderStats).connected > 0).length +
+    data.compatibleProviderEntries.filter((e) => (e.stats as ProviderStats).connected > 0).length;
 
   const errorCount =
-    data.oauthProviderEntries.filter((e) => (e.stats as any).error > 0).length +
-    data.apiKeyProviderEntries.filter((e) => (e.stats as any).error > 0).length +
-    data.compatibleProviderEntries.filter((e) => (e.stats as any).error > 0).length;
+    data.oauthProviderEntries.filter((e) => (e.stats as ProviderStats).error > 0).length +
+    data.apiKeyProviderEntries.filter((e) => (e.stats as ProviderStats).error > 0).length +
+    data.compatibleProviderEntries.filter((e) => (e.stats as ProviderStats).error > 0).length;
 
   const compatibleCount = data.compatibleProviderEntries.length;
 
@@ -99,8 +100,10 @@ export default function ProvidersPageClient() {
               <ProviderCard
                 key={providerId}
                 providerId={providerId}
-                provider={provider as any}
-                stats={stats as any}
+                provider={
+                  provider as { id: string; name: string; color: string; textIcon?: string }
+                }
+                stats={stats as ProviderStats}
                 authType={displayAuthType}
                 onToggle={(active) => data.handleToggleProvider(providerId, toggleAuthType, active)}
               />
@@ -130,8 +133,16 @@ export default function ProvidersPageClient() {
               <ApiKeyProviderCard
                 key={providerId}
                 providerId={providerId}
-                provider={provider as any}
-                stats={stats as any}
+                provider={
+                  provider as {
+                    id: string;
+                    name: string;
+                    color: string;
+                    textIcon?: string;
+                    apiType?: string;
+                  }
+                }
+                stats={stats as ProviderStats}
                 authType={displayAuthType}
                 onToggle={(active) => data.handleToggleProvider(providerId, toggleAuthType, active)}
               />
@@ -190,8 +201,16 @@ export default function ProvidersPageClient() {
                 <ApiKeyProviderCard
                   key={providerId}
                   providerId={providerId}
-                  provider={provider as any}
-                  stats={stats as any}
+                  provider={
+                    provider as {
+                      id: string;
+                      name: string;
+                      color: string;
+                      textIcon?: string;
+                      apiType?: string;
+                    }
+                  }
+                  stats={stats as ProviderStats}
                   authType={displayAuthType}
                   onToggle={(active) =>
                     data.handleToggleProvider(providerId, toggleAuthType, active)

@@ -8,7 +8,10 @@ import SessionInfoCard from "./SessionInfoCard";
 import { useTranslations } from "next-intl";
 
 export default function SecurityTab() {
-  const [settings, setSettings] = useState<any>({ requireLogin: false, hasPassword: false });
+  const [settings, setSettings] = useState<Record<string, unknown>>({
+    requireLogin: false,
+    hasPassword: false,
+  });
   const [loading, setLoading] = useState(true);
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [passStatus, setPassStatus] = useState({ type: "", message: "" });
@@ -40,7 +43,7 @@ export default function SecurityTab() {
     }
   };
 
-  const updateSetting = async (key: string, value: any) => {
+  const updateSetting = async (key: string, value: unknown) => {
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
@@ -204,7 +207,7 @@ export default function SecurityTab() {
               <p className="text-sm text-text-muted">{t("blockedProvidersDesc")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {Object.values(AI_PROVIDERS).map((provider: any) => {
+              {Object.values(AI_PROVIDERS).map((provider) => {
                 const isBlocked = blockedProviders.includes(provider.id);
                 return (
                   <button

@@ -25,10 +25,35 @@ interface ExclusionEntry {
   reason: string;
 }
 
-type AutoComboRecord = {
-  candidatePool?: unknown;
-  weights?: unknown;
-};
+interface AutoCombo {
+  id: string;
+  name: string;
+  strategy: string;
+  config?: {
+    candidatePool?: string[];
+    modePack?: string;
+    explorationRate?: number;
+    budgetCap?: string | number;
+  };
+  weights?: Record<string, unknown>;
+}
+
+interface ActiveProvider {
+  id?: string;
+  name?: string;
+  testStatus?: string;
+}
+
+interface ComboFormData {
+  name: string;
+  strategy: string;
+  config?: {
+    candidatePool?: string[];
+    explorationRate?: number;
+    modePack?: string;
+    budgetCap?: number;
+  };
+}
 
 type HealthRecord = {
   providerHealth?: Record<string, { state?: string; lastFailure?: string | null }>;
@@ -47,10 +72,10 @@ export default function AutoComboDashboard() {
   const [modePack, setModePack] = useState("ship-fast");
 
   const notify = useNotificationStore();
-  const [combos, setCombos] = useState<any[]>([]);
+  const [combos, setCombos] = useState<AutoCombo[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingCombo, setEditingCombo] = useState<any | null>(null);
-  const [activeProviders, setActiveProviders] = useState<any[]>([]);
+  const [editingCombo, setEditingCombo] = useState<AutoCombo | null>(null);
+  const [activeProviders, setActiveProviders] = useState<ActiveProvider[]>([]);
 
   const fetchCombos = useCallback(async () => {
     try {
@@ -58,7 +83,9 @@ export default function AutoComboDashboard() {
       if (res.ok) {
         const payload = await res.json();
         const allCombos = Array.isArray(payload?.combos) ? payload.combos : [];
-        const auto = allCombos.filter((c: any) => c.strategy === "auto" || c.strategy === "lkgp");
+        const auto = (allCombos as AutoCombo[]).filter(
+          (c) => c.strategy === "auto" || c.strategy === "lkgp"
+        );
         setCombos(auto);
 
         // Refresh scores based on first auto combo found
@@ -148,8 +175,8 @@ export default function AutoComboDashboard() {
       if (pRes.ok) {
         const pData = await pRes.json();
         setActiveProviders(
-          (pData.connections || []).filter(
-            (c: any) => c.testStatus === "active" || c.testStatus === "success"
+          (pData.connections as ActiveProvider[]).filter(
+            (c) => c.testStatus === "active" || c.testStatus === "success"
           )
         );
       }
@@ -165,7 +192,7 @@ export default function AutoComboDashboard() {
     };
   }, [fetchData]);
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: ComboFormData) => {
     try {
       const res = await fetch("/api/combos", {
         method: "POST",
@@ -185,7 +212,7 @@ export default function AutoComboDashboard() {
     }
   };
 
-  const handleUpdate = async (id: string, data: any) => {
+  const handleUpdate = async (id: string, data: ComboFormData) => {
     try {
       const res = await fetch(`/api/combos/${id}`, {
         method: "PUT",
@@ -299,7 +326,7 @@ export default function AutoComboDashboard() {
         <AutoComboModal
           isOpen={!!editingCombo}
           onClose={() => setEditingCombo(null)}
-          onSave={(data: any) => handleUpdate(editingCombo.id, data)}
+          onSave={(data: ComboFormData) => handleUpdate(editingCombo.id, data)}
           activeProviders={activeProviders}
           combo={editingCombo}
         />

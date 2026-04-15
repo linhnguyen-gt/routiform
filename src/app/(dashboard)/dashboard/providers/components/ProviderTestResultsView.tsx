@@ -1,5 +1,4 @@
 import { useTranslations } from "next-intl";
-import { Badge } from "@/shared/components";
 import type { ProviderTestResultsViewProps } from "../types";
 
 export function ProviderTestResultsView({ results }: ProviderTestResultsViewProps) {

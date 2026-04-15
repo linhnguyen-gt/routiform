@@ -17,6 +17,46 @@ import { Card } from "@/shared/components";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { useTranslations } from "next-intl";
 
+interface DegradationFeature {
+  feature: string;
+  level: string;
+  capability: string;
+  reason?: string;
+  since: string;
+}
+
+interface CircuitBreakerEntry {
+  state: string;
+  failures: number;
+  lastFailure?: string;
+}
+
+interface ProviderInfo {
+  name?: string;
+  color?: string;
+  textIcon?: string;
+}
+
+interface RateLimitEntryStatus {
+  queued?: number;
+  running?: number;
+}
+
+interface LockoutEntry {
+  reason?: string;
+  until?: string;
+}
+
+interface ParsedRateLimitEntry {
+  key: string;
+  providerId: string;
+  displayName: string;
+  providerInfo: ProviderInfo | undefined;
+  connectionId: string;
+  model: string | null;
+  status: RateLimitEntryStatus;
+}
+
 function formatUptime(seconds) {
   const d = Math.floor(seconds / 86400);
   const h = Math.floor((seconds % 86400) / 3600);
@@ -297,7 +337,7 @@ export default function HealthPage() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {degradation.features.map((feat: any) => {
+            {degradation.features.map((feat: DegradationFeature) => {
               const bg =
                 feat.level === "full"
                   ? "bg-green-500/5 border-green-500/10"
@@ -317,11 +357,11 @@ export default function HealthPage() {
               return (
                 <div
                   key={feat.feature}
-                  className={`rounded-lg p-3 border \${bg} flex flex-col gap-2`}
+                  className={`rounded-lg p-3 border ${bg} flex flex-col gap-2`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold capitalize flex items-center gap-2 text-[var(--text-primary,#fff)]">
-                      <span className={`w-2 h-2 rounded-full \${dot}`}></span>
+                      <span className={`w-2 h-2 rounded-full ${dot}`}></span>
                       {feat.feature}
                     </span>
                     <span className="text-xs uppercase tracking-wider font-bold opacity-70">
@@ -464,7 +504,7 @@ export default function HealthPage() {
             {t("providerHealth")}
           </h2>
           <div className="flex items-center gap-3">
-            {cbEntries.some(([, cb]: [string, any]) => cb.state !== "CLOSED") && (
+            {cbEntries.some(([, cb]: [string, CircuitBreakerEntry]) => cb.state !== "CLOSED") && (
               <button
                 onClick={handleResetHealth}
                 disabled={resetting}
@@ -509,8 +549,12 @@ export default function HealthPage() {
           <p className="text-sm text-text-muted text-center py-4">{t("noCBData")}</p>
         ) : (
           (() => {
-            const unhealthy = cbEntries.filter(([, cb]: [string, any]) => cb.state !== "CLOSED");
-            const healthy = cbEntries.filter(([, cb]: [string, any]) => cb.state === "CLOSED");
+            const unhealthy = cbEntries.filter(
+              ([, cb]: [string, CircuitBreakerEntry]) => cb.state !== "CLOSED"
+            );
+            const healthy = cbEntries.filter(
+              ([, cb]: [string, CircuitBreakerEntry]) => cb.state === "CLOSED"
+            );
             return (
               <div className="space-y-4">
                 {/* Unhealthy providers first */}
@@ -519,7 +563,7 @@ export default function HealthPage() {
                     <p className="text-xs font-medium text-red-400 uppercase tracking-wide">
                       {t("issuesLabel")}
                     </p>
-                    {unhealthy.map(([provider, cb]: [string, any]) => {
+                    {unhealthy.map(([provider, cb]: [string, CircuitBreakerEntry]) => {
                       const style = CB_STYLES[cb.state] || CB_STYLES.OPEN;
                       const providerInfo = AI_PROVIDERS[provider];
                       const displayName = providerInfo?.name || provider;
@@ -637,11 +681,13 @@ export default function HealthPage() {
           };
 
           // Group entries by provider for a cleaner display
-          const entries = Object.entries(rateLimitStatus).map(([key, status]: [string, any]) => ({
-            key,
-            ...parseKey(key),
-            status,
-          }));
+          const entries = Object.entries(rateLimitStatus).map(
+            ([key, status]: [string, RateLimitEntryStatus]) => ({
+              key,
+              ...parseKey(key),
+              status,
+            })
+          );
 
           // Sort: active (queued/running > 0) first, then alphabetically
           entries.sort((a, b) => {
@@ -668,7 +714,14 @@ export default function HealthPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {entries.map(
-                  ({ key, displayName, providerInfo, connectionId, model, status }: any) => {
+                  ({
+                    key,
+                    displayName,
+                    providerInfo,
+                    connectionId,
+                    model,
+                    status,
+                  }: ParsedRateLimitEntry) => {
                     const isActive = (status.queued || 0) + (status.running || 0) > 0;
                     const isQueued = (status.queued || 0) > 0;
                     return (
@@ -749,7 +802,7 @@ export default function HealthPage() {
             {t("activeLockouts")}
           </h2>
           <div className="space-y-2">
-            {lockoutEntries.map(([key, lockout]: [string, any]) => (
+            {lockoutEntries.map(([key, lockout]: [string, LockoutEntry]) => (
               <div
                 key={key}
                 className="rounded-lg p-3 bg-red-500/5 border border-red-500/10 flex items-center justify-between"

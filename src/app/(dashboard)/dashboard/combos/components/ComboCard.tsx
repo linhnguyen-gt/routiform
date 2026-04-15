@@ -5,11 +5,12 @@ import Tooltip from "@/shared/components/Tooltip";
 import { useTranslations } from "next-intl";
 import { getProviderDisplayName, normalizeModelEntry } from "./combo-data";
 import { getStrategyBadgeClass, getStrategyDescription, getStrategyLabel } from "./combo-utils";
+import type { ComboMetrics, ComboModelEntry, ComboRecord, ProviderNode } from "./combo-types";
 
 interface ComboCardProps {
-  combo: any;
-  metrics?: any;
-  providerNodes: any[];
+  combo: ComboRecord;
+  metrics?: ComboMetrics;
+  providerNodes: ProviderNode[];
   copied: string | null;
   onCopy: (text: string, key: string) => void;
   onEdit: () => void;
@@ -101,7 +102,7 @@ export function ComboCard({
               {models.length === 0 ? (
                 <span className="text-xs text-text-muted italic">{t("noModels")}</span>
               ) : (
-                models.slice(0, 3).map((entry: any, index: number) => {
+                models.slice(0, 3).map((entry: string | ComboModelEntry, index: number) => {
                   const { model, weight } = normalizeModelEntry(entry);
                   return (
                     <code

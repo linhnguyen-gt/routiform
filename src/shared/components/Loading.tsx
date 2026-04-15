@@ -6,7 +6,7 @@ import type { HTMLAttributes } from "react";
 type SpinnerSize = "sm" | "md" | "lg" | "xl";
 type LoadingType = "spinner" | "page" | "skeleton" | "card";
 
-const spinnerSizes: Record<SpinnerSize, string> = {
+const _spinnerSizes: Record<SpinnerSize, string> = {
   sm: "size-4",
   md: "size-6",
   lg: "size-8",

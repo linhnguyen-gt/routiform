@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { Card, Button, Toggle } from "@/shared/components";
 import { ProviderDetailConnectionRow } from "../../components/ProviderDetailConnectionRow";
 import type { ConnectionRowConnection } from "../types/connections";
 
 interface ProviderDetailConnectionsSectionProps {
-  t: any;
-  connections: any[];
+  t: (key: string, params?: Record<string, unknown>) => string;
+  connections: ConnectionRowConnection[];
   providerId: string;
-  providerInfo: any;
+  providerInfo: { name?: string } | null | undefined;
   isOAuth: boolean;
   isCompatible: boolean;
   providerSupportsPat: boolean;
@@ -18,8 +17,10 @@ interface ProviderDetailConnectionsSectionProps {
   handleBatchTestAll: () => void;
   batchTesting: boolean;
   retestingId: string | null;
-  proxyConfig: any;
-  setProxyTarget: (target: any) => void;
+  proxyConfig: { providers?: Record<string, { host?: string }> } | null | undefined;
+  setProxyTarget: (
+    target: { level: string; id: string | undefined; label: string | undefined } | null
+  ) => void;
   sortedConnectionIds: string[];
   selectedConnectionIds: string[];
   toggleSelectAllConnections: () => void;
@@ -30,12 +31,12 @@ interface ProviderDetailConnectionsSectionProps {
   allSelectedActive: boolean;
   bulkUpdatingStatus: boolean;
   handleBulkUpdateConnectionStatus: (ids: string[], active: boolean) => void;
-  handleSwapPriority: (c1: any, c2: any) => void;
+  handleSwapPriority: (c1: ConnectionRowConnection, c2: ConnectionRowConnection) => void;
   handleUpdateConnectionStatus: (id: string, active: boolean) => void;
   handleToggleRateLimit: (id: string, enabled: boolean) => void;
   handleToggleCodexLimit: (id: string, field: string, enabled: boolean) => void;
   handleRetestConnection: (id: string) => void;
-  setSelectedConnection: (conn: any) => void;
+  setSelectedConnection: (conn: ConnectionRowConnection) => void;
   setShowEditModal: (val: boolean) => void;
   handleDelete: (id: string) => void;
   allowQoderOAuthUi: boolean;
@@ -46,7 +47,7 @@ interface ProviderDetailConnectionsSectionProps {
   applyingCodexAuthId: string | null;
   handleExportCodexAuthFile: (id: string) => void;
   exportingCodexAuthId: string | null;
-  connProxyMap: Record<string, any>;
+  connProxyMap: Record<string, { proxy?: { host?: string } | null; level?: string }>;
 }
 
 export function ProviderDetailConnectionsSection({
@@ -96,9 +97,9 @@ export function ProviderDetailConnectionsSection({
   const hasAnyTag = sorted.some((c) => c.providerSpecificData?.tag as string | undefined);
 
   const renderConnectionRow = (
-    conn: any,
+    conn: ConnectionRowConnection,
     index: number,
-    groupConns: any[],
+    groupConns: ConnectionRowConnection[],
     gi: number,
     groupKeys: string[]
   ) => (
@@ -286,7 +287,7 @@ export function ProviderDetailConnectionsSection({
             );
           }
 
-          const groupMap = new Map<string, any[]>();
+          const groupMap = new Map<string, ConnectionRowConnection[]>();
           for (const conn of sorted) {
             const tag = (conn.providerSpecificData?.tag as string | undefined)?.trim() || "";
             if (!groupMap.has(tag)) groupMap.set(tag, []);

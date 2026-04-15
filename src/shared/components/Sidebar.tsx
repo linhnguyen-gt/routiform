@@ -24,9 +24,9 @@ export default function Sidebar({
   collapsed = false,
   onToggleCollapse,
 }: {
-  onClose?: any;
+  onClose?: () => void;
   collapsed?: boolean;
-  onToggleCollapse?: any;
+  onToggleCollapse?: () => void;
 }) {
   const pathname = usePathname();
   const t = useTranslations("sidebar");

@@ -12,7 +12,7 @@ import {
 import {
   formatTime,
   formatDuration,
-  maskSegment,
+  maskSegment as _maskSegment,
   maskAccount,
   formatApiKeyLabel,
 } from "@/shared/utils/formatting";
@@ -137,7 +137,10 @@ function buildExportText(log, detail) {
  * to readable labels. If providerNodes are available, uses user-defined name;
  * otherwise falls back to "OAI-Compat".
  */
-function getProviderDisplayLabel(provider: string, providerNodes?: any[]): string {
+function getProviderDisplayLabel(
+  provider: string,
+  providerNodes?: { id?: string; prefix?: string; name?: string }[]
+): string {
   if (!provider) return "-";
   if (provider.startsWith("openai-compatible-") || provider.startsWith("anthropic-compatible-")) {
     // Try to find user-defined name from provider nodes

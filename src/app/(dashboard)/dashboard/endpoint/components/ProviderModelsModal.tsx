@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import PropTypes from "prop-types";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/shared/components";
 

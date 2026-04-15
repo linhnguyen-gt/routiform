@@ -7,7 +7,7 @@ import PricingModal from "@/shared/components/PricingModal";
 import { useTranslations } from "next-intl";
 
 export default function PricingSettingsPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [currentPricing, setCurrentPricing] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -59,7 +59,11 @@ export function ProviderDetailEditConnectionModal({
     codexFastServiceTier: false,
   });
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<{
+    valid: boolean;
+    diagnosis: { type: string } | null;
+    message: string | null;
+  } | null>(null);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<"success" | "failed" | null>(null);
   const [saving, setSaving] = useState(false);
@@ -145,7 +149,7 @@ export function ProviderDetailEditConnectionModal({
     setSaving(true);
     setSaveError(null);
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         name: formData.name,
         priority: formData.priority,
         healthCheckInterval: formData.healthCheckInterval,

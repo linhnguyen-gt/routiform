@@ -6,8 +6,6 @@ import Image from "next/image";
 import CliStatusBadge from "./CliStatusBadge";
 import { useTranslations } from "next-intl";
 
-const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
-
 export default function KiloToolCard({
   tool,
   isExpanded,
@@ -29,7 +27,7 @@ export default function KiloToolCard({
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [modelAliases, setModelAliases] = useState({});
+  const [_modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
@@ -189,7 +187,7 @@ export default function KiloToolCard({
     setModalOpen(false);
   };
 
-  const handleManualConfig = (config) => {
+  const _handleManualConfig = (config) => {
     if (config.model) setSelectedModel(config.model);
     if (config.apiKey) setSelectedApiKey(config.apiKey);
     if (config.baseUrl) setCustomBaseUrl(config.baseUrl);
@@ -453,14 +451,6 @@ export default function KiloToolCard({
           isOpen={showManualConfigModal}
           onClose={() => setShowManualConfigModal(false)}
           title={t("kiloManualConfiguration")}
-          {...({
-            onApply: handleManualConfig,
-            currentConfig: {
-              model: selectedModel,
-              apiKey: selectedApiKey,
-              baseUrl: customBaseUrl || baseUrl,
-            },
-          } as any)}
         />
       )}
     </Card>

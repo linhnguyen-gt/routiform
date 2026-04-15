@@ -145,8 +145,12 @@ export default function TestBenchMode() {
     setRunningAll(false);
   };
 
-  const passCount = Object.values(results).filter((r: any) => r.status === "pass").length;
-  const failCount = Object.values(results).filter((r: any) => r.status === "error").length;
+  const passCount = (Object.values(results) as Array<{ status: string }>).filter(
+    (r) => r.status === "pass"
+  ).length;
+  const failCount = (Object.values(results) as Array<{ status: string }>).filter(
+    (r) => r.status === "error"
+  ).length;
   const totalRun = passCount + failCount;
   const compatibility = totalRun > 0 ? Math.round((passCount / totalRun) * 100) : 0;
   const srcMeta = FORMAT_META[sourceFormat] || FORMAT_META.openai;

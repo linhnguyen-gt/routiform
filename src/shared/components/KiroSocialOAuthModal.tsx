@@ -64,7 +64,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
       }
 
       const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
+      const _state = url.searchParams.get("state");
       const errorParam = url.searchParams.get("error");
 
       if (errorParam) {

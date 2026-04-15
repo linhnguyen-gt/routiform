@@ -31,7 +31,7 @@ interface ProviderSectionHeaderProps {
 
 export function ProviderSectionHeader({
   title,
-  authType,
+  authType: _authType,
   dotColor,
   dotLabel,
   showConfiguredOnly,

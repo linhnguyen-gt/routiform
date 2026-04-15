@@ -49,7 +49,7 @@ export default function PricingTab() {
   // All providers sorted by model count (desc)
   const allProviders = useMemo(() => {
     const providers = Object.entries(catalog)
-      .map(([alias, info]: [string, any]) => ({
+      .map(([alias, info]: [string, Record<string, unknown>]) => ({
         alias,
         ...info,
         pricedModels: pricingData[alias] ? Object.keys(pricingData[alias]).length : 0,
@@ -74,7 +74,7 @@ export default function PricingTab() {
   const stats = useMemo(() => {
     const totalModels = allProviders.reduce((s, p) => s + p.modelCount, 0);
     const pricedCount = Object.values(pricingData).reduce(
-      (s: number, models: any) => s + Object.keys(models).length,
+      (s: number, models: Record<string, unknown>) => s + Object.keys(models).length,
       0
     );
     return {
@@ -444,7 +444,7 @@ function ProviderSection({
 
 function ModelRow({ model, pricing, onPricingChange }) {
   const t = useTranslations("settings");
-  const hasPricing = pricing && Object.values(pricing).some((v: any) => v > 0);
+  const hasPricing = pricing && Object.values(pricing).some((v: unknown) => (v as number) > 0);
 
   return (
     <tr className="hover:bg-bg-hover/30 group">

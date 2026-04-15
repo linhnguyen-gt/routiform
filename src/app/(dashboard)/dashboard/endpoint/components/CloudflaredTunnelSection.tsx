@@ -1,7 +1,12 @@
 "use client";
 
 import { Button, Input } from "@/shared/components";
-import { CloudflaredTunnelStatus, TunnelNotice, CloudflaredTunnelPhase } from "../types";
+import {
+  CloudflaredTunnelStatus,
+  TunnelNotice,
+  CloudflaredTunnelPhase,
+  TranslationValues,
+} from "../types";
 import { useTranslations } from "next-intl";
 
 interface CloudflaredTunnelSectionProps {
@@ -12,7 +17,7 @@ interface CloudflaredTunnelSectionProps {
   onCloseNotice: () => void;
   copy: (text: string, id: string) => void;
   copied: string | null;
-  translateOrFallback: (key: string, fallback: string, values?: any) => string;
+  translateOrFallback: (key: string, fallback: string, values?: TranslationValues) => string;
 }
 
 export function CloudflaredTunnelSection({

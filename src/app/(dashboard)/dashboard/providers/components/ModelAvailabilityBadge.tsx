@@ -9,6 +9,18 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+
+interface ModelEntry {
+  status: string;
+  provider: string;
+  model: string;
+  cooldownUntil?: string;
+}
+
+interface ModelAvailabilityData {
+  models: ModelEntry[];
+  unavailableCount?: number;
+}
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -24,7 +36,7 @@ export default function ModelAvailabilityBadge() {
     unknown: { icon: "help", color: "#6b7280", label: t("unknown") },
   };
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ModelAvailabilityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [clearing, setClearing] = useState<string | null>(null);
@@ -87,12 +99,12 @@ export default function ModelAvailabilityBadge() {
 
   const models = data?.models || [];
   const unavailableCount =
-    data?.unavailableCount || models.filter((m: any) => m.status !== "available").length;
+    data?.unavailableCount || models.filter((m: ModelEntry) => m.status !== "available").length;
   const isHealthy = unavailableCount === 0;
 
   // Group unhealthy models by provider
-  const byProvider: Record<string, any[]> = {};
-  models.forEach((m: any) => {
+  const byProvider: Record<string, ModelEntry[]> = {};
+  models.forEach((m: ModelEntry) => {
     if (m.status === "available") return;
     const key = m.provider || "unknown";
     if (!byProvider[key]) byProvider[key] = [];

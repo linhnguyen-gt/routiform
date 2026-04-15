@@ -63,7 +63,7 @@ function getBarColor(usedPercentage) {
 function formatCountdown(resetAt) {
   if (!resetAt) return null;
   try {
-    const diff = (new Date(resetAt) as any) - (new Date() as any);
+    const diff = new Date(resetAt).getTime() - new Date().getTime();
     if (diff <= 0) return null;
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
@@ -666,7 +666,7 @@ export default function ProviderLimits() {
                           const staleAfterReset = q.staleAfterReset === true;
 
                           // Credits display (special case)
-                          if ((q as any).isCredits) {
+                          if ((q as Record<string, unknown>).isCredits) {
                             return (
                               <div
                                 key={i}
@@ -682,7 +682,8 @@ export default function ProviderLimits() {
                                   className="text-[20px] font-bold tabular-nums"
                                   style={{ color: colors.text }}
                                 >
-                                  {(q as any).creditCount ?? q.remaining}
+                                  {((q as Record<string, unknown>).creditCount as number) ??
+                                    q.remaining}
                                 </span>
                                 <span className="text-[10px] text-text-muted">left</span>
                               </div>

@@ -6,7 +6,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ModelCompatPopover } from "./ModelCompatPopover";
-import { PassthroughModelRow } from "./ProviderDetailPassthroughModelRow";
+import { PassthroughModelRow as _PassthroughModelRow } from "./ProviderDetailPassthroughModelRow";
 import { formatProviderModelsErrorResponse } from "../providerDetailApiUtils";
 import {
   anyNoPreserveCompatBadge,
@@ -65,7 +65,9 @@ export function CustomModelsSection({
       if (res.ok) {
         const data = await res.json();
         const manualModels = Array.isArray(data.models)
-          ? data.models.filter((model: any) => (model?.source || "manual") === "manual")
+          ? data.models.filter(
+              (model: { source?: string }) => (model?.source || "manual") === "manual"
+            )
           : [];
         setCustomModels(manualModels);
         setModelCompatOverrides(data.modelCompatOverrides || []);
@@ -139,7 +141,7 @@ export function CustomModelsSection({
     }
   };
 
-  const beginEdit = (model: any) => {
+  const beginEdit = (model: CompatModelRow) => {
     setEditingModelId(model.id);
     setEditingApiFormat(model.apiFormat || "chat-completions");
     setEditingEndpoints(
@@ -400,12 +402,12 @@ export function CustomModelsSection({
                         {copied === copyKey ? "check" : "content_copy"}
                       </span>
                     </button>
-                    {(model as any).apiFormat === "responses" && (
+                    {model.apiFormat === "responses" && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-medium">
                         Responses
                       </span>
                     )}
-                    {(model as any).supportedEndpoints?.includes("embeddings") && (
+                    {model.supportedEndpoints?.includes("embeddings") && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 font-medium">
                         📐 Embed
                       </span>

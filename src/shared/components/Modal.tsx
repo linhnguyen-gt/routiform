@@ -185,7 +185,11 @@ export function ConfirmModal({
           <Button variant="ghost" onClick={onClose} disabled={loading}>
             {cancelText}
           </Button>
-          <Button variant={variant as any} onClick={onConfirm} loading={loading}>
+          <Button
+            variant={variant as "primary" | "secondary" | "outline" | "ghost" | "danger"}
+            onClick={onConfirm}
+            loading={loading}
+          >
             {confirmText}
           </Button>
         </>

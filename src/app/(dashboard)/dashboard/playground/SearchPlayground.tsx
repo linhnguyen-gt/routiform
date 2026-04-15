@@ -94,7 +94,7 @@ export default function SearchPlayground() {
     const start = Date.now();
 
     try {
-      let body: any;
+      let body: Record<string, unknown>;
       try {
         body = JSON.parse(requestBody);
       } catch {
@@ -124,12 +124,12 @@ export default function SearchPlayground() {
       } else {
         setError(data.error?.message || data.error || `Error ${res.status}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setDuration(Date.now() - start);
-      if (err.name === "AbortError") {
+      if (err instanceof Error && err.name === "AbortError") {
         setError("Request timed out (15s)");
       } else {
-        setError(err.message || "Network error");
+        setError(err instanceof Error ? err.message : "Network error");
       }
     } finally {
       setLoading(false);
@@ -224,7 +224,7 @@ export default function SearchPlayground() {
             <div className="flex-1">
               <Select
                 value={selectedProvider}
-                onChange={(e: any) => setSelectedProvider(e.target.value)}
+                onChange={(e: { target: { value: string } }) => setSelectedProvider(e.target.value)}
                 options={providers.map((p) => ({
                   value: p.id,
                   label: `${p.name}${p.status === "no_credentials" ? " (no key)" : ""}`,

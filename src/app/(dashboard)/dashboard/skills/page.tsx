@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card } from "@/shared/components";
+
 import { useTranslations } from "next-intl";
 
 export default function SkillsPage() {
@@ -34,13 +34,26 @@ export default function SkillsPage() {
       providerName: string;
     }[]
   >([]);
-  const [skillsByProvider, setSkillsByProvider] = useState<Record<string, any[]>>({});
+  const [skillsByProvider, setSkillsByProvider] = useState<
+    Record<
+      string,
+      {
+        skillId: string;
+        name: string;
+        path: string;
+        installedAt: string;
+        size: number;
+        provider: string;
+        providerName: string;
+      }[]
+    >
+  >({});
   const [providers, setProviders] = useState<Array<{ id: string; name: string; count: number }>>(
     []
   );
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
-  const t = useTranslations("skills");
+  const _t = useTranslations("skills");
 
   useEffect(() => {
     fetch("/api/skills/skillssh/installed")

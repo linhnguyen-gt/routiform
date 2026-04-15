@@ -1,10 +1,17 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+interface VersionInfo {
+  updateAvailable?: boolean;
+  latest?: string;
+  current?: string;
+  autoUpdateSupported?: boolean;
+  autoUpdateError?: string;
+}
+
 interface DashboardHeaderProps {
-  versionInfo: any;
+  versionInfo: VersionInfo | null;
   onUpdate: () => void;
   updating: boolean;
   stats: {
@@ -22,7 +29,6 @@ export default function DashboardHeader({
   updating,
   stats,
 }: DashboardHeaderProps) {
-  const t = useTranslations("home");
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {

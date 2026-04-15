@@ -8,6 +8,18 @@ import { useTranslations } from "next-intl";
 import { AI_PROVIDERS } from "@/shared/constants/config";
 import { CLI_COMPAT_PROVIDER_IDS } from "@/shared/constants/cliCompatProviders";
 
+interface ProviderMeta {
+  id?: string;
+  name?: string;
+  icon?: string;
+  color?: string;
+}
+
+interface AgentSettings {
+  cliCompatProviders?: string[];
+  [key: string]: unknown;
+}
+
 interface AgentInfo {
   id: string;
   name: string;
@@ -62,7 +74,7 @@ export default function AgentsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
-  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<AgentSettings>({});
   const [opencodeConfigLoading, setOpencodeConfigLoading] = useState(false);
   const [opencodeConfigDone, setOpencodeConfigDone] = useState(false);
   const [newAgent, setNewAgent] = useState({
@@ -96,7 +108,7 @@ export default function AgentsPage() {
       .catch(() => {});
   }, [fetchAgents]);
 
-  const updateSetting = async (key: string, value: any) => {
+  const updateSetting = async (key: string, value: unknown) => {
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
@@ -271,9 +283,9 @@ export default function AgentsPage() {
           <p className="text-sm text-text-muted">{ts("cliFingerprintDesc")}</p>
           <div className="flex flex-wrap gap-2">
             {CLI_COMPAT_PROVIDER_IDS.map((providerId) => {
-              const providerMeta = Object.values(AI_PROVIDERS).find(
-                (p: any) => p.id === providerId
-              ) as any;
+              const providerMeta = (Object.values(AI_PROVIDERS) as ProviderMeta[]).find(
+                (p) => p.id === providerId
+              );
               const isEnabled = (settings.cliCompatProviders || []).includes(providerId);
               const displayName = providerMeta?.name || providerId;
               const icon = providerMeta?.icon || "terminal";

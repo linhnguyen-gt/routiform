@@ -20,7 +20,7 @@ const authTypeDotColors: Record<string, string> = {
   compatible: "bg-orange-500",
 };
 
-const authTypeDotLabels: Record<string, string> = {}; // filled dynamically with translations
+const _authTypeDotLabels: Record<string, string> = {}; // filled dynamically with translations
 
 export function ProviderCard({
   providerId,

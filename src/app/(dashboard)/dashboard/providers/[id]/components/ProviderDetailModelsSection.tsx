@@ -7,48 +7,52 @@ import { ModelRow } from "../../components/ProviderDetailModelRow";
 import { CustomModelsSection } from "../../components/ProviderDetailCustomModelsSection";
 
 interface ProviderDetailModelsSectionProps {
-  t: any;
+  t: (key: string, params?: Record<string, unknown>) => string;
   providerId: string;
   isSearchProvider: boolean;
   isLiveCatalogProvider: boolean;
-  opencodeLiveCatalog: any;
+  opencodeLiveCatalog: { status: string; errorMessage?: string };
   canImportModels: boolean;
-  handleToggleAutoSync: (conn: any, enabled: boolean) => void;
+  handleToggleAutoSync: (conn: unknown, enabled: boolean) => void;
   togglingAutoSync: boolean;
   supportsAutoSync: boolean;
   isAutoSyncEnabled: boolean;
-  handleRefreshModels: (conn: any) => void;
+  handleRefreshModels: (conn: unknown) => void;
   refreshingModels: boolean;
-  handleClearAllModels: (storageAlias: string, entries: any[], fetchAliases: any) => void;
+  handleClearAllModels: (
+    storageAlias: string,
+    entries: unknown[],
+    fetchAliases: () => void | Promise<void>
+  ) => void;
   clearingModels: boolean;
-  modelMeta: any;
-  providerAliasEntries: any[];
+  modelMeta: { customModels: unknown[] };
+  providerAliasEntries: unknown[];
   isManagedAvailableModelsProvider: boolean;
   isAnthropicCompatible: boolean;
   isCcCompatible: boolean;
   providerStorageAlias: string;
   providerDisplayAlias: string;
-  modelAliases: any;
-  compatibleFallbackModels: any[];
+  modelAliases: Record<string, unknown>;
+  compatibleFallbackModels: unknown[];
   copied: string | undefined;
   copy: (text: string, key: string) => void;
-  handleSetAlias: any;
-  handleDeleteAlias: any;
-  connections: any[];
+  handleSetAlias: (...args: unknown[]) => unknown;
+  handleDeleteAlias: (...args: unknown[]) => unknown;
+  connections: unknown[];
   isAnthropicProtocolCompatible: boolean;
-  effectiveModelNormalize: any;
-  effectiveModelPreserveDeveloper: any;
-  getUpstreamHeadersRecordForModel: any;
-  saveModelCompatFlags: any;
+  effectiveModelNormalize: unknown;
+  effectiveModelPreserveDeveloper: unknown;
+  getUpstreamHeadersRecordForModel: (modelId: string, p: unknown) => unknown;
+  saveModelCompatFlags: unknown;
   compatSavingModelId: string | null;
-  fetchProviderModelMeta: any;
-  modelTestResults: any;
+  fetchProviderModelMeta: () => void | Promise<void>;
+  modelTestResults: Record<string, unknown>;
   testingModelKey: string | null;
-  handleTestModel: any;
-  providerInfo: any;
-  models: any[];
-  autoSyncConnection: any;
-  fetchAliases: any;
+  handleTestModel: (key: string) => void;
+  providerInfo: { passthroughModels?: boolean };
+  models: { id: string }[];
+  autoSyncConnection: unknown;
+  fetchAliases: () => void | Promise<void>;
   modelTestBannerError: string;
 }
 

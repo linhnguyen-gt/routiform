@@ -8,17 +8,17 @@ import {
 } from "../../providerDetailCompatUtils";
 
 interface ProviderDetailCompatibleInfoSectionProps {
-  t: any;
+  t: (key: string, params?: Record<string, unknown>) => string;
   isCcCompatible: boolean;
   isAnthropicCompatible: boolean;
   isCompatible: boolean;
-  providerNode: any;
+  providerNode: { apiType?: string; baseUrl?: string; chatPath?: string } | null;
   providerId: string;
   isAnthropicProtocolCompatible: boolean;
-  connections: any[];
+  connections: unknown[];
   setShowAddApiKeyModal: (val: boolean) => void;
   setShowEditNodeModal: (val: boolean) => void;
-  router: any;
+  router: { push: (url: string) => void };
 }
 
 export function ProviderDetailCompatibleInfoSection({

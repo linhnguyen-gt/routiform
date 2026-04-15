@@ -67,7 +67,7 @@ export default function UsageAnalytics({
     onRangeChange?.(r);
     if (rangeProp === undefined) setInternalRange(r);
   };
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +80,7 @@ export default function UsageAnalytics({
       setAnalytics(data);
       setError(null);
     } catch (err) {
-      setError((err as any).message);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

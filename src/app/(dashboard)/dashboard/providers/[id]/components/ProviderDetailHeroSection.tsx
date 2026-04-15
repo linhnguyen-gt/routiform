@@ -3,13 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import ProviderIcon from "@/shared/components/ProviderIcon";
-import { CC_COMPATIBLE_LABEL } from "../../providerDetailCompatUtils";
 
 interface ProviderDetailHeroSectionProps {
-  t: any;
-  providerInfo: any;
+  t: (key: string, params?: Record<string, unknown>) => string;
+  providerInfo: {
+    color?: string;
+    textIcon?: string;
+    id: string;
+    apiType?: string;
+    name: string;
+    website?: string;
+  };
   providerId: string;
-  connections: any[];
+  connections: unknown[];
   isOpenAICompatible: boolean;
   isAnthropicProtocolCompatible: boolean;
   headerImgError: boolean;
@@ -19,7 +25,7 @@ interface ProviderDetailHeroSectionProps {
 export function ProviderDetailHeroSection({
   t,
   providerInfo,
-  providerId,
+  providerId: _providerId,
   connections,
   isOpenAICompatible,
   isAnthropicProtocolCompatible,

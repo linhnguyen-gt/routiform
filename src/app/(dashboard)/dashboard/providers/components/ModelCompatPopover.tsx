@@ -9,7 +9,7 @@ import {
   upstreamHeadersRecordsEqual,
 } from "../providerDetailCompatUtils";
 import type { HeaderDraftRow, ModelCompatPopoverProps } from "../[id]/types";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export function ModelCompatPopover({

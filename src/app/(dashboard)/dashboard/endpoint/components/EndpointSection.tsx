@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import PropTypes from "prop-types";
 import { useTranslations } from "next-intl";
 import { AI_PROVIDERS, getProviderByAlias } from "@/shared/constants/providers";
 import { EndpointModel } from "../types";
@@ -110,12 +109,10 @@ export function EndpointSection({
                   <span className="text-xs font-semibold text-text-main">
                     {providerName(providerId)}
                   </span>
-                  <span className="text-xs text-text-muted">
-                    ({(providerModels as any).length})
-                  </span>
+                  <span className="text-xs text-text-muted">({providerModels.length})</span>
                 </div>
                 <div className="ml-5 flex flex-wrap gap-1.5">
-                  {(providerModels as any).map((m: any) => (
+                  {providerModels.map((m: EndpointModel) => (
                     <span
                       key={m.id}
                       className="text-xs px-2 py-0.5 rounded-md bg-surface/80 text-text-muted font-mono"

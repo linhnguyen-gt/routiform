@@ -144,7 +144,7 @@ export function calculateProviderStats(
 
   // Get latest error info
   const latestError = errorConns.sort(
-    (a, b) => (new Date(b.lastErrorAt || 0) as any) - (new Date(a.lastErrorAt || 0) as any)
+    (a, b) => new Date(b.lastErrorAt || 0).getTime() - new Date(a.lastErrorAt || 0).getTime()
   )[0];
   const errorCode = latestError ? getConnectionErrorTag(latestError) : null;
   const errorTime = latestError?.lastErrorAt ? getRelativeTime(latestError.lastErrorAt) : null;

@@ -13,7 +13,7 @@ import { ProviderDetailBatchTestResultsModal } from "../../components/ProviderDe
 
 interface ProviderDetailModalsSectionProps {
   providerId: string;
-  providerInfo: any;
+  providerInfo: { name?: string } | null | undefined;
   showOAuthModal: boolean;
   setShowOAuthModal: (val: boolean) => void;
   handleOAuthSuccess: () => void;
@@ -22,22 +22,22 @@ interface ProviderDetailModalsSectionProps {
   isCompatible: boolean;
   isAnthropicProtocolCompatible: boolean;
   isCcCompatible: boolean;
-  handleSaveApiKey: (data: any) => Promise<string | null>;
+  handleSaveApiKey: (data: Record<string, unknown>) => Promise<string | null>;
   showEditModal: boolean;
   setShowEditModal: (val: boolean) => void;
-  selectedConnection: any;
-  handleUpdateConnection: (data: any) => Promise<string | null>;
+  selectedConnection: Record<string, unknown> | null;
+  handleUpdateConnection: (data: Record<string, unknown>) => Promise<string | null>;
   showEditNodeModal: boolean;
   setShowEditNodeModal: (val: boolean) => void;
-  providerNode: any;
-  handleUpdateNode: (data: any) => Promise<void>;
-  batchTestResults: any;
-  setBatchTestResults: (val: any) => void;
-  t: any;
-  proxyTarget: any;
-  setProxyTarget: (val: any) => void;
-  loadConnProxies: (conns: any[]) => Promise<void>;
-  connections: any[];
+  providerNode: Record<string, unknown> | null;
+  handleUpdateNode: (data: Record<string, unknown>) => Promise<void>;
+  batchTestResults: Record<string, unknown> | null;
+  setBatchTestResults: (val: Record<string, unknown> | null) => void;
+  t: (key: string, params?: Record<string, unknown>) => string;
+  proxyTarget: { level: string; id: string; label: string } | null;
+  setProxyTarget: (val: { level: string; id: string; label: string } | null) => void;
+  loadConnProxies: (conns: unknown[]) => Promise<void>;
+  connections: unknown[];
 }
 
 export function ProviderDetailModalsSection({

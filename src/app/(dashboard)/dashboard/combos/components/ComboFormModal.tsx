@@ -13,7 +13,14 @@ import {
   VALID_NAME_REGEX,
 } from "./combo-constants";
 import { ComboReadinessPanel } from "./ComboReadinessPanel";
-import { getProviderDisplayName, hasTranslation, normalizeModelEntry } from "./combo-data";
+import { getProviderDisplayName, normalizeModelEntry } from "./combo-data";
+import type {
+  ComboModelEntry,
+  ComboRecord,
+  ModelAliases,
+  PricingByProvider,
+  ProviderNode,
+} from "./combo-types";
 import { getI18nOrFallback, getStrategyDescription, getStrategyLabel } from "./combo-utils";
 import { FieldLabelWithHelp } from "./FieldLabelWithHelp";
 import { StrategyGuidanceCard } from "./StrategyGuidanceCard";
@@ -38,12 +45,14 @@ const PAID_PREMIUM_PRESET_MODELS = [
   { model: "antigravity/gemini-3-pro-high", weight: 0 },
 ];
 
+type ComboSaveData = Omit<ComboRecord, "id" | "isActive">;
+
 interface ComboFormModalProps {
   isOpen: boolean;
-  combo: any;
+  combo: ComboRecord | null;
   onClose: () => void;
-  onSave: (data: any) => Promise<void>;
-  activeProviders: any[];
+  onSave: (data: ComboSaveData) => Promise<void>;
+  activeProviders: ProviderNode[];
 }
 
 export function ComboFormModal({
@@ -59,7 +68,7 @@ export function ComboFormModal({
   const initialFormState = useMemo(
     () => ({
       name: combo?.name || "",
-      models: (combo?.models || []).map((m: any) => normalizeModelEntry(m)),
+      models: (combo?.models || []).map((m: string | ComboModelEntry) => normalizeModelEntry(m)),
       strategy: combo?.strategy || "priority",
       config: combo?.config || {},
       agentSystemMessage: combo?.system_message || "",
@@ -71,17 +80,19 @@ export function ComboFormModal({
   );
   const [name, setName] = useState(combo?.name || "");
   const [models, setModels] = useState<Array<{ model: string; weight: number }>>(() => {
-    return (combo?.models || []).map((m: any) => normalizeModelEntry(m));
+    return (combo?.models || []).map((m: string | ComboModelEntry) => normalizeModelEntry(m));
   });
   const [strategy, setStrategy] = useState(combo?.strategy || "priority");
   const [showModelSelect, setShowModelSelect] = useState(false);
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState("");
-  const [pricingByProvider, setPricingByProvider] = useState<Record<string, any>>({});
-  const [modelAliases, setModelAliases] = useState<Record<string, any>>({});
-  const [providerNodes, setProviderNodes] = useState<any[]>([]);
+  const [pricingByProvider, setPricingByProvider] = useState<PricingByProvider>({});
+  const [modelAliases, setModelAliases] = useState<ModelAliases>({});
+  const [providerNodes, setProviderNodes] = useState<ProviderNode[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [config, setConfig] = useState<Record<string, any>>(combo?.config || {});
+  const [config, setConfig] = useState<Record<string, boolean | number | string | undefined>>(
+    combo?.config || {}
+  );
   const [showStrategyNudge, setShowStrategyNudge] = useState(false);
   const strategyNudgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [agentSystemMessage, setAgentSystemMessage] = useState<string>(combo?.system_message || "");
@@ -181,9 +192,9 @@ export function ComboFormModal({
   }
   if (hasInvalidWeightedTotal) {
     saveBlockers.push(
-      typeof (t as any).has === "function" && (t as any).has("saveBlockWeighted")
-        ? t("saveBlockWeighted" as any, { total: weightTotal } as any)
-        : `Set weights to 100% (current: ${weightTotal}%).`
+      getI18nOrFallback(t, "saveBlockWeighted", `Set weights to 100% (current: ${weightTotal}%).`, {
+        total: weightTotal,
+      })
     );
   }
   if (hasCostOptimizedWithoutPricing) {
@@ -322,7 +333,7 @@ export function ComboFormModal({
   };
 
   const applyStrategyRecommendations = () => {
-    const strategyDefaults: Record<string, Record<string, any>> = {
+    const strategyDefaults: Record<string, Record<string, unknown>> = {
       priority: { maxRetries: 2, retryDelayMs: 1500, healthCheckEnabled: true },
       weighted: { maxRetries: 1, retryDelayMs: 1000, healthCheckEnabled: true },
       "round-robin": {
@@ -434,7 +445,7 @@ export function ComboFormModal({
     if (hasNoModels || hasInvalidWeightedTotal || hasCostOptimizedWithoutPricing) return;
     setSaving(true);
 
-    const saveData: any = {
+    const saveData: ComboSaveData = {
       name: name.trim(),
       models: strategy === "weighted" ? models : models.map((m) => m.model),
       strategy,
@@ -561,8 +572,8 @@ export function ComboFormModal({
                     triggerStrategyNudge();
                   }}
                   data-testid={`strategy-option-${s.value}`}
-                  title={t(s.descKey as any)}
-                  aria-label={`${getStrategyLabel(t, s.value)}. ${t(s.descKey as any)}`}
+                  title={getStrategyDescription(t, s.value)}
+                  aria-label={`${getStrategyLabel(t, s.value)}. ${getStrategyDescription(t, s.value)}`}
                   className={`py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
                     strategy === s.value
                       ? "bg-white dark:bg-bg-main shadow-sm text-primary"
@@ -776,16 +787,12 @@ export function ComboFormModal({
               <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-700 dark:text-amber-300 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[12px]">warning</span>
                 <span>
-                  {typeof (t as any).has === "function" &&
-                  (t as any).has("warningCostOptimizedPartialPricing")
-                    ? t(
-                        "warningCostOptimizedPartialPricing" as any,
-                        {
-                          priced: pricedModelCount,
-                          total: models.length,
-                        } as any
-                      )
-                    : `Only ${pricedModelCount} of ${models.length} models have pricing. Routing may be partially cost-aware.`}
+                  {getI18nOrFallback(
+                    t,
+                    "warningCostOptimizedPartialPricing",
+                    `Only ${pricedModelCount} of ${models.length} models have pricing. Routing may be partially cost-aware.`,
+                    { priced: pricedModelCount, total: models.length }
+                  )}
                 </span>
               </div>
             )}

@@ -101,7 +101,7 @@ export function ProviderDetailPageClientImpl() {
         allSelectedActive={
           orchestrator.selectedConnectionIds.length > 0 &&
           orchestrator.selectedConnectionIds.every((id) => {
-            const conn = orchestrator.connections.find((c: any) => c.id === id) as any;
+            const conn = orchestrator.connections.find((c) => c.id === id);
             return conn && conn.isActive;
           })
         }
@@ -145,7 +145,7 @@ export function ProviderDetailPageClientImpl() {
         isSearchProvider={orchestrator.isSearchProvider}
         isLiveCatalogProvider={orchestrator.isLiveCatalogProvider}
         opencodeLiveCatalog={orchestrator.opencodeLiveCatalog}
-        canImportModels={orchestrator.connections.some((c: any) => c.isActive !== false)}
+        canImportModels={orchestrator.connections.some((c) => c.isActive !== false)}
         handleToggleAutoSync={orchestrator.handleToggleAutoSync}
         togglingAutoSync={orchestrator.togglingAutoSync}
         supportsAutoSync={orchestrator.supportsAutoSync}

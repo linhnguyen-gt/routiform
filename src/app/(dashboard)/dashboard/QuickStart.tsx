@@ -146,24 +146,7 @@ export default function QuickStart({ currentEndpoint }: QuickStartProps) {
                     </span>
                   </div>
                   <h3 className="font-bold text-text-main mb-1">{step.title}</h3>
-                  <p className="text-sm text-text-muted leading-relaxed">
-                    {typeof step.desc === "string"
-                      ? step.desc
-                      : t.rich(step.desc as any, {
-                          endpoint: (chunks) => (
-                            <span className="text-blue-400 font-semibold">{chunks}</span>
-                          ),
-                          providers: (chunks) => (
-                            <span className="text-blue-400 font-semibold">{chunks}</span>
-                          ),
-                          logs: (chunks) => (
-                            <span className="text-blue-400 font-semibold">{chunks}</span>
-                          ),
-                          analytics: (chunks) => (
-                            <span className="text-blue-400 font-semibold">{chunks}</span>
-                          ),
-                        })}
-                  </p>
+                  <p className="text-sm text-text-muted leading-relaxed">{step.desc}</p>
                 </div>
               </div>
               {step.link && (

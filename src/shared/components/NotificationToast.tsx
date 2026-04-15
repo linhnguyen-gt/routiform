@@ -10,7 +10,7 @@
  */
 
 import { useNotificationStore } from "@/store/notificationStore";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const ICONS = {
   success: "✓",

@@ -19,7 +19,7 @@ const STRATEGIES = ROUTING_STRATEGIES.filter((strategy) =>
 }));
 
 export default function RoutingTab() {
-  const [settings, setSettings] = useState<any>({
+  const [settings, setSettings] = useState<Record<string, unknown>>({
     fallbackStrategy: "fill-first",
     alwaysPreserveClientCache: "auto",
   });

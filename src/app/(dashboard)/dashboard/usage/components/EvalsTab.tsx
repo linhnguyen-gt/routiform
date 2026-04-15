@@ -100,7 +100,7 @@ export default function EvalsTab() {
    */
   const callLLM = async (evalCase) => {
     try {
-      const headers: any = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
       const res = await fetch("/v1/chat/completions", {
@@ -195,7 +195,9 @@ export default function EvalsTab() {
   const totalCases = suites.reduce((sum, s) => sum + (s.cases?.length || s.caseCount || 0), 0);
   const uniqueModels: string[] = [
     ...new Set(
-      suites.flatMap((s: any) => (s.cases || []).map((c: any) => c.model)).filter(Boolean)
+      suites
+        .flatMap((s: { cases?: { model?: string }[] }) => (s.cases || []).map((c) => c.model))
+        .filter(Boolean)
     ),
   ];
 
@@ -394,7 +396,9 @@ export default function EvalsTab() {
 
             // Count unique models in this suite
             const suiteModels: string[] = [
-              ...new Set<string>((suite.cases || []).map((c: any) => c.model).filter(Boolean)),
+              ...new Set<string>(
+                (suite.cases || []).map((c: { model?: string }) => c.model).filter(Boolean)
+              ),
             ];
 
             return (
@@ -544,17 +548,17 @@ export default function EvalsTab() {
                               );
                             }
                             if (col.key === "details") {
-                              const d = row.details || {};
+                              const d = (row.details || {}) as Record<string, unknown>;
                               return (
                                 <span className="text-text-muted text-xs truncate max-w-[300px] block">
                                   {String(
-                                    (d as any).searchTerm
-                                      ? t("detailsContains", { term: (d as any).searchTerm })
-                                      : (d as any).pattern
-                                        ? t("detailsRegex", { pattern: (d as any).pattern })
-                                        : (d as any).expected
+                                    d.searchTerm
+                                      ? t("detailsContains", { term: d.searchTerm as string })
+                                      : d.pattern
+                                        ? t("detailsRegex", { pattern: d.pattern as string })
+                                        : d.expected
                                           ? t("detailsExpected", {
-                                              expected: String((d as any).expected).slice(0, 50),
+                                              expected: String(d.expected).slice(0, 50),
                                             })
                                           : row.error || "—"
                                   )}
@@ -563,7 +567,7 @@ export default function EvalsTab() {
                             }
                             return (
                               <span className="text-sm text-text-main">
-                                {(row as any)[col.key] || "—"}
+                                {((row as Record<string, unknown>)[col.key] as string) || "—"}
                               </span>
                             );
                           }}
@@ -600,34 +604,33 @@ export default function EvalsTab() {
                           }))}
                           renderCell={(row, col) => {
                             if (col.key === "strategy") {
-                              const strat = STRATEGIES.find(
-                                (s) => s.name === (row as any).strategy
-                              );
+                              const rowR = row as Record<string, unknown>;
+                              const strat = STRATEGIES.find((s) => s.name === rowR.strategy);
                               return (
                                 <span
                                   className={`text-xs font-mono font-semibold ${strat?.color || "text-text-muted"}`}
                                 >
-                                  {(row as any).strategy}
+                                  {rowR.strategy as string}
                                 </span>
                               );
                             }
                             if (col.key === "model") {
                               return (
                                 <span className="text-xs font-mono text-primary/80">
-                                  {(row as any).model}
+                                  {(row as Record<string, unknown>).model as string}
                                 </span>
                               );
                             }
                             if (col.key === "expected") {
                               return (
                                 <span className="text-text-muted text-xs font-mono truncate max-w-[300px] block">
-                                  {(row as any).expected}
+                                  {(row as Record<string, unknown>).expected as string}
                                 </span>
                               );
                             }
                             return (
                               <span className="text-sm text-text-main">
-                                {(row as any)[col.key] || "—"}
+                                {((row as Record<string, unknown>)[col.key] as string) || "—"}
                               </span>
                             );
                           }}

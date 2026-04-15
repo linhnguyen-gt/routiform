@@ -3,7 +3,7 @@
 import { Card } from "@/shared/components";
 
 interface ProviderDetailSearchSectionProps {
-  t: any;
+  t: (key: string, params?: Record<string, unknown>) => string;
   isSearchProvider: boolean;
   providerId: string;
 }

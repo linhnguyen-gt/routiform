@@ -41,12 +41,12 @@ export default function ProxyConfigModal({
   levelLabel,
   onSaved,
 }: {
-  isOpen: any;
-  onClose: any;
-  level: any;
-  levelId?: any;
-  levelLabel?: any;
-  onSaved?: any;
+  isOpen: boolean;
+  onClose: () => void;
+  level: string;
+  levelId?: string;
+  levelLabel?: string;
+  onSaved?: () => void;
 }) {
   const [mode, setMode] = useState("saved");
   const [savedProxies, setSavedProxies] = useState([]);
@@ -310,7 +310,15 @@ export default function ProxyConfigModal({
           setTesting(false);
           return;
         }
-        const found = (savedProxies as any[]).find((p: any) => p.id === selectedProxyId);
+        const found = (
+          savedProxies as {
+            id: string;
+            type?: string;
+            host?: string;
+            port?: number | string;
+            name?: string;
+          }[]
+        ).find((p) => p.id === selectedProxyId);
         if (!found) {
           setFormError("Selected proxy not found.");
           setTesting(false);
@@ -422,7 +430,15 @@ export default function ProxyConfigModal({
                 className="w-full px-3 py-2.5 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary"
               >
                 <option value="">Select saved proxy...</option>
-                {savedProxies.map((item: any) => (
+                {(
+                  savedProxies as {
+                    id: string;
+                    name?: string;
+                    type?: string;
+                    host?: string;
+                    port?: number | string;
+                  }[]
+                ).map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name} ({item.type}://{item.host}:{item.port})
                   </option>

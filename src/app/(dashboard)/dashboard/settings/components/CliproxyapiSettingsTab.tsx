@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, Button, Input, Toggle } from "@/shared/components";
+import { Card, Input, Toggle } from "@/shared/components";
 
 interface Settings {
   cliproxyapi_fallback_enabled?: boolean;
@@ -30,7 +30,7 @@ function isValidUrl(value: string): boolean {
 export default function CliproxyapiSettingsTab() {
   const [settings, setSettings] = useState<Settings>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [_saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
   const [toolState, setToolState] = useState<VersionManagerEntry | null>(null);
   const [toolStateError, setToolStateError] = useState<string | null>(null);

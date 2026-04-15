@@ -15,6 +15,41 @@ import {
   resolveProviderId,
 } from "@/shared/constants/providers";
 
+interface ModelItem {
+  id?: unknown;
+  name?: unknown;
+  value?: unknown;
+  isCustom?: boolean;
+  [key: string]: unknown;
+}
+
+interface ComboItem {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface ProviderNode {
+  id?: string;
+  name?: string;
+  prefix?: string;
+  [key: string]: unknown;
+}
+
+interface CustomModelEntry {
+  id: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface ProviderGroup {
+  name: string;
+  alias: string;
+  color: string;
+  models: ModelItem[];
+  [key: string]: unknown;
+}
+
 // Provider order: OAuth first, then Free, then API Key (matches dashboard/providers)
 const PROVIDER_ORDER = [
   ...Object.keys(OAUTH_PROVIDERS),
@@ -33,9 +68,9 @@ const OPENROUTER_FALLBACK_MODELS: { id: string; name: string }[] = [
 ];
 
 /** Merged static + fallback + custom lists can repeat the same model id; keep first occurrence only. */
-function dedupeModelsById(models: any[]) {
+function dedupeModelsById(models: ModelItem[]): ModelItem[] {
   const seen = new Set<string>();
-  const out: any[] = [];
+  const out: ModelItem[] = [];
   for (const m of models) {
     const id = m?.id != null ? String(m.id) : "";
     if (id) {
@@ -60,9 +95,9 @@ export default function ModelSelectModal({
 }) {
   const tCommon = useTranslations("common");
   const [searchQuery, setSearchQuery] = useState("");
-  const [combos, setCombos] = useState<any[]>([]);
-  const [providerNodes, setProviderNodes] = useState<any[]>([]);
-  const [customModels, setCustomModels] = useState<Record<string, any>>({});
+  const [combos, setCombos] = useState<ComboItem[]>([]);
+  const [providerNodes, setProviderNodes] = useState<ProviderNode[]>([]);
+  const [customModels, setCustomModels] = useState<Record<string, CustomModelEntry[]>>({});
   const [liveModelsByProvider, setLiveModelsByProvider] = useState<
     Record<string, Array<{ id: string; name: string }>>
   >({});
@@ -119,7 +154,7 @@ export default function ModelSelectModal({
 
   const fetchLiveProviderModels = useCallback(async () => {
     try {
-      const grouped = new Map<string, any[]>();
+      const grouped = new Map<string, Record<string, unknown>[]>();
       for (const conn of activeProviders) {
         const providerId = typeof conn?.provider === "string" ? conn.provider : "";
         if (!providerId) continue;
@@ -147,7 +182,7 @@ export default function ModelSelectModal({
             const data = await res.json().catch(() => ({}));
             const raw = Array.isArray(data?.models) ? data.models : [];
             const models = raw
-              .map((m: any) => {
+              .map((m: Record<string, unknown>) => {
                 const id = String(m?.id ?? m?.name ?? "").trim();
                 if (!id) return null;
                 return {
@@ -180,20 +215,21 @@ export default function ModelSelectModal({
   const fetchOpenrouterCatalog = async () => {
     const normalize = (raw: unknown[]) =>
       raw
-        .map((m: any) => {
+        .map((m: unknown) => {
           if (!m || typeof m !== "object") return null;
+          const obj = m as Record<string, unknown>;
           const id =
-            typeof m.id === "string" && m.id.length > 0
-              ? m.id
-              : typeof m.canonical_slug === "string" && m.canonical_slug.length > 0
-                ? m.canonical_slug
+            typeof obj.id === "string" && obj.id.length > 0
+              ? obj.id
+              : typeof obj.canonical_slug === "string" && obj.canonical_slug.length > 0
+                ? obj.canonical_slug
                 : "";
           if (!id) return null;
-          return { id, name: (typeof m.name === "string" && m.name) || id };
+          return { id, name: (typeof obj.name === "string" && obj.name) || id };
         })
         .filter(Boolean) as { id: string; name: string }[];
 
-    const parsePayload = (json: any) => {
+    const parsePayload = (json: Record<string, unknown>) => {
       const raw = json?.data ?? json?.models;
       return Array.isArray(raw) ? raw : [];
     };
@@ -247,7 +283,7 @@ export default function ModelSelectModal({
 
   // Group models by provider with priority order
   const groupedModels = useMemo(() => {
-    const groups: Record<string, any> = {};
+    const groups: Record<string, ProviderGroup> = {};
 
     // Get all active provider IDs from connections
     const activeConnectionIds = activeProviders.map((p) => p.provider);
@@ -277,7 +313,7 @@ export default function ModelSelectModal({
       const providerCustomModels = customModels[providerId] || customModels[rawProviderId] || [];
 
       if (providerInfo.passthroughModels) {
-        const syncedEntries = providerCustomModels.map((cm: any) => ({
+        const syncedEntries = providerCustomModels.map((cm) => ({
           id: cm.id,
           name: cm.name || cm.id,
           value: `${alias}/${cm.id}`,
@@ -314,7 +350,7 @@ export default function ModelSelectModal({
         const displayName = matchedNode?.name || providerInfo.name;
         const nodePrefix = matchedNode?.prefix || providerId; // Consider a more user-friendly fallback if providerId is a UUID
 
-        const syncedEntries = providerCustomModels.map((cm: any) => ({
+        const syncedEntries = providerCustomModels.map((cm) => ({
           id: cm.id,
           name: cm.name || cm.id,
           value: `${nodePrefix}/${cm.id}`,
@@ -387,7 +423,7 @@ export default function ModelSelectModal({
             isCustom: true,
           }));
 
-        let catalogEntries: any[] = [];
+        let catalogEntries: { id: string; name: string; value: string }[] = [];
         if (providerId === "openrouter") {
           const already = new Set([
             ...systemEntries.map((m) => String(m.id)),
@@ -443,9 +479,9 @@ export default function ModelSelectModal({
     if (!searchQuery.trim()) return groupedModels;
 
     const query = searchQuery.toLowerCase();
-    const filtered: Record<string, any> = {};
+    const filtered: Record<string, ProviderGroup> = {};
 
-    Object.entries(groupedModels).forEach(([providerId, group]: [string, any]) => {
+    Object.entries(groupedModels).forEach(([providerId, group]) => {
       const matchedModels = group.models.filter(
         (m) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)
       );
@@ -469,7 +505,7 @@ export default function ModelSelectModal({
     return filtered;
   }, [groupedModels, searchQuery]);
 
-  const handleSelect = (model: any) => {
+  const handleSelect = (model: ModelItem) => {
     onSelect(model);
     if (!multiSelect) {
       onClose();
@@ -545,7 +581,7 @@ export default function ModelSelectModal({
         )}
 
         {/* Provider models */}
-        {Object.entries(filteredGroups).map(([providerId, group]: [string, any]) => (
+        {Object.entries(filteredGroups).map(([providerId, group]) => (
           <div key={providerId}>
             {/* Provider header */}
             <div className="flex items-center gap-1.5 mb-1.5 sticky top-0 bg-surface py-0.5">

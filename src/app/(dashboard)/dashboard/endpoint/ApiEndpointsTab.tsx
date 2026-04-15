@@ -12,7 +12,7 @@ interface Endpoint {
   summary: string;
   description: string;
   security: boolean;
-  parameters: any[];
+  parameters: Record<string, unknown>[];
   requestBody: boolean;
   responses: string[];
 }
@@ -42,7 +42,7 @@ interface TryItResult {
   status: number;
   statusText: string;
   headers: Record<string, string>;
-  body: any;
+  body: unknown;
   latencyMs: number;
   contentType: string;
 }
@@ -213,12 +213,12 @@ export default function ApiEndpointsTab() {
       });
       const payload = await res.json().catch(() => null);
       if (payload) setTryResult(payload);
-    } catch (err: any) {
+    } catch (err) {
       setTryResult({
         status: 0,
         statusText: "Error",
         headers: {},
-        body: { error: err?.message || String(err) },
+        body: { error: err instanceof Error ? err.message : String(err) },
         latencyMs: 0,
         contentType: "application/json",
       });

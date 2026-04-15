@@ -19,7 +19,7 @@ export function CompatibleModelsSection({
   onCopy,
   onSetAlias,
   onDeleteAlias,
-  connections,
+  connections: _connections,
   isAnthropic,
   t,
   effectiveModelNormalize,
@@ -39,15 +39,15 @@ export function CompatibleModelsSection({
 
   const providerAliases = useMemo(
     () =>
-      Object.entries(modelAliases).filter(([, model]: [string, any]) =>
-        (model as string).startsWith(`${providerStorageAlias}/`)
+      Object.entries(modelAliases).filter(([, model]: [string, string]) =>
+        model.startsWith(`${providerStorageAlias}/`)
       ),
     [modelAliases, providerStorageAlias]
   );
 
   const allModels = useMemo(() => {
-    const rows = providerAliases.map(([alias, fullModel]: [string, any]) => {
-      const fmStr = fullModel as string;
+    const rows = providerAliases.map(([alias, fullModel]: [string, string]) => {
+      const fmStr = fullModel;
       const prefix = `${providerStorageAlias}/`;
       return {
         modelId: fmStr.startsWith(prefix) ? fmStr.slice(prefix.length) : fmStr,

@@ -3,7 +3,6 @@ import { Modal, Input, Button } from "@/shared/components";
 import { useTranslations } from "next-intl";
 
 export default function AutoComboModal({ isOpen, onClose, onSave, combo, activeProviders = [] }) {
-  const t = useTranslations("combos");
   const tc = useTranslations("common");
   const [formData, setFormData] = useState({
     name: "",

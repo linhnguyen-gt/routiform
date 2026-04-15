@@ -13,16 +13,27 @@ import { useTranslations } from "next-intl";
  *
  * Feature request: https://github.com/linhnguyen-gt/Routiform/issues/142
  */
+interface CopilotApiKey {
+  id: string;
+  key: string;
+}
+
+interface CopilotModel {
+  type?: string;
+  parent?: string;
+  id?: string;
+}
+
 export default function CopilotToolCard({
   tool,
   isExpanded,
   onToggle,
   baseUrl,
   apiKeys,
-  activeProviders = [],
-  hasActiveProviders = false,
+  activeProviders: _activeProviders = [],
+  hasActiveProviders: _hasActiveProviders = false,
   cloudEnabled = false,
-  batchStatus,
+  batchStatus: _batchStatus,
 }) {
   const t = useTranslations("cliTools");
   const LS_COPILOT_MODELS = "routiform-copilot-selected-models";
@@ -43,7 +54,7 @@ export default function CopilotToolCard({
     if (typeof window !== "undefined") {
       const savedKey =
         localStorage.getItem(LS_COPILOT_KEY) || localStorage.getItem("routiform-cli-key-copilot");
-      if (savedKey && apiKeys?.some((k: any) => k.key === savedKey)) return savedKey;
+      if (savedKey && apiKeys?.some((k: CopilotApiKey) => k.key === savedKey)) return savedKey;
     }
     return apiKeys?.length > 0 ? apiKeys[0].key : "";
   });
@@ -65,8 +76,8 @@ export default function CopilotToolCard({
       .then((data) => {
         if (cancelled) return;
         const modelList = (data.data || [])
-          .filter((m: any) => m && !m.type && !m.parent && m.id) // Only chat models with valid IDs
-          .map((m: any) => ({
+          .filter((m: CopilotModel) => m && !m.type && !m.parent && m.id) // Only chat models with valid IDs
+          .map((m: CopilotModel) => ({
             value: m.id,
             label: m.id,
           }));
@@ -235,7 +246,7 @@ export default function CopilotToolCard({
                   onChange={(e) => handleApiKeyChange(e.target.value)}
                   className="w-full px-3 py-2 bg-bg-secondary rounded-lg text-sm border border-border focus:outline-none focus:ring-1 focus:ring-primary/50"
                 >
-                  {apiKeys.map((key: any) => (
+                  {apiKeys.map((key: CopilotApiKey) => (
                     <option key={key.id} value={key.key}>
                       {key.key}
                     </option>

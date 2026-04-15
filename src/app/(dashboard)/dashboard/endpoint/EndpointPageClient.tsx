@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { TranslationValues } from "./types";
-import PropTypes from "prop-types";
 import { CardSkeleton, SegmentedControl } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useTranslations } from "next-intl";
@@ -224,7 +223,7 @@ export default function APIPageClient({ machineId }) {
         onClose={() => setShowCloudModal(false)}
         syncing={cloudSyncing}
         modalSuccess={modalSuccess}
-        syncStep={syncStep as any}
+        syncStep={syncStep as "syncing" | "verifying" | "done" | ""}
         onEnable={handleEnableCloud}
       />
 
@@ -232,7 +231,7 @@ export default function APIPageClient({ machineId }) {
         isOpen={showDisableModal}
         onClose={() => setShowDisableModal(false)}
         syncing={cloudSyncing}
-        syncStep={syncStep as any}
+        syncStep={syncStep as "syncing" | "disabling" | ""}
         onConfirm={handleConfirmDisable}
       />
 

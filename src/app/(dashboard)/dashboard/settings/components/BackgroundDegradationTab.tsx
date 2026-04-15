@@ -35,7 +35,7 @@ export default function BackgroundDegradationTab() {
     setSaving(true);
     setStatus("");
     try {
-      const { stats, ...persistable } = newConfig;
+      const { stats: _stats, ...persistable } = newConfig;
       const res = await fetch("/api/settings/background-degradation", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

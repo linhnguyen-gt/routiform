@@ -37,8 +37,8 @@ export function useProviderOptions(initialProvider = "openai") {
         );
         const options = [...activeProviders]
           .map((pid) => {
-            const info = (AI_PROVIDERS as any)[pid as string];
-            const node: any = nodeMap.get(pid);
+            const info = (AI_PROVIDERS as Record<string, { name: string }>)[pid];
+            const node = nodeMap.get(pid) as { name?: string } | undefined;
             let label = info?.name || node?.name || pid;
             if (!info && (pid as string).startsWith(CLAUDE_CODE_COMPATIBLE_PREFIX))
               label = node?.name || "CC Compatible";
@@ -53,16 +53,16 @@ export function useProviderOptions(initialProvider = "openai") {
         const nextOptions =
           options.length > 0
             ? options
-            : Object.entries(AI_PROVIDERS).map(([id, info]: [string, any]) => ({
+            : Object.entries(AI_PROVIDERS).map(([id, info]: [string, { name: string }]) => ({
                 value: id,
                 label: info.name,
               }));
         setProviderOptions(nextOptions);
         if (nextOptions.length > 0) {
           setProvider((current: string): string =>
-            nextOptions.some((opt: any) => opt.value === current)
+            nextOptions.some((opt: { value: string }) => opt.value === current)
               ? current
-              : ((nextOptions[0] as any).value as string)
+              : nextOptions[0].value
           );
         }
       } catch {
