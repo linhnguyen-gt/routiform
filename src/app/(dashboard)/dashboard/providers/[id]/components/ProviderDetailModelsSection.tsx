@@ -137,7 +137,7 @@ export function ProviderDetailModelsSection({
       }
     }
 
-    const autoSyncToggle = canImportModels && (
+    const autoSyncToggle = canImportModels && !isLiveCatalogProvider && (
       <button
         onClick={() => handleToggleAutoSync(autoSyncConnection, isAutoSyncEnabled)}
         disabled={togglingAutoSync || !supportsAutoSync}

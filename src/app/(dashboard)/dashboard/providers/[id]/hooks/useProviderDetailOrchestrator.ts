@@ -387,12 +387,13 @@ export function useProviderDetailOrchestrator() {
     }
   }, [loading, connections, loadConnProxies]);
 
-  // Auto-sync effect
+  // Auto-sync effect — skip for live catalog providers (they have their own refresh flow)
   const autoSyncConnection = connections.find(
     (conn: { isActive?: boolean }) => conn.isActive !== false
   );
   const isAutoSyncEnabled =
     supportsAutoSync &&
+    !isLiveCatalogProvider &&
     (autoSyncConnection as { providerSpecificData?: { autoSync?: boolean } } | undefined)
       ?.providerSpecificData?.autoSync !== false;
 
