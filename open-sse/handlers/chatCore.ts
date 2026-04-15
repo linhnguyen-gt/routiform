@@ -18,7 +18,7 @@ import {
 } from "@/lib/usageDb";
 import { COOLDOWN_MS, HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
 import { PROVIDER_ID_TO_ALIAS, getModelTargetFormat } from "../config/providerModels.ts";
-import { getUnsupportedParams } from "../config/providerRegistry.ts";
+import { getUnsupportedParams, getForceParams } from "../config/providerRegistry.ts";
 import { getExecutor } from "../executors/index.ts";
 import { lockModelIfPerModelQuota } from "../services/accountFallback.ts";
 import {
@@ -933,6 +933,17 @@ export async function handleChatCore({
     }
     if (stripped.length > 0) {
       log?.warn?.("PARAMS", `Stripped unsupported params for ${model}: ${stripped.join(", ")}`);
+    }
+  }
+
+  // Force required parameter values for specific models (e.g. Kimi K2.5 requires temperature=1)
+  const forceParams = getForceParams(provider, model);
+  if (forceParams) {
+    for (const [key, value] of Object.entries(forceParams)) {
+      if (translatedBody[key] !== value) {
+        log?.debug?.("PARAMS", `Forcing ${key}=${value} for ${model} (was ${translatedBody[key]})`);
+        translatedBody[key] = value;
+      }
     }
   }
 

@@ -150,7 +150,7 @@ test("translateRequest sanitizes OpenAI tool payloads on passthrough", () => {
   assert.equal(translated.tools[0].function.parameters.properties.count.minimum, 2);
 });
 
-test("tool sanitization: injects empty reasoning_content only for DeepSeek tool-call history", () => {
+test("tool sanitization: injects empty reasoning_content for DeepSeek and Kimi tool-call history", () => {
   const messages = [
     { role: "user", content: "hello" },
     {
@@ -160,9 +160,23 @@ test("tool sanitization: injects empty reasoning_content only for DeepSeek tool-
   ];
 
   const deepseekMessages = injectEmptyReasoningContentForToolCalls(messages, "deepseek");
+  const kimiMessages = injectEmptyReasoningContentForToolCalls(messages, "kimi");
+  const kimiModelMessages = injectEmptyReasoningContentForToolCalls(
+    messages,
+    "opencode-go",
+    "kimi-k2.5"
+  );
+  const opencodeGoNoKimiModel = injectEmptyReasoningContentForToolCalls(
+    messages,
+    "opencode-go",
+    "glm-5"
+  );
   const openaiMessages = injectEmptyReasoningContentForToolCalls(messages, "openai");
 
   assert.equal(deepseekMessages[1].reasoning_content, "");
+  assert.equal(kimiMessages[1].reasoning_content, "");
+  assert.equal(kimiModelMessages[1].reasoning_content, "");
+  assert.equal(opencodeGoNoKimiModel[1].reasoning_content, undefined);
   assert.equal(openaiMessages[1].reasoning_content, undefined);
 });
 
@@ -186,6 +200,56 @@ test("translateRequest injects reasoning_content for DeepSeek assistant tool cal
     false,
     null,
     "deepseek"
+  );
+
+  assert.equal(translated.messages[1].reasoning_content, "");
+});
+
+test("translateRequest injects reasoning_content for Kimi K2.5 assistant tool calls", () => {
+  const translated = translateRequest(
+    FORMATS.OPENAI,
+    FORMATS.OPENAI,
+    "kimi-k2.5",
+    {
+      messages: [
+        { role: "user", content: "hello" },
+        {
+          role: "assistant",
+          tool_calls: [
+            { id: "call_1", type: "function", function: { name: "sum", arguments: "{}" } },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "3" },
+      ],
+    },
+    false,
+    null,
+    "opencode-go"
+  );
+
+  assert.equal(translated.messages[1].reasoning_content, "");
+});
+
+test("translateRequest injects reasoning_content for DeepSeek r1 model", () => {
+  const translated = translateRequest(
+    FORMATS.OPENAI,
+    FORMATS.OPENAI,
+    "deepseek-r1",
+    {
+      messages: [
+        { role: "user", content: "hello" },
+        {
+          role: "assistant",
+          tool_calls: [
+            { id: "call_1", type: "function", function: { name: "sum", arguments: "{}" } },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "3" },
+      ],
+    },
+    false,
+    null,
+    "openrouter"
   );
 
   assert.equal(translated.messages[1].reasoning_content, "");

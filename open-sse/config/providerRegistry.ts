@@ -17,6 +17,8 @@ export interface RegistryModel {
   toolCalling?: boolean;
   targetFormat?: string;
   unsupportedParams?: readonly string[];
+  /** Force specific parameter values (e.g. { temperature: 1 }) */
+  forceParams?: Record<string, unknown>;
   /** Maximum context window in tokens */
   contextLength?: number;
 }
@@ -97,8 +99,8 @@ const KIMI_CODING_SHARED = {
     "Anthropic-Beta": "claude-code-20250219,interleaved-thinking-2025-05-14",
   },
   models: [
-    { id: "kimi-k2.5", name: "Kimi K2.5" },
-    { id: "kimi-k2.5-thinking", name: "Kimi K2.5 Thinking" },
+    { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
+    { id: "kimi-k2.5-thinking", name: "Kimi K2.5 Thinking", forceParams: { temperature: 1 } },
     { id: "kimi-latest", name: "Kimi Latest" },
   ] as RegistryModel[],
 } as const;
@@ -319,7 +321,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
       { id: "qwen-coder-qoder-1.0", name: "Qwen-Coder-Qoder-1.0" },
       { id: "qwen3.5-plus", name: "Qwen3.5-Plus" },
       { id: "glm-5", name: "GLM-5" },
-      { id: "kimi-k2.5", name: "Kimi-K2.5" },
+      { id: "kimi-k2.5", name: "Kimi-K2.5", forceParams: { temperature: 1 } },
       { id: "minimax-m2.5", name: "MiniMax-M2.5" },
     ],
   },
@@ -534,7 +536,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     models: [
       { id: "glm-5", name: "GLM-5" },
-      { id: "kimi-k2.5", name: "Kimi K2.5" },
+      { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
       { id: "mimo-v2-pro", name: "MiMo-V2-Pro" },
       { id: "mimo-v2-omni", name: "MiMo-V2-Omni" },
       { id: "minimax-m2.7", name: "MiniMax M2.7", targetFormat: "claude" },
@@ -629,7 +631,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
       { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
       { id: "glm-5", name: "GLM 5" },
       { id: "glm-4.7", name: "GLM 4.7" },
-      { id: "kimi-k2.5", name: "Kimi K2.5" },
+      { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
     ],
   },
 
@@ -663,8 +665,8 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     authHeader: "bearer",
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     models: [
-      { id: "kimi-k2.5", name: "Kimi K2.5" },
-      { id: "kimi-k2.5-thinking", name: "Kimi K2.5 Thinking" },
+      { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
+      { id: "kimi-k2.5-thinking", name: "Kimi K2.5 Thinking", forceParams: { temperature: 1 } },
       { id: "kimi-latest", name: "Kimi Latest" },
       { id: "kimi-for-coding", name: "Kimi For Coding" },
     ],
@@ -735,7 +737,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
       { id: "mistralai/mistral-small-24b-instruct-2501", name: "Mistral Small 3" },
       { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B" },
       { id: "x-ai/grok-code-fast-1", name: "Grok Code Fast 1" },
-      { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5" },
+      { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
     ],
     passthroughModels: true,
   },
@@ -832,7 +834,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     models: [
       { id: "qwen3.5-plus", name: "Qwen3.5 Plus" },
-      { id: "kimi-k2.5", name: "Kimi K2.5" },
+      { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
       { id: "glm-5", name: "GLM 5" },
       { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
       { id: "qwen3-max-2026-01-23", name: "Qwen3 Max" },
@@ -853,7 +855,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     models: [
       { id: "qwen3.5-plus", name: "Qwen3.5 Plus" },
-      { id: "kimi-k2.5", name: "Kimi K2.5" },
+      { id: "kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
       { id: "glm-5", name: "GLM 5" },
       { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
       { id: "qwen3-max-2026-01-23", name: "Qwen3 Max" },
@@ -1131,7 +1133,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
       { id: "meta/llama-3.3-70b-instruct", name: "Llama 3.3 70B" },
       { id: "nvidia/llama-3.3-70b-instruct", name: "Llama 3.3 70B (NVIDIA Prefix)" },
       { id: "meta/llama-4-maverick-17b-128e-instruct", name: "Llama 4 Maverick" },
-      { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5" },
+      { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5", forceParams: { temperature: 1 } },
       { id: "z-ai/glm4.7", name: "GLM 4.7" },
       { id: "deepseek-ai/deepseek-v3.2", name: "DeepSeek V3.2" },
       { id: "deepseek/deepseek-r1", name: "DeepSeek R1" },
@@ -1641,10 +1643,14 @@ export function getRegisteredProviders(): string[] {
 // Precomputed map: modelId → unsupportedParams (O(1) lookup instead of O(N×M) scan).
 // Built once at module load from all registry entries.
 const _unsupportedParamsMap = new Map<string, readonly string[]>();
+const _forceParamsMap = new Map<string, Record<string, unknown>>();
 for (const entry of Object.values(REGISTRY)) {
   for (const model of entry.models) {
     if (model.unsupportedParams && !_unsupportedParamsMap.has(model.id)) {
       _unsupportedParamsMap.set(model.id, model.unsupportedParams);
+    }
+    if (model.forceParams && !_forceParamsMap.has(model.id)) {
+      _forceParamsMap.set(model.id, model.forceParams);
     }
   }
 }
@@ -1673,6 +1679,31 @@ export function getUnsupportedParams(provider: string, modelId: string): readonl
   }
 
   return [];
+}
+
+/**
+ * Get forced parameter values for a specific model.
+ * Some models (e.g. Kimi K2.5) require certain parameters to have fixed values
+ * (e.g. temperature must be 1). Returns the merged forceParams object or null.
+ */
+export function getForceParams(provider: string, modelId: string): Record<string, unknown> | null {
+  // 1. Check current provider's registry (exact match)
+  const entry = getRegistryEntry(provider);
+  const modelEntry = entry?.models.find((m) => m.id === modelId);
+  if (modelEntry?.forceParams) return modelEntry.forceParams;
+
+  // 2. O(1) lookup in precomputed map (handles cross-provider routing)
+  const cached = _forceParamsMap.get(modelId);
+  if (cached) return cached;
+
+  // 3. Handle prefixed model IDs (e.g., "moonshotai/kimi-k2.5" → "kimi-k2.5")
+  if (modelId.includes("/")) {
+    const bareId = modelId.split("/").pop() || "";
+    const bare = _forceParamsMap.get(bareId);
+    if (bare) return bare;
+  }
+
+  return null;
 }
 
 /**
