@@ -18,7 +18,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { skillId, name, source } = InstallRequestSchema.parse(body);
+    const parsed = InstallRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { skillId, name, source } = parsed.data;
 
     // Fetch SKILL.md content from GitHub
     const skillContent = await fetchSkillMd(source, skillId);
