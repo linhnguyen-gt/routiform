@@ -16,7 +16,7 @@ import {
 } from "@/lib/usageDb";
 import { HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
 import { PROVIDER_ID_TO_ALIAS, getModelTargetFormat } from "../config/providerModels.ts";
-import { getUnsupportedParams, getForceParams } from "../config/providerRegistry.ts";
+import { getForceParams, getUnsupportedParams } from "../config/providerRegistry.ts";
 import { isEmptyContentResponse } from "../services/errorClassifier.ts";
 import { resolveModelAlias } from "../services/modelDeprecation.ts";
 import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";
@@ -67,11 +67,11 @@ import {
   isClaudeCodeCompatibleProvider,
   resolveClaudeCodeCompatibleSessionId,
 } from "../services/claudeCodeCompatible.ts";
-import { remapToolNamesInRequest } from "../services/claudeCodeToolRemapper.ts";
 import {
-  enforceThinkingTemperature,
   disableThinkingIfToolChoiceForced,
+  enforceThinkingTemperature,
 } from "../services/claudeCodeConstraints.ts";
+import { remapToolNamesInRequest } from "../services/claudeCodeToolRemapper.ts";
 import { getNextFamilyFallback } from "../services/modelFamilyFallback.ts";
 import {
   initializeRateLimits,
@@ -95,13 +95,13 @@ import {
   shouldAttemptModelFallback,
 } from "./phases/model-fallback-handler.ts";
 import { persistProviderAccountErrorState } from "./services/provider-account-error-state.ts";
-import { normalizeNonStreamingTranslatedResponse } from "./utils/non-streaming-response-normalizer.ts";
 import {
   parseSSEToClaudeResponse,
   parseSSEToOpenAIResponse,
   parseSSEToResponsesOutput,
 } from "./sseParser.ts";
 import { extractUsageFromResponse } from "./usageExtractor.ts";
+import { normalizeNonStreamingTranslatedResponse } from "./utils/non-streaming-response-normalizer.ts";
 
 export function shouldUseNativeCodexPassthrough({
   provider,
@@ -971,7 +971,10 @@ export async function handleChatCore({
   const executeProviderRequest = async (modelToCall = effectiveModel, allowDedup = false) => {
     const execute = async () => {
       // Always create a shallow copy to prevent mutation of translatedBody across attempts
-      let bodyToSend = { ...translatedBody, model: modelToCall };
+      let bodyToSend =
+        translatedBody.model === modelToCall
+          ? translatedBody
+          : { ...translatedBody, model: modelToCall };
 
       // Inject prompt_cache_key only for providers that support it
       if (
