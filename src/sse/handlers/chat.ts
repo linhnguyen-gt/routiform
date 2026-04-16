@@ -554,7 +554,7 @@ async function handleSingleModelChat(
 
     // Emergency fallback for budget exhaustion (402 / billing / quota keywords):
     // reroute to a free model (default provider/model: nvidia + openai/gpt-oss-120b) exactly once.
-    if (!runtimeOptions.emergencyFallbackTried) {
+    if (!runtimeOptions.emergencyFallbackTried && !forceLiveComboTest) {
       const fallbackDecision = shouldUseFallback(
         Number(result.status || 0),
         String(result.error || ""),

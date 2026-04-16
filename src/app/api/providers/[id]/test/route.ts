@@ -10,6 +10,7 @@ import {
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
 import { validateProviderApiKey } from "@/lib/providers/validation";
+import { buildComboTestRequestBody, isComboTestErrorLikeText } from "@/lib/combos/testHealth";
 import { getCliRuntimeStatus } from "@/shared/services/cliRuntime";
 // Use the shared open-sse token refresh with built-in dedup/race-condition cache
 import { getAccessToken } from "@routiform/open-sse/services/tokenRefresh.ts";
@@ -211,6 +212,18 @@ function classifyFailure({
   );
 }
 
+function isTimeoutLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const name = (error.name || "").toLowerCase();
+  const message = (error.message || "").toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("aborted due to timeout") ||
+    message.includes("timeout")
+  );
+}
+
 async function getProviderRuntimeStatus(connection: unknown) {
   const provider =
     connection &&
@@ -396,6 +409,29 @@ async function testOAuthConnection(connection: unknown) {
 
   // For providers that only check expiry (no test endpoint available)
   if (config.checkExpiry) {
+    const testStatus =
+      typeof connectionObj.testStatus === "string" ? connectionObj.testStatus.toLowerCase() : "";
+    const lastErrorType =
+      typeof connectionObj.lastErrorType === "string"
+        ? connectionObj.lastErrorType.toLowerCase()
+        : "";
+    const lastError = typeof connectionObj.lastError === "string" ? connectionObj.lastError : "";
+    const lastErrorAt =
+      typeof connectionObj.lastErrorAt === "string" ? Date.parse(connectionObj.lastErrorAt) : NaN;
+    const isRecentFailure =
+      Number.isFinite(lastErrorAt) && Date.now() - lastErrorAt <= 6 * 60 * 60 * 1000;
+    const hasBlockingStatus =
+      testStatus === "banned" ||
+      testStatus === "credits_exhausted" ||
+      testStatus === "unavailable" ||
+      testStatus === "error";
+    const hasBlockingErrorType =
+      lastErrorType === "quota_exhausted" ||
+      lastErrorType === "forbidden" ||
+      lastErrorType === "upstream_auth_error" ||
+      lastErrorType === "upstream_rate_limited" ||
+      lastErrorType === "upstream_unavailable";
+
     // If we already refreshed successfully, token is valid
     if (refreshed) {
       return {
@@ -416,6 +452,24 @@ async function testOAuthConnection(connection: unknown) {
         diagnosis: classifyFailure({ error }),
       };
     }
+
+    // Preserve recent upstream failure signals for check-expiry providers.
+    // Without this, providers that only support token-expiry checks can report
+    // healthy even when recent real requests failed with quota/402 errors.
+    if ((hasBlockingStatus || hasBlockingErrorType) && isRecentFailure) {
+      const error =
+        lastError ||
+        (hasBlockingErrorType
+          ? `Recent upstream failure (${lastErrorType})`
+          : "Recent upstream failure");
+      return {
+        valid: false,
+        error,
+        refreshed: false,
+        diagnosis: classifyFailure({ error }),
+      };
+    }
+
     return {
       valid: true,
       error: null,
@@ -519,6 +573,88 @@ async function testOAuthConnection(connection: unknown) {
       error,
       refreshed,
       diagnosis: classifyFailure({ error }),
+    };
+  }
+}
+
+async function runOAuthModelProbe(
+  connection: Record<string, unknown>,
+  validationModelId?: string
+): Promise<{ ok: boolean; error?: string; statusCode?: number }> {
+  const provider =
+    typeof connection.provider === "string"
+      ? connection.provider
+      : String(connection.provider || "");
+  const model =
+    typeof validationModelId === "string" && validationModelId.trim().length > 0
+      ? validationModelId.trim()
+      : "";
+  if (!provider || !model) return { ok: true };
+
+  const accessToken =
+    typeof connection.accessToken === "string" && connection.accessToken.trim().length > 0
+      ? connection.accessToken
+      : null;
+  if (!accessToken) {
+    return { ok: false, error: "Missing OAuth access token", statusCode: 401 };
+  }
+
+  const body = buildComboTestRequestBody(`${provider}/${model}`);
+  const req = new Request("http://localhost/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-Routiform-No-Cache": "true",
+      "X-Internal-Test": "combo-health-check",
+    },
+    body: JSON.stringify(body),
+  });
+
+  try {
+    const { handleChat } = await import("@/sse/handlers/chat");
+    const response = await handleChat(req);
+    const statusCode = response.status;
+    const raw = await response.text().catch(() => "");
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: raw || `Model probe failed (${statusCode})`,
+        statusCode,
+      };
+    }
+
+    if (!raw.trim()) {
+      return {
+        ok: false,
+        error: "Model probe returned empty response",
+        statusCode,
+      };
+    }
+
+    if (isComboTestErrorLikeText(raw)) {
+      return {
+        ok: false,
+        error: raw.slice(0, 240),
+        statusCode,
+      };
+    }
+
+    return { ok: true, statusCode };
+  } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      return {
+        ok: false,
+        error: "Model probe timeout (15s)",
+        statusCode: 504,
+      };
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Model probe failed",
+      statusCode: 500,
     };
   }
 }
@@ -632,6 +768,29 @@ export async function testSingleConnection(connectionId: string, validationModel
     result = await runWithProxyContext((proxyInfo?.proxy as string) || null, () =>
       testOAuthConnection(connection)
     );
+
+    if (
+      result.valid &&
+      typeof validationModelId === "string" &&
+      validationModelId.trim().length > 0
+    ) {
+      const probe = await runOAuthModelProbe(
+        connection as Record<string, unknown>,
+        validationModelId
+      );
+      if (!probe.ok) {
+        result = {
+          valid: false,
+          error: probe.error || "Model validation probe failed",
+          refreshed: Boolean(result.refreshed),
+          statusCode: probe.statusCode || null,
+          diagnosis: classifyFailure({
+            error: probe.error || "Model validation probe failed",
+            statusCode: probe.statusCode || undefined,
+          }),
+        };
+      }
+    }
   }
 
   const latencyMs = Date.now() - startTime;

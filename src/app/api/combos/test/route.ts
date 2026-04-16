@@ -4,8 +4,10 @@ import { initTranslators } from "@routiform/open-sse/translator/index.ts";
 import { handleChat } from "@/sse/handlers/chat";
 import {
   buildComboTestRequestBody,
+  extractComboTestProviderStatusError,
   extractComboTestResponseText,
   extractComboTestUpstreamError,
+  isComboTestErrorLikeText,
   parseComboTestHttpPayload,
 } from "@/lib/combos/testHealth";
 import { getComboByName } from "@/lib/localDb";
@@ -101,6 +103,17 @@ async function testComboModel(modelStr, chatCompletionsUrl, request) {
         res.headers.get("content-type") || ""
       );
 
+      const providerStatusError = extractComboTestProviderStatusError(responseBody);
+      if (providerStatusError) {
+        return {
+          model: modelStr,
+          status: "error",
+          statusCode: res.status,
+          error: providerStatusError,
+          latencyMs,
+        };
+      }
+
       const responseText = extractComboTestResponseText(responseBody, modelStr);
       if (!responseText) {
         const embeddedErr = extractComboTestUpstreamError(responseBody, "");
@@ -125,6 +138,16 @@ async function testComboModel(modelStr, chatCompletionsUrl, request) {
           error:
             embeddedErr ||
             "Provider returned HTTP 200 but no assistant text (empty or unsupported response shape).",
+          latencyMs,
+        };
+      }
+
+      if (isComboTestErrorLikeText(responseText)) {
+        return {
+          model: modelStr,
+          status: "error",
+          statusCode: res.status,
+          error: responseText.slice(0, 240),
           latencyMs,
         };
       }

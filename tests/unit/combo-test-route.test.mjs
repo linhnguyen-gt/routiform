@@ -228,6 +228,68 @@ test("combo test route surfaces provider errors instead of downgrading them to r
   assert.equal("probeMethod" in body.results[0], false);
 });
 
+test("combo test route treats embedded provider status errors as failures even when HTTP is 200", async () => {
+  await createTestCombo();
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        status: 402,
+        msg: "Payment required",
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "OK",
+            },
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+
+  const response = await route.POST(makeRequest());
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.resolvedBy, null);
+  assert.equal(body.results[0].status, "error");
+  assert.match(body.results[0].error, /provider status 402/i);
+});
+
+test("combo test route treats assistant error text payloads as failures", async () => {
+  await createTestCombo();
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "[402]: This is a paid model. To use paid models, you need to add credits.",
+            },
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+
+  const response = await route.POST(makeRequest());
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.resolvedBy, null);
+  assert.equal(body.results[0].status, "error");
+  assert.match(body.results[0].error, /\[402\]/i);
+});
+
 test("combo test route launches model probes concurrently while preserving combo order", async () => {
   await createTestCombo(["provider/first", "provider/second", "provider/third"]);
 

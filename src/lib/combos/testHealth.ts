@@ -252,6 +252,63 @@ export function extractComboTestUpstreamError(errBody: unknown, fallback: string
   return fallback;
 }
 
+function toNumericStatus(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  return Number.parseInt(trimmed, 10);
+}
+
+/**
+ * Detect provider-style status/code errors even when a proxy returns HTTP 200.
+ * Some gateways wrap failures as `{ status: 402, msg: "..." }` or nested equivalents.
+ */
+export function extractComboTestProviderStatusError(responseBody: unknown): string {
+  const queue: unknown[] = [responseBody];
+  const seen = new Set<unknown>();
+  let visited = 0;
+
+  while (queue.length > 0 && visited < 256) {
+    const node = queue.shift();
+    visited += 1;
+    if (!node || typeof node !== "object") continue;
+    if (seen.has(node)) continue;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (const item of node) queue.push(item);
+      continue;
+    }
+
+    const record = node as JsonRecord;
+    const candidates = [record.status, record.statusCode, record.code];
+
+    for (const candidate of candidates) {
+      const numericStatus = toNumericStatus(candidate);
+      if (numericStatus === null || numericStatus < 400) continue;
+
+      const detail = extractComboTestUpstreamError(record, "");
+      if (detail) {
+        const detailNormalized = detail.toLowerCase();
+        if (detailNormalized.includes(`status ${numericStatus}`)) {
+          return detail;
+        }
+        return `Provider status ${numericStatus}: ${detail}`;
+      }
+      return `Provider status ${numericStatus}`;
+    }
+
+    for (const value of Object.values(record)) {
+      if (value && typeof value === "object") {
+        queue.push(value);
+      }
+    }
+  }
+
+  return "";
+}
+
 export function buildComboTestRequestBody(modelStr: string) {
   return {
     model: modelStr,
@@ -361,6 +418,36 @@ export function extractComboTestResponseText(responseBody: unknown, modelHint = 
     if (t) return t;
   }
   return "";
+}
+
+/**
+ * Some gateways wrap upstream failures into assistant text while still returning HTTP 200.
+ * For smoke tests (`Reply with OK only.`), error-shaped content must be treated as failure.
+ */
+export function isComboTestErrorLikeText(text: string): boolean {
+  const normalized = String(text || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+
+  const patterns = [
+    /^\[\s*\d{3}\s*]\s*:/,
+    /^error\s*\[\s*\d{3}\s*]\s*:/,
+    /^error\b/,
+    /\bpayment required\b/,
+    /\bpaid model\b/,
+    /\badd credits?\b/,
+    /\byou\s+have\s+reached\s+(?:the\s+)?limit\b/,
+    /\blimit\s+reached\b/,
+    /\binsufficient\s+(quota|credit|credits|balance)\b/,
+    /\bquota\s+exceeded\b/,
+    /\brate\s*limit(?:ed|ing)?\b/,
+    /\binvalid\s+api\s+key\b/,
+    /\bunauthorized\b/,
+    /\bforbidden\b/,
+  ];
+
+  return patterns.some((pattern) => pattern.test(normalized));
 }
 
 /** Parse JSON; unwrap one or more JSON-in-string layers (some proxies double-encode). */
