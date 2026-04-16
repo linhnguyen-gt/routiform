@@ -63,6 +63,22 @@ interface StatsEntry {
   provider?: string;
   rawModel?: string;
   connectionId?: string;
+  requests?: number;
+  lastUsed?: string;
+  accountName?: string;
+  [key: string]: unknown;
+}
+
+interface StatsData {
+  byModel?: Record<string, StatsEntry>;
+  byAccount?: Record<string, StatsEntry>;
+  byProvider?: Record<string, StatsEntry>;
+  pending?: {
+    byModel?: Record<string, unknown>;
+    byAccount?: Record<string, unknown>;
+    byProvider?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
@@ -74,7 +90,7 @@ export default function UsageStats() {
   const sortBy = searchParams.get("sortBy") || "rawModel";
   const sortOrder = searchParams.get("sortOrder") || "asc";
 
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [viewMode, setViewMode] = useState("tokens"); // 'tokens' or 'costs'
@@ -132,24 +148,21 @@ export default function UsageStats() {
   );
 
   const sortedModels = useMemo(
-    () => sortData(stats?.byModel, stats?.pending?.byModel),
+    () => sortData(stats?.byModel ?? {}, stats?.pending?.byModel),
     [stats?.byModel, stats?.pending?.byModel, sortData]
   );
   const sortedAccounts = useMemo(() => {
-    // For accounts, pendingMap is by connectionId, but dataMap is by accountKey
-    // We need to map connectionId pending counts to accountKeys
     const accountPendingMap: Record<string, unknown> = {};
     if (stats?.pending?.byAccount) {
-      Object.entries((stats.byAccount as Record<string, StatsEntry>) || {}).forEach(
-        ([accountKey, data]) => {
-          const connPending = stats.pending.byAccount[data.connectionId];
-          if (connPending) {
-            // Get modelKey (rawModel (provider))
-            const modelKey = data.provider ? `${data.rawModel} (${data.provider})` : data.rawModel;
-            accountPendingMap[accountKey] = connPending[modelKey] || 0;
-          }
+      Object.entries(stats.byAccount ?? {}).forEach(([accountKey, data]) => {
+        const connPending = stats.pending?.byAccount?.[data.connectionId ?? ""] as
+          | Record<string, unknown>
+          | undefined;
+        if (connPending) {
+          const modelKey = data.provider ? `${data.rawModel} (${data.provider})` : data.rawModel;
+          accountPendingMap[accountKey] = connPending[modelKey ?? ""] ?? 0;
         }
-      );
+      });
     }
     return sortData(stats?.byAccount, accountPendingMap);
   }, [stats?.byAccount, stats?.pending?.byAccount, sortData]);
@@ -292,7 +305,7 @@ export default function UsageStats() {
       </div>
 
       {/* Active Requests Summary */}
-      {(stats.activeRequests || []).length > 0 && (
+      {(Array.isArray(stats?.activeRequests) ? stats.activeRequests : []).length > 0 && (
         <Card className="p-3 border-primary/20 bg-primary/5">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-wider">
@@ -303,23 +316,25 @@ export default function UsageStats() {
               Active Requests
             </div>
             <div className="flex flex-wrap gap-3">
-              {stats.activeRequests.map((req) => (
-                <div
-                  key={`${req.model}-${req.provider}-${req.account}`}
-                  className="px-3 py-1.5 rounded-md bg-bg-subtle border border-primary/20 text-xs font-mono shadow-sm"
-                >
-                  <span className="text-primary font-bold">{req.model}</span>
-                  <span className="mx-1 text-text-muted">|</span>
-                  <span className="text-text">{req.provider}</span>
-                  <span className="mx-1 text-text-muted">|</span>
-                  <span className="text-text font-medium">{req.account}</span>
-                  {req.count > 1 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded bg-primary text-white font-bold">
-                      x{req.count}
-                    </span>
-                  )}
-                </div>
-              ))}
+              {(Array.isArray(stats?.activeRequests) ? stats.activeRequests : []).map(
+                (req: { model: string; provider: string; account: string; count: number }) => (
+                  <div
+                    key={`${req.model}-${req.provider}-${req.account}`}
+                    className="px-3 py-1.5 rounded-md bg-bg-subtle border border-primary/20 text-xs font-mono shadow-sm"
+                  >
+                    <span className="text-primary font-bold">{req.model}</span>
+                    <span className="mx-1 text-text-muted">|</span>
+                    <span className="text-text">{req.provider}</span>
+                    <span className="mx-1 text-text-muted">|</span>
+                    <span className="text-text font-medium">{req.account}</span>
+                    {req.count > 1 && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded bg-primary text-white font-bold">
+                        x{req.count}
+                      </span>
+                    )}
+                  </div>
+                )
+              )}
             </div>
           </div>
         </Card>
@@ -333,10 +348,14 @@ export default function UsageStats() {
               <span className="text-text-muted text-sm uppercase font-semibold">
                 Total Requests
               </span>
-              <span className="text-2xl font-bold">{fmt(stats.totalRequests)}</span>
+              <span className="text-2xl font-bold">{fmt(Number(stats.totalRequests ?? 0))}</span>
             </div>
             <MiniBarGraph
-              data={(stats.last10Minutes || []).map((m) => m.requests)}
+              data={
+                Array.isArray(stats.last10Minutes)
+                  ? stats.last10Minutes.map((m: Record<string, unknown>) => Number(m.requests ?? 0))
+                  : []
+              }
               colorClass="bg-text-muted/30"
             />
           </div>
@@ -348,11 +367,17 @@ export default function UsageStats() {
                 Total Input Tokens
               </span>
               <span className="text-2xl font-bold text-primary">
-                {fmt(stats.totalPromptTokens)}
+                {fmt(Number(stats.totalPromptTokens ?? 0))}
               </span>
             </div>
             <MiniBarGraph
-              data={(stats.last10Minutes || []).map((m) => m.promptTokens)}
+              data={
+                Array.isArray(stats.last10Minutes)
+                  ? stats.last10Minutes.map((m: Record<string, unknown>) =>
+                      Number(m.promptTokens ?? 0)
+                    )
+                  : []
+              }
               colorClass="bg-primary/50"
             />
           </div>
@@ -364,7 +389,7 @@ export default function UsageStats() {
                 {t("outputTokens")}
               </span>
               <span className="text-2xl font-bold text-success">
-                {fmt(stats.totalCompletionTokens)}
+                {fmt(Number(stats.totalCompletionTokens ?? 0))}
               </span>
             </div>
             <div className="w-px bg-border self-stretch mx-2" />
@@ -486,13 +511,13 @@ export default function UsageStats() {
                 <tr key={data.key} className="hover:bg-bg-subtle/20">
                   <td
                     className={`px-6 py-3 font-medium transition-colors ${
-                      data.pending > 0 ? "text-primary" : ""
+                      Number(data.pending) > 0 ? "text-primary" : ""
                     }`}
                   >
                     {data.rawModel}
                   </td>
                   <td className="px-6 py-3">
-                    <Badge variant={data.pending > 0 ? "primary" : "default"} size="sm">
+                    <Badge variant={Number(data.pending) > 0 ? "primary" : "default"} size="sm">
                       {data.provider}
                     </Badge>
                   </td>
@@ -652,20 +677,20 @@ export default function UsageStats() {
                 <tr key={data.key} className="hover:bg-bg-subtle/20">
                   <td
                     className={`px-6 py-3 font-medium transition-colors ${
-                      data.pending > 0 ? "text-primary" : ""
+                      Number(data.pending) > 0 ? "text-primary" : ""
                     }`}
                   >
                     {data.rawModel}
                   </td>
                   <td className="px-6 py-3">
-                    <Badge variant={data.pending > 0 ? "primary" : "default"} size="sm">
+                    <Badge variant={Number(data.pending) > 0 ? "primary" : "default"} size="sm">
                       {data.provider}
                     </Badge>
                   </td>
                   <td className="px-6 py-3">
                     <span
                       className={`font-medium transition-colors ${
-                        data.pending > 0 ? "text-primary" : ""
+                        Number(data.pending) > 0 ? "text-primary" : ""
                       }`}
                     >
                       {data.accountName || `Account ${data.connectionId?.slice(0, 8)}...`}

@@ -226,12 +226,26 @@ export default function SearchToolsClient() {
   }
 
   const handleHistoryReplay = (entry: HistoryReplayEntry) => {
+    const replayFilters = entry.filters || {};
+
+    // Validate and sanitize search_type - only allow "web" or "news"
+    const allowedSearchTypes = ["web", "news"] as const;
+    const rawSearchType = entry.filters?.search_type;
+    const isAllowedSearchType = (value: unknown): value is (typeof allowedSearchTypes)[number] =>
+      typeof value === "string" && (allowedSearchTypes as readonly string[]).includes(value);
+    const search_type = isAllowedSearchType(rawSearchType) ? rawSearchType : "web";
+
+    // Validate and clamp max_results to 1-100 range
+    const rawMaxResults = entry.filters?.max_results;
+    const max_results =
+      typeof rawMaxResults === "number" ? Math.max(1, Math.min(100, Math.floor(rawMaxResults))) : 5;
+
     handleSearch({
+      ...replayFilters,
       query: entry.query,
       provider: entry.provider || "",
-      search_type: entry.filters?.search_type || "web",
-      max_results: entry.filters?.max_results || 5,
-      ...entry.filters,
+      search_type,
+      max_results,
     });
   };
 

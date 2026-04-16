@@ -67,7 +67,27 @@ export default function UsageAnalytics({
     onRangeChange?.(r);
     if (rangeProp === undefined) setInternalRange(r);
   };
-  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
+  const [analytics, setAnalytics] = useState<{
+    byModel?: Array<{ model: string; count?: number }>;
+    byProvider?: Array<{
+      provider: string;
+      count?: number;
+      totalRequests?: number;
+      totalTokens?: number;
+      apiCalls?: number;
+    }>;
+    weeklyPattern?: Array<{ day: string; avgTokens: number }>;
+    summary?: {
+      totalRequests?: number;
+      totalTokens?: number;
+      totalCost?: number;
+      promptTokens?: number;
+      completionTokens?: number;
+      fallbackRatePct?: number;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -203,9 +223,9 @@ export default function UsageAnalytics({
           <DetailMetric label="I/O ratio" value={`${ioRatio}x`} />
           <DetailMetric label="Avg tokens / request" value={fmt(avgTokensPerReq)} />
           <DetailMetric label="Cost / request" value={fmtCost(costPerReq)} />
-          <DetailMetric label="Accounts" value={s.uniqueAccounts ?? 0} />
-          <DetailMetric label="API keys" value={s.uniqueApiKeys ?? 0} />
-          <DetailMetric label="Models" value={s.uniqueModels ?? 0} />
+          <DetailMetric label="Accounts" value={Number(s.uniqueAccounts ?? 0)} />
+          <DetailMetric label="API keys" value={Number(s.uniqueApiKeys ?? 0)} />
+          <DetailMetric label="Models" value={Number(s.uniqueModels ?? 0)} />
           <DetailMetric label="Providers (usage)" value={providerCount} />
           <DetailMetric label="Top model" value={topModel} />
           <DetailMetric label="Top provider" value={topProvider} />

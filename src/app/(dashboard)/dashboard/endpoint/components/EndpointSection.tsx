@@ -118,7 +118,7 @@ export function EndpointSection({
                       className="text-xs px-2 py-0.5 rounded-md bg-surface/80 text-text-muted font-mono"
                       title={m.id}
                     >
-                      {m.root || m.id.split("/").pop()}
+                      {m.name || m.id.split("/").pop()}
                     </span>
                   ))}
                 </div>

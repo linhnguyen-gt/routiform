@@ -1,0 +1,72 @@
+import { z } from "zod";
+import { NextResponse } from "next/server";
+import {
+  getUpstreamProxyConfig,
+  upsertUpstreamProxyConfig,
+  deleteUpstreamProxyConfig,
+} from "@/lib/db/upstreamProxy";
+import { validateBody, isValidationFailure } from "@/shared/validation/helpers";
+
+const upsertUpstreamProxySchema = z.object({
+  mode: z.enum(["cliproxyapi", "fallback", "native"]).default("native"),
+  enabled: z.boolean().default(true),
+});
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ providerId: string }> }
+) {
+  const { providerId } = await params;
+  if (!providerId) {
+    return NextResponse.json({ error: "providerId required" }, { status: 400 });
+  }
+  const config = await getUpstreamProxyConfig(providerId);
+  if (!config) {
+    return NextResponse.json({ enabled: false, mode: "native" });
+  }
+  return NextResponse.json(config);
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ providerId: string }> }
+) {
+  const { providerId } = await params;
+  if (!providerId) {
+    return NextResponse.json({ error: "providerId required" }, { status: 400 });
+  }
+
+  let rawBody;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Malformed JSON" }, { status: 400 });
+  }
+
+  const validation = validateBody(upsertUpstreamProxySchema, rawBody);
+  if (isValidationFailure(validation)) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+
+  const { mode, enabled } = validation.data;
+
+  const config = await upsertUpstreamProxyConfig({
+    providerId,
+    mode,
+    enabled,
+  });
+
+  return NextResponse.json(config);
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ providerId: string }> }
+) {
+  const { providerId } = await params;
+  if (!providerId) {
+    return NextResponse.json({ error: "providerId required" }, { status: 400 });
+  }
+  const deleted = await deleteUpstreamProxyConfig(providerId);
+  return NextResponse.json({ deleted });
+}

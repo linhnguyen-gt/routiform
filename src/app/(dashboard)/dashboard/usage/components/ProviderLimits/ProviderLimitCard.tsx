@@ -78,7 +78,14 @@ export default function ProviderLimitCard({
             <h3 className="font-semibold text-text-primary">{name || provider}</h3>
             {plan && (
               <Badge
-                variant={(planVariants as Record<string, string>)[plan?.toLowerCase()] || "default"}
+                variant={
+                  (
+                    planVariants as Record<
+                      string,
+                      "default" | "error" | "success" | "warning" | "info" | "primary"
+                    >
+                  )[plan?.toLowerCase() ?? ""] || "default"
+                }
                 size="sm"
               >
                 {plan}

@@ -1783,6 +1783,15 @@
     "codexAuthApplyFailed": "Failed to apply Codex auth.json locally",
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
+    "cpa": {
+      "updateError": "Kunne ikke oppdatere CLIProxyAPI-ruting",
+      "enabled": "Forespørsler rutes nå gjennom CLIProxyAPI (dypere emulering)",
+      "disabled": "Forespørsler bruker nå innfødt ruting (direkte)",
+      "labelOn": "CPA PÅ",
+      "labelOff": "CPA AV",
+      "tooltipEnabled": "Bruker CLIProxyAPI for dypere Claude Code-emulering (uTLS, multi-konto, enhetsprofiler)",
+      "tooltipDisabled": "Aktiver CLIProxyAPI-backend for dypere Claude Code OAuth-emulering"
+    },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",
     "chatPathPlaceholder": "/chat/completions",

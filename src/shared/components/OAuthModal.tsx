@@ -676,11 +676,11 @@ export default function OAuthModal({
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleManualSubmit} fullWidth disabled={!callbackUrl}>
-                Connect
-              </Button>
               <Button onClick={onClose} variant="ghost" fullWidth>
                 Cancel
+              </Button>
+              <Button onClick={handleManualSubmit} fullWidth disabled={!callbackUrl}>
+                Connect
               </Button>
             </div>
           </>
@@ -713,11 +713,11 @@ export default function OAuthModal({
             <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
             <p className="text-sm text-red-600 mb-4">{error}</p>
             <div className="flex gap-2">
-              <Button onClick={startOAuthFlow} variant="secondary" fullWidth>
-                Try Again
-              </Button>
               <Button onClick={onClose} variant="ghost" fullWidth>
                 Cancel
+              </Button>
+              <Button onClick={startOAuthFlow} variant="secondary" fullWidth>
+                Try Again
               </Button>
             </div>
           </div>

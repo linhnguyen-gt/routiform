@@ -59,7 +59,9 @@ export default function SecurityTab() {
   };
 
   const toggleBlockedProvider = (providerId: string) => {
-    const current: string[] = settings.blockedProviders || [];
+    const current = Array.isArray(settings.blockedProviders)
+      ? (settings.blockedProviders as string[])
+      : [];
     const updated = current.includes(providerId)
       ? current.filter((p) => p !== providerId)
       : [...current, providerId];
@@ -99,7 +101,9 @@ export default function SecurityTab() {
     }
   };
 
-  const blockedProviders: string[] = settings.blockedProviders || [];
+  const blockedProviders = Array.isArray(settings.blockedProviders)
+    ? (settings.blockedProviders as string[])
+    : [];
 
   return (
     <div className="flex flex-col gap-6">

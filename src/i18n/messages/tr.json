@@ -1783,6 +1783,15 @@
     "codexAuthApplyFailed": "Failed to apply Codex auth.json locally",
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
+    "cpa": {
+      "updateError": "CLIProxyAPI yönlendirme güncellenemedi",
+      "enabled": "İstekler artık CLIProxyAPI üzerinden yönlendiriliyor (daha derin emülasyon)",
+      "disabled": "İstekler artık yerel yönlendirme kullanıyor (doğrudan)",
+      "labelOn": "CPA AÇIK",
+      "labelOff": "CPA KAPALI",
+      "tooltipEnabled": "Daha derin Claude Code emülasyonu için CLIProxyAPI kullanılıyor (uTLS, çoklu hesap, cihaz profilleri)",
+      "tooltipDisabled": "Daha derin Claude Code OAuth emülasyonu için CLIProxyAPI arka ucunu etkinleştir"
+    },
     "advancedSettings": "Gelişmiş Ayarlar",
     "chatPathLabel": "Sohbet Uç Noktası Yolu",
     "chatPathPlaceholder": "/chat/completions",

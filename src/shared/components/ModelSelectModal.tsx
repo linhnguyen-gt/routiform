@@ -175,9 +175,12 @@ export default function ModelSelectModal({
       const entries = await Promise.all(
         firstConnections.map(async ({ providerId, connectionId }) => {
           try {
-            const res = await fetch(`/api/providers/${encodeURIComponent(connectionId)}/models`, {
-              cache: "no-store",
-            });
+            const res = await fetch(
+              `/api/providers/${encodeURIComponent(String(connectionId))}/models`,
+              {
+                cache: "no-store",
+              }
+            );
             if (!res.ok) return [providerId, []] as const;
             const data = await res.json().catch(() => ({}));
             const raw = Array.isArray(data?.models) ? data.models : [];
@@ -478,31 +481,36 @@ export default function ModelSelectModal({
   const filteredGroups = useMemo(() => {
     if (!searchQuery.trim()) return groupedModels;
 
-    const query = searchQuery.toLowerCase();
-    const filtered: Record<string, ProviderGroup> = {};
+    const q = searchQuery.toLowerCase();
+    const result: Record<string, ProviderGroup> = {};
 
-    Object.entries(groupedModels).forEach(([providerId, group]) => {
+    Object.entries(groupedModels).forEach(([providerId, group]: [string, ProviderGroup]) => {
       const matchedModels = group.models.filter(
-        (m) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)
+        (m) =>
+          String(m.name ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(m.id ?? "")
+            .toLowerCase()
+            .includes(q)
       );
 
-      const providerNameMatches = group.name.toLowerCase().includes(query);
+      const providerNameMatches = group.name.toLowerCase().includes(q);
 
       if (matchedModels.length > 0) {
-        filtered[providerId] = {
+        result[providerId] = {
           ...group,
           models: matchedModels,
         };
       } else if (providerNameMatches) {
-        // Search matched provider label but not model ids/names — show full list (e.g. "kiro" vs "Claude Sonnet")
-        filtered[providerId] = {
+        result[providerId] = {
           ...group,
           models: group.models,
         };
       }
     });
 
-    return filtered;
+    return result;
   }, [groupedModels, searchQuery]);
 
   const handleSelect = (model: ModelItem) => {
@@ -610,7 +618,7 @@ export default function ModelSelectModal({
                     `}
                   >
                     {isAdded && <span className="mr-0.5 opacity-70">✓</span>}
-                    {model.name}
+                    {String(model.name ?? model.id ?? "")}
                     {model.isCustom ? " ★" : ""}
                   </button>
                 );

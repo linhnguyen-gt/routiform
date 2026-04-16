@@ -150,6 +150,7 @@ export function useProviderDetailOrchestrator() {
   const [exportingCodexAuthId, setExportingCodexAuthId] = useState<string | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [togglingAutoSync, setTogglingAutoSync] = useState(false);
+  const [cpaProviderEnabled, setCpaProviderEnabled] = useState(false);
   const [refreshingModels, setRefreshingModels] = useState(false);
   const [clearingModels, setClearingModels] = useState(false);
   const autoSyncBootstrappedRef = useRef<Set<string>>(new Set());
@@ -378,6 +379,59 @@ export function useProviderDetailOrchestrator() {
       .catch(() => {});
   }, []);
 
+  // Load upstream proxy config for this provider (CPA dual-mode toggle)
+  useEffect(() => {
+    if (!isCcCompatible) return;
+    fetch(`/api/upstream-proxy/${encodeURIComponent(providerId)}`)
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then((data) => {
+        if (data?.enabled && (data.mode === "cliproxyapi" || data.mode === "fallback")) {
+          setCpaProviderEnabled(true);
+        }
+      })
+      .catch(() => {});
+  }, [isCcCompatible, providerId]);
+
+  const handleToggleCliproxyapiMode = useCallback(
+    async (enabled: boolean) => {
+      const cpaUpdateErrorText =
+        typeof t.has === "function" && t.has("cpa.updateError")
+          ? t("cpa.updateError")
+          : "Failed to update CLIProxyAPI routing";
+      const cpaEnabledText =
+        typeof t.has === "function" && t.has("cpa.enabled")
+          ? t("cpa.enabled")
+          : "Requests now route through CLIProxyAPI (deeper emulation)";
+      const cpaDisabledText =
+        typeof t.has === "function" && t.has("cpa.disabled")
+          ? t("cpa.disabled")
+          : "Requests now use native routing (direct)";
+
+      try {
+        const res = await fetch(`/api/upstream-proxy/${encodeURIComponent(providerId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: enabled ? "cliproxyapi" : "native", enabled }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          notify.error(data.error || cpaUpdateErrorText);
+          return;
+        }
+
+        setCpaProviderEnabled(enabled);
+        notify.success(enabled ? cpaEnabledText : cpaDisabledText);
+      } catch {
+        notify.error(cpaUpdateErrorText);
+      }
+    },
+    [providerId, notify, t]
+  );
+
   useEffect(() => {
     if (!loading && connections.length > 0) {
       const timeoutId = setTimeout(() => {
@@ -514,6 +568,7 @@ export function useProviderDetailOrchestrator() {
     exportingCodexAuthId,
     refreshingId,
     togglingAutoSync,
+    cpaProviderEnabled,
     refreshingModels,
     clearingModels,
     isAutoSyncEnabled,
@@ -542,6 +597,7 @@ export function useProviderDetailOrchestrator() {
     handleRefreshToken,
     handleSwapPriority,
     handleToggleCodexLimit,
+    handleToggleCliproxyapiMode,
     handleApplyCodexAuthLocal,
     handleExportCodexAuthFile,
     handleSaveApiKey,

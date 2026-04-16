@@ -4,7 +4,9 @@ import { prepareClaudeRequest } from "./helpers/claudeHelper.ts";
 import { filterToOpenAIFormat } from "./helpers/openaiHelper.ts";
 import {
   coerceToolSchemas,
+  injectEmptyReasoningContent,
   injectEmptyReasoningContentForToolCalls,
+  isReasoner,
   sanitizeToolDescriptions,
 } from "./helpers/schemaCoercion.ts";
 import { getRequestTranslator, getResponseTranslator } from "./registry.ts";
@@ -192,7 +194,7 @@ export function translateRequest(
   }
 
   if (targetFormat === FORMATS.OPENAI && result.messages && Array.isArray(result.messages)) {
-    result.messages = injectEmptyReasoningContentForToolCalls(result.messages, provider);
+    result.messages = injectEmptyReasoningContentForToolCalls(result.messages, provider, model);
   }
 
   // Ensure unique tool_call ids on final payload (translators may have introduced duplicates)
@@ -204,21 +206,8 @@ export function translateRequest(
     result.tools = sanitizeToolDescriptions(result.tools);
   }
 
-  // Inject reasoning_content = "" for DeepSeek/Reasoning models assistant messages with tool_calls
-  // if omitted by the client, to avoid upstream 400 errors (e.g. "Messages with role 'assistant' that contain tool_calls must also include reasoning_content")
-  const isReasoner =
-    provider === "deepseek" || (typeof model === "string" && /r1|reason/i.test(model));
-  if (isReasoner && result.messages && Array.isArray(result.messages)) {
-    for (const msg of result.messages) {
-      if (
-        msg.role === "assistant" &&
-        Array.isArray(msg.tool_calls) &&
-        msg.tool_calls.length > 0 &&
-        msg.reasoning_content === undefined
-      ) {
-        msg.reasoning_content = "";
-      }
-    }
+  if (isReasoner(provider, model) && result.messages && Array.isArray(result.messages)) {
+    result.messages = injectEmptyReasoningContent(result.messages);
   }
 
   return result;

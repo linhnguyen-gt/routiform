@@ -189,11 +189,18 @@ export function sanitizeToolId(id: string | undefined): string {
   return sanitized || `tool_${crypto.randomUUID().replace(/-/g, "_")}`;
 }
 
-export function injectEmptyReasoningContentForToolCalls(
-  messages: unknown,
-  provider: unknown
-): unknown {
-  if (!Array.isArray(messages) || String(provider || "").toLowerCase() !== "deepseek") {
+export function isReasoner(provider: unknown, model?: unknown): boolean {
+  const providerStr = String(provider || "").toLowerCase();
+  const modelStr = typeof model === "string" ? model : "";
+  return (
+    providerStr === "deepseek" ||
+    providerStr === "kimi" ||
+    (typeof model === "string" && /r1|reason|kimi-k2/i.test(modelStr))
+  );
+}
+
+export function injectEmptyReasoningContent(messages: unknown): unknown {
+  if (!Array.isArray(messages)) {
     return messages;
   }
 
@@ -210,4 +217,16 @@ export function injectEmptyReasoningContentForToolCalls(
 
     return { ...message, reasoning_content: "" };
   });
+}
+
+export function injectEmptyReasoningContentForToolCalls(
+  messages: unknown,
+  provider: unknown,
+  model?: unknown
+): unknown {
+  if (!isReasoner(provider, model)) {
+    return messages;
+  }
+
+  return injectEmptyReasoningContent(messages);
 }

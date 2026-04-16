@@ -1783,6 +1783,15 @@
     "codexAuthApplyFailed": "Failed to apply Codex auth.json locally",
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
+    "cpa": {
+      "updateError": "Eșec la actualizarea rutării CLIProxyAPI",
+      "enabled": "Cererile sunt acum direcționate prin CLIProxyAPI (emulare profundă)",
+      "disabled": "Cererile folosesc acum rutare nativă (directă)",
+      "labelOn": "CPA PORNIT",
+      "labelOff": "CPA OPRIT",
+      "tooltipEnabled": "Se utilizează CLIProxyAPI pentru emulare mai profundă a Claude Code (uTLS, multi-cont, profiluri dispozitiv)",
+      "tooltipDisabled": "Activează backend-ul CLIProxyAPI pentru emulare OAuth mai profundă a Claude Code"
+    },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",
     "chatPathPlaceholder": "/chat/completions",

@@ -5,12 +5,7 @@ export interface AddApiKeyModalProps {
   isCompatible?: boolean;
   isAnthropic?: boolean;
   isCcCompatible?: boolean;
-  onSave: (data: {
-    name: string;
-    apiKey: string;
-    priority: number;
-    baseUrl?: string;
-  }) => Promise<void | unknown>;
+  onSave: (data: Record<string, unknown>) => Promise<void | unknown>;
   onClose: () => void;
 }
 

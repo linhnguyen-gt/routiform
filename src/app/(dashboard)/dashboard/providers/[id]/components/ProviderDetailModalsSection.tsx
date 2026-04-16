@@ -87,7 +87,7 @@ export function ProviderDetailModalsSection({
         <OAuthModal
           isOpen={showOAuthModal}
           provider={providerId}
-          providerInfo={providerInfo}
+          providerInfo={providerInfo?.name ? { name: providerInfo.name } : null}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}
         />

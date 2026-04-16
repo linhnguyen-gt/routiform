@@ -333,7 +333,7 @@ export function ComboFormModal({
   };
 
   const applyStrategyRecommendations = () => {
-    const strategyDefaults: Record<string, Record<string, unknown>> = {
+    const strategyDefaults: Record<string, Record<string, string | number | boolean>> = {
       priority: { maxRetries: 2, retryDelayMs: 1500, healthCheckEnabled: true },
       weighted: { maxRetries: 1, retryDelayMs: 1000, healthCheckEnabled: true },
       "round-robin": {
@@ -849,7 +849,7 @@ export function ComboFormModal({
                     type="number"
                     min="0"
                     max="10"
-                    value={config.maxRetries ?? ""}
+                    value={typeof config.maxRetries === "number" ? config.maxRetries : ""}
                     placeholder="1"
                     onChange={(e) =>
                       setConfig({
@@ -874,7 +874,7 @@ export function ComboFormModal({
                     min="0"
                     max="60000"
                     step="500"
-                    value={config.retryDelayMs ?? ""}
+                    value={typeof config.retryDelayMs === "number" ? config.retryDelayMs : ""}
                     placeholder="2000"
                     onChange={(e) =>
                       setConfig({
@@ -899,7 +899,7 @@ export function ComboFormModal({
                     min="1000"
                     max="600000"
                     step="1000"
-                    value={config.timeoutMs ?? ""}
+                    value={typeof config.timeoutMs === "number" ? config.timeoutMs : ""}
                     placeholder="120000"
                     onChange={(e) =>
                       setConfig({
@@ -942,7 +942,11 @@ export function ComboFormModal({
                       type="number"
                       min="1"
                       max="20"
-                      value={config.concurrencyPerModel ?? ""}
+                      value={
+                        typeof config.concurrencyPerModel === "number"
+                          ? config.concurrencyPerModel
+                          : ""
+                      }
                       placeholder="3"
                       onChange={(e) =>
                         setConfig({
@@ -967,7 +971,7 @@ export function ComboFormModal({
                       min="1000"
                       max="120000"
                       step="1000"
-                      value={config.queueTimeoutMs ?? ""}
+                      value={typeof config.queueTimeoutMs === "number" ? config.queueTimeoutMs : ""}
                       placeholder="30000"
                       onChange={(e) =>
                         setConfig({

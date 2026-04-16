@@ -20,7 +20,9 @@ import {
 export function useProviderOptions(initialProvider = "openai") {
   const t = useTranslations("translator");
   const [provider, setProvider] = useState(initialProvider);
-  const [providerOptions, setProviderOptions] = useState([]);
+  const [providerOptions, setProviderOptions] = useState<Array<{ value: string; label: string }>>(
+    []
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,9 +33,19 @@ export function useProviderOptions(initialProvider = "openai") {
           fetch("/api/provider-nodes"),
         ]);
         const [connData, nodesData] = await Promise.all([connRes.json(), nodesRes.json()]);
-        const nodeMap = new Map((nodesData.nodes || []).map((n) => [n.id, n]));
-        const activeProviders = new Set(
-          (connData.connections || []).filter((c) => c.isActive !== false).map((c) => c.provider)
+        const nodeMap = new Map(
+          ((nodesData.nodes as Array<{ id: string; name?: string }> | undefined) || []).map((n) => [
+            n.id,
+            n,
+          ])
+        );
+        const activeProviders = new Set<string>(
+          (
+            (connData.connections as Array<{ isActive?: boolean; provider: string }> | undefined) ||
+            []
+          )
+            .filter((c) => c.isActive !== false)
+            .map((c) => c.provider)
         );
         const options = [...activeProviders]
           .map((pid) => {

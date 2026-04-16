@@ -440,10 +440,15 @@ export default function A2ADashboardPage() {
               </thead>
               <tbody>
                 {tasksData.tasks.map((task) => {
+                  const workflowFsm = task.metadata?.workflowFSM as
+                    | { currentPhase?: unknown }
+                    | undefined;
                   const fsmPhase =
-                    task.metadata?.fsmPhase ||
-                    (task.metadata?.workflowFSM as { currentPhase?: string } | undefined)
-                      ?.currentPhase;
+                    typeof task.metadata?.fsmPhase === "string"
+                      ? task.metadata.fsmPhase
+                      : typeof workflowFsm?.currentPhase === "string"
+                        ? workflowFsm.currentPhase
+                        : undefined;
                   let fsmBadgeColor = "bg-gray-500/15 text-gray-500";
                   if (fsmPhase === "plan" || fsmPhase === "plan_review")
                     fsmBadgeColor = "bg-purple-500/15 text-purple-500";

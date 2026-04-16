@@ -62,6 +62,6 @@ export { PollinationsExecutor } from "./pollinations.ts";
 export { CloudflareAIExecutor } from "./cloudflare-ai.ts";
 export { OpencodeExecutor } from "./opencode.ts";
 export { PuterExecutor } from "./puter.ts";
-export { CliproxyapiExecutor } from "./cliproxyapi.ts";
+export { CliproxyapiExecutor, isCliproxyapiDeepModeEnabled } from "./cliproxyapi.ts";
 export { VertexExecutor } from "./vertex.ts";
 export { QwenExecutor } from "./qwen.ts";

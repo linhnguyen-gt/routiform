@@ -1814,6 +1814,15 @@
     "codexAuthApplyFailed": "Failed to apply Codex auth.json locally",
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
+    "cpa": {
+      "updateError": "Falha ao atualizar o roteamento CLIProxyAPI",
+      "enabled": "As solicitações agora são roteadas através do CLIProxyAPI (emulação mais profunda)",
+      "disabled": "As solicitações agora usam roteamento nativo (direto)",
+      "labelOn": "CPA ATIVO",
+      "labelOff": "CPA DESATIVADO",
+      "tooltipEnabled": "Usando CLIProxyAPI para emulação mais profunda do Claude Code (uTLS, multi-conta, perfis de dispositivo)",
+      "tooltipDisabled": "Habilitar backend CLIProxyAPI para emulação OAuth mais profunda do Claude Code"
+    },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",
     "chatPathPlaceholder": "/chat/completions",

@@ -275,15 +275,15 @@ export function ProviderDetailAddApiKeyModal({
           </div>
         )}
         <div className="flex gap-2">
+          <Button onClick={onClose} variant="ghost" fullWidth>
+            {t("cancel")}
+          </Button>
           <Button
             onClick={handleSubmit}
             fullWidth
             disabled={!formData.name || !formData.apiKey || saving}
           >
             {saving ? t("saving") : t("save")}
-          </Button>
-          <Button onClick={onClose} variant="ghost" fullWidth>
-            {t("cancel")}
           </Button>
         </div>
       </div>

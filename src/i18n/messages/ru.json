@@ -1784,6 +1784,15 @@
     "codexAuthApplyFailed": "Failed to apply Codex auth.json locally",
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
+    "cpa": {
+      "updateError": "Не удалось обновить маршрутизацию CLIProxyAPI",
+      "enabled": "Запросы теперь направляются через CLIProxyAPI (глубокая эмуляция)",
+      "disabled": "Запросы теперь используют нативную маршрутизацию (прямую)",
+      "labelOn": "CPA ВКЛ",
+      "labelOff": "CPA ВЫКЛ",
+      "tooltipEnabled": "Использование CLIProxyAPI для более глубокой эмуляции Claude Code (uTLS, мультиаккаунт, профили устройств)",
+      "tooltipDisabled": "Включить бэкенд CLIProxyAPI для более глубокой эмуляции OAuth Claude Code"
+    },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",
     "chatPathPlaceholder": "/chat/completions",
