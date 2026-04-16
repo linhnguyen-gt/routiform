@@ -1,9 +1,29 @@
 import { NextResponse } from "next/server";
+import {
+  buildComboTestRequestBody,
+  extractComboTestProviderStatusError,
+  extractComboTestResponseText,
+  extractComboTestUpstreamError,
+  isComboTestErrorLikeText,
+  parseComboTestHttpPayload,
+} from "@/lib/combos/testHealth";
 import { getApiKeys } from "@/models";
 import { modelTestRouteSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 export const dynamic = "force-dynamic";
+
+function isTimeoutLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const name = (error.name || "").toLowerCase();
+  const message = (error.message || "").toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("aborted due to timeout") ||
+    message.includes("timeout")
+  );
+}
 
 /**
  * POST /api/models/test — Send a minimal chat completion via the unified API to verify routing for a model id.
@@ -35,70 +55,65 @@ export async function POST(request: Request) {
 
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    headers.Accept = "application/json";
+    headers["X-Internal-Test"] = "combo-health-check";
+    headers["X-Routiform-No-Cache"] = "true";
 
     const start = Date.now();
-    const res = await fetch(`${baseUrl}/api/v1/chat/completions`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        // Reasoning / OpenCode models: max_tokens 1 often yields empty `content` (tokens in reasoning only).
-        max_completion_tokens: 256,
-        max_tokens: 256,
-        stream: false,
-        messages: [{ role: "user", content: "hi" }],
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/api/v1/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(buildComboTestRequestBody(model)),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (error) {
+      const latencyMs = Date.now() - start;
+      if (isTimeoutLikeError(error)) {
+        return NextResponse.json(
+          {
+            ok: false,
+            latencyMs,
+            status: 504,
+            error: "Model test timeout (15s)",
+          },
+          { status: 504 }
+        );
+      }
+      throw error;
+    }
     const latencyMs = Date.now() - start;
 
     const rawText = await res.text().catch(() => "");
-    let parsed: Record<string, unknown> | null = null;
-    try {
-      parsed = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : null;
-    } catch {
-      parsed = null;
-    }
+    const parsedPayload = parseComboTestHttpPayload(
+      rawText,
+      model,
+      res.headers.get("content-type") || ""
+    );
+    const parsed =
+      parsedPayload && typeof parsedPayload === "object" && !Array.isArray(parsedPayload)
+        ? (parsedPayload as Record<string, unknown>)
+        : null;
 
     if (!res.ok) {
-      const errObj = parsed?.error as Record<string, unknown> | undefined;
-      const detail =
-        (typeof errObj?.message === "string" && errObj.message) ||
-        (typeof parsed?.msg === "string" && parsed.msg) ||
-        (typeof parsed?.message === "string" && parsed.message) ||
-        (typeof parsed?.error === "string" && parsed.error) ||
-        rawText;
+      const detail = extractComboTestUpstreamError(parsedPayload, "") || rawText;
       const error = `HTTP ${res.status}${detail ? `: ${String(detail).slice(0, 240)}` : ""}`;
       return NextResponse.json({ ok: false, latencyMs, error, status: res.status });
     }
 
-    const providerStatus = parsed?.status;
-    const providerMsg =
-      (typeof parsed?.msg === "string" && parsed.msg) ||
-      (typeof parsed?.message === "string" && parsed.message);
-    const hasProviderErrorStatus =
-      providerStatus !== undefined &&
-      providerStatus !== null &&
-      String(providerStatus) !== "200" &&
-      String(providerStatus) !== "0";
-    if (hasProviderErrorStatus && providerMsg) {
+    const providerStatusError = extractComboTestProviderStatusError(parsedPayload);
+    if (providerStatusError) {
       return NextResponse.json({
         ok: false,
         latencyMs,
         status: res.status,
-        error: `Provider status ${String(providerStatus)}: ${String(providerMsg).slice(0, 240)}`,
+        error: String(providerStatusError).slice(0, 240),
       });
     }
 
     if (parsed?.error) {
-      const errNested = parsed.error as Record<string, unknown> | string;
-      const providerError =
-        (typeof errNested === "object" &&
-          errNested !== null &&
-          typeof errNested.message === "string" &&
-          errNested.message) ||
-        (typeof errNested === "string" ? errNested : null) ||
-        "Provider returned an error";
+      const providerError = extractComboTestUpstreamError(parsed, "Provider returned an error");
       return NextResponse.json({
         ok: false,
         latencyMs,
@@ -107,19 +122,40 @@ export async function POST(request: Request) {
       });
     }
 
-    const choices = parsed?.choices;
-    const hasChoices = Array.isArray(choices) && choices.length > 0;
-    if (!hasChoices) {
+    const responseText = extractComboTestResponseText(parsedPayload, model);
+    if (!responseText) {
+      const embeddedError = extractComboTestUpstreamError(parsedPayload, "");
       return NextResponse.json({
         ok: false,
         latencyMs,
         status: res.status,
-        error: "Provider returned no completion choices for this model",
+        error:
+          embeddedError ||
+          "Provider returned HTTP 200 but no assistant text (empty or unsupported response shape).",
+      });
+    }
+
+    if (isComboTestErrorLikeText(responseText)) {
+      return NextResponse.json({
+        ok: false,
+        latencyMs,
+        status: res.status,
+        error: responseText.slice(0, 240),
       });
     }
 
     return NextResponse.json({ ok: true, latencyMs, error: null, status: res.status });
   } catch (err) {
+    if (isTimeoutLikeError(err)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          status: 504,
+          error: "Model test timeout (15s)",
+        },
+        { status: 504 }
+      );
+    }
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

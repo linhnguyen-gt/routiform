@@ -124,6 +124,18 @@ function withCustomUserAgent(
   };
 }
 
+function isTimeoutLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const name = (error.name || "").toLowerCase();
+  const message = (error.message || "").toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("aborted due to timeout") ||
+    message.includes("timeout")
+  );
+}
+
 function buildBearerHeaders(apiKey: string, providerSpecificData: Record<string, unknown> = {}) {
   return applyCustomUserAgent(
     {
@@ -158,11 +170,19 @@ async function validateOpenAILikeProvider({
     return { valid: false, error: "Invalid models endpoint" };
   }
 
-  const modelsRes = await fetch(modelsUrl, {
-    method: "GET",
-    headers: buildBearerHeaders(apiKey, providerSpecificData),
-    signal: AbortSignal.timeout(10000),
-  });
+  let modelsRes: Response;
+  try {
+    modelsRes = await fetch(modelsUrl, {
+      method: "GET",
+      headers: buildBearerHeaders(apiKey, providerSpecificData),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      return { valid: false, error: "Provider validation timeout (10s)", statusCode: 504 };
+    }
+    throw error;
+  }
 
   if (modelsRes.ok) {
     return { valid: true, error: null };
@@ -188,12 +208,20 @@ async function validateOpenAILikeProvider({
     max_tokens: 1,
   };
 
-  const chatRes = await fetch(chatUrl, {
-    method: "POST",
-    headers: buildBearerHeaders(apiKey, providerSpecificData),
-    body: JSON.stringify(testBody),
-    signal: AbortSignal.timeout(15000),
-  });
+  let chatRes: Response;
+  try {
+    chatRes = await fetch(chatUrl, {
+      method: "POST",
+      headers: buildBearerHeaders(apiKey, providerSpecificData),
+      body: JSON.stringify(testBody),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      return { valid: false, error: "Provider validation timeout (15s)", statusCode: 504 };
+    }
+    throw error;
+  }
 
   if (chatRes.ok) {
     return { valid: true, error: null };
@@ -911,6 +939,13 @@ async function validateSearchProvider(
     }
     return { valid: false, error: `Validation failed: ${response.status}`, unsupported: false };
   } catch (error: unknown) {
+    if (isTimeoutLikeError(error)) {
+      return {
+        valid: false,
+        error: "Provider validation timeout",
+        unsupported: false,
+      };
+    }
     return {
       valid: false,
       error: error instanceof Error ? error.message : "Validation failed",
