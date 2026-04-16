@@ -161,6 +161,7 @@ async function validateOpenAILikeProvider({
   const modelsRes = await fetch(modelsUrl, {
     method: "GET",
     headers: buildBearerHeaders(apiKey, providerSpecificData),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (modelsRes.ok) {
@@ -191,6 +192,7 @@ async function validateOpenAILikeProvider({
     method: "POST",
     headers: buildBearerHeaders(apiKey, providerSpecificData),
     body: JSON.stringify(testBody),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (chatRes.ok) {
@@ -1004,9 +1006,7 @@ export async function validateProviderApiKey({
 
   const SPECIALTY_VALIDATORS: Record<
     string,
-    (
-      params: Record<string, unknown>
-    ) => Promise<{
+    (params: Record<string, unknown>) => Promise<{
       valid: boolean;
       error: string | null;
       unsupported?: boolean;
@@ -1025,6 +1025,34 @@ export async function validateProviderApiKey({
     elevenlabs: validateElevenLabsProvider,
     inworld: validateInworldProvider,
     "bailian-coding-plan": validateBailianCodingPlanProvider,
+    nvidia: async ({ apiKey, providerSpecificData: psd }: Record<string, unknown>) => {
+      const providerSpecificData = (psd || {}) as Record<string, unknown>;
+      try {
+        const baseUrl =
+          typeof providerSpecificData.baseUrl === "string"
+            ? normalizeBaseUrl(providerSpecificData.baseUrl)
+            : "https://integrate.api.nvidia.com/v1";
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
+          body: JSON.stringify({
+            model: "meta/llama-3.3-70b-instruct",
+            messages: [{ role: "user", content: "test" }],
+            max_tokens: 1,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (res.status === 401 || res.status === 403) {
+          return { valid: false, error: "Invalid API key" };
+        }
+        return { valid: true, error: null };
+      } catch (error: unknown) {
+        return {
+          valid: false,
+          error: error instanceof Error ? error.message : "Connection failed",
+        };
+      }
+    },
     // LongCat AI — does not expose /v1/models; validate via chat completions directly (#592)
     longcat: async ({ apiKey, providerSpecificData }: Record<string, unknown>) => {
       try {

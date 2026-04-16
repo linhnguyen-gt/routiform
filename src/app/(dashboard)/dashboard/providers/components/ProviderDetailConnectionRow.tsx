@@ -20,6 +20,9 @@ export function ProviderDetailConnectionRow({
   onToggleRateLimit,
   onToggleCodex5h,
   onToggleCodexWeekly,
+  isCcCompatible,
+  cliproxyapiEnabled,
+  onToggleCliproxyapiMode,
   onRetest,
   isRetesting,
   onEdit,
@@ -112,6 +115,9 @@ export function ProviderDetailConnectionRow({
           onToggleActive={onToggleActive}
           onToggleCodex5h={onToggleCodex5h}
           onToggleCodexWeekly={onToggleCodexWeekly}
+          isCcCompatible={isCcCompatible}
+          cliproxyapiEnabled={cliproxyapiEnabled}
+          onToggleCliproxyapiMode={onToggleCliproxyapiMode}
           onToggleRateLimit={onToggleRateLimit}
           proxyHost={proxyHost}
           proxySource={proxySource}

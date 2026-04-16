@@ -35,6 +35,9 @@ interface ProviderDetailConnectionsSectionProps {
   handleUpdateConnectionStatus: (id: string, active: boolean) => void;
   handleToggleRateLimit: (id: string, enabled: boolean) => void;
   handleToggleCodexLimit: (id: string, field: string, enabled: boolean) => void;
+  isCcCompatible?: boolean;
+  cpaProviderEnabled?: boolean;
+  onToggleCliproxyapiMode?: (enabled: boolean) => void;
   handleRetestConnection: (id: string) => void;
   setSelectedConnection: (conn: ConnectionRowConnection) => void;
   setShowEditModal: (val: boolean) => void;
@@ -79,6 +82,9 @@ export function ProviderDetailConnectionsSection({
   handleUpdateConnectionStatus,
   handleToggleRateLimit,
   handleToggleCodexLimit,
+  isCcCompatible,
+  cpaProviderEnabled,
+  onToggleCliproxyapiMode,
   handleRetestConnection,
   setSelectedConnection,
   setShowEditModal,
@@ -114,6 +120,9 @@ export function ProviderDetailConnectionsSection({
       onToggleActive={(isActive) => handleUpdateConnectionStatus(conn.id, !!isActive)}
       onToggleRateLimit={(enabled) => handleToggleRateLimit(conn.id, !!enabled)}
       isCodex={providerId === "codex"}
+      isCcCompatible={isCcCompatible}
+      cliproxyapiEnabled={cpaProviderEnabled}
+      onToggleCliproxyapiMode={onToggleCliproxyapiMode}
       onToggleCodex5h={(enabled) => handleToggleCodexLimit(conn.id, "use5h", !!enabled)}
       onToggleCodexWeekly={(enabled) => handleToggleCodexLimit(conn.id, "useWeekly", !!enabled)}
       onRetest={() => handleRetestConnection(conn.id)}

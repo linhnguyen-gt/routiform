@@ -133,6 +133,9 @@ export function ProviderDetailPageClientImpl() {
           }
         }}
         handleToggleCodexLimit={orchestrator.handleToggleCodexLimit}
+        isCcCompatible={orchestrator.isCcCompatible}
+        cpaProviderEnabled={orchestrator.cpaProviderEnabled}
+        onToggleCliproxyapiMode={orchestrator.handleToggleCliproxyapiMode}
         handleRetestConnection={orchestrator.handleRetestConnection}
         setSelectedConnection={orchestrator.setSelectedConnection}
         setShowEditModal={orchestrator.setShowEditModal}

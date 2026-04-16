@@ -35,6 +35,9 @@ export interface ConnectionRowProps {
   onToggleRateLimit: (enabled?: boolean) => void;
   onToggleCodex5h?: (enabled?: boolean) => void;
   onToggleCodexWeekly?: (enabled?: boolean) => void;
+  isCcCompatible?: boolean;
+  cliproxyapiEnabled?: boolean;
+  onToggleCliproxyapiMode?: (enabled?: boolean) => void;
   onRetest: () => void;
   isRetesting?: boolean;
   onEdit: () => void;

@@ -30,6 +30,9 @@ type Props = {
   onToggleActive: (isActive?: boolean) => void | Promise<void>;
   onToggleCodex5h?: (enabled?: boolean) => void;
   onToggleCodexWeekly?: (enabled?: boolean) => void;
+  isCcCompatible?: boolean;
+  cliproxyapiEnabled?: boolean;
+  onToggleCliproxyapiMode?: (enabled?: boolean) => void;
   onToggleRateLimit: (enabled?: boolean) => void;
   proxyHost?: string;
   proxySource?: string;
@@ -61,6 +64,9 @@ export function ProviderDetailConnectionActions(props: Props) {
     onToggleActive,
     onToggleCodex5h,
     onToggleCodexWeekly,
+    isCcCompatible,
+    cliproxyapiEnabled,
+    onToggleCliproxyapiMode,
     onToggleRateLimit,
     proxyHost,
     proxySource,
@@ -186,11 +192,35 @@ export function ProviderDetailConnectionActions(props: Props) {
               type="button"
               onClick={() => onToggleRateLimit(!rateLimitEnabled)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all ${rateLimitEnabled ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25" : "bg-black/[0.03] text-text-muted/70 hover:bg-black/[0.06] dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"}`}
-              title={rateLimitEnabled ? t("disableRateLimitProtection") : t("enableRateLimitProtection")}
+              title={
+                rateLimitEnabled ? t("disableRateLimitProtection") : t("enableRateLimitProtection")
+              }
             >
               <span className="material-symbols-outlined text-[14px]">shield</span>
               {rateLimitEnabled ? t("rateLimitProtected") : t("rateLimitUnprotected")}
             </button>
+            {isCcCompatible && onToggleCliproxyapiMode && (
+              <>
+                <span className="text-text-muted/30 select-none">|</span>
+                <button
+                  type="button"
+                  onClick={() => onToggleCliproxyapiMode(!cliproxyapiEnabled)}
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    cliproxyapiEnabled
+                      ? "bg-indigo-500/15 text-indigo-500 hover:bg-indigo-500/25"
+                      : "bg-black/[0.03] text-text-muted/50 hover:text-text-muted hover:bg-black/[0.06] dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
+                  }`}
+                  title={
+                    cliproxyapiEnabled
+                      ? "Using CLIProxyAPI for deeper Claude Code emulation (uTLS, multi-account, device profiles)"
+                      : "Enable CLIProxyAPI backend for deeper Claude Code OAuth emulation"
+                  }
+                >
+                  <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
+                  CPA {cliproxyapiEnabled ? "ON" : "OFF"}
+                </button>
+              </>
+            )}
             {isCodex && (
               <>
                 <button
@@ -216,7 +246,15 @@ export function ProviderDetailConnectionActions(props: Props) {
             {hasProxy && (
               <span
                 className={`inline-flex max-w-full items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${proxySource === "global" ? "bg-emerald-500/15 text-emerald-500" : proxySource === "provider" ? "bg-amber-500/15 text-amber-500" : "bg-blue-500/15 text-blue-500"}`}
-                title={t("proxyConfiguredBySource", { source: proxySource === "global" ? t("proxySourceGlobal") : proxySource === "provider" ? t("proxySourceProvider") : t("proxySourceKey"), host: proxyHost || t("configured") })}
+                title={t("proxyConfiguredBySource", {
+                  source:
+                    proxySource === "global"
+                      ? t("proxySourceGlobal")
+                      : proxySource === "provider"
+                        ? t("proxySourceProvider")
+                        : t("proxySourceKey"),
+                  host: proxyHost || t("configured"),
+                })}
               >
                 <span className="material-symbols-outlined shrink-0 text-[14px]">vpn_lock</span>
                 <span className="min-w-0 truncate">{proxyHost || t("proxy")}</span>
@@ -227,7 +265,7 @@ export function ProviderDetailConnectionActions(props: Props) {
       </div>
 
       {/* Footer now only shows for proxy or other info - badges moved to row 2 */}
-      {(hasProxy) && (
+      {hasProxy && (
         <ProviderDetailConnectionFooter
           codex5hEnabled={codex5hEnabled}
           codexWeeklyEnabled={codexWeeklyEnabled}

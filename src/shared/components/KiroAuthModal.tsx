@@ -226,11 +226,11 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex gap-2">
-              <Button onClick={handleIdcContinue} fullWidth>
-                Continue
-              </Button>
               <Button onClick={handleBack} variant="ghost" fullWidth>
                 Back
+              </Button>
+              <Button onClick={handleIdcContinue} fullWidth>
+                Continue
               </Button>
             </div>
           </div>
@@ -257,11 +257,11 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={() => handleSocialLogin("google")} fullWidth>
-                Continue with Google
-              </Button>
               <Button onClick={handleBack} variant="ghost" fullWidth>
                 Back
+              </Button>
+              <Button onClick={() => handleSocialLogin("google")} fullWidth>
+                Continue with Google
               </Button>
             </div>
           </div>
@@ -288,11 +288,11 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={() => handleSocialLogin("github")} fullWidth>
-                Continue with GitHub
-              </Button>
               <Button onClick={handleBack} variant="ghost" fullWidth>
                 Back
+              </Button>
+              <Button onClick={() => handleSocialLogin("github")} fullWidth>
+                Continue with GitHub
               </Button>
             </div>
           </div>
@@ -364,15 +364,15 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
                 )}
 
                 <div className="flex gap-2">
+                  <Button onClick={handleBack} variant="ghost" fullWidth>
+                    Back
+                  </Button>
                   <Button
                     onClick={handleImportToken}
                     fullWidth
                     disabled={importing || !refreshToken.trim()}
                   >
                     {importing ? "Importing..." : "Import Token"}
-                  </Button>
-                  <Button onClick={handleBack} variant="ghost" fullWidth>
-                    Back
                   </Button>
                 </div>
               </>
