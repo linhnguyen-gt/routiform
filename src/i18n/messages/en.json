@@ -1848,7 +1848,11 @@
     "cpa": {
       "updateError": "Failed to update CLIProxyAPI routing",
       "enabled": "Requests now route through CLIProxyAPI (deeper emulation)",
-      "disabled": "Requests now use native routing (direct)"
+      "disabled": "Requests now use native routing (direct)",
+      "labelOn": "CPA ON",
+      "labelOff": "CPA OFF",
+      "tooltipEnabled": "Using CLIProxyAPI for deeper Claude Code emulation (uTLS, multi-account, device profiles)",
+      "tooltipDisabled": "Enable CLIProxyAPI backend for deeper Claude Code OAuth emulation"
     },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",

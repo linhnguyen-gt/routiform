@@ -970,10 +970,8 @@ export async function handleChatCore({
 
   const executeProviderRequest = async (modelToCall = effectiveModel, allowDedup = false) => {
     const execute = async () => {
-      let bodyToSend =
-        translatedBody.model === modelToCall
-          ? translatedBody
-          : { ...translatedBody, model: modelToCall };
+      // Always create a shallow copy to prevent mutation of translatedBody across attempts
+      let bodyToSend = { ...translatedBody, model: modelToCall };
 
       // Inject prompt_cache_key only for providers that support it
       if (

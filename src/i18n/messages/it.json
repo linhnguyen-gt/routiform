@@ -1784,13 +1784,13 @@
     "codexAuthExported": "Codex auth.json exported",
     "codexAuthExportFailed": "Failed to export Codex auth.json",
     "cpa": {
-      "updateError": "Failed to update CLIProxyAPI routing",
-      "enabled": "Requests now route through CLIProxyAPI (deeper emulation)",
-      "disabled": "Requests now use native routing (direct)",
-      "labelOn": "CPA ON",
-      "labelOff": "CPA OFF",
-      "tooltipEnabled": "Using CLIProxyAPI for deeper Claude Code emulation (uTLS, multi-account, device profiles)",
-      "tooltipDisabled": "Enable CLIProxyAPI backend for deeper Claude Code OAuth emulation"
+      "updateError": "Errore nell'aggiornamento del routing CLIProxyAPI",
+      "enabled": "Le richieste ora passano attraverso CLIProxyAPI (emulazione profonda)",
+      "disabled": "Le richieste ora utilizzano il routing nativo (diretto)",
+      "labelOn": "CPA ATTIVO",
+      "labelOff": "CPA DISATTIVO",
+      "tooltipEnabled": "Utilizzo di CLIProxyAPI per un'emulazione più profonda di Claude Code (uTLS, multi-account, profili dispositivo)",
+      "tooltipDisabled": "Abilita backend CLIProxyAPI per un'emulazione OAuth più profonda di Claude Code"
     },
     "advancedSettings": "Advanced Settings",
     "chatPathLabel": "Chat Endpoint Path",

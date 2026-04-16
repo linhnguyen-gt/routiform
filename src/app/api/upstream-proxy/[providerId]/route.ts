@@ -36,7 +36,13 @@ export async function PUT(
     return NextResponse.json({ error: "providerId required" }, { status: 400 });
   }
 
-  const rawBody = await request.json();
+  let rawBody;
+  try {
+    rawBody = await request.json();
+  } catch (error) {
+    return NextResponse.json({ error: "Malformed JSON" }, { status: 400 });
+  }
+
   const validation = validateBody(upsertUpstreamProxySchema, rawBody);
   if (isValidationFailure(validation)) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
