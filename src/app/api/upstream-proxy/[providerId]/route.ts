@@ -39,7 +39,7 @@ export async function PUT(
   let rawBody;
   try {
     rawBody = await request.json();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Malformed JSON" }, { status: 400 });
   }
 

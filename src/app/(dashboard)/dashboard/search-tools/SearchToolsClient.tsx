@@ -231,17 +231,14 @@ export default function SearchToolsClient() {
     // Validate and sanitize search_type - only allow "web" or "news"
     const allowedSearchTypes = ["web", "news"] as const;
     const rawSearchType = entry.filters?.search_type;
-    const search_type =
-      typeof rawSearchType === "string" && allowedSearchTypes.includes(rawSearchType as any)
-        ? rawSearchType
-        : "web";
+    const isAllowedSearchType = (value: unknown): value is (typeof allowedSearchTypes)[number] =>
+      typeof value === "string" && (allowedSearchTypes as readonly string[]).includes(value);
+    const search_type = isAllowedSearchType(rawSearchType) ? rawSearchType : "web";
 
     // Validate and clamp max_results to 1-100 range
     const rawMaxResults = entry.filters?.max_results;
     const max_results =
-      typeof rawMaxResults === "number"
-        ? Math.max(1, Math.min(100, Math.floor(rawMaxResults)))
-        : 5;
+      typeof rawMaxResults === "number" ? Math.max(1, Math.min(100, Math.floor(rawMaxResults))) : 5;
 
     handleSearch({
       ...replayFilters,
