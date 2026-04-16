@@ -5,8 +5,13 @@
 #  Isolated production instance running on port 20130.
 #  Keeps the app running while you continue developing locally.
 #
+#  By default pulls the published image from Docker Hub / GHCR, matching
+#  the version released by GitHub Actions.  Override ROUTIFORM_IMAGE to
+#  pin a version or switch registry.
+#
 #  Usage:
-#    docker compose -f docker-compose.prod.yml up -d --build
+#    docker compose -f docker-compose.prod.yml up -d
+#    ROUTIFORM_IMAGE=linhnguyen0944/routiform:3.10.0-cli docker compose -f docker-compose.prod.yml up -d
 #    docker compose -f docker-compose.prod.yml down
 #    docker compose -f docker-compose.prod.yml logs -f
 # ──────────────────────────────────────────────────────────────────────
@@ -14,10 +19,8 @@
 services:
   routiform-prod:
     container_name: routiform-prod
-    build:
-      context: .
-      target: runner-cli
-    image: routiform:prod
+    image: ${ROUTIFORM_IMAGE:-linhnguyen0944/routiform:cli}
+    pull_policy: always
     restart: unless-stopped
     stop_grace_period: 40s
     env_file: .env

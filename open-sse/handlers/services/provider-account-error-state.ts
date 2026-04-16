@@ -1,8 +1,11 @@
 import { updateProviderConnection } from "@/lib/db/providers";
+import { createLogger } from "@/shared/utils/logger";
 import { COOLDOWN_MS } from "../../config/constants.ts";
 import { lockModelIfPerModelQuota } from "../../services/accountFallback.ts";
 import { PROVIDER_ERROR_TYPES, classifyProviderError } from "../../services/errorClassifier.ts";
 import type { PersistProviderAccountErrorStateOptions } from "../types/chat-core.ts";
+
+const log = createLogger("provider-account-error-state");
 
 export async function persistProviderAccountErrorState({
   connectionId,
@@ -88,17 +91,6 @@ export async function persistProviderAccountErrorState({
         });
         console.warn(`[provider] Node ${connectionId} exhausted quota (${statusCode})`);
       }
-    } else if (errorType === PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED) {
-      await updateProviderConnection(connectionId, {
-        isActive: false,
-        testStatus: "expired",
-        lastErrorType: errorType,
-        lastError: message,
-        errorCode: statusCode,
-      });
-      console.warn(
-        `[provider] Node ${connectionId} account deactivated (${statusCode}) — marked expired`
-      );
     } else if (errorType === PROVIDER_ERROR_TYPES.UNAUTHORIZED) {
       await updateProviderConnection(connectionId, {
         lastErrorType: errorType,
@@ -124,5 +116,19 @@ export async function persistProviderAccountErrorState({
         `[provider] Node ${connectionId} project routing error (${statusCode}) — not banning`
       );
     }
-  } catch {}
+  } catch (err) {
+    log.error(
+      {
+        err,
+        operation: "persistProviderAccountErrorState",
+        provider,
+        providerAccountId: connectionId,
+        model,
+        statusCode,
+        errorType,
+        retryAfterMs,
+      },
+      "Failed to persist provider account error state"
+    );
+  }
 }

@@ -397,6 +397,19 @@ export function useProviderDetailOrchestrator() {
 
   const handleToggleCliproxyapiMode = useCallback(
     async (enabled: boolean) => {
+      const cpaUpdateErrorText =
+        typeof t.has === "function" && t.has("cpa.updateError")
+          ? t("cpa.updateError")
+          : "Failed to update CLIProxyAPI routing";
+      const cpaEnabledText =
+        typeof t.has === "function" && t.has("cpa.enabled")
+          ? t("cpa.enabled")
+          : "Requests now route through CLIProxyAPI (deeper emulation)";
+      const cpaDisabledText =
+        typeof t.has === "function" && t.has("cpa.disabled")
+          ? t("cpa.disabled")
+          : "Requests now use native routing (direct)";
+
       try {
         const res = await fetch(`/api/upstream-proxy/${encodeURIComponent(providerId)}`, {
           method: "PUT",
@@ -406,21 +419,17 @@ export function useProviderDetailOrchestrator() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          notify.error(data.error || "Failed to update CLIProxyAPI routing");
+          notify.error(data.error || cpaUpdateErrorText);
           return;
         }
 
         setCpaProviderEnabled(enabled);
-        notify.success(
-          enabled
-            ? "Requests now route through CLIProxyAPI (deeper emulation)"
-            : "Requests now use native routing (direct)"
-        );
+        notify.success(enabled ? cpaEnabledText : cpaDisabledText);
       } catch {
-        notify.error("Failed to update CLIProxyAPI routing");
+        notify.error(cpaUpdateErrorText);
       }
     },
-    [providerId, notify]
+    [providerId, notify, t]
   );
 
   useEffect(() => {

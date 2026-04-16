@@ -906,21 +906,6 @@ export async function handleChatCore({
     }
   }
 
-  // Force required parameter values for specific models (e.g. Kimi K2.5 requires temperature=1)
-  const forceParamModelId = String(translatedBody.model || effectiveModel || model || "");
-  const forceParams = getForceParams(provider, forceParamModelId);
-  if (forceParams) {
-    for (const [key, value] of Object.entries(forceParams)) {
-      if (translatedBody[key] !== value) {
-        log?.debug?.(
-          "PARAMS",
-          `Forcing ${key}=${value} for ${forceParamModelId} (was ${translatedBody[key]})`
-        );
-        translatedBody[key] = value;
-      }
-    }
-  }
-
   // Provider-specific max_tokens caps (#711)
   // Some providers reject requests when max_tokens exceeds their API limit.
   // Cap before sending to avoid upstream HTTP 400 errors.
@@ -1002,6 +987,21 @@ export async function handleChatCore({
         const cacheKey = generatePromptCacheKey(bodyToSend.messages);
         if (cacheKey) {
           bodyToSend = { ...bodyToSend, prompt_cache_key: cacheKey };
+        }
+      }
+
+      // Force required parameter values after final model selection.
+      const forceParamModelId = String(bodyToSend.model || modelToCall || "");
+      const forceParams = getForceParams(provider, forceParamModelId);
+      if (forceParams) {
+        for (const [key, value] of Object.entries(forceParams)) {
+          if (bodyToSend[key] !== value) {
+            log?.debug?.(
+              "PARAMS",
+              `Forcing ${key}=${value} for ${forceParamModelId} (was ${bodyToSend[key]})`
+            );
+            bodyToSend[key] = value;
+          }
         }
       }
 
@@ -1253,10 +1253,14 @@ export async function handleChatCore({
       upstreamErrorBody = details.responseBody;
     }
 
+    const failedUpstreamModel = String(
+      translatedBody.model || currentModel || effectiveModel || model
+    );
+
     await persistProviderAccountErrorState({
       connectionId,
       provider,
-      model,
+      model: failedUpstreamModel,
       statusCode,
       message,
       retryAfterMs,

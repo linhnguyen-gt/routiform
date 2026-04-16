@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Toggle } from "@/shared/components";
+import { useTranslations } from "next-intl";
 
 import type { ConnectionRowConnection } from "../[id]/types";
 import { ProviderDetailConnectionFooter } from "./ProviderDetailConnectionFooter";
@@ -41,6 +42,7 @@ type Props = {
 };
 
 export function ProviderDetailConnectionActions(props: Props) {
+  const ti = useTranslations("providers");
   const {
     applyCodexAuthLabel,
     codex5hEnabled,
@@ -210,14 +212,10 @@ export function ProviderDetailConnectionActions(props: Props) {
                       ? "bg-indigo-500/15 text-indigo-500 hover:bg-indigo-500/25"
                       : "bg-black/[0.03] text-text-muted/50 hover:text-text-muted hover:bg-black/[0.06] dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
                   }`}
-                  title={
-                    cliproxyapiEnabled
-                      ? "Using CLIProxyAPI for deeper Claude Code emulation (uTLS, multi-account, device profiles)"
-                      : "Enable CLIProxyAPI backend for deeper Claude Code OAuth emulation"
-                  }
+                  title={cliproxyapiEnabled ? ti("cpa.tooltipEnabled") : ti("cpa.tooltipDisabled")}
                 >
                   <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
-                  CPA {cliproxyapiEnabled ? "ON" : "OFF"}
+                  {cliproxyapiEnabled ? ti("cpa.labelOn") : ti("cpa.labelOff")}
                 </button>
               </>
             )}

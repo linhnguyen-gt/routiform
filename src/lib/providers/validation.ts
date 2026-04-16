@@ -1045,6 +1045,22 @@ export async function validateProviderApiKey({
         if (res.status === 401 || res.status === 403) {
           return { valid: false, error: "Invalid API key" };
         }
+
+        if (res.status === 404 || res.status === 405) {
+          return {
+            valid: false,
+            error: "NVIDIA validation endpoint not found (check base URL and endpoint)",
+          };
+        }
+
+        if (res.status >= 500) {
+          return { valid: false, error: `NVIDIA upstream unavailable (${res.status})` };
+        }
+
+        if (!res.ok) {
+          return { valid: false, error: `NVIDIA validation failed (${res.status})` };
+        }
+
         return { valid: true, error: null };
       } catch (error: unknown) {
         return {
