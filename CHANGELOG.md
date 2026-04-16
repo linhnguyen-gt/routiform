@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.0...v3.11.1) (2026-04-16)
+
+
+### Bug Fixes
+
+* align model and provider test outcomes with real upstream status ([39a8be3](https://github.com/linhnguyen-gt/Routiform/commit/39a8be300742461171fb7b9036ce5e2b7579afd4))
+
 ## [3.11.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.10.0...v3.11.0) (2026-04-16)
 
 
