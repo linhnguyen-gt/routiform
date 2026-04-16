@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.11.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.10.0...v3.11.0) (2026-04-16)
+
+
+### Features
+
+* CLIProxyAPI dual-mode toggle and fix modal button order ([ac64b89](https://github.com/linhnguyen-gt/Routiform/commit/ac64b8999f6e424685d8896845edc9aa5f782cd8))
+
+
+### Bug Fixes
+
+* add validateBody() to upstream-proxy PUT route ([7a4827d](https://github.com/linhnguyen-gt/Routiform/commit/7a4827d6fcac939866f4fc5e50a327f54a741bce))
+* apply CodeRabbit auto-fixes ([8606252](https://github.com/linhnguyen-gt/Routiform/commit/8606252ab17b29c6b696bf0a3a764082bae6ca57))
+* avoid unnecessary request body cloning in chat core ([459549d](https://github.com/linhnguyen-gt/Routiform/commit/459549dff46f58929c4fafdb627ba924cd51f48a))
+* harden provider validation and localize CPA messaging ([2bb7e90](https://github.com/linhnguyen-gt/Routiform/commit/2bb7e90bbda53edbd9d80c74c2ef93d1f5a0de7c))
+* **kimi:** inject reasoning_content for Kimi K2.x tool calls and force temperature=1 ([202e66e](https://github.com/linhnguyen-gt/Routiform/commit/202e66e3f775bb9eb7570cf2169bab7af37cc8b1))
+* resolve all TypeScript errors across dashboard and shared components ([5822501](https://github.com/linhnguyen-gt/Routiform/commit/58225011766161a3a850333c11cfe9e9452f76ea))
+* resolve lint violations in search replay and upstream proxy ([c71b918](https://github.com/linhnguyen-gt/Routiform/commit/c71b918874ff090b896cf3e35466351211eeccb0))
+
 ## [3.10.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.2...v3.10.0) (2026-04-15)
 
 
