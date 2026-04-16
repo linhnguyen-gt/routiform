@@ -1646,11 +1646,12 @@ const _unsupportedParamsMap = new Map<string, readonly string[]>();
 const _forceParamsMap = new Map<string, Record<string, unknown>>();
 for (const entry of Object.values(REGISTRY)) {
   for (const model of entry.models) {
+    const normalizedModelId = String(model.id || "").toLowerCase();
     if (model.unsupportedParams && !_unsupportedParamsMap.has(model.id)) {
       _unsupportedParamsMap.set(model.id, model.unsupportedParams);
     }
-    if (model.forceParams && !_forceParamsMap.has(model.id)) {
-      _forceParamsMap.set(model.id, model.forceParams);
+    if (model.forceParams && normalizedModelId && !_forceParamsMap.has(normalizedModelId)) {
+      _forceParamsMap.set(normalizedModelId, model.forceParams);
     }
   }
 }
@@ -1687,18 +1688,22 @@ export function getUnsupportedParams(provider: string, modelId: string): readonl
  * (e.g. temperature must be 1). Returns the merged forceParams object or null.
  */
 export function getForceParams(provider: string, modelId: string): Record<string, unknown> | null {
-  // 1. Check current provider's registry (exact match)
+  const normalizedModelId = String(modelId || "").toLowerCase();
+
+  // 1. Check current provider's registry (case-insensitive match)
   const entry = getRegistryEntry(provider);
-  const modelEntry = entry?.models.find((m) => m.id === modelId);
+  const modelEntry = entry?.models.find(
+    (m) => String(m.id || "").toLowerCase() === normalizedModelId
+  );
   if (modelEntry?.forceParams) return modelEntry.forceParams;
 
   // 2. O(1) lookup in precomputed map (handles cross-provider routing)
-  const cached = _forceParamsMap.get(modelId);
+  const cached = _forceParamsMap.get(normalizedModelId);
   if (cached) return cached;
 
   // 3. Handle prefixed model IDs (e.g., "moonshotai/kimi-k2.5" → "kimi-k2.5")
-  if (modelId.includes("/")) {
-    const bareId = modelId.split("/").pop() || "";
+  if (normalizedModelId.includes("/")) {
+    const bareId = normalizedModelId.split("/").pop() || "";
     const bare = _forceParamsMap.get(bareId);
     if (bare) return bare;
   }

@@ -229,8 +229,9 @@ export default function SearchToolsClient() {
     handleSearch({
       query: entry.query,
       provider: entry.provider || "",
-      search_type: entry.filters?.search_type || "web",
-      max_results: entry.filters?.max_results || 5,
+      search_type:
+        typeof entry.filters?.search_type === "string" ? entry.filters.search_type : "web",
+      max_results: typeof entry.filters?.max_results === "number" ? entry.filters.max_results : 5,
       ...entry.filters,
     });
   };

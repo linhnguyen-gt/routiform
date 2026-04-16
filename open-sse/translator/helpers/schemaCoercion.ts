@@ -189,18 +189,18 @@ export function sanitizeToolId(id: string | undefined): string {
   return sanitized || `tool_${crypto.randomUUID().replace(/-/g, "_")}`;
 }
 
-export function injectEmptyReasoningContentForToolCalls(
-  messages: unknown,
-  provider: unknown,
-  model?: unknown
-): unknown {
+export function isReasoner(provider: unknown, model?: unknown): boolean {
   const providerStr = String(provider || "").toLowerCase();
   const modelStr = typeof model === "string" ? model : "";
-  // Provider-based: DeepSeek API requires reasoning_content on tool_call messages
-  // Model-based: Kimi K2.x (Moonshot) also requires reasoning_content when thinking is enabled
-  const isReasoner =
-    providerStr === "deepseek" || providerStr === "kimi" || /kimi-k2/i.test(modelStr);
-  if (!Array.isArray(messages) || !isReasoner) {
+  return (
+    providerStr === "deepseek" ||
+    providerStr === "kimi" ||
+    (typeof model === "string" && /r1|reason|kimi-k2/i.test(modelStr))
+  );
+}
+
+export function injectEmptyReasoningContent(messages: unknown): unknown {
+  if (!Array.isArray(messages)) {
     return messages;
   }
 
@@ -217,4 +217,16 @@ export function injectEmptyReasoningContentForToolCalls(
 
     return { ...message, reasoning_content: "" };
   });
+}
+
+export function injectEmptyReasoningContentForToolCalls(
+  messages: unknown,
+  provider: unknown,
+  model?: unknown
+): unknown {
+  if (!isReasoner(provider, model)) {
+    return messages;
+  }
+
+  return injectEmptyReasoningContent(messages);
 }

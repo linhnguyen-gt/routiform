@@ -14,6 +14,7 @@ export interface ConnectionRowConnection {
   errorCode?: string | number;
   globalPriority?: number;
   providerSpecificData?: Record<string, unknown>;
+  authType?: string;
   expiresAt?: string;
   tokenExpiresAt?: string;
 }

@@ -49,7 +49,16 @@ export function ProviderDetailPageClientImpl() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 pb-8">
       <ProviderDetailHeroSection
         t={orchestrator.t}
-        providerInfo={orchestrator.providerInfo}
+        providerInfo={
+          orchestrator.providerInfo as {
+            color?: string;
+            textIcon?: string;
+            id: string;
+            apiType?: string;
+            name: string;
+            website?: string;
+          }
+        }
         providerId={orchestrator.providerId}
         connections={orchestrator.connections}
         isOpenAICompatible={orchestrator.isOpenAICompatible}
@@ -212,12 +221,14 @@ export function ProviderDetailPageClientImpl() {
         handleUpdateConnection={orchestrator.handleUpdateConnection}
         showEditNodeModal={orchestrator.showEditNodeModal}
         setShowEditNodeModal={orchestrator.setShowEditNodeModal}
-        providerNode={orchestrator.providerNode}
+        providerNode={orchestrator.providerNode as Record<string, unknown> | null}
         handleUpdateNode={orchestrator.handleUpdateNode}
-        batchTestResults={orchestrator.batchTestResults}
+        batchTestResults={orchestrator.batchTestResults as Record<string, unknown> | null}
         setBatchTestResults={orchestrator.setBatchTestResults}
         t={orchestrator.t}
-        proxyTarget={orchestrator.proxyTarget}
+        proxyTarget={
+          orchestrator.proxyTarget as { level: string; id: string; label: string } | null
+        }
         setProxyTarget={orchestrator.setProxyTarget}
         loadConnProxies={orchestrator.loadConnProxies}
         connections={orchestrator.connections}

@@ -192,10 +192,13 @@ export function ProviderDetailEditConnectionModal({
                   : {}),
           };
       if (isCodex) {
-        updates.providerSpecificData.requestDefaults = {
+        const providerSpecificData =
+          (updates.providerSpecificData as Record<string, unknown> | undefined) || {};
+        providerSpecificData.requestDefaults = {
           reasoningEffort: formData.codexReasoningEffort,
           ...(formData.codexFastServiceTier ? { serviceTier: "priority" } : {}),
         };
+        updates.providerSpecificData = providerSpecificData;
       }
       const error = await onSave(updates);
       if (error) setSaveError(typeof error === "string" ? error : t("failedSaveConnection"));

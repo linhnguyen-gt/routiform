@@ -180,7 +180,11 @@ export default function RoutingTab() {
               type="number"
               min="1"
               max="10"
-              value={settings.stickyRoundRobinLimit || 3}
+              value={
+                typeof settings.stickyRoundRobinLimit === "number"
+                  ? settings.stickyRoundRobinLimit
+                  : 3
+              }
               onChange={(e) => updateSetting({ stickyRoundRobinLimit: parseInt(e.target.value) })}
               disabled={loading}
               className="w-20 text-center"
@@ -189,7 +193,13 @@ export default function RoutingTab() {
         )}
 
         <p className="text-xs text-text-muted italic pt-3 border-t border-border/30 mt-3">
-          {t(strategyHintKeyByValue[settings.fallbackStrategy] || "fillFirstDesc")}
+          {t(
+            strategyHintKeyByValue[
+              typeof settings.fallbackStrategy === "string"
+                ? settings.fallbackStrategy
+                : "fill-first"
+            ] || "fillFirstDesc"
+          )}
         </p>
       </Card>
 

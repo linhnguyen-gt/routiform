@@ -1,12 +1,10 @@
 import { recordCost } from "@/domain/costRules";
 import { getCacheControlSettings } from "@/lib/cacheControlSettings";
 import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
-import { updateProviderConnection } from "@/lib/db/providers";
 import {
   getModelNormalizeToolCallId,
   getModelPreserveOpenAIDeveloperRole,
   getModelUpstreamExtraHeaders,
-  getUpstreamProxyConfig,
 } from "@/lib/localDb";
 import { calculateCost } from "@/lib/usage/costCalculator";
 import { formatUsageLog } from "@/lib/usage/tokenAccounting";
@@ -16,16 +14,10 @@ import {
   saveRequestUsage,
   trackPendingRequest,
 } from "@/lib/usageDb";
-import { COOLDOWN_MS, HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
+import { HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
 import { PROVIDER_ID_TO_ALIAS, getModelTargetFormat } from "../config/providerModels.ts";
 import { getUnsupportedParams, getForceParams } from "../config/providerRegistry.ts";
-import { getExecutor } from "../executors/index.ts";
-import { lockModelIfPerModelQuota } from "../services/accountFallback.ts";
-import {
-  PROVIDER_ERROR_TYPES,
-  classifyProviderError,
-  isEmptyContentResponse,
-} from "../services/errorClassifier.ts";
+import { isEmptyContentResponse } from "../services/errorClassifier.ts";
 import { resolveModelAlias } from "../services/modelDeprecation.ts";
 import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";
 import { refreshWithRetry } from "../services/tokenRefresh.ts";
@@ -50,11 +42,11 @@ import {
   createSSETransformStreamWithLogger,
 } from "../utils/stream.ts";
 import { createStreamController, pipeWithDisconnect } from "../utils/streamHandler.ts";
-import { addBufferToUsage, estimateUsage, filterUsageForFormat } from "../utils/usageTracking.ts";
 import { handleIdempotencyCheck } from "./phases/idempotency-check.ts";
 import { sanitizeRequestInput } from "./phases/input-sanitizer.ts";
 import { checkSemanticCache } from "./phases/semantic-cache-handler.ts";
 import { persistCodexQuotaState } from "./services/codex-quota-manager.ts";
+import { resolveExecutorWithProxy } from "./services/upstream-proxy-resolver.ts";
 import {
   attachLogMeta,
   buildCacheUsageLogMeta,
@@ -90,7 +82,6 @@ import { computeRequestHash, deduplicate, shouldDeduplicate } from "../services/
 import {
   resolveExplicitStreamAlias,
   resolveStreamFlag,
-  stripMarkdownCodeFence,
   stripNonStandardStreamAliases,
 } from "../utils/aiSdkCompat.ts";
 import { isDroidCliUserAgent } from "../utils/clientDetection.ts";
@@ -103,11 +94,8 @@ import {
   handleModelFallback,
   shouldAttemptModelFallback,
 } from "./phases/model-fallback-handler.ts";
-import { sanitizeOpenAIResponse } from "./responseSanitizer.ts";
-import {
-  applyForcedToolChoiceFallback,
-  translateNonStreamingResponse,
-} from "./responseTranslator.ts";
+import { persistProviderAccountErrorState } from "./services/provider-account-error-state.ts";
+import { normalizeNonStreamingTranslatedResponse } from "./utils/non-streaming-response-normalizer.ts";
 import {
   parseSSEToClaudeResponse,
   parseSSEToOpenAIResponse,
@@ -157,13 +145,6 @@ function toPositiveNumber(value: unknown) {
  */
 
 /**
- * Module-level cache for upstream proxy config (shared across all requests).
- * 10s TTL prevents per-request DB lookups while staying fresh enough for setting changes.
- */
-const _proxyConfigCache = new Map<string, { mode: string; enabled: boolean; ts: number }>();
-const PROXY_CONFIG_CACHE_TTL = 10_000;
-
-/**
  * Claude Code hits POST /v1/messages → we translate claude→openai before GitHub Copilot.
  * OpenCode hits POST /v1/chat/completions → source/target are both OpenAI (near-passthrough),
  * so the upstream payload can differ and Copilot returns opaque 400. Round-trip through
@@ -182,17 +163,6 @@ export function shouldBridgeGithubClaudeOpenAiThroughClaudeFormat(
   if (!m.includes("claude-")) return false;
   if (/(^|-)codex($|-)/.test(m)) return false;
   return true;
-}
-
-async function getUpstreamProxyConfigCached(providerId: string) {
-  const cached = _proxyConfigCache.get(providerId);
-  if (cached && Date.now() - cached.ts < PROXY_CONFIG_CACHE_TTL) return cached;
-  const cfg = await getUpstreamProxyConfig(providerId).catch(() => null);
-  const result = cfg
-    ? { mode: cfg.mode, enabled: cfg.enabled, ts: Date.now() }
-    : { mode: "native" as const, enabled: false, ts: Date.now() };
-  _proxyConfigCache.set(providerId, result);
-  return result;
 }
 
 export async function handleChatCore({
@@ -937,11 +907,15 @@ export async function handleChatCore({
   }
 
   // Force required parameter values for specific models (e.g. Kimi K2.5 requires temperature=1)
-  const forceParams = getForceParams(provider, model);
+  const forceParamModelId = String(translatedBody.model || effectiveModel || model || "");
+  const forceParams = getForceParams(provider, forceParamModelId);
   if (forceParams) {
     for (const [key, value] of Object.entries(forceParams)) {
       if (translatedBody[key] !== value) {
-        log?.debug?.("PARAMS", `Forcing ${key}=${value} for ${model} (was ${translatedBody[key]})`);
+        log?.debug?.(
+          "PARAMS",
+          `Forcing ${key}=${value} for ${forceParamModelId} (was ${translatedBody[key]})`
+        );
         translatedBody[key] = value;
       }
     }
@@ -981,63 +955,11 @@ export async function handleChatCore({
   // mode="cliproxyapi": returns the CLIProxyAPI executor instead.
   // mode="fallback": returns a wrapper that tries native first, falls back to CLIProxyAPI on 5xx/network errors.
 
-  const resolveExecutorWithProxy = async (prov: string) => {
-    const cfg = await getUpstreamProxyConfigCached(prov);
-    if (!cfg.enabled || cfg.mode === "native") return getExecutor(prov);
-
-    if (cfg.mode === "cliproxyapi") {
-      log?.info?.("UPSTREAM_PROXY", `${prov} routed through CLIProxyAPI (passthrough)`);
-      return getExecutor("cliproxyapi");
-    }
-
-    // mode === "fallback": try native first, retry via CLIProxyAPI on specific failures
-    const nativeExec = getExecutor(prov);
-    const proxyExec = getExecutor("cliproxyapi");
-    const isRetryableStatus = (s: number) => s >= 500 || s === 429 || s === 0;
-
-    const wrapper = Object.create(nativeExec);
-    wrapper.execute = async (input: {
-      model: string;
-      body: unknown;
-      stream: boolean;
-      credentials: unknown;
-      signal?: AbortSignal | null;
-      log?: unknown;
-      upstreamExtraHeaders?: Record<string, string> | null;
-    }) => {
-      try {
-        const result = await nativeExec.execute(input);
-        if (isRetryableStatus(result.response.status)) {
-          log?.info?.(
-            "UPSTREAM_PROXY",
-            `${prov} native failed (${result.response.status}), retrying via CLIProxyAPI`
-          );
-          try {
-            return await proxyExec.execute(input);
-          } catch (proxyErr) {
-            const proxyMsg = proxyErr instanceof Error ? proxyErr.message : String(proxyErr);
-            log?.error?.("UPSTREAM_PROXY", `${prov} CLIProxyAPI fallback also failed: ${proxyMsg}`);
-            throw proxyErr;
-          }
-        }
-        return result;
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        log?.info?.("UPSTREAM_PROXY", `${prov} native error (${errMsg}), retrying via CLIProxyAPI`);
-        try {
-          return await proxyExec.execute(input);
-        } catch (proxyErr) {
-          const proxyMsg = proxyErr instanceof Error ? proxyErr.message : String(proxyErr);
-          log?.error?.("UPSTREAM_PROXY", `${prov} CLIProxyAPI fallback also failed: ${proxyMsg}`);
-          throw proxyErr;
-        }
-      }
-    };
-    return wrapper;
-  };
-
   // Get executor for this provider (with optional upstream proxy routing)
-  const executor = await resolveExecutorWithProxy(provider);
+  const executor = await resolveExecutorWithProxy({
+    provider,
+    log,
+  });
   const getExecutionCredentials = () => {
     const nextCredentials = nativeCodexPassthrough
       ? { ...credentials, requestEndpointPath: endpointPath }
@@ -1331,129 +1253,14 @@ export async function handleChatCore({
       upstreamErrorBody = details.responseBody;
     }
 
-    // T06/T10/T36: classify provider errors and persist terminal account states.
-    const errorType = classifyProviderError(statusCode, message);
-    if (connectionId && errorType) {
-      try {
-        if (errorType === PROVIDER_ERROR_TYPES.FORBIDDEN) {
-          await updateProviderConnection(connectionId, {
-            isActive: false,
-            testStatus: "banned",
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-          console.warn(
-            `[provider] Node ${connectionId} banned (${statusCode}) — disabling permanently`
-          );
-        } else if (errorType === PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED) {
-          await updateProviderConnection(connectionId, {
-            isActive: false,
-            testStatus: "deactivated",
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-          console.warn(
-            `[provider] Node ${connectionId} account deactivated (${statusCode}) — disabling permanently`
-          );
-        } else if (errorType === PROVIDER_ERROR_TYPES.RATE_LIMITED) {
-          // For providers with per-model quotas (passthrough providers, Gemini),
-          // each model has independent quota. A 429 on one model must NOT lock out
-          // the entire connection — other models may still have quota available.
-          if (
-            lockModelIfPerModelQuota(
-              provider,
-              connectionId,
-              model,
-              "rate_limited",
-              retryAfterMs || COOLDOWN_MS.rateLimit
-            )
-          ) {
-            console.warn(
-              `[provider] Node ${connectionId} model-only rate limited (${statusCode}) for ${model} - ${Math.ceil((retryAfterMs || COOLDOWN_MS.rateLimit) / 1000)}s (connection stays active)`
-            );
-          } else {
-            const rateLimitedUntil = new Date(Date.now() + retryAfterMs).toISOString();
-            await updateProviderConnection(connectionId, {
-              rateLimitedUntil: rateLimitedUntil,
-              testStatus: "credits_exhausted",
-              lastErrorType: errorType,
-              lastError: message,
-              errorCode: statusCode,
-              healthCheckInterval: null,
-              lastHealthCheckAt: null,
-            });
-            console.warn(
-              `[provider] Node ${connectionId} rate limited (${statusCode}) - Next available at ${rateLimitedUntil}`
-            );
-          }
-        } else if (errorType === PROVIDER_ERROR_TYPES.QUOTA_EXHAUSTED) {
-          // Providers with per-model quotas — lock the model only, not the connection
-          if (
-            lockModelIfPerModelQuota(
-              provider,
-              connectionId,
-              model,
-              "quota_exhausted",
-              retryAfterMs || COOLDOWN_MS.rateLimit
-            )
-          ) {
-            console.warn(
-              `[provider] Node ${connectionId} model-only quota exhausted (${statusCode}) for ${model} - ${Math.ceil((retryAfterMs || COOLDOWN_MS.rateLimit) / 1000)}s (connection stays active)`
-            );
-          } else {
-            await updateProviderConnection(connectionId, {
-              testStatus: "credits_exhausted",
-              lastErrorType: errorType,
-              lastError: message,
-              errorCode: statusCode,
-            });
-            console.warn(`[provider] Node ${connectionId} exhausted quota (${statusCode})`);
-          }
-        } else if (errorType === PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED) {
-          await updateProviderConnection(connectionId, {
-            isActive: false,
-            testStatus: "expired",
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-          console.warn(
-            `[provider] Node ${connectionId} account deactivated (${statusCode}) — marked expired`
-          );
-        } else if (errorType === PROVIDER_ERROR_TYPES.UNAUTHORIZED) {
-          // Normal 401 (token/session auth issue): keep account active for refresh/re-auth.
-          await updateProviderConnection(connectionId, {
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-        } else if (errorType === PROVIDER_ERROR_TYPES.OAUTH_INVALID_TOKEN) {
-          // OAuth 401 with invalid credentials - token refresh can recover
-          await updateProviderConnection(connectionId, {
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-          console.warn(
-            `[provider] Node ${connectionId} OAuth token invalid (${statusCode}) — token refresh available`
-          );
-        } else if (errorType === PROVIDER_ERROR_TYPES.PROJECT_ROUTE_ERROR) {
-          // Cloud Code 403 with stale project: not a ban, keep account active.
-          await updateProviderConnection(connectionId, {
-            lastErrorType: errorType,
-            lastError: message,
-            errorCode: statusCode,
-          });
-          console.warn(
-            `[provider] Node ${connectionId} project routing error (${statusCode}) — not banning`
-          );
-        }
-      } catch {
-        // Best-effort state update; request flow should continue with fallback handling.
-      }
-    }
+    await persistProviderAccountErrorState({
+      connectionId,
+      provider,
+      model,
+      statusCode,
+      message,
+      retryAfterMs,
+    });
 
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(
       () => {}
@@ -1888,65 +1695,14 @@ export async function handleChatCore({
       if (estimatedCost > 0) recordCost(apiKeyInfo.id, estimatedCost);
     }
 
-    // Translate response to client's expected format (usually OpenAI)
-    // Pass toolNameMap so Claude OAuth proxy_ prefix is stripped in tool_use blocks (#605)
-    let translatedResponse = needsTranslation(targetFormat, sourceFormat)
-      ? translateNonStreamingResponse(
-          responseBody,
-          targetFormat,
-          sourceFormat,
-          toolNameMap as Map<string, string> | null
-        )
-      : responseBody;
-
-    // Apply forced tool_choice fallback for Codex upstream that ignores tool_choice
-    // and returns JSON as plain text content instead of tool_calls
-    translatedResponse = applyForcedToolChoiceFallback(body, translatedResponse);
-
-    // T26: Strip markdown code blocks if provider format is Claude
-    if (sourceFormat === "claude" && !stream) {
-      if (typeof translatedResponse?.choices?.[0]?.message?.content === "string") {
-        translatedResponse.choices[0].message.content = stripMarkdownCodeFence(
-          translatedResponse.choices[0].message.content
-        ) as string;
-      }
-    }
-
-    // T18: Normalize finish_reason to 'tool_calls' if tool calls are present
-    if (translatedResponse?.choices) {
-      for (const choice of translatedResponse.choices) {
-        if (
-          choice.message?.tool_calls &&
-          choice.message.tool_calls.length > 0 &&
-          choice.finish_reason !== "tool_calls"
-        ) {
-          choice.finish_reason = "tool_calls";
-        }
-      }
-    }
-
-    // Sanitize response for OpenAI SDK compatibility
-    // Strips non-standard fields (x_groq, usage_breakdown, etc.) while preserving official ones
-    // such as service_tier and system_fingerprint, and extracts <think>/<thinking> tags.
-    // Source format determines output shape. If we are outputting OpenAI shape or pseudo-OpenAI shape, sanitize.
-    if (sourceFormat === FORMATS.OPENAI || sourceFormat === FORMATS.OPENAI_RESPONSES) {
-      translatedResponse = sanitizeOpenAIResponse(translatedResponse);
-    }
-
-    // Add buffer and filter usage for client (to prevent CLI context errors)
-    if (translatedResponse?.usage) {
-      const buffered = addBufferToUsage(translatedResponse.usage);
-      translatedResponse.usage = filterUsageForFormat(buffered, sourceFormat);
-    } else {
-      // Fallback: estimate usage when provider returned no usage block
-      const contentLength = JSON.stringify(
-        translatedResponse?.choices?.[0]?.message?.content || ""
-      ).length;
-      if (contentLength > 0) {
-        const estimated = estimateUsage(body, contentLength, sourceFormat);
-        translatedResponse.usage = filterUsageForFormat(estimated, sourceFormat);
-      }
-    }
+    let translatedResponse = normalizeNonStreamingTranslatedResponse({
+      requestBody: body,
+      responseBody,
+      sourceFormat,
+      targetFormat,
+      stream,
+      toolNameMap,
+    });
 
     // ── Phase 9.1: Cache store (non-streaming, temp=0) ──
     if (isCacheable(body, clientRawRequest?.headers)) {

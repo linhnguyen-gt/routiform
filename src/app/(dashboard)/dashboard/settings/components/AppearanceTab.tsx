@@ -305,7 +305,9 @@ export default function AppearanceTab() {
               </div>
               <input
                 type="text"
-                value={settings.instanceName || "Routiform"}
+                value={
+                  typeof settings.instanceName === "string" ? settings.instanceName : "Routiform"
+                }
                 onChange={(e) => updateSetting("instanceName", e.target.value)}
                 placeholder="Routiform"
                 maxLength={100}
@@ -321,7 +323,7 @@ export default function AppearanceTab() {
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  value={settings.customLogoUrl || ""}
+                  value={typeof settings.customLogoUrl === "string" ? settings.customLogoUrl : ""}
                   onChange={(e) => updateSetting("customLogoUrl", e.target.value)}
                   className="flex-1 h-10 px-3 rounded-lg bg-surface border border-border text-sm text-text-main focus:outline-none focus:border-primary"
                   placeholder="https://example.com/logo.png"
@@ -331,7 +333,13 @@ export default function AppearanceTab() {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={settings.customLogoBase64 || settings.customLogoUrl}
+                      src={
+                        typeof settings.customLogoBase64 === "string"
+                          ? settings.customLogoBase64
+                          : typeof settings.customLogoUrl === "string"
+                            ? settings.customLogoUrl
+                            : ""
+                      }
                       alt="Logo preview"
                       className="h-10 w-10 rounded border border-border object-contain bg-surface"
                       onError={(e) => {
@@ -403,7 +411,13 @@ export default function AppearanceTab() {
                   <p className="text-xs text-text-muted mb-2">{t("logoPreview")}</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={settings.customLogoBase64 || settings.customLogoUrl}
+                    src={
+                      typeof settings.customLogoBase64 === "string"
+                        ? settings.customLogoBase64
+                        : typeof settings.customLogoUrl === "string"
+                          ? settings.customLogoUrl
+                          : ""
+                    }
                     alt="Logo preview"
                     className="h-12 w-auto max-w-full rounded"
                   />
@@ -419,7 +433,9 @@ export default function AppearanceTab() {
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  value={settings.customFaviconUrl || ""}
+                  value={
+                    typeof settings.customFaviconUrl === "string" ? settings.customFaviconUrl : ""
+                  }
                   onChange={(e) => updateSetting("customFaviconUrl", e.target.value)}
                   className="flex-1 h-10 px-3 rounded-lg bg-surface border border-border text-sm text-text-main focus:outline-none focus:border-primary"
                   placeholder="https://example.com/favicon.ico"
@@ -429,7 +445,13 @@ export default function AppearanceTab() {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={settings.customFaviconBase64 || settings.customFaviconUrl}
+                      src={
+                        typeof settings.customFaviconBase64 === "string"
+                          ? settings.customFaviconBase64
+                          : typeof settings.customFaviconUrl === "string"
+                            ? settings.customFaviconUrl
+                            : ""
+                      }
                       alt="Favicon preview"
                       className="h-10 w-10 rounded border border-border object-contain bg-surface"
                       onError={(e) => {
@@ -503,7 +525,13 @@ export default function AppearanceTab() {
                   <p className="text-xs text-text-muted mb-2">{t("faviconPreview")}</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={settings.customFaviconBase64 || settings.customFaviconUrl}
+                    src={
+                      typeof settings.customFaviconBase64 === "string"
+                        ? settings.customFaviconBase64
+                        : typeof settings.customFaviconUrl === "string"
+                          ? settings.customFaviconUrl
+                          : ""
+                    }
                     alt="Favicon preview"
                     className="h-8 w-8 rounded"
                   />

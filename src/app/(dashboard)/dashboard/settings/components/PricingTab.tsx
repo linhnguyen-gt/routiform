@@ -51,7 +51,14 @@ export default function PricingTab() {
     const providers = Object.entries(catalog)
       .map(([alias, info]: [string, Record<string, unknown>]) => ({
         alias,
-        ...info,
+        ...(info as Record<string, unknown>),
+        id: (info as Record<string, unknown>).id || alias,
+        models: Array.isArray((info as Record<string, unknown>).models)
+          ? ((info as Record<string, unknown>).models as Array<{ id: string; name: string }>)
+          : [],
+        modelCount: Array.isArray((info as Record<string, unknown>).models)
+          ? ((info as Record<string, unknown>).models as unknown[]).length
+          : 0,
         pricedModels: pricingData[alias] ? Object.keys(pricingData[alias]).length : 0,
       }))
       .sort((a, b) => b.modelCount - a.modelCount);
@@ -65,8 +72,10 @@ export default function PricingTab() {
     return allProviders.filter(
       (p) =>
         p.alias.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q) ||
-        p.models.some((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q))
+        (typeof p.id === "string" && p.id.toLowerCase().includes(q)) ||
+        p.models.some(
+          (m) => (m.id || "").toLowerCase().includes(q) || (m.name || "").toLowerCase().includes(q)
+        )
     );
   }, [allProviders, searchQuery]);
 
