@@ -16,6 +16,8 @@ import {
   getCallLogMaxEntries,
   getProxyLogMaxEntries,
 } from "../logEnv";
+import { jwtVerify } from "jose";
+import { getClientIpFromRequest } from "../ipUtils";
 
 /** @returns {import("better-sqlite3").Database | null} */
 function getDb() {
@@ -85,6 +87,58 @@ export function logAuditEvent(entry: {
   }
 }
 
+export async function getAuditActorFromRequest(request: Request): Promise<string> {
+  const cookieHeader = request.headers.get("cookie") || request.headers.get("Cookie");
+  const authToken = (() => {
+    if (typeof cookieHeader !== "string" || cookieHeader.length === 0) return null;
+    const match = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
+    if (!match || typeof match[1] !== "string") return null;
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1];
+    }
+  })();
+
+  if (authToken && process.env.JWT_SECRET) {
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      await jwtVerify(authToken, secret);
+      return "dashboard";
+    } catch {
+      // Invalid/expired cookie token.
+    }
+  }
+
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (typeof authHeader === "string" && authHeader.trim().toLowerCase().startsWith("bearer ")) {
+    const bearerToken = authHeader.trim().slice(7).trim();
+    if (bearerToken) {
+      try {
+        const { validateApiKey } = await import("../db/apiKeys");
+        if (await validateApiKey(bearerToken)) {
+          return "api_key";
+        }
+      } catch {
+        if (authToken) {
+          return "dashboard";
+        }
+        return "unknown";
+      }
+    }
+  }
+
+  if (authToken) {
+    return "dashboard";
+  }
+
+  return "dashboard";
+}
+
+export function getAuditIpFromRequest(request: Request): string {
+  return getClientIpFromRequest({ headers: request.headers });
+}
+
 /**
  * Query audit log entries.
  *
@@ -96,7 +150,13 @@ export function logAuditEvent(entry: {
  * @returns {Array<{ id: number, timestamp: string, action: string, actor: string, target: string, details: any, ip_address: string }>}
  */
 export function getAuditLog(
-  filter: { action?: string; actor?: string; limit?: number; offset?: number } = {}
+  filter: {
+    action?: string;
+    actor?: string;
+    limit?: number;
+    offset?: number;
+    excludeActions?: string[];
+  } = {}
 ) {
   const db = getDb();
   if (!db) return [];
@@ -112,18 +172,42 @@ export function getAuditLog(
     conditions.push("actor = ?");
     params.push(filter.actor);
   }
+  if (Array.isArray(filter.excludeActions) && filter.excludeActions.length > 0) {
+    const actions = filter.excludeActions.filter(
+      (action): action is string => typeof action === "string" && action.trim().length > 0
+    );
+    if (actions.length > 0) {
+      conditions.push(`action NOT IN (${actions.map(() => "?").join(", ")})`);
+      params.push(...actions);
+    }
+  }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const limit = filter.limit || 100;
-  const offset = filter.offset || 0;
+  const parsedLimit =
+    typeof filter.limit === "number" && Number.isFinite(filter.limit)
+      ? Math.floor(filter.limit)
+      : 100;
+  const parsedOffset =
+    typeof filter.offset === "number" && Number.isFinite(filter.offset)
+      ? Math.floor(filter.offset)
+      : 0;
+  const limit = Math.min(Math.max(parsedLimit, 1), 500);
+  const offset = Math.max(parsedOffset, 0);
 
   const rows = db
-    .prepare(`SELECT * FROM audit_log ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`)
+    .prepare(`SELECT * FROM audit_log ${where} ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?`)
     .all(...params, limit, offset) as Array<Record<string, unknown> & { details?: string | null }>;
 
   return rows.map((row) => ({
     ...(row as Record<string, unknown>),
-    details: row.details ? JSON.parse(String(row.details)) : null,
+    details: (() => {
+      if (!row.details) return null;
+      try {
+        return JSON.parse(String(row.details));
+      } catch {
+        return String(row.details);
+      }
+    })(),
   }));
 }
 
