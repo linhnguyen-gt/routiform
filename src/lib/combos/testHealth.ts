@@ -316,7 +316,6 @@ export function buildComboTestRequestBody(modelStr: string) {
     // Reasoning models (Gemini 2.5, DeepSeek-R1, etc.) may spend budget on thinking first;
     // 64 was too small and produced empty `content` with HTTP 200 via Cline.
     max_tokens: 256,
-    temperature: 0,
     stream: false,
   };
 }
