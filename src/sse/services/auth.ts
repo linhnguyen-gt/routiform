@@ -785,7 +785,8 @@ export async function markAccountUnavailable(
   status: number,
   errorText: string,
   provider: string | null = null,
-  model: string | null = null
+  model: string | null = null,
+  headers: Headers | Record<string, string> | null = null
 ) {
   const currentMutex = markMutexes.get(connectionId) || Promise.resolve();
   let resolveMutex: (() => void) | undefined;
@@ -870,13 +871,7 @@ export async function markAccountUnavailable(
       }
     }
 
-    const result = checkFallbackError(
-      status,
-      errorText,
-      backoffLevel,
-      model,
-      provider // ← Now passes provider for profile-aware cooldowns
-    );
+    const result = checkFallbackError(status, errorText, backoffLevel, model, provider, headers);
     const { shouldFallback, cooldownMs, newBackoffLevel, reason } = result;
     if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 

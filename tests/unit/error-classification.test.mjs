@@ -116,6 +116,22 @@ test("429 rate limit: still uses quota-based exponential backoff", () => {
   assert.equal(result.reason, RateLimitReason.RATE_LIMIT_EXCEEDED);
 });
 
+test("P0-E: 429 + Retry-After header has precedence over text-based long cooldown", () => {
+  const headers = new Headers({ "retry-after": "9" });
+  const result = checkFallbackError(
+    429,
+    "your quota will reset after 5h",
+    3,
+    null,
+    "antigravity",
+    headers
+  );
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, RateLimitReason.RATE_LIMIT_EXCEEDED);
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 8_000 && result.cooldownMs <= 10_500);
+});
+
 test("401 auth error: still uses flat cooldown, no backoff", () => {
   const result = checkFallbackError(401, "", 0, null, "groq");
   assert.equal(result.shouldFallback, true);

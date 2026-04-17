@@ -49,6 +49,45 @@ test("T23: 429 with long Retry-After uses real reset cooldown instead of short e
   assert.ok(result.cooldownMs > 3_590_000);
 });
 
+test("P0-E: 429 with short Retry-After header still overrides body heuristics", () => {
+  const headers = new Headers({ "retry-after": "15" });
+  const result = checkFallbackError(
+    429,
+    "Your quota will reset after 2h30m14s",
+    4,
+    null,
+    "groq",
+    headers
+  );
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 14_000 && result.cooldownMs <= 16_000);
+});
+
+test("P0-E: 429 with date Retry-After header takes precedence", () => {
+  const retryAt = new Date(Date.now() + 45_000).toUTCString();
+  const headers = new Headers({ "retry-after": retryAt });
+  const result = checkFallbackError(429, "rate limit exceeded", 1, null, "groq", headers);
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 40_000 && result.cooldownMs <= 50_000);
+});
+
+test("P0-E: 429 with x-ratelimit-reset header takes precedence", () => {
+  const resetSeconds = Math.floor((Date.now() + 22_000) / 1000);
+  const headers = new Headers({ "x-ratelimit-reset": String(resetSeconds) });
+  const result = checkFallbackError(429, "rate limit exceeded", 1, null, "groq", headers);
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 20_000 && result.cooldownMs <= 24_000);
+});
+
 test("T24: combo awaits short 503 cooldown before falling through to next model", async () => {
   const log = createLog();
 
