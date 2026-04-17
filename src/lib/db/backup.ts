@@ -15,6 +15,7 @@ import {
   DATA_DIR,
 } from "./core";
 import { resetAllDbModuleState } from "./stateReset";
+import { getDbBackupMaxFiles } from "../logEnv";
 
 type CountRow = { cnt?: number };
 
@@ -22,7 +23,6 @@ type CountRow = { cnt?: number };
 
 let _lastBackupAt = 0;
 const BACKUP_THROTTLE_MS = 60 * 60 * 1000; // 60 minutes
-const MAX_DB_BACKUPS = 20;
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
 
 function isSqliteAutoBackupDisabled() {
@@ -40,6 +40,36 @@ function isSqliteAutoBackupDisabled() {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function rotateDbBackups(backupDir: string, maxFiles: number) {
+  const files = fs
+    .readdirSync(backupDir)
+    .filter((f) => f.startsWith("db_") && f.endsWith(".sqlite"))
+    .sort();
+
+  while (files.length > maxFiles) {
+    let smallestIdx = 0;
+    let smallestSize = Infinity;
+    for (let i = 0; i < files.length - 1; i++) {
+      try {
+        const fStat = fs.statSync(path.join(backupDir, files[i]));
+        if (fStat.size < smallestSize) {
+          smallestSize = fStat.size;
+          smallestIdx = i;
+        }
+      } catch {
+        smallestIdx = i;
+        break;
+      }
+    }
+    try {
+      fs.unlinkSync(path.join(backupDir, files[smallestIdx]));
+    } catch {
+      /* gone */
+    }
+    files.splice(smallestIdx, 1);
+  }
 }
 
 export async function unlinkFileWithRetry(
@@ -111,6 +141,11 @@ export function backupDbFile(reason = "auto") {
     const db = getDbInstance();
     db.backup(backupFile)
       .then(() => {
+        try {
+          rotateDbBackups(backupDir, getDbBackupMaxFiles());
+        } catch {
+          /* ignore backup rotation errors after write */
+        }
         console.log(`[DB] Backup created: ${backupFile} (${stat.size} bytes)`);
       })
       .catch((err: unknown) => {
@@ -118,33 +153,7 @@ export function backupDbFile(reason = "auto") {
         console.error("[DB] Backup failed:", message);
       });
 
-    // Rotation — keep only last N, delete smallest first
-    const files = fs
-      .readdirSync(backupDir)
-      .filter((f) => f.startsWith("db_") && f.endsWith(".sqlite"))
-      .sort();
-    while (files.length > MAX_DB_BACKUPS) {
-      let smallestIdx = 0;
-      let smallestSize = Infinity;
-      for (let i = 0; i < files.length - 1; i++) {
-        try {
-          const fStat = fs.statSync(path.join(backupDir, files[i]));
-          if (fStat.size < smallestSize) {
-            smallestSize = fStat.size;
-            smallestIdx = i;
-          }
-        } catch {
-          smallestIdx = i;
-          break;
-        }
-      }
-      try {
-        fs.unlinkSync(path.join(backupDir, files[smallestIdx]));
-      } catch {
-        /* gone */
-      }
-      files.splice(smallestIdx, 1);
-    }
+    rotateDbBackups(backupDir, getDbBackupMaxFiles());
 
     return { filename: path.basename(backupFile), size: stat.size };
   } catch (err: unknown) {
@@ -152,6 +161,50 @@ export function backupDbFile(reason = "auto") {
     console.error("[DB] Backup failed:", message);
     return null;
   }
+}
+
+export async function backupDbFileBlocking(reason = "manual") {
+  if (isBuildPhase || isCloud) return null;
+  if (!SQLITE_FILE || !fs.existsSync(SQLITE_FILE)) return null;
+  if (reason !== "manual" && isSqliteAutoBackupDisabled()) return null;
+
+  const stat = fs.statSync(SQLITE_FILE);
+  if (stat.size < 4096) {
+    console.warn(`[DB] Backup SKIPPED — DB too small (${stat.size}B)`);
+    return null;
+  }
+
+  const now = Date.now();
+  if (reason !== "manual" && reason !== "pre-restore" && now - _lastBackupAt < BACKUP_THROTTLE_MS) {
+    return null;
+  }
+  _lastBackupAt = now;
+
+  const backupDir = DB_BACKUPS_DIR || path.join(DATA_DIR, "db_backups");
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+  const existingBackups = fs
+    .readdirSync(backupDir)
+    .filter((f) => f.startsWith("db_") && f.endsWith(".sqlite"))
+    .sort();
+  if (existingBackups.length > 0) {
+    const latestBackup = existingBackups[existingBackups.length - 1];
+    const latestStat = fs.statSync(path.join(backupDir, latestBackup));
+    if (latestStat.size > 4096 && stat.size < latestStat.size * 0.5) {
+      console.warn(`[DB] Backup SKIPPED — DB shrank from ${latestStat.size}B to ${stat.size}B`);
+      return null;
+    }
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupFile = path.join(backupDir, `db_${timestamp}_${reason}.sqlite`);
+
+  const db = getDbInstance();
+  await db.backup(backupFile);
+  rotateDbBackups(backupDir, getDbBackupMaxFiles());
+  console.log(`[DB] Backup created: ${backupFile} (${stat.size} bytes)`);
+
+  return { filename: path.basename(backupFile), size: stat.size };
 }
 
 // ──────────────── List Backups ────────────────
