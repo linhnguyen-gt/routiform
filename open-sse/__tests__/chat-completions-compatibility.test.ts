@@ -104,11 +104,25 @@ describe("chat completions compatibility shims", () => {
     ) as Record<string, unknown>;
 
     expect(result.instructions).toContain("Be concise.");
-    expect(result.tools).toEqual([
-      expect.objectContaining({ type: "function", name: "calc" }),
-    ]);
+    expect(result.tools).toEqual([expect.objectContaining({ type: "function", name: "calc" })]);
     expect(result.tool_choice).toEqual({ type: "function", name: "calc" });
-    expect(result.max_completion_tokens).toBe(123);
+    expect(result.max_output_tokens).toBe(123);
+    expect(result.max_completion_tokens).toBeUndefined();
+  });
+
+  it("maps max_tokens to max_output_tokens for Responses requests", () => {
+    const result = openaiToOpenAIResponsesRequest(
+      "gpt-4o",
+      {
+        messages: [{ role: "user", content: "hello" }],
+        max_tokens: 77,
+      },
+      false,
+      null
+    ) as Record<string, unknown>;
+
+    expect(result.max_output_tokens).toBe(77);
+    expect(result.max_tokens).toBeUndefined();
   });
 
   it("converts Responses function_call/function_call_output back to Chat messages", () => {

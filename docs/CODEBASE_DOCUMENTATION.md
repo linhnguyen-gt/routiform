@@ -414,6 +414,8 @@ graph TD
 | `index.ts`   | —             | Translation engine: `translateRequest()`, `translateResponse()`, state management, registry.                                                                                                                                                                                                                                                                                                                                    |
 | `formats.ts` | —             | Format constants: `OPENAI`, `CLAUDE`, `GEMINI`, `ANTIGRAVITY`, `KIRO`, `CURSOR`, `OPENAI_RESPONSES`.                                                                                                                                                                                                                                                                                                                            |
 
+OpenAI Chat → OpenAI Responses request translation normalizes token caps to `max_output_tokens` with precedence: `max_output_tokens` > `max_completion_tokens` > `max_tokens`.
+
 #### Key Design: Self-Registering Plugins
 
 ```javascript
