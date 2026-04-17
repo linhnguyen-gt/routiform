@@ -191,6 +191,10 @@ Response example:
 
 Recent first-class provider catalog additions on `/api/providers/[id]/models` include `deepinfra`, `sambanova`, and `venice`.
 
+Provider outbound network calls for `/api/providers/[id]/models` and `/api/providers/validate` are protected by `safeOutboundFetch` (`src/lib/network/safeOutboundFetch.ts`), which enforces URL policy checks, DNS resolution checks (blocks private/internal targets), and manual redirect validation before following redirects.
+
+For `/api/providers/[id]/models`, outbound URL policy violations return `400` and outbound timeout conditions return `504`.
+
 ### OAuth Flows
 
 | Endpoint                         | Method  | Description             |

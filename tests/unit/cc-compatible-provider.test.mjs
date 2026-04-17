@@ -19,6 +19,8 @@ const {
 } = await import("../../open-sse/services/claudeCodeCompatible.ts");
 const { handleChatCore } = await import("../../open-sse/handlers/chatCore.ts");
 const { validateProviderApiKey } = await import("../../src/lib/providers/validation.ts");
+const { setSafeOutboundDnsLookupForTesting, resetSafeOutboundDnsLookupForTesting } =
+  await import("../../src/lib/network/safeOutboundFetch.ts");
 const providerNodesRoute = await import("../../src/app/api/provider-nodes/route.ts");
 const providerNodesValidateRoute =
   await import("../../src/app/api/provider-nodes/validate/route.ts");
@@ -35,6 +37,7 @@ async function resetStorage() {
 
 test.afterEach(async () => {
   globalThis.fetch = originalFetch;
+  resetSafeOutboundDnsLookupForTesting();
   if (originalFlag === undefined) {
     delete process.env.ENABLE_CC_COMPATIBLE_PROVIDER;
   } else {
@@ -45,6 +48,7 @@ test.afterEach(async () => {
 
 test.after(() => {
   globalThis.fetch = originalFetch;
+  resetSafeOutboundDnsLookupForTesting();
   if (originalFlag === undefined) {
     delete process.env.ENABLE_CC_COMPATIBLE_PROVIDER;
   } else {
@@ -52,6 +56,10 @@ test.after(() => {
   }
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
+});
+
+test.beforeEach(() => {
+  setSafeOutboundDnsLookupForTesting(async () => [{ address: "93.184.216.34", family: 4 }]);
 });
 
 test("buildClaudeCodeCompatibleRequest keeps prior role history while dropping trailing assistant prefill", () => {
