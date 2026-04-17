@@ -5,6 +5,7 @@ const { checkFallbackError } = await import("../../open-sse/services/accountFall
 const { handleComboChat, shouldFallbackComboBadRequest } =
   await import("../../open-sse/services/combo.ts");
 const { resetAllCircuitBreakers } = await import("../../src/shared/utils/circuitBreaker.ts");
+const { getDefaultComboConfig } = await import("../../open-sse/services/comboConfig.ts");
 
 test.beforeEach(() => {
   resetAllCircuitBreakers();
@@ -267,4 +268,123 @@ test("round-robin combo falls through invalid-argument 400s and reaches the next
   assert.equal(result.ok, true);
   const badRequestLog = log.entries.find((entry) => entry.msg.includes("provider-scoped 400"));
   assert.ok(badRequestLog);
+});
+
+test("P0-C: combo config defaults expose requestRetry and maxRetryIntervalSec", () => {
+  const config = getDefaultComboConfig();
+
+  assert.equal(config.requestRetry, undefined);
+  assert.equal(config.maxRetryIntervalSec, undefined);
+  assert.equal(config.maxRetries, 1);
+  assert.equal(config.retryDelayMs, 2000);
+});
+
+test("P0-C: legacy maxRetries remains effective without requestRetry", async () => {
+  const log = createLog();
+  let callCount = 0;
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-legacy-max-retries-compat",
+      strategy: "priority",
+      config: {
+        maxRetries: 2,
+        retryDelayMs: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: async () => {
+      callCount += 1;
+      if (callCount <= 2) {
+        return new Response(JSON.stringify({ error: { message: "temporary" } }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    },
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(callCount, 3);
+});
+
+test("P0-C: requestRetry overrides legacy maxRetries in combo flow", async () => {
+  const log = createLog();
+  let callCount = 0;
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-request-retry-overrides-max-retries",
+      strategy: "priority",
+      config: {
+        maxRetries: 0,
+        requestRetry: 1,
+        retryDelayMs: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({ error: { message: "temporary" } }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    },
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(callCount, 2);
+});
+
+test("P0-C: maxRetryIntervalSec caps retry wait for long cooldown headers", async () => {
+  const log = createLog();
+  const before = Date.now();
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-max-retry-interval-cap",
+      strategy: "priority",
+      config: {
+        requestRetry: 1,
+        retryDelayMs: 200,
+        maxRetryIntervalSec: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: createStatusSequenceHandler([
+      {
+        status: 429,
+        message: "rate limit exceeded",
+        headers: { "content-type": "application/json", "retry-after": "120" },
+      },
+      {
+        status: 429,
+        message: "rate limit exceeded",
+        headers: { "content-type": "application/json", "retry-after": "120" },
+      },
+    ]),
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  const elapsedMs = Date.now() - before;
+  assert.equal(result.status, 503);
+  assert.ok(elapsedMs < 2500);
 });

@@ -135,7 +135,9 @@ const comboModelEntry = z.union([
 const comboConfigSchema = z
   .object({
     maxRetries: z.number().int().min(0).max(10).optional(),
+    requestRetry: z.number().int().min(0).max(10).optional(),
     retryDelayMs: z.number().int().min(0).max(60000).optional(),
+    maxRetryIntervalSec: z.number().int().min(1).max(300).optional(),
     timeoutMs: z.number().int().min(1000).max(600000).optional(),
     healthCheckEnabled: z.boolean().optional(),
   })
@@ -174,7 +176,9 @@ const comboRuntimeConfigSchema = z
   .object({
     strategy: comboStrategySchema.optional(),
     maxRetries: z.coerce.number().int().min(0).max(10).optional(),
+    requestRetry: z.coerce.number().int().min(0).max(10).optional(),
     retryDelayMs: z.coerce.number().int().min(0).max(60000).optional(),
+    maxRetryIntervalSec: z.coerce.number().int().min(1).max(300).optional(),
     timeoutMs: z.coerce.number().int().min(1000).max(600000).optional(),
     concurrencyPerModel: z.coerce.number().int().min(1).max(20).optional(),
     queueTimeoutMs: z.coerce.number().int().min(1000).max(120000).optional(),

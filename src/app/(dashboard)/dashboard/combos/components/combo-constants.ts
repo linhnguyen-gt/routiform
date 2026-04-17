@@ -62,7 +62,9 @@ export const STRATEGY_GUIDANCE_FALLBACK: Record<
 
 export const ADVANCED_FIELD_HELP_FALLBACK = {
   maxRetries: "How many retries are attempted before failing the request.",
+  requestRetry: "Explicit retry attempts for transient failures (preferred over maxRetries).",
   retryDelay: "Initial delay between retries. Higher values reduce burst pressure.",
+  maxRetryIntervalSec: "Upper bound in seconds for each retry wait interval.",
   timeout: "Maximum request time before aborting. Set higher for long generations.",
   healthcheck: "Skips unhealthy models/providers from routing decisions when enabled.",
   concurrencyPerModel: "Max simultaneous requests sent to each model in round-robin.",

@@ -23,7 +23,9 @@ export interface Settings {
 export interface ComboDefaults {
   strategy: "priority" | "weighted" | "round-robin";
   maxRetries: number;
+  requestRetry?: number;
   retryDelayMs: number;
+  maxRetryIntervalSec?: number;
   timeoutMs: number;
   healthCheckEnabled: boolean;
   healthCheckTimeoutMs: number;
