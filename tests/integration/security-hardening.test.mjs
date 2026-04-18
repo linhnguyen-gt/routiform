@@ -148,6 +148,16 @@ test("server-init.ts calls enforceSecrets", () => {
   const content = readIfExists("src/server-init.ts");
   assert.ok(content, "src/server-init.ts should exist");
   assert.ok(content.includes("enforceSecrets"), "server-init.ts should call enforceSecrets");
+  assert.ok(content.includes("enforceRuntimeEnv"), "server-init.ts should call enforceRuntimeEnv");
+});
+
+test("instrumentation-node.ts calls enforceRuntimeEnv in active startup path", () => {
+  const content = readIfExists("src/instrumentation-node.ts");
+  assert.ok(content, "src/instrumentation-node.ts should exist");
+  assert.ok(
+    content.includes("enforceRuntimeEnv"),
+    "instrumentation-node.ts should call enforceRuntimeEnv"
+  );
 });
 
 // ─── T06/T07 Regression Checks ───────────────────────

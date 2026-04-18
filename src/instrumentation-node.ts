@@ -6,6 +6,8 @@
  * and emit spurious "not supported in Edge Runtime" warnings.
  */
 
+import { enforceRuntimeEnv } from "@/lib/runtime/envValidation";
+
 function getRandomBytes(byteLength: number): Uint8Array {
   const bytes = new Uint8Array(byteLength);
   globalThis.crypto.getRandomValues(bytes);
@@ -63,6 +65,8 @@ async function ensureSecrets(): Promise<void> {
 }
 
 export async function registerNodejs(): Promise<void> {
+  enforceRuntimeEnv();
+
   // Initialize proxy fetch patch FIRST (before any HTTP requests)
   await import("@routiform/open-sse/index.ts");
   console.log("[STARTUP] Global fetch proxy patch initialized");
