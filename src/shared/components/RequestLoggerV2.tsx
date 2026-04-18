@@ -15,6 +15,8 @@ import {
   maskSegment as _maskSegment,
   maskAccount,
   formatApiKeyLabel,
+  computeTokensPerSecond,
+  formatTokensPerSecondValue,
 } from "@/shared/utils/formatting";
 
 // Quick filter categories - status-based only (providers are dynamic from data)
@@ -69,8 +71,11 @@ function titleCaseFromKey(key) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function buildExportText(log, detail) {
+export function buildExportText(log, detail) {
   const resolved = detail || {};
+  const resolvedDurationMs = resolved.duration ?? log.duration;
+  const resolvedTokenOut = resolved.tokens?.out ?? log.tokens?.out ?? 0;
+  const resolvedTps = computeTokensPerSecond(resolvedTokenOut, resolvedDurationMs ?? 0);
   const sections = [
     "# Routiform Request Log Export",
     "",
@@ -86,9 +91,10 @@ function buildExportText(log, detail) {
     `[Combo] ${resolved.comboName || log.comboName || "-"}`,
     `[Method] ${log.method || resolved.method || "-"}`,
     `[Path] ${log.path || resolved.path || "-"}`,
-    `[Duration Ms] ${log.duration ?? resolved.duration ?? "-"}`,
+    `[Duration Ms] ${resolvedDurationMs ?? "-"}`,
     `[Tokens In] ${resolved.tokens?.in ?? log.tokens?.in ?? 0}`,
-    `[Tokens Out] ${resolved.tokens?.out ?? log.tokens?.out ?? 0}`,
+    `[Tokens Out] ${resolvedTokenOut}`,
+    `[TPS] ${formatTokensPerSecondValue(resolvedTps)}`,
     `[Cache Read] ${resolved.tokens?.cacheRead ?? log.tokens?.cacheRead ?? "-"}`,
     `[Cache Write] ${resolved.tokens?.cacheCreation ?? log.tokens?.cacheCreation ?? "-"}`,
     `[Reasoning Tokens] ${resolved.tokens?.reasoning ?? log.tokens?.reasoning ?? "-"}`,
@@ -863,6 +869,13 @@ export default function RequestLoggerV2() {
                           <span className="text-text-muted">TO:</span>{" "}
                           <span className="text-emerald-700 dark:text-emerald-400">
                             {log.tokens?.out?.toLocaleString() || 0}
+                          </span>
+                          <span className="mx-1 text-border">|</span>
+                          <span className="text-text-muted">TPS:</span>{" "}
+                          <span className="text-fuchsia-700 dark:text-fuchsia-300">
+                            {formatTokensPerSecondValue(
+                              computeTokensPerSecond(log.tokens?.out || 0, log.duration || 0)
+                            )}
                           </span>
                         </td>
                       )}
