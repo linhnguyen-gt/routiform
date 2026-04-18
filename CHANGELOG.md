@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.1...v3.11.2) (2026-04-18)
+
+
+### Bug Fixes
+
+* add bounded combo retry controls ([90b36ec](https://github.com/linhnguyen-gt/Routiform/commit/90b36ec725be9c9e83bb21b78c524b4f6bf6f169))
+* add env-driven DB backup retention controls ([45dd38e](https://github.com/linhnguyen-gt/Routiform/commit/45dd38e68851a373ed96d856961e7969b83444a0))
+* add migration safety guardrails before risky DB upgrades ([2f017dd](https://github.com/linhnguyen-gt/Routiform/commit/2f017dd6d515f34546f4294c7e115ef5e38a112d))
+* add startup runtime env validation with compatibility guards ([f86c8bd](https://github.com/linhnguyen-gt/Routiform/commit/f86c8bdc7b1249f55e94317ef4f43bee86d63085))
+* add TPS throughput metric to request logger views ([5d8bdf6](https://github.com/linhnguyen-gt/Routiform/commit/5d8bdf6e06d8315d33c01897f23f4b8ee96c26fe))
+* expand compliance audit logging for provider flows ([1128123](https://github.com/linhnguyen-gt/Routiform/commit/1128123756f4cf9944424aeac2aea2e2b4c4538c))
+* forward sanitized x-initiator for github upstream ([a9a9c41](https://github.com/linhnguyen-gt/Routiform/commit/a9a9c41b22ff4de8efd54b1694d0027ad4116083))
+* harden count_tokens hybrid provider fallback ([ddb8195](https://github.com/linhnguyen-gt/Routiform/commit/ddb819581d14a51ef40e63a367af566c4d25436f))
+* harden outbound provider fetch against SSRF redirects ([a0b3a47](https://github.com/linhnguyen-gt/Routiform/commit/a0b3a472d89b409129826623bfd6a24a00c24bad))
+* normalize responses token field compatibility ([ac56288](https://github.com/linhnguyen-gt/Routiform/commit/ac562887d9e6a735d562411b954176c3639a4673))
+* prioritize retry headers for 429 fallback cooldowns ([4f17969](https://github.com/linhnguyen-gt/Routiform/commit/4f17969a0f2781e869a86ae448838a49d98ca1b2))
+* remove unsupported temperature from test probe payload ([8c3dd33](https://github.com/linhnguyen-gt/Routiform/commit/8c3dd3372a7bfbb172b4bd6b240c3b3e9524c54c))
+* seed known model aliases at startup for cross-proxy normalization ([d391eb4](https://github.com/linhnguyen-gt/Routiform/commit/d391eb4e5a7aad12f0458eb4379c2e7f4279f1c1))
+* stagger token healthcheck scheduling to reduce refresh bursts ([883714b](https://github.com/linhnguyen-gt/Routiform/commit/883714ba77b75f794dca4c8e184e6373f6f9ac2f))
+
 ### [3.11.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.0...v3.11.1) (2026-04-16)
 
 
