@@ -158,6 +158,10 @@ test("instrumentation-node.ts calls enforceRuntimeEnv in active startup path", (
     content.includes("enforceRuntimeEnv"),
     "instrumentation-node.ts should call enforceRuntimeEnv"
   );
+  assert.ok(
+    content.includes("seedKnownModelAliases"),
+    "instrumentation-node.ts should seed known model aliases"
+  );
 });
 
 // ─── T06/T07 Regression Checks ───────────────────────

@@ -100,7 +100,28 @@ export async function registerNodejs(): Promise<void> {
   startProviderLimitsSyncScheduler();
   console.log("[STARTUP] Provider limits sync scheduler started");
 
+  let startupDeprecationSeeds: Record<string, string> = {};
   try {
+    try {
+      const { seedKnownModelAliases, getStartupModelDeprecationSeeds } =
+        await import("@/lib/db/models");
+      const seeded = await seedKnownModelAliases();
+      if (seeded.inserted > 0) {
+        console.log(
+          `[STARTUP] Seeded ${seeded.inserted} known model alias(es) (${seeded.existing} already present)`
+        );
+      }
+
+      const { addCustomAlias } = await import("@routiform/open-sse/services/modelDeprecation.ts");
+      startupDeprecationSeeds = getStartupModelDeprecationSeeds();
+      for (const [from, to] of Object.entries(startupDeprecationSeeds)) {
+        addCustomAlias(from, to);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[STARTUP] Model alias seed step failed:", msg);
+    }
+
     const { setCustomAliases } = await import("@routiform/open-sse/services/modelDeprecation.ts");
     const settings = await getSettings();
 
@@ -110,7 +131,7 @@ export async function registerNodejs(): Promise<void> {
           ? JSON.parse(settings.modelAliases)
           : settings.modelAliases;
       if (aliases && typeof aliases === "object") {
-        setCustomAliases(aliases);
+        setCustomAliases({ ...startupDeprecationSeeds, ...(aliases as Record<string, string>) });
         console.log(
           `[STARTUP] Restored ${Object.keys(aliases).length} custom model alias(es) from settings`
         );
