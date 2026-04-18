@@ -5,6 +5,11 @@ import {
   isOpenAICompatibleProvider,
   isAnthropicCompatibleProvider,
 } from "@/shared/constants/providers";
+import {
+  getAuditActorFromRequest,
+  getAuditIpFromRequest,
+  logAuditEvent,
+} from "@/lib/compliance/index";
 import { validateProviderApiKey } from "@/lib/providers/validation";
 import { validateProviderApiKeySchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
@@ -64,6 +69,19 @@ export async function POST(request) {
       provider,
       apiKey,
       providerSpecificData,
+    });
+
+    logAuditEvent({
+      action: "provider.connection.validate",
+      actor: await getAuditActorFromRequest(request),
+      target: provider,
+      details: {
+        provider,
+        valid: Boolean((result as Record<string, unknown>).valid),
+        method: (result as Record<string, unknown>).method || null,
+        unsupported: Boolean((result as Record<string, unknown>).unsupported),
+      },
+      ipAddress: getAuditIpFromRequest(request),
     });
 
     if ("unsupported" in result && result.unsupported) {

@@ -14,6 +14,7 @@ import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
+import { isOutboundUrlPolicyError, safeOutboundFetch } from "@/lib/network/safeOutboundFetch";
 import { validateQoderCliPat } from "@routiform/open-sse/services/qoderCli.ts";
 
 type JsonRecord = Record<string, unknown>;
@@ -136,6 +137,16 @@ function isTimeoutLikeError(error: unknown): boolean {
   );
 }
 
+function toValidationErrorMessage(error: unknown, fallback: string): string {
+  if (isOutboundUrlPolicyError(error)) {
+    return error.message;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
 function buildBearerHeaders(apiKey: string, providerSpecificData: Record<string, unknown> = {}) {
   return applyCustomUserAgent(
     {
@@ -172,11 +183,14 @@ async function validateOpenAILikeProvider({
 
   let modelsRes: Response;
   try {
-    modelsRes = await fetch(modelsUrl, {
-      method: "GET",
-      headers: buildBearerHeaders(apiKey, providerSpecificData),
-      signal: AbortSignal.timeout(10000),
-    });
+    modelsRes = await safeOutboundFetch(
+      modelsUrl,
+      {
+        method: "GET",
+        headers: buildBearerHeaders(apiKey, providerSpecificData),
+      },
+      { timeoutMs: 10_000 }
+    );
   } catch (error) {
     if (isTimeoutLikeError(error)) {
       return { valid: false, error: "Provider validation timeout (10s)", statusCode: 504 };
@@ -210,12 +224,15 @@ async function validateOpenAILikeProvider({
 
   let chatRes: Response;
   try {
-    chatRes = await fetch(chatUrl, {
-      method: "POST",
-      headers: buildBearerHeaders(apiKey, providerSpecificData),
-      body: JSON.stringify(testBody),
-      signal: AbortSignal.timeout(15000),
-    });
+    chatRes = await safeOutboundFetch(
+      chatUrl,
+      {
+        method: "POST",
+        headers: buildBearerHeaders(apiKey, providerSpecificData),
+        body: JSON.stringify(testBody),
+      },
+      { timeoutMs: 15_000 }
+    );
   } catch (error) {
     if (isTimeoutLikeError(error)) {
       return { valid: false, error: "Provider validation timeout (15s)", statusCode: 504 };
@@ -283,15 +300,19 @@ async function validateAnthropicLikeProvider({
     modelId ||
     "claude-3-5-sonnet-20241022";
 
-  const response = await fetch(baseUrl, {
-    method: "POST",
-    headers: requestHeaders,
-    body: JSON.stringify({
-      model: testModelId,
-      max_tokens: 1,
-      messages: [{ role: "user", content: "test" }],
-    }),
-  });
+  const response = await safeOutboundFetch(
+    baseUrl,
+    {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify({
+        model: testModelId,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "test" }],
+      }),
+    },
+    { timeoutMs: 15_000 }
+  );
 
   if (response.status === 401 || response.status === 403) {
     return { valid: false, error: "Invalid API key" };
@@ -326,7 +347,11 @@ async function validateGeminiLikeProvider({
   }
   applyCustomUserAgent(headers, providerSpecificData);
 
-  const response = await fetch(baseUrl, { method: "GET", headers });
+  const response = await safeOutboundFetch(
+    baseUrl,
+    { method: "GET", headers },
+    { timeoutMs: 15_000 }
+  );
 
   if (response.ok) {
     return { valid: true, error: null };
@@ -395,17 +420,21 @@ async function validateDeepgramProvider({
   providerSpecificData?: Record<string, unknown>;
 }) {
   try {
-    const response = await fetch("https://api.deepgram.com/v1/auth/token", {
-      method: "GET",
-      headers: applyCustomUserAgent({ Authorization: `Token ${apiKey}` }, providerSpecificData),
-    });
+    const response = await safeOutboundFetch(
+      "https://api.deepgram.com/v1/auth/token",
+      {
+        method: "GET",
+        headers: applyCustomUserAgent({ Authorization: `Token ${apiKey}` }, providerSpecificData),
+      },
+      { timeoutMs: 10_000 }
+    );
     if (response.ok) return { valid: true, error: null };
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: false, error: `Validation failed: ${response.status}` };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -417,23 +446,27 @@ async function validateAssemblyAIProvider({
   providerSpecificData?: Record<string, unknown>;
 }) {
   try {
-    const response = await fetch("https://api.assemblyai.com/v2/transcript?limit=1", {
-      method: "GET",
-      headers: applyCustomUserAgent(
-        {
-          Authorization: apiKey,
-          "Content-Type": "application/json",
-        },
-        providerSpecificData
-      ),
-    });
+    const response = await safeOutboundFetch(
+      "https://api.assemblyai.com/v2/transcript?limit=1",
+      {
+        method: "GET",
+        headers: applyCustomUserAgent(
+          {
+            Authorization: apiKey,
+            "Content-Type": "application/json",
+          },
+          providerSpecificData
+        ),
+      },
+      { timeoutMs: 10_000 }
+    );
     if (response.ok) return { valid: true, error: null };
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: false, error: `Validation failed: ${response.status}` };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -447,27 +480,31 @@ async function validateNanoBananaProvider({
   try {
     // NanoBanana doesn't expose a lightweight validation endpoint,
     // so we send a minimal generate request that will succeed or fail on auth.
-    const response = await fetch("https://api.nanobananaapi.ai/api/v1/nanobanana/generate", {
-      method: "POST",
-      headers: applyCustomUserAgent(
-        {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        providerSpecificData
-      ),
-      body: JSON.stringify({
-        prompt: "test",
-        model: "nanobanana-flash",
-      }),
-    });
+    const response = await safeOutboundFetch(
+      "https://api.nanobananaapi.ai/api/v1/nanobanana/generate",
+      {
+        method: "POST",
+        headers: applyCustomUserAgent(
+          {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          providerSpecificData
+        ),
+        body: JSON.stringify({
+          prompt: "test",
+          model: "nanobanana-flash",
+        }),
+      },
+      { timeoutMs: 15_000 }
+    );
     // Auth errors → 401/403; anything else (even 400 bad request) means auth passed
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: true, error: null };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -480,16 +517,20 @@ async function validateElevenLabsProvider({
 }) {
   try {
     // Lightweight auth check endpoint
-    const response = await fetch("https://api.elevenlabs.io/v1/voices", {
-      method: "GET",
-      headers: applyCustomUserAgent(
-        {
-          "xi-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        providerSpecificData
-      ),
-    });
+    const response = await safeOutboundFetch(
+      "https://api.elevenlabs.io/v1/voices",
+      {
+        method: "GET",
+        headers: applyCustomUserAgent(
+          {
+            "xi-api-key": apiKey,
+            "Content-Type": "application/json",
+          },
+          providerSpecificData
+        ),
+      },
+      { timeoutMs: 10_000 }
+    );
 
     if (response.ok) return { valid: true, error: null };
     if (response.status === 401 || response.status === 403) {
@@ -498,7 +539,7 @@ async function validateElevenLabsProvider({
 
     return { valid: false, error: `Validation failed: ${response.status}` };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -512,21 +553,25 @@ async function validateInworldProvider({
   try {
     // Inworld TTS lacks a simple key-introspection endpoint.
     // Send a minimal synth request and treat non-auth 4xx as auth-pass.
-    const response = await fetch("https://api.inworld.ai/tts/v1/voice", {
-      method: "POST",
-      headers: applyCustomUserAgent(
-        {
-          Authorization: `Basic ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        providerSpecificData
-      ),
-      body: JSON.stringify({
-        text: "test",
-        modelId: "inworld-tts-1.5-mini",
-        audioConfig: { audioEncoding: "MP3" },
-      }),
-    });
+    const response = await safeOutboundFetch(
+      "https://api.inworld.ai/tts/v1/voice",
+      {
+        method: "POST",
+        headers: applyCustomUserAgent(
+          {
+            Authorization: `Basic ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          providerSpecificData
+        ),
+        body: JSON.stringify({
+          text: "test",
+          modelId: "inworld-tts-1.5-mini",
+          audioConfig: { audioEncoding: "MP3" },
+        }),
+      },
+      { timeoutMs: 15_000 }
+    );
 
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
@@ -535,7 +580,7 @@ async function validateInworldProvider({
     // Any other response indicates auth is accepted (payload/model may still be wrong)
     return { valid: true, error: null };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -558,22 +603,26 @@ async function validateBailianCodingPlanProvider({
     // It does NOT expose /v1/models — use messages probe directly
     const messagesUrl = `${baseUrl}/messages`;
 
-    const response = await fetch(messagesUrl, {
-      method: "POST",
-      headers: applyCustomUserAgent(
-        {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        providerSpecificData
-      ),
-      body: JSON.stringify({
-        model: "qwen3-coder-plus",
-        max_tokens: 1,
-        messages: [{ role: "user", content: "test" }],
-      }),
-    });
+    const response = await safeOutboundFetch(
+      messagesUrl,
+      {
+        method: "POST",
+        headers: applyCustomUserAgent(
+          {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          providerSpecificData
+        ),
+        body: JSON.stringify({
+          model: "qwen3-coder-plus",
+          max_tokens: 1,
+          messages: [{ role: "user", content: "test" }],
+        }),
+      },
+      { timeoutMs: 15_000 }
+    );
 
     // 401/403 => invalid key
     if (response.status === 401 || response.status === 403) {
@@ -591,7 +640,7 @@ async function validateBailianCodingPlanProvider({
 
     return { valid: false, error: `Validation failed: ${response.status}` };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Validation failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Validation failed") };
   }
 }
 
@@ -618,10 +667,14 @@ async function validateOpenAICompatibleProvider({
   // Step 1: Try GET /models
   let modelsReachable = false;
   try {
-    const modelsRes = await fetch(`${baseUrl}/models`, {
-      method: "GET",
-      headers: buildBearerHeaders(apiKey, providerSpecificData),
-    });
+    const modelsRes = await safeOutboundFetch(
+      `${baseUrl}/models`,
+      {
+        method: "GET",
+        headers: buildBearerHeaders(apiKey, providerSpecificData),
+      },
+      { timeoutMs: 10_000 }
+    );
 
     modelsReachable = true;
 
@@ -642,7 +695,13 @@ async function validateOpenAICompatibleProvider({
         warning: "Rate limited, but credentials are valid",
       };
     }
-  } catch {
+  } catch (error: unknown) {
+    if (isOutboundUrlPolicyError(error)) {
+      return {
+        valid: false,
+        error: toValidationErrorMessage(error, "Validation failed"),
+      };
+    }
     // /models fetch failed (network error, etc.) — fall through to chat test
   }
 
@@ -664,15 +723,19 @@ async function validateOpenAICompatibleProvider({
   const testModelId = validationModelId;
 
   try {
-    const chatRes = await fetch(chatUrl, {
-      method: "POST",
-      headers: buildBearerHeaders(apiKey, providerSpecificData),
-      body: JSON.stringify({
-        model: testModelId,
-        messages: [{ role: "user", content: "test" }],
-        max_tokens: 1,
-      }),
-    });
+    const chatRes = await safeOutboundFetch(
+      chatUrl,
+      {
+        method: "POST",
+        headers: buildBearerHeaders(apiKey, providerSpecificData),
+        body: JSON.stringify({
+          model: testModelId,
+          messages: [{ role: "user", content: "test" }],
+          max_tokens: 1,
+        }),
+      },
+      { timeoutMs: 15_000 }
+    );
 
     if (chatRes.ok) {
       return { valid: true, error: null, method: "chat_completions" };
@@ -726,11 +789,14 @@ async function validateOpenAICompatibleProvider({
   }
 
   try {
-    const pingRes = await fetch(baseUrl, {
-      method: "GET",
-      headers: buildBearerHeaders(apiKey, providerSpecificData),
-      signal: AbortSignal.timeout(5000),
-    });
+    const pingRes = await safeOutboundFetch(
+      baseUrl,
+      {
+        method: "GET",
+        headers: buildBearerHeaders(apiKey, providerSpecificData),
+      },
+      { timeoutMs: 5_000 }
+    );
 
     // If the server responds at all (even with an error page), it's reachable
     if (pingRes.status < 500) {
@@ -741,7 +807,7 @@ async function validateOpenAICompatibleProvider({
   } catch (error: unknown) {
     return {
       valid: false,
-      error: error instanceof Error ? error.message : String(error) || "Connection failed",
+      error: toValidationErrorMessage(error, "Connection failed"),
     };
   }
 }
@@ -777,10 +843,14 @@ async function validateAnthropicCompatibleProvider({
       typeof providerSpecificData?.modelsPath === "string"
         ? providerSpecificData.modelsPath
         : "/models";
-    const modelsRes = await fetch(joinBaseUrlAndPath(baseUrl, modelsPath), {
-      method: "GET",
-      headers,
-    });
+    const modelsRes = await safeOutboundFetch(
+      joinBaseUrlAndPath(baseUrl, modelsPath),
+      {
+        method: "GET",
+        headers,
+      },
+      { timeoutMs: 10_000 }
+    );
 
     if (modelsRes.ok) {
       return { valid: true, error: null };
@@ -789,7 +859,13 @@ async function validateAnthropicCompatibleProvider({
     if (modelsRes.status === 401 || modelsRes.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
-  } catch {
+  } catch (error: unknown) {
+    if (isOutboundUrlPolicyError(error)) {
+      return {
+        valid: false,
+        error: toValidationErrorMessage(error, "Validation failed"),
+      };
+    }
     // /models fetch failed — fall through to messages test
   }
 
@@ -803,15 +879,19 @@ async function validateAnthropicCompatibleProvider({
       typeof providerSpecificData?.chatPath === "string"
         ? providerSpecificData.chatPath
         : "/messages";
-    const messagesRes = await fetch(joinBaseUrlAndPath(baseUrl, chatPath), {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: testModelId,
-        max_tokens: 1,
-        messages: [{ role: "user", content: "test" }],
-      }),
-    });
+    const messagesRes = await safeOutboundFetch(
+      joinBaseUrlAndPath(baseUrl, chatPath),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: testModelId,
+          max_tokens: 1,
+          messages: [{ role: "user", content: "test" }],
+        }),
+      },
+      { timeoutMs: 15_000 }
+    );
 
     if (messagesRes.status === 401 || messagesRes.status === 403) {
       return { valid: false, error: "Invalid API key" };
@@ -820,7 +900,7 @@ async function validateAnthropicCompatibleProvider({
     // Any other response (200, 400, 422, etc.) means auth passed
     return { valid: true, error: null };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Connection failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Connection failed") };
   }
 }
 
@@ -853,10 +933,14 @@ export async function validateClaudeCodeCompatibleProvider({
   );
 
   try {
-    const modelsRes = await fetch(joinClaudeCodeCompatibleUrl(baseUrl, modelsPath), {
-      method: "GET",
-      headers: defaultHeaders,
-    });
+    const modelsRes = await safeOutboundFetch(
+      joinClaudeCodeCompatibleUrl(baseUrl, modelsPath),
+      {
+        method: "GET",
+        headers: defaultHeaders,
+      },
+      { timeoutMs: 10_000 }
+    );
 
     if (modelsRes.ok) {
       return { valid: true, error: null, method: "models_endpoint" };
@@ -865,7 +949,13 @@ export async function validateClaudeCodeCompatibleProvider({
     if (modelsRes.status === 401 || modelsRes.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
-  } catch {
+  } catch (error: unknown) {
+    if (isOutboundUrlPolicyError(error)) {
+      return {
+        valid: false,
+        error: toValidationErrorMessage(error, "Validation failed"),
+      };
+    }
     // Fall through to bridge request validation.
   }
 
@@ -877,14 +967,18 @@ export async function validateClaudeCodeCompatibleProvider({
   const sessionId = JSON.parse(payload.metadata.user_id).session_id;
 
   try {
-    const messagesRes = await fetch(joinClaudeCodeCompatibleUrl(baseUrl, chatPath), {
-      method: "POST",
-      headers: applyCustomUserAgent(
-        buildClaudeCodeCompatibleHeaders(apiKey, true, sessionId),
-        providerSpecificData
-      ),
-      body: JSON.stringify(payload),
-    });
+    const messagesRes = await safeOutboundFetch(
+      joinClaudeCodeCompatibleUrl(baseUrl, chatPath),
+      {
+        method: "POST",
+        headers: applyCustomUserAgent(
+          buildClaudeCodeCompatibleHeaders(apiKey, true, sessionId),
+          providerSpecificData
+        ),
+        body: JSON.stringify(payload),
+      },
+      { timeoutMs: 15_000 }
+    );
 
     if (messagesRes.status === 401 || messagesRes.status === 403) {
       return { valid: false, error: "Invalid API key" };
@@ -914,7 +1008,7 @@ export async function validateClaudeCodeCompatibleProvider({
       method: "cc_bridge_request",
     };
   } catch (error: unknown) {
-    return { valid: false, error: error instanceof Error ? error.message : "Connection failed" };
+    return { valid: false, error: toValidationErrorMessage(error, "Connection failed") };
   }
 }
 
@@ -926,7 +1020,9 @@ async function validateSearchProvider(
   providerSpecificData: Record<string, unknown> = {}
 ): Promise<{ valid: boolean; error: string | null; unsupported?: false }> {
   try {
-    const response = await fetch(url, withCustomUserAgent(init, providerSpecificData));
+    const response = await safeOutboundFetch(url, withCustomUserAgent(init, providerSpecificData), {
+      timeoutMs: 10_000,
+    });
     if (response.ok) return { valid: true, error: null, unsupported: false };
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key", unsupported: false };
@@ -948,7 +1044,7 @@ async function validateSearchProvider(
     }
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Validation failed",
+      error: toValidationErrorMessage(error, "Validation failed"),
       unsupported: false,
     };
   }
@@ -1018,7 +1114,7 @@ export async function validateProviderApiKey({
     } catch (error: unknown) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : "Validation failed",
+        error: toValidationErrorMessage(error, "Validation failed"),
         unsupported: false,
       };
     }
@@ -1033,7 +1129,7 @@ export async function validateProviderApiKey({
     } catch (error: unknown) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : "Validation failed",
+        error: toValidationErrorMessage(error, "Validation failed"),
         unsupported: false,
       };
     }
@@ -1067,16 +1163,19 @@ export async function validateProviderApiKey({
           typeof providerSpecificData.baseUrl === "string"
             ? normalizeBaseUrl(providerSpecificData.baseUrl)
             : "https://integrate.api.nvidia.com/v1";
-        const res = await fetch(`${baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
-          body: JSON.stringify({
-            model: "meta/llama-3.3-70b-instruct",
-            messages: [{ role: "user", content: "test" }],
-            max_tokens: 1,
-          }),
-          signal: AbortSignal.timeout(15000),
-        });
+        const res = await safeOutboundFetch(
+          `${baseUrl}/chat/completions`,
+          {
+            method: "POST",
+            headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
+            body: JSON.stringify({
+              model: "meta/llama-3.3-70b-instruct",
+              messages: [{ role: "user", content: "test" }],
+              max_tokens: 1,
+            }),
+          },
+          { timeoutMs: 15_000 }
+        );
         if (res.status === 401 || res.status === 403) {
           return { valid: false, error: "Invalid API key" };
         }
@@ -1100,22 +1199,26 @@ export async function validateProviderApiKey({
       } catch (error: unknown) {
         return {
           valid: false,
-          error: error instanceof Error ? error.message : "Connection failed",
+          error: toValidationErrorMessage(error, "Connection failed"),
         };
       }
     },
     // LongCat AI — does not expose /v1/models; validate via chat completions directly (#592)
     longcat: async ({ apiKey, providerSpecificData }: Record<string, unknown>) => {
       try {
-        const res = await fetch("https://api.longcat.chat/openai/v1/chat/completions", {
-          method: "POST",
-          headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
-          body: JSON.stringify({
-            model: "longcat",
-            messages: [{ role: "user", content: "test" }],
-            max_tokens: 1,
-          }),
-        });
+        const res = await safeOutboundFetch(
+          "https://api.longcat.chat/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: buildBearerHeaders(String(apiKey || ""), providerSpecificData as JsonRecord),
+            body: JSON.stringify({
+              model: "longcat",
+              messages: [{ role: "user", content: "test" }],
+              max_tokens: 1,
+            }),
+          },
+          { timeoutMs: 15_000 }
+        );
         if (res.status === 401 || res.status === 403) {
           return { valid: false, error: "Invalid API key" };
         }
@@ -1124,7 +1227,7 @@ export async function validateProviderApiKey({
       } catch (error: unknown) {
         return {
           valid: false,
-          error: error instanceof Error ? error.message : "Connection failed",
+          error: toValidationErrorMessage(error, "Connection failed"),
         };
       }
     },
@@ -1146,7 +1249,7 @@ export async function validateProviderApiKey({
     } catch (error: unknown) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : "Validation failed",
+        error: toValidationErrorMessage(error, "Validation failed"),
         unsupported: false,
       };
     }
@@ -1222,7 +1325,7 @@ export async function validateProviderApiKey({
   } catch (error: unknown) {
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Validation failed",
+      error: toValidationErrorMessage(error, "Validation failed"),
       unsupported: false,
     };
   }

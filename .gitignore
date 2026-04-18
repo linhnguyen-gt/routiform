@@ -159,7 +159,5 @@ error/
 
 # AIKit - AI Development Kits
 .shared/
-.mcp.json
-.claude/
-CLAUDE.md
 plans/
+.opencode/

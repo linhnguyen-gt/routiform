@@ -5,11 +5,8 @@ const { convertResponsesApiFormat } =
   await import("../../open-sse/translator/helpers/responsesApiHelper.ts");
 const { openaiResponsesToOpenAIRequest, openaiToOpenAIResponsesRequest } =
   await import("../../open-sse/translator/request/openai-responses.ts");
-const {
-  generateToolCallId,
-  generateToolUseId,
-  generateToolCallId9,
-} = await import("../../open-sse/translator/helpers/toolCallHelper.ts");
+const { generateToolCallId, generateToolUseId, generateToolCallId9 } =
+  await import("../../open-sse/translator/helpers/toolCallHelper.ts");
 
 test("convertResponsesApiFormat filters orphaned function_call_output items", () => {
   const body = {
@@ -629,4 +626,55 @@ test("Chat→Responses: assistant with empty content + tool_calls gets minimal o
   assert.ok(fcIdx > 0, "function_call should follow assistant message");
   assert.equal(afterMsg[0].content[0].type, "output_text");
   assert.equal(afterMsg[0].content[0].text, "\u200b");
+});
+
+test("Chat→Responses: maps max_tokens to max_output_tokens", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.1-codex",
+    {
+      messages: [{ role: "user", content: "hi" }],
+      max_tokens: 512,
+    },
+    true,
+    null
+  );
+
+  assert.equal(out.max_output_tokens, 512);
+  assert.equal(out.max_tokens, undefined);
+  assert.equal(out.max_completion_tokens, undefined);
+});
+
+test("Chat→Responses: max_completion_tokens overrides max_tokens", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.1-codex",
+    {
+      messages: [{ role: "user", content: "hi" }],
+      max_tokens: 256,
+      max_completion_tokens: 1024,
+    },
+    true,
+    null
+  );
+
+  assert.equal(out.max_output_tokens, 1024);
+  assert.equal(out.max_tokens, undefined);
+  assert.equal(out.max_completion_tokens, undefined);
+});
+
+test("Chat→Responses: preserves explicit max_output_tokens", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.1-codex",
+    {
+      messages: [{ role: "user", content: "hi" }],
+      max_tokens: 256,
+      max_completion_tokens: 1024,
+      max_output_tokens: 2048,
+    },
+    true,
+    null
+  );
+
+  assert.equal(out.max_output_tokens, 2048);
+  assert.equal(out.max_tokens, undefined);
+  assert.equal(out.max_completion_tokens, undefined);
 });

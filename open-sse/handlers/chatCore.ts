@@ -165,6 +165,44 @@ export function shouldBridgeGithubClaudeOpenAiThroughClaudeFormat(
   return true;
 }
 
+function getRequestHeaderValue(
+  headers: Headers | Record<string, string | string[] | undefined> | null | undefined,
+  name: string
+): string {
+  if (!headers) return "";
+  if (typeof (headers as Headers).get === "function") {
+    const value = (headers as Headers).get(name) || (headers as Headers).get(name.toLowerCase());
+    return typeof value === "string" ? value.trim() : "";
+  }
+  const record = headers as Record<string, string | string[] | undefined>;
+  const direct = record[name] ?? record[name.toLowerCase()] ?? record[name.toUpperCase()];
+  if (direct === undefined) {
+    const matchKey = Object.keys(record).find((key) => key.toLowerCase() === name.toLowerCase());
+    if (matchKey) {
+      const matched = record[matchKey];
+      if (Array.isArray(matched)) {
+        return typeof matched[0] === "string" ? matched[0].trim() : "";
+      }
+      return typeof matched === "string" ? matched.trim() : "";
+    }
+    return "";
+  }
+  if (Array.isArray(direct)) {
+    return typeof direct[0] === "string" ? direct[0].trim() : "";
+  }
+  return typeof direct === "string" ? direct.trim() : "";
+}
+
+/** @internal Exported for unit tests */
+export function sanitizeGithubInitiatorHeaderValue(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const value = raw.trim();
+  if (!value) return null;
+  if (value.length > 64) return null;
+  if (/[^a-zA-Z0-9._-]/.test(value)) return null;
+  return value;
+}
+
 export async function handleChatCore({
   body,
   modelInfo,
@@ -382,6 +420,19 @@ export async function handleChatCore({
       if (appTitle) {
         upstreamHeaders["X-OpenRouter-Title"] = appTitle;
         upstreamHeaders["X-Title"] = appTitle;
+      }
+    }
+
+    if (provider === "github") {
+      for (const headerName of Object.keys(upstreamHeaders)) {
+        if (headerName.toLowerCase() === "x-initiator") {
+          delete upstreamHeaders[headerName];
+        }
+      }
+      const rawInitiator = getRequestHeaderValue(clientRawRequest?.headers, "x-initiator");
+      const safeInitiator = sanitizeGithubInitiatorHeaderValue(rawInitiator);
+      if (safeInitiator) {
+        upstreamHeaders["X-Initiator"] = safeInitiator;
       }
     }
 

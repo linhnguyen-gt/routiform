@@ -6,6 +6,7 @@ import {
   getAppLogRetentionDays,
   getCallLogRetentionDays,
   getCallLogMaxEntries,
+  getDbBackupMaxFiles,
   getProxyLogMaxEntries,
 } from "@/lib/logEnv";
 
@@ -69,6 +70,9 @@ export async function GET() {
       tableMaxRows: {
         call: getCallLogMaxEntries(),
         proxy: getProxyLogMaxEntries(),
+      },
+      backup: {
+        maxFiles: getDbBackupMaxFiles(),
       },
       dataDir: dataDir.startsWith(homeDir) ? "~" + dataDir.slice(homeDir.length) : dataDir,
     });

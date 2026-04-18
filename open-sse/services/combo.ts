@@ -378,6 +378,57 @@ function sortModelsByContextSize(models, combo = null) {
   return withContext.map((e) => e.modelStr);
 }
 
+function resolveRetrySettings(config) {
+  const legacyRetries = Number.isFinite(config?.maxRetries) ? Number(config.maxRetries) : null;
+  const explicitRequestRetry = Number.isFinite(config?.requestRetry)
+    ? Number(config.requestRetry)
+    : null;
+  const maxRetries = Math.max(0, Math.floor(explicitRequestRetry ?? legacyRetries ?? 1));
+
+  const baseDelayMs =
+    Number.isFinite(config?.retryDelayMs) && Number(config.retryDelayMs) >= 0
+      ? Number(config.retryDelayMs)
+      : 2000;
+
+  const maxRetryIntervalSec =
+    Number.isFinite(config?.maxRetryIntervalSec) && Number(config.maxRetryIntervalSec) > 0
+      ? Number(config.maxRetryIntervalSec)
+      : null;
+
+  const retryDelayMs =
+    maxRetryIntervalSec !== null
+      ? Math.min(baseDelayMs, Math.floor(maxRetryIntervalSec * 1000))
+      : baseDelayMs;
+
+  return {
+    maxRetries,
+    retryDelayMs,
+  };
+}
+
+function resolveRetryWaitMs(baseRetryDelayMs, cooldownMs, config) {
+  const baseDelay =
+    Number.isFinite(baseRetryDelayMs) && Number(baseRetryDelayMs) >= 0
+      ? Number(baseRetryDelayMs)
+      : 0;
+  const cooldownDelay =
+    Number.isFinite(cooldownMs) && Number(cooldownMs) > 0 ? Number(cooldownMs) : 0;
+
+  const maxRetryIntervalSec =
+    Number.isFinite(config?.maxRetryIntervalSec) && Number(config.maxRetryIntervalSec) > 0
+      ? Number(config.maxRetryIntervalSec)
+      : null;
+
+  if (maxRetryIntervalSec === null) {
+    return Math.max(0, Math.floor(baseDelay));
+  }
+
+  let waitMs = Math.max(baseDelay, cooldownDelay);
+  waitMs = Math.min(waitMs, Math.floor(maxRetryIntervalSec * 1000));
+
+  return Math.max(0, Math.floor(waitMs));
+}
+
 function toTextContent(content) {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
@@ -824,8 +875,7 @@ export async function handleComboChat({
   const config = settings
     ? resolveComboConfig(combo, settings)
     : { ...getDefaultComboConfig(), ...(combo.config || {}) };
-  const maxRetries = config.maxRetries ?? 1;
-  const retryDelayMs = config.retryDelayMs ?? 2000;
+  const { maxRetries, retryDelayMs } = resolveRetrySettings(config);
 
   let orderedModels;
 
@@ -1067,13 +1117,14 @@ export async function handleComboChat({
     }
 
     // Retry loop for transient errors
+    let nextRetryDelayMs = retryDelayMs;
     for (let retry = 0; retry <= maxRetries; retry++) {
       if (retry > 0) {
         log.info(
           "COMBO",
-          `Retrying ${modelStr} in ${retryDelayMs}ms (attempt ${retry + 1}/${maxRetries + 1})`
+          `Retrying ${modelStr} in ${nextRetryDelayMs}ms (attempt ${retry + 1}/${maxRetries + 1})`
         );
-        await new Promise((r) => setTimeout(r, retryDelayMs));
+        await new Promise((r) => setTimeout(r, nextRetryDelayMs));
       }
 
       log.info(
@@ -1222,6 +1273,7 @@ export async function handleComboChat({
       // Check if this is a transient error worth retrying on same model
       const isTransient = [408, 429, 500, 502, 503, 504].includes(result.status);
       if (retry < maxRetries && isTransient) {
+        nextRetryDelayMs = resolveRetryWaitMs(retryDelayMs, cooldownMs, config);
         continue; // Retry same model
       }
 
@@ -1330,8 +1382,7 @@ async function handleRoundRobinCombo({
     : { ...getDefaultComboConfig(), ...(combo.config || {}) };
   const concurrency = config.concurrencyPerModel ?? 3;
   const queueTimeout = config.queueTimeoutMs ?? 30000;
-  const maxRetries = config.maxRetries ?? 1;
-  const retryDelayMs = config.retryDelayMs ?? 2000;
+  const { maxRetries, retryDelayMs } = resolveRetrySettings(config);
 
   // Resolve models (support nested combos)
   let orderedModels;
@@ -1415,14 +1466,15 @@ async function handleRoundRobinCombo({
     }
 
     // Retry loop within this model
+    let nextRetryDelayMs = retryDelayMs;
     try {
       for (let retry = 0; retry <= maxRetries; retry++) {
         if (retry > 0) {
           log.info(
             "COMBO-RR",
-            `Retrying ${modelStr} in ${retryDelayMs}ms (attempt ${retry + 1}/${maxRetries + 1})`
+            `Retrying ${modelStr} in ${nextRetryDelayMs}ms (attempt ${retry + 1}/${maxRetries + 1})`
           );
-          await new Promise((r) => setTimeout(r, retryDelayMs));
+          await new Promise((r) => setTimeout(r, nextRetryDelayMs));
         }
 
         log.info(
@@ -1561,6 +1613,7 @@ async function handleRoundRobinCombo({
         // Transient error → retry same model
         const isTransient = [408, 429, 500, 502, 503, 504].includes(result.status);
         if (retry < maxRetries && isTransient) {
+          nextRetryDelayMs = resolveRetryWaitMs(retryDelayMs, cooldownMs, config);
           continue;
         }
 

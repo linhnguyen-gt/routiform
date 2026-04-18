@@ -373,7 +373,7 @@ flowchart TD
     Q -- No --> R[Return all unavailable]
 ```
 
-Fallback decisions are driven by `open-sse/services/accountFallback.ts` using status codes and error-message heuristics. Combo routing adds one extra guard: provider-scoped 400s such as upstream content-block and role-validation failures are treated as model-local failures so later combo targets can still run.
+Fallback decisions are driven by `open-sse/services/accountFallback.ts` using status codes and error-message heuristics; for account fallback, explicit HTTP `429` with `Retry-After` or `x-ratelimit-reset` now takes precedence and sets cooldown from headers (instead of body/text heuristics). Operationally, this makes `src/sse/services/auth.ts` account cooldown marking deterministic in `markAccountUnavailable(...)` and avoids heuristic misclassification when upstream includes explicit reset timing. Combo routing adds one extra guard: provider-scoped 400s such as upstream content-block and role-validation failures are treated as model-local failures so later combo targets can still run.
 
 ## OAuth Onboarding and Token Refresh Lifecycle
 

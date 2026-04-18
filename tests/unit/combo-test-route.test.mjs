@@ -89,7 +89,7 @@ test("combo test route marks a model healthy only when it returns assistant text
   assert.equal(forwardedBody.model, "openrouter/openai/gpt-5.4");
   assert.equal(forwardedBody.messages[0].content, "Reply with OK only.");
   assert.equal(forwardedBody.max_tokens, 256);
-  assert.equal(forwardedBody.temperature, 0);
+  assert.equal("temperature" in forwardedBody, false);
   assert.equal(body.resolvedBy, "openrouter/openai/gpt-5.4");
   assert.equal(body.results[0].status, "ok");
   assert.equal(body.results[0].responseText, "OK");

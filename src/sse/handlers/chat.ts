@@ -628,7 +628,8 @@ async function handleSingleModelChat(
       Number(result.status),
       String(result.error),
       provider,
-      model
+      model,
+      (result.response as Response | undefined)?.headers || null
     );
 
     if (shouldFallback) {

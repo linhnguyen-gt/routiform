@@ -12,6 +12,78 @@ import { isForbiddenUpstreamHeaderName } from "@/shared/constants/upstreamHeader
 
 type JsonRecord = Record<string, unknown>;
 
+const STARTUP_MODEL_ALIAS_SEEDS: Record<string, string> = {
+  "gpt-5-codex": "codex/gpt-5.3-codex",
+  "gpt-5.1-codex": "codex/gpt-5.3-codex",
+  "gpt-5.1-codex-mini": "codex/gpt-5.3-codex",
+  "gpt-5.1-codex-max": "codex/gpt-5.3-codex",
+  "gemini-3-pro": "gemini/gemini-3.1-pro",
+  "gemini-3-pro-preview": "gemini/gemini-3.1-pro",
+  "gemini-3.1-pro-preview": "gemini/gemini-3.1-pro",
+  "gemini-3.1-pro-preview-customtools": "gemini/gemini-3.1-pro",
+};
+
+export function getStartupModelAliasSeeds(): Record<string, string> {
+  return { ...STARTUP_MODEL_ALIAS_SEEDS };
+}
+
+export function getStartupModelDeprecationSeeds(): Record<string, string> {
+  const seeds: Record<string, string> = {};
+  for (const [alias, target] of Object.entries(STARTUP_MODEL_ALIAS_SEEDS)) {
+    const trimmedAlias = alias.trim();
+    const trimmedTarget = target.trim();
+    if (!trimmedAlias || !trimmedTarget) continue;
+
+    const slashIndex = trimmedTarget.indexOf("/");
+    if (slashIndex <= 0 || slashIndex >= trimmedTarget.length - 1) continue;
+
+    const modelId = trimmedTarget.slice(slashIndex + 1).trim();
+    if (!modelId) continue;
+    seeds[trimmedAlias] = modelId;
+  }
+  return seeds;
+}
+
+export async function seedKnownModelAliases(): Promise<{
+  inserted: number;
+  existing: number;
+  total: number;
+}> {
+  const db = getDbInstance();
+  const insertIfMissing = db.prepare(
+    "INSERT INTO key_value (namespace, key, value) SELECT 'modelAliases', ?, ? WHERE NOT EXISTS (SELECT 1 FROM key_value WHERE namespace = 'modelAliases' AND key = ?)"
+  );
+
+  const entries = Object.entries(STARTUP_MODEL_ALIAS_SEEDS);
+  let inserted = 0;
+  let existing = 0;
+
+  const tx = db.transaction(() => {
+    for (const [rawAlias, rawTarget] of entries) {
+      const alias = rawAlias.trim();
+      const target = rawTarget.trim();
+      if (!alias || !target || !target.includes("/")) continue;
+
+      const result = insertIfMissing.run(alias, JSON.stringify(target), alias);
+      if (result.changes === 0) {
+        existing += 1;
+        continue;
+      }
+
+      inserted += 1;
+    }
+  });
+
+  tx();
+  if (inserted > 0) backupDbFile("pre-write");
+
+  return {
+    inserted,
+    existing,
+    total: entries.length,
+  };
+}
+
 /** Built-in / alias models: tool-call + developer-role flags without a full custom row */
 const MODEL_COMPAT_NAMESPACE = "modelCompatOverrides";
 

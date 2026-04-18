@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 import { FORMATS } from "../../open-sse/translator/formats.ts";
 import { getModelInfoCore } from "../../open-sse/services/model.ts";
 import { detectFormat, detectFormatFromEndpoint } from "../../open-sse/services/provider.ts";
-import { shouldUseNativeCodexPassthrough } from "../../open-sse/handlers/chatCore.ts";
+import {
+  sanitizeGithubInitiatorHeaderValue,
+  shouldUseNativeCodexPassthrough,
+} from "../../open-sse/handlers/chatCore.ts";
 import { translateRequest } from "../../open-sse/translator/index.ts";
 import { GithubExecutor } from "../../open-sse/executors/github.ts";
 import { DefaultExecutor } from "../../open-sse/executors/default.ts";
@@ -477,6 +480,17 @@ test("CodexExecutor routes responses subpaths to matching upstream paths", () =>
     requestEndpointPath: "/v1/responses/items/history",
   });
   assert.match(genericSubpathUrl, /\/responses\/items\/history$/);
+});
+
+test("sanitizeGithubInitiatorHeaderValue accepts safe token values", () => {
+  assert.equal(sanitizeGithubInitiatorHeaderValue("background"), "background");
+  assert.equal(sanitizeGithubInitiatorHeaderValue("task_runner.v2"), "task_runner.v2");
+});
+
+test("sanitizeGithubInitiatorHeaderValue rejects unsafe values", () => {
+  assert.equal(sanitizeGithubInitiatorHeaderValue("background worker"), null);
+  assert.equal(sanitizeGithubInitiatorHeaderValue("bad\nvalue"), null);
+  assert.equal(sanitizeGithubInitiatorHeaderValue(""), null);
 });
 
 test("translateNonStreamingResponse converts Responses API payload to OpenAI chat.completion", () => {

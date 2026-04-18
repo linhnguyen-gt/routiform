@@ -49,8 +49,21 @@ export function getClientIpFromRequest(req: {
   if (cfIp && isIP(cfIp.trim()) !== 0) return cfIp.trim();
 
   const xff = getHeader("x-forwarded-for");
-  const realIp = getHeader("x-real-ip");
-  const remoteAddress = req.ip ?? req.socket?.remoteAddress;
+  if (xff) {
+    const fromXff = extractClientIp(xff, undefined);
+    if (fromXff !== "unknown") {
+      return fromXff;
+    }
+  }
 
-  return extractClientIp(xff ?? realIp, remoteAddress);
+  const realIp = getHeader("x-real-ip");
+  if (realIp) {
+    const fromRealIp = extractClientIp(realIp, undefined);
+    if (fromRealIp !== "unknown") {
+      return fromRealIp;
+    }
+  }
+
+  const remoteAddress = req.ip ?? req.socket?.remoteAddress;
+  return extractClientIp(null, remoteAddress);
 }

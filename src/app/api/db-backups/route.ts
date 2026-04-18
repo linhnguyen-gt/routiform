@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listDbBackups, restoreDbBackup, backupDbFile } from "@/lib/localDb";
+import { listDbBackups, restoreDbBackup, backupDbFileBlocking } from "@/lib/localDb";
 import { dbBackupRestoreSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
@@ -8,7 +8,7 @@ import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
  */
 export async function PUT() {
   try {
-    const result = backupDbFile("manual");
+    const result = await backupDbFileBlocking("manual");
     if (!result) {
       return NextResponse.json({ message: "No changes since last backup (throttled)" });
     }

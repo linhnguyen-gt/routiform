@@ -2,11 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { validateProviderApiKey } = await import("../../src/lib/providers/validation.ts");
+const { setSafeOutboundDnsLookupForTesting, resetSafeOutboundDnsLookupForTesting } =
+  await import("../../src/lib/network/safeOutboundFetch.ts");
 
 const originalFetch = globalThis.fetch;
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
+  resetSafeOutboundDnsLookupForTesting();
+});
+
+test.beforeEach(() => {
+  setSafeOutboundDnsLookupForTesting(async () => [{ address: "93.184.216.34", family: 4 }]);
 });
 
 test("validateProviderApiKey rejects missing provider or API key", async () => {
@@ -37,6 +44,17 @@ test("openai-compatible validation reports missing base URL", async () => {
 
   assert.equal(result.valid, false);
   assert.match(result.error, /No base URL configured/i);
+});
+
+test("openai-compatible validation blocks localhost base URLs via outbound policy", async () => {
+  const result = await validateProviderApiKey({
+    provider: "openai-compatible-local-blocked",
+    apiKey: "sk-test",
+    providerSpecificData: { baseUrl: "http://localhost:11434/v1" },
+  });
+
+  assert.equal(result.valid, false);
+  assert.match(result.error, /Blocked outbound request/i);
 });
 
 test("openai-compatible validation accepts rate-limited /models responses", async () => {
