@@ -22,8 +22,65 @@ const TICK_MS = 60 * 1000; // sweep interval: every 60 seconds
 const DEFAULT_HEALTH_CHECK_INTERVAL_MIN = 60; // default per-connection interval
 const EXPIRED_RETRY_MAX = 3; // max retry attempts for expired connections before giving up
 const EXPIRED_RETRY_BACKOFF_MIN = 5; // backoff between expired retries (minutes)
+const DEFAULT_STAGGER_WINDOW_SEC = 0;
 const LOG_PREFIX = "[HealthCheck]";
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function getTokenHealthCheckStaggerWindowSec(): number {
+  return parseNonNegativeInt(
+    process.env.ROUTIFORM_TOKEN_HEALTHCHECK_STAGGER_WINDOW_SEC ??
+      process.env.TOKEN_HEALTHCHECK_STAGGER_WINDOW_SEC,
+    DEFAULT_STAGGER_WINDOW_SEC
+  );
+}
+
+/** @internal Exported for unit tests */
+export function resolveTokenHealthCheckStaggerWindowMs(intervalMs: number): number {
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) return 0;
+  const configuredWindowMs = getTokenHealthCheckStaggerWindowSec() * 1000;
+  if (configuredWindowMs <= 0) return 0;
+  return Math.min(configuredWindowMs, Math.floor(intervalMs));
+}
+
+/** @internal Exported for unit tests */
+export function getDeterministicStaggerOffsetMs(seed: string, windowMs: number): number {
+  if (!seed || !Number.isFinite(windowMs) || windowMs <= 0) return 0;
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % Math.floor(windowMs);
+}
+
+/** @internal Exported for unit tests */
+export function shouldRunIntervalHealthCheck({
+  nowMs,
+  schedulerStartedAtMs,
+  lastCheckMs,
+  intervalMs,
+  staggerOffsetMs,
+  isAboutToExpire,
+}: {
+  nowMs: number;
+  schedulerStartedAtMs: number;
+  lastCheckMs: number;
+  intervalMs: number;
+  staggerOffsetMs: number;
+  isAboutToExpire: boolean;
+}): boolean {
+  if (isAboutToExpire) return true;
+  if (lastCheckMs > 0) {
+    return nowMs - lastCheckMs >= intervalMs;
+  }
+  return nowMs - schedulerStartedAtMs >= staggerOffsetMs;
+}
 
 export function buildRefreshFailureUpdate(conn: Record<string, unknown>, now: string) {
   const wasExpired = conn.testStatus === "expired";
@@ -131,11 +188,19 @@ export function clearHealthCheckLogCache() {
 
 declare global {
   var __routiformTokenHC:
-    | { initialized: boolean; interval: ReturnType<typeof setInterval> | null }
+    | {
+        initialized: boolean;
+        interval: ReturnType<typeof setInterval> | null;
+        startedAtMs: number;
+      }
     | undefined;
   /** @deprecated */
   var __routiformTokenHC:
-    | { initialized: boolean; interval: ReturnType<typeof setInterval> | null }
+    | {
+        initialized: boolean;
+        interval: ReturnType<typeof setInterval> | null;
+        startedAtMs: number;
+      }
     | undefined;
 }
 
@@ -144,7 +209,7 @@ function getHCState() {
     globalThis.__routiformTokenHC = globalThis.__routiformTokenHC;
   }
   if (!globalThis.__routiformTokenHC) {
-    globalThis.__routiformTokenHC = { initialized: false, interval: null };
+    globalThis.__routiformTokenHC = { initialized: false, interval: null, startedAtMs: 0 };
   }
   return globalThis.__routiformTokenHC;
 }
@@ -156,6 +221,7 @@ export function initTokenHealthCheck() {
   const state = getHCState();
   if (state.initialized || isHealthCheckDisabled()) return;
   state.initialized = true;
+  state.startedAtMs = Date.now();
 
   log(`${LOG_PREFIX} Starting proactive token health-check (tick every ${TICK_MS / 1000}s)`);
 
@@ -175,6 +241,7 @@ export function stopTokenHealthCheck() {
     state.interval = null;
   }
   state.initialized = false;
+  state.startedAtMs = 0;
 }
 
 // ── Core sweep ───────────────────────────────────────────────────────────────
@@ -232,17 +299,36 @@ async function checkConnection(conn) {
 
   const intervalMs = intervalMin * 60 * 1000;
   const lastCheck = conn.lastHealthCheckAt ? new Date(conn.lastHealthCheckAt).getTime() : 0;
+  const nowMs = Date.now();
+  const schedulerStartedAtMs = getHCState().startedAtMs || nowMs;
+
+  const staggerWindowMs = resolveTokenHealthCheckStaggerWindowMs(intervalMs);
+  const connectionSeed = String(
+    conn.id || conn.connectionId || `${conn.provider || "unknown"}:${conn.email || conn.name || ""}`
+  );
+  const staggerOffsetMs = getDeterministicStaggerOffsetMs(connectionSeed, staggerWindowMs);
 
   // Proactive pre-expiry check (#631): if token is about to expire, refresh immediately
   // regardless of the health check interval — prevents request failures between checks
   const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes
   const tokenExpiresAt = conn.tokenExpiresAt ? new Date(conn.tokenExpiresAt).getTime() : 0;
-  const isAboutToExpire = tokenExpiresAt > 0 && tokenExpiresAt - Date.now() < TOKEN_EXPIRY_BUFFER;
+  const isAboutToExpire = tokenExpiresAt > 0 && tokenExpiresAt - nowMs < TOKEN_EXPIRY_BUFFER;
 
-  // Not yet due: skip if (a) interval hasn't elapsed AND (b) token is not about to expire
-  if (Date.now() - lastCheck < intervalMs && !isAboutToExpire) return;
+  const shouldRunByInterval = shouldRunIntervalHealthCheck({
+    nowMs,
+    schedulerStartedAtMs,
+    lastCheckMs: lastCheck,
+    intervalMs,
+    staggerOffsetMs,
+    isAboutToExpire,
+  });
+  if (!shouldRunByInterval) return;
 
-  const reason = isAboutToExpire ? "token expiring soon" : `interval: ${intervalMin}min`;
+  const reason = isAboutToExpire
+    ? "token expiring soon"
+    : staggerOffsetMs > 0
+      ? `interval: ${intervalMin}min + stagger: ${Math.floor(staggerOffsetMs / 1000)}s`
+      : `interval: ${intervalMin}min`;
   log(
     `${LOG_PREFIX} Refreshing ${conn.provider}/${conn.name || conn.email || conn.id} (${reason})`
   );
