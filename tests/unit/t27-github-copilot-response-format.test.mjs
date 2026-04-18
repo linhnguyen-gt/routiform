@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 const { GithubExecutor } = await import("../../open-sse/executors/github.ts");
 const { BaseExecutor } = await import("../../open-sse/executors/base.ts");
+const { handleChatCore } = await import("../../open-sse/handlers/chatCore.ts");
 
 function streamFromChunks(chunks) {
   const encoder = new TextEncoder();
@@ -13,6 +14,25 @@ function streamFromChunks(chunks) {
       controller.close();
     },
   });
+}
+
+function readHeaderValue(headers, name) {
+  if (!headers) return null;
+  if (typeof headers.get === "function") {
+    const value =
+      headers.get(name) || headers.get(name.toLowerCase()) || headers.get(name.toUpperCase());
+    return typeof value === "string" ? value : null;
+  }
+
+  const target = String(name || "").toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (String(key).toLowerCase() !== target) continue;
+    if (Array.isArray(value)) {
+      return typeof value[0] === "string" ? value[0] : null;
+    }
+    return typeof value === "string" ? value : null;
+  }
+  return null;
 }
 
 const originalFetch = globalThis.fetch;
@@ -150,6 +170,370 @@ test("T27: requests use copilotToken from providerSpecificData when available", 
 
   assert.equal(result.response.status, 200);
   assert.match(await result.response.text(), /OK/);
+});
+
+test("T27: forwards sanitized x-initiator header to GitHub upstream", async () => {
+  let capturedInitiator = null;
+  globalThis.fetch = async (_url, init = {}) => {
+    capturedInitiator = readHeaderValue(init.headers, "x-initiator");
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  const executor = new GithubExecutor();
+  const result = await executor.execute({
+    model: "claude-haiku-4.5",
+    body: { messages: [{ role: "user", content: "Ping" }], stream: false },
+    stream: false,
+    credentials: {
+      accessToken: "ghu_test",
+      providerSpecificData: {
+        copilotToken: "copilot_test",
+      },
+    },
+    upstreamExtraHeaders: {
+      "X-Initiator": "background",
+    },
+  });
+
+  assert.equal(result.response.status, 200);
+  assert.equal(capturedInitiator, "background");
+});
+
+test("T27: chatCore forwards x-initiator from mixed-case plain-object headers", async () => {
+  const upstreamCalls = [];
+  const uniquePrompt = `Ping-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  globalThis.fetch = async (url, init = {}) => {
+    upstreamCalls.push({
+      url: String(url),
+      initiator: readHeaderValue(init.headers, "x-initiator"),
+    });
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  const result = await handleChatCore({
+    body: {
+      model: "claude-haiku-4.5",
+      messages: [{ role: "user", content: uniquePrompt }],
+      stream: false,
+    },
+    modelInfo: {
+      provider: "github",
+      model: "claude-haiku-4.5",
+      extendedContext: false,
+    },
+    credentials: {
+      accessToken: "ghu_test",
+      providerSpecificData: {
+        copilotToken: "copilot_test",
+      },
+    },
+    clientRawRequest: {
+      endpoint: "/v1/chat/completions",
+      body: {
+        model: "claude-haiku-4.5",
+        messages: [{ role: "user", content: uniquePrompt }],
+        stream: false,
+      },
+      headers: {
+        "x-Initiator": "bg_worker",
+      },
+    },
+    log: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+  });
+
+  assert.equal(result.success, true);
+  const githubCall = upstreamCalls.find((call) => call.url.includes("api.githubcopilot.com"));
+  assert.ok(githubCall, "expected a GitHub upstream call");
+  assert.equal(githubCall.initiator, "bg_worker");
+});
+
+test("T27: chatCore forwards x-initiator from Headers instance", async () => {
+  const upstreamCalls = [];
+  const uniquePrompt = `Ping-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  globalThis.fetch = async (url, init = {}) => {
+    upstreamCalls.push({
+      url: String(url),
+      initiator: readHeaderValue(init.headers, "x-initiator"),
+    });
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  const result = await handleChatCore({
+    body: {
+      model: "claude-haiku-4.5",
+      messages: [{ role: "user", content: uniquePrompt }],
+      stream: false,
+    },
+    modelInfo: {
+      provider: "github",
+      model: "claude-haiku-4.5",
+      extendedContext: false,
+    },
+    credentials: {
+      accessToken: "ghu_test",
+      providerSpecificData: {
+        copilotToken: "copilot_test",
+      },
+    },
+    clientRawRequest: {
+      endpoint: "/v1/chat/completions",
+      body: {
+        model: "claude-haiku-4.5",
+        messages: [{ role: "user", content: uniquePrompt }],
+        stream: false,
+      },
+      headers: new Headers({
+        "X-Initiator": "scheduler_v2",
+      }),
+    },
+    log: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+  });
+
+  assert.equal(result.success, true);
+  const githubCall = upstreamCalls.find((call) => call.url.includes("api.githubcopilot.com"));
+  assert.ok(githubCall, "expected a GitHub upstream call");
+  assert.equal(githubCall.initiator, "scheduler_v2");
+});
+
+test("T27: chatCore does not forward x-initiator for non-GitHub providers", async () => {
+  const upstreamCalls = [];
+  const uniquePrompt = `Ping-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  globalThis.fetch = async (url, init = {}) => {
+    upstreamCalls.push({
+      url: String(url),
+      initiator: readHeaderValue(init.headers, "x-initiator"),
+    });
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  const result = await handleChatCore({
+    body: {
+      model: "gpt-4o",
+      messages: [{ role: "user", content: uniquePrompt }],
+      stream: false,
+    },
+    modelInfo: {
+      provider: "openai",
+      model: "gpt-4o",
+      extendedContext: false,
+    },
+    credentials: {
+      apiKey: "sk-openai-test",
+    },
+    clientRawRequest: {
+      endpoint: "/v1/chat/completions",
+      body: {
+        model: "gpt-4o",
+        messages: [{ role: "user", content: uniquePrompt }],
+        stream: false,
+      },
+      headers: {
+        "X-Initiator": "should_not_forward",
+      },
+    },
+    log: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+  });
+
+  assert.equal(result.success, true);
+  assert.ok(upstreamCalls.length > 0, "expected an upstream call");
+  const openaiCall = upstreamCalls[0];
+  assert.equal(openaiCall.initiator, null);
+});
+
+test("T27: chatCore ignores unsafe x-initiator and keeps default GitHub initiator", async () => {
+  const upstreamCalls = [];
+  const uniquePrompt = `Ping-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  globalThis.fetch = async (url, init = {}) => {
+    upstreamCalls.push({
+      url: String(url),
+      initiator: readHeaderValue(init.headers, "x-initiator"),
+    });
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  const result = await handleChatCore({
+    body: {
+      model: "claude-haiku-4.5",
+      messages: [{ role: "user", content: uniquePrompt }],
+      stream: false,
+    },
+    modelInfo: {
+      provider: "github",
+      model: "claude-haiku-4.5",
+      extendedContext: false,
+    },
+    credentials: {
+      accessToken: "ghu_test",
+      providerSpecificData: {
+        copilotToken: "copilot_test",
+      },
+    },
+    clientRawRequest: {
+      endpoint: "/v1/chat/completions",
+      body: {
+        model: "claude-haiku-4.5",
+        messages: [{ role: "user", content: uniquePrompt }],
+        stream: false,
+      },
+      headers: {
+        "x-initiator": "bad value\nnext",
+      },
+    },
+    log: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+  });
+
+  assert.equal(result.success, true);
+  const githubCall = upstreamCalls.find((call) => call.url.includes("api.githubcopilot.com"));
+  assert.ok(githubCall, "expected a GitHub upstream call");
+  assert.equal(githubCall.initiator, "user");
+});
+
+test("T27: chatCore removes model-level x-initiator variants before applying client initiator", async () => {
+  const { mergeModelCompatOverride, removeModelCompatOverride } =
+    await import("../../src/lib/db/models.ts");
+  const upstreamCalls = [];
+  const uniquePrompt = `Ping-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const scopedModelId = "claude-haiku-4.5-x-initiator-test";
+
+  mergeModelCompatOverride("github", scopedModelId, {
+    upstreamHeaders: {
+      "x-initiator": "model_lower",
+      "X-INITIATOR": "model_upper",
+    },
+  });
+
+  globalThis.fetch = async (url, init = {}) => {
+    upstreamCalls.push({
+      url: String(url),
+      initiator: readHeaderValue(init.headers, "x-initiator"),
+    });
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { index: 0, message: { role: "assistant", content: "OK" }, finish_reason: "stop" },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  try {
+    const result = await handleChatCore({
+      body: {
+        model: scopedModelId,
+        messages: [{ role: "user", content: uniquePrompt }],
+        stream: false,
+      },
+      modelInfo: {
+        provider: "github",
+        model: scopedModelId,
+        extendedContext: false,
+      },
+      credentials: {
+        accessToken: "ghu_test",
+        providerSpecificData: {
+          copilotToken: "copilot_test",
+        },
+      },
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body: {
+          model: scopedModelId,
+          messages: [{ role: "user", content: uniquePrompt }],
+          stream: false,
+        },
+        headers: {
+          "X-Initiator": "client_safe",
+        },
+      },
+      log: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+    });
+
+    assert.equal(result.success, true);
+    const githubCall = upstreamCalls.find((call) => call.url.includes("api.githubcopilot.com"));
+    assert.ok(githubCall, "expected a GitHub upstream call");
+    assert.equal(githubCall.initiator, "client_safe");
+  } finally {
+    removeModelCompatOverride("github", scopedModelId);
+  }
 });
 
 test("T27: non-stream execute materializes provider responses before returning", async () => {
