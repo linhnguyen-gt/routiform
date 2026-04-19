@@ -1,40 +1,25 @@
-# Routiform
+# Routiform: Your Universal AI Gateway to Freedom
 
-One AI endpoint for your apps, tools, and agents.
+**Tired of wrestling with countless AI provider APIs? Drowning in integration complexity and rising inference costs?** Routiform is your battle-hardened solution. It's a self-hosted AI gateway and dashboard that unshackles your apps, tools, and agents from vendor lock-in and operational chaos.
 
-Routiform is a self-hosted AI gateway and dashboard that sits between your clients and 60+ model providers. It exposes one OpenAI-compatible API surface, translates requests across provider formats, and keeps traffic flowing with retries, fallbacks, routing policies, quota awareness, and operational controls.
+**Stop managing dozens of SDKs. Start building brilliant AI experiences.**
 
-It is designed for developers who want to:
-
-- stop switching SDKs every time they try a new provider
-- keep Cursor, Cline, Claude Desktop, Codex, MCP clients, and custom apps on one base URL
-- route to cheaper or free models automatically when premium capacity is unavailable
-- run their own gateway instead of sending traffic through a third-party relay
-- manage provider keys, combos, quotas, logs, memory, and agent skills from one place
-
-## What Routiform solves
-
-### 1. Too many providers, too many incompatible APIs
-
-Routiform gives you a single `/v1/*` entrypoint and handles provider translation behind the scenes.
-
-### 2. Provider outages and quota exhaustion
-
-Requests can fail over across accounts, providers, or model families instead of hard-failing the client.
-
-### 3. Rising inference costs
-
-Routing can prefer free, lower-cost, or backup models based on policy, quota, and availability.
-
-### 4. Agent tooling fragmentation
-
-Routiform includes an MCP server, A2A protocol support, memory, and skills so agent workflows can run through the same system.
-
-### 5. Operational blind spots
-
-The dashboard centralizes provider connections, model catalogs, combo routing, usage, quotas, logs, API keys, and endpoint health.
+Routiform sits between your clients and 60+ AI model providers, offering a single, seamless OpenAI-compatible API surface. It's built for developers who demand control, resilience, and efficiency in their AI infrastructure.
 
 ---
+
+## Why Routiform? Unlock AI Power, Slash Complexity.
+
+Teams choose Routiform over direct provider integrations because it delivers:
+
+*   **Unified Simplicity:** One API endpoint for ALL your AI needs. Connect Cursor, Cline, Claude Desktop, and custom apps to a single base URL, no matter the provider.
+*   **Unrivaled Resilience:** No more outages or quota nightmares. Routiform intelligently handles retries, fallbacks across accounts/providers, and dynamic routing to keep your AI flowing.
+*   **Cost-Crushing Efficiency:** Automatically route requests to the cheapest or free models based on policy, quota, and availability. Optimize your inference spend without changing a line of client code.
+*   **Total Control & Transparency:** Self-host your gateway for complete ownership over provider keys, routing policies, logs, and data. Gain deep operational visibility into usage, quotas, and endpoint health.
+*   **Agent Workflow Mastery:** Built-in MCP server, A2A protocol support, memory, and skills for seamless, powerful agent orchestration through a unified system.
+
+---
+
 
 <div align="center">
 
