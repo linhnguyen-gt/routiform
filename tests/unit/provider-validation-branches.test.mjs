@@ -404,3 +404,140 @@ test("gemini-cli validation uses Bearer auth (OAuth)", async () => {
   assert.equal(calls[0].headers["Authorization"], "Bearer oauth-access-token");
   assert.equal(calls[0].headers["x-goog-api-key"], undefined);
 });
+
+test("vertex validation accepts Service Account JSON shape", async () => {
+  const result = await validateProviderApiKey({
+    provider: "vertex",
+    apiKey: JSON.stringify({
+      type: "service_account",
+      project_id: "demo-project",
+      private_key_id: "abc123",
+      private_key: "-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----\\n",
+      client_email: "svc@demo-project.iam.gserviceaccount.com",
+    }),
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.method, "service_account_json");
+});
+
+test("vertex validation rejects malformed Service Account JSON", async () => {
+  const result = await validateProviderApiKey({
+    provider: "vertex",
+    apiKey: JSON.stringify({ type: "service_account", project_id: "demo-project" }),
+  });
+
+  assert.equal(result.valid, false);
+  assert.match(result.error, /missing client_email or private_key/i);
+});
+
+test("vertex validation accepts OAuth access token via tokeninfo", async () => {
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), headers: init?.headers });
+    return new Response(
+      JSON.stringify({
+        audience: "32555940559.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/cloud-platform",
+        expires_in: 3599,
+      }),
+      { status: 200 }
+    );
+  };
+
+  const result = await validateProviderApiKey({
+    provider: "vertex",
+    apiKey: "ya29.valid-token",
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.method, "oauth_token_info");
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /oauth2\.googleapis\.com\/tokeninfo/);
+});
+
+test("vertex validation rejects invalid OAuth access token", async () => {
+  globalThis.fetch = async (url, init = {}) => {
+    const target = String(url);
+    if (target.includes("oauth2.googleapis.com/tokeninfo")) {
+      return new Response(JSON.stringify({ error: "invalid_token" }), { status: 400 });
+    }
+
+    const headers = init.headers || {};
+    if (headers.Authorization) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 401,
+            status: "UNAUTHENTICATED",
+            message: "Request had invalid authentication credentials.",
+          },
+        }),
+        { status: 401 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 403,
+          status: "UNAUTHENTICATED",
+          message: "API key not valid. Please pass a valid API key.",
+        },
+      }),
+      { status: 403 }
+    );
+  };
+
+  const result = await validateProviderApiKey({
+    provider: "vertex",
+    apiKey: "AQ.invalid-token",
+  });
+
+  assert.equal(result.valid, false);
+  assert.equal(result.error, "Invalid API key");
+});
+
+test("vertex validation treats API-key style credential as valid when Vertex returns permission denied", async () => {
+  globalThis.fetch = async (url, init = {}) => {
+    const target = String(url);
+
+    if (target.includes("oauth2.googleapis.com/tokeninfo")) {
+      return new Response(JSON.stringify({ error: "invalid_token" }), { status: 400 });
+    }
+
+    const headers = init.headers || {};
+    if (headers.Authorization) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 401,
+            status: "UNAUTHENTICATED",
+            message: "Request had invalid authentication credentials.",
+          },
+        }),
+        { status: 401 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 403,
+          status: "PERMISSION_DENIED",
+          message: "Permission denied on resource project vertex-validation-probe.",
+        },
+      }),
+      { status: 403 }
+    );
+  };
+
+  const result = await validateProviderApiKey({
+    provider: "vertex",
+    apiKey: "AQ.sample-key",
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.method, "vertex_inference_probe_apikey");
+  assert.match(result.warning, /missing project\/model permission/i);
+});
