@@ -155,6 +155,14 @@ export async function PATCH(request) {
       invalidateCacheControlSettingsCache();
     }
 
+    if ("modelReasoningDefaults" in body) {
+      const { setCustomModelReasoningEffortDefaults } =
+        await import("@routiform/open-sse/config/providerRegistry.ts");
+      setCustomModelReasoningEffortDefaults(
+        (body.modelReasoningDefaults || {}) as Record<string, string>
+      );
+    }
+
     // Sync models.dev sync settings (compare old vs new state)
     if (oldSettings && ("modelsDevSyncEnabled" in body || "modelsDevSyncInterval" in body)) {
       const { stopPeriodicSync, startPeriodicSync } = await import("@/lib/modelsDevSync");

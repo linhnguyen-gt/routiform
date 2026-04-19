@@ -724,6 +724,23 @@ export const removeModelAliasSchema = z.object({
   from: z.string().trim().min(1),
 });
 
+const MODEL_REASONING_EFFORT_ENUM = z.enum(["none", "low", "medium", "high", "xhigh"]);
+
+export const updateModelReasoningDefaultsSchema = z.object({
+  defaults: z.record(z.string().trim().min(3), MODEL_REASONING_EFFORT_ENUM),
+});
+
+export const addModelReasoningDefaultSchema = z.object({
+  provider: z.string().trim().min(1),
+  model: z.string().trim().min(1),
+  effort: MODEL_REASONING_EFFORT_ENUM,
+});
+
+export const removeModelReasoningDefaultSchema = z.object({
+  provider: z.string().trim().min(1),
+  model: z.string().trim().min(1),
+});
+
 export const proxyConfigSchema = z
   .object({
     type: z

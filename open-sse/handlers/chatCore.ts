@@ -16,7 +16,11 @@ import {
 } from "@/lib/usageDb";
 import { HTTP_STATUS, getProviderMaxTokensCap } from "../config/constants.ts";
 import { PROVIDER_ID_TO_ALIAS, getModelTargetFormat } from "../config/providerModels.ts";
-import { getForceParams, getUnsupportedParams } from "../config/providerRegistry.ts";
+import {
+  getDefaultParams,
+  getForceParams,
+  getUnsupportedParams,
+} from "../config/providerRegistry.ts";
 import { isEmptyContentResponse } from "../services/errorClassifier.ts";
 import { resolveModelAlias } from "../services/modelDeprecation.ts";
 import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";
@@ -1044,6 +1048,15 @@ export async function handleChatCore({
 
       // Force required parameter values after final model selection.
       const forceParamModelId = String(bodyToSend.model || modelToCall || "");
+      const defaultParams = getDefaultParams(provider, forceParamModelId);
+      if (defaultParams) {
+        for (const [key, value] of Object.entries(defaultParams)) {
+          if (bodyToSend[key] === undefined) {
+            bodyToSend[key] = value;
+          }
+        }
+      }
+
       const forceParams = getForceParams(provider, forceParamModelId);
       if (forceParams) {
         for (const [key, value] of Object.entries(forceParams)) {

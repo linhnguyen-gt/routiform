@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Input, Modal, Select, Toggle } from "@/shared/components";
+import { Badge, Button, Input, Modal, Toggle } from "@/shared/components";
 import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
@@ -14,25 +14,15 @@ import { ERROR_TYPE_LABELS } from "../providerDetailErrorUtils";
 import type { EditConnectionModalProps } from "../[id]/types";
 import { ProviderDetailExtraApiKeysField } from "./ProviderDetailExtraApiKeysField";
 
-const CODEX_REASONING_STRENGTH_OPTIONS = [
-  { value: "none", label: "None" },
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "xhigh", label: "XHigh" },
-];
-
 /**
  * UI adapter around the canonical getCodexRequestDefaults from requestDefaults.ts.
- * Adds the "medium" fallback for reasoningEffort required by the connection form.
+ * Keeps only service tier behavior at connection level.
  */
 function getCodexRequestDefaults(providerSpecificData: unknown): {
-  reasoningEffort: string;
   serviceTier?: "priority";
 } {
   const defaults = _getCodexRequestDefaults(providerSpecificData);
   return {
-    reasoningEffort: defaults.reasoningEffort ?? "medium",
     ...(defaults.serviceTier ? { serviceTier: defaults.serviceTier } : {}),
   };
 }
@@ -55,7 +45,6 @@ export function ProviderDetailEditConnectionModal({
     validationModelId: "",
     tag: "",
     customUserAgent: "",
-    codexReasoningEffort: "medium",
     codexFastServiceTier: false,
   });
   const [testing, setTesting] = useState(false);
@@ -105,7 +94,6 @@ export function ProviderDetailEditConnectionModal({
       validationModelId: (connection.providerSpecificData?.validationModelId as string) || "",
       tag: (connection.providerSpecificData?.tag as string) || "",
       customUserAgent,
-      codexReasoningEffort: codexRequestDefaults.reasoningEffort,
       codexFastServiceTier: codexRequestDefaults.serviceTier === "priority",
     });
     const existing = connection.providerSpecificData?.extraApiKeys;
@@ -195,7 +183,6 @@ export function ProviderDetailEditConnectionModal({
         const providerSpecificData =
           (updates.providerSpecificData as Record<string, unknown> | undefined) || {};
         providerSpecificData.requestDefaults = {
-          reasoningEffort: formData.codexReasoningEffort,
           ...(formData.codexFastServiceTier ? { serviceTier: "priority" } : {}),
         };
         updates.providerSpecificData = providerSpecificData;
@@ -262,13 +249,6 @@ export function ProviderDetailEditConnectionModal({
         />
         {isCodex && (
           <div className="flex flex-col gap-4 rounded-lg border border-border/50 bg-surface/20 p-4">
-            <Select
-              label="Default thinking strength"
-              value={formData.codexReasoningEffort}
-              options={CODEX_REASONING_STRENGTH_OPTIONS}
-              onChange={(e) => setFormData({ ...formData, codexReasoningEffort: e.target.value })}
-              hint="Used when the client does not send a reasoning effort and the global Thinking Budget mode is passthrough."
-            />
             <Toggle
               checked={formData.codexFastServiceTier}
               onChange={(checked) => setFormData({ ...formData, codexFastServiceTier: checked })}

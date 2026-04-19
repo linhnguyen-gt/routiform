@@ -3,7 +3,6 @@ import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.ts";
 import { PROVIDERS } from "../config/constants.ts";
 import { generateSessionId } from "../services/sessionManager.ts";
 import { refreshCodexToken } from "../services/tokenRefresh.ts";
-import { getThinkingBudgetConfig, ThinkingMode } from "../services/thinkingBudget.ts";
 import { getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
 // ─── T09: Codex vs Spark Scope-Aware Rate Limiting ────────────────────────
@@ -248,8 +247,6 @@ export class CodexExecutor extends BaseExecutor {
     const nativeCodexPassthrough = body?._nativeCodexPassthrough === true;
     const isCompactRequest = isCompactResponsesEndpoint(credentials?.requestEndpointPath);
     const requestDefaults = getCodexRequestDefaults(credentials?.providerSpecificData);
-    const thinkingBudgetConfig = getThinkingBudgetConfig();
-    const allowConnectionReasoningDefaults = thinkingBudgetConfig.mode === ThinkingMode.PASSTHROUGH;
 
     // Codex /responses rejects stream=false, but /responses/compact rejects the stream field entirely.
     if (isCompactRequest) {
@@ -315,9 +312,7 @@ export class CodexExecutor extends BaseExecutor {
 
     const explicitReasoning = normalizeEffortValue(body?.reasoning?.effort);
     const requestReasoningEffort = normalizeEffortValue(body.reasoning_effort);
-    const fallbackReasoningEffort = allowConnectionReasoningDefaults
-      ? requestDefaults.reasoningEffort || "medium"
-      : undefined;
+    const fallbackReasoningEffort = null;
     const rawEffort =
       explicitReasoning || requestReasoningEffort || modelEffort || fallbackReasoningEffort;
 
