@@ -183,30 +183,49 @@ const KNOWN_SVGS = new Set([
   "cartesia",
   "cloudflare-ai",
   "comfyui",
+  "deepinfra",
   "elevenlabs",
   "exa-search",
   "exa",
+  "getgoapi",
   "huggingface",
   "hyperbolic",
   "inworld",
+  "laozhang",
   "nanobanana",
+  "novita",
   "oauth",
+  "piapi",
   "playht",
   "pollinations",
   "puter",
+  "sambanova",
   "scaleway",
   "sdwebui",
   "synthetic",
   "vertex",
+  "venice",
   "windsurf",
+  "xiaomi-mimo",
   "zai",
 ]);
 
 // Aliases cho các provider sharing cùng một icon file
 const PNG_ALIASES: Record<string, string> = {
+  "deepgram-ai": "deepgram.png",
+  glmt: "glm.png",
+  if: "qoder.png",
   opencode: "opencode.png",
   "opencode-zen": "opencode.png",
   "opencode-go": "opencode.png",
+  "qoder-ai": "qoder.png",
+};
+
+const SVG_ALIASES: Record<string, string> = {
+  goapi: "getgoapi.svg",
+  "laozhang-ai": "laozhang.svg",
+  "novita-ai": "novita.svg",
+  "venice.ai": "venice.svg",
 };
 
 const ProviderIcon = memo(function ProviderIcon({
@@ -219,8 +238,9 @@ const ProviderIcon = memo(function ProviderIcon({
   const normalizedId = providerId.toLowerCase();
   const lobehubId = LOBEHUB_PROVIDER_MAP[normalizedId] ?? null;
   const hasPng = KNOWN_PNGS.has(normalizedId) || normalizedId in PNG_ALIASES;
-  const hasSvg = KNOWN_SVGS.has(normalizedId);
+  const hasSvg = KNOWN_SVGS.has(normalizedId) || normalizedId in SVG_ALIASES;
   const pngAlias = PNG_ALIASES[normalizedId];
+  const svgAlias = SVG_ALIASES[normalizedId];
 
   const [useLobehub, setUseLobehub] = useState(lobehubId !== null);
   const [usePng, setUsePng] = useState(hasPng);
@@ -263,13 +283,14 @@ const ProviderIcon = memo(function ProviderIcon({
   }
 
   if (useSvg) {
+    const svgPath = svgAlias ?? `${normalizedId}.svg`;
     return (
       <span
         className={className}
         style={{ display: "inline-flex", alignItems: "center", ...style }}
       >
         <Image
-          src={`/providers/${normalizedId}.svg`}
+          src={`/providers/${svgPath}`}
           alt={providerId}
           width={size}
           height={size}
