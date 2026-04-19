@@ -120,6 +120,10 @@ export const createKeySchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
 });
 
+export const createSyncTokenSchema = z.object({
+  name: z.string().min(1, "Name is required").max(120),
+});
+
 // ──── Combo Schemas ────
 
 // A model entry can be a plain string (legacy) or an object with weight
