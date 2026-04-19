@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.12.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.2...v3.12.0) (2026-04-19)
+
+
+### Features
+
+* **settings:** manage model reasoning defaults via dashboard ([51a6a3a](https://github.com/linhnguyen-gt/Routiform/commit/51a6a3a4462d6cee25ad242ef11527241dfdc7b9))
+
+
+### Bug Fixes
+
+* **api:** disable cache for combos listing endpoint ([53ffa2c](https://github.com/linhnguyen-gt/Routiform/commit/53ffa2cf10cba7855190fe19a1b67f989dd864c6))
+* **db:** preserve combo string references during startup health repair ([5064d41](https://github.com/linhnguyen-gt/Routiform/commit/5064d41effbb2f60256007c03104ad8b40e44a2e))
+* **providers:** specialize vertex credential validation paths ([1a05ef4](https://github.com/linhnguyen-gt/Routiform/commit/1a05ef4b8f10f3894cab8e562bd18c2a14ce852b))
+* **ui:** add missing provider icon mappings and assets ([3b87040](https://github.com/linhnguyen-gt/Routiform/commit/3b8704035ce704276bd792c7fdb7d616220b0e98))
+
 ### [3.11.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.1...v3.11.2) (2026-04-18)
 
 
