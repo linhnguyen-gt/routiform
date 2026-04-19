@@ -191,7 +191,7 @@ export async function POST(request: Request) {
     settingsProviders["routiform"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
-      api: "openai-completions",
+      api: "anthropic-messages",
       models: normalizedModels.map((modelId) => ({
         id: modelId,
         name: modelId.split("/").pop() || modelId,

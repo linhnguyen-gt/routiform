@@ -306,7 +306,7 @@ Edit `~/.openclaw/openclaw.json`:
       "routiform": {
         "baseUrl": "http://localhost:20128/v1",
         "apiKey": "your-routiform-api-key",
-        "api": "openai-completions",
+        "api": "anthropic-messages",
         "models": [{ "id": "if/glm-4.7", "name": "glm-4.7" }]
       }
     }
@@ -445,60 +445,60 @@ export npm_config_fund=false
 export npm_config_audit=false
 
 do_build() {
-	# Determine target CPU arch for node-gyp
-	local _gyp_arch
-	case "$XBPS_TARGET_MACHINE" in
-		aarch64*) _gyp_arch=arm64 ;;
-		armv7*|armv6*) _gyp_arch=arm ;;
-		i686*) _gyp_arch=ia32 ;;
-		*) _gyp_arch=x64 ;;
-	esac
+ # Determine target CPU arch for node-gyp
+ local _gyp_arch
+ case "$XBPS_TARGET_MACHINE" in
+  aarch64*) _gyp_arch=arm64 ;;
+  armv7*|armv6*) _gyp_arch=arm ;;
+  i686*) _gyp_arch=ia32 ;;
+  *) _gyp_arch=x64 ;;
+ esac
 
-	# 1) Install all deps – skip scripts
-	NODE_ENV=development npm ci --ignore-scripts
+ # 1) Install all deps – skip scripts
+ NODE_ENV=development npm ci --ignore-scripts
 
-	# 2) Build the Next.js standalone bundle
-	npm run build
+ # 2) Build the Next.js standalone bundle
+ npm run build
 
-	# 3) Copy static assets into standalone
-	cp -r .next/static .next/standalone/.next/static
-	[ -d public ] && cp -r public .next/standalone/public || true
+ # 3) Copy static assets into standalone
+ cp -r .next/static .next/standalone/.next/static
+ [ -d public ] && cp -r public .next/standalone/public || true
 
-	# 4) Compile better-sqlite3 native binding
-	local _node_gyp=/usr/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js
-	(cd node_modules/better-sqlite3 && node "$_node_gyp" rebuild --arch="$_gyp_arch")
+ # 4) Compile better-sqlite3 native binding
+ local _node_gyp=/usr/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js
+ (cd node_modules/better-sqlite3 && node "$_node_gyp" rebuild --arch="$_gyp_arch")
 
-	# 5) Place the compiled binding into the standalone bundle
-	local _bs3_release=.next/standalone/node_modules/better-sqlite3/build/Release
-	mkdir -p "$_bs3_release"
-	cp node_modules/better-sqlite3/build/Release/better_sqlite3.node "$_bs3_release/"
+ # 5) Place the compiled binding into the standalone bundle
+ local _bs3_release=.next/standalone/node_modules/better-sqlite3/build/Release
+ mkdir -p "$_bs3_release"
+ cp node_modules/better-sqlite3/build/Release/better_sqlite3.node "$_bs3_release/"
 
-	# 6) Remove arch-specific sharp bundles
-	rm -rf .next/standalone/node_modules/@img
+ # 6) Remove arch-specific sharp bundles
+ rm -rf .next/standalone/node_modules/@img
 
-	# 7) Copy pino runtime deps omitted by Next.js static analysis:
-	for _mod in pino-abstract-transport split2 process-warning; do
-		cp -r "node_modules/$_mod" .next/standalone/node_modules/
-	done
+ # 7) Copy pino runtime deps omitted by Next.js static analysis:
+ for _mod in pino-abstract-transport split2 process-warning; do
+  cp -r "node_modules/$_mod" .next/standalone/node_modules/
+ done
 }
 
 do_check() {
-	npm run test:unit
+ npm run test:unit
 }
 
 do_install() {
-	vmkdir usr/lib/routiform/.next
-	vcopy .next/standalone/. usr/lib/routiform/.next/standalone
+ vmkdir usr/lib/routiform/.next
+ vcopy .next/standalone/. usr/lib/routiform/.next/standalone
 
-	# Prevent removal of empty Next.js app router dirs by the post-install hook
-	for _d in \
-		.next/standalone/.next/server/app/dashboard \
-		.next/standalone/.next/server/app/dashboard/settings \
-		.next/standalone/.next/server/app/dashboard/providers; do
-		touch "${DESTDIR}/usr/lib/routiform/${_d}/.keep"
-	done
+ # Prevent removal of empty Next.js app router dirs by the post-install hook
+ for _d in \
+  .next/standalone/.next/server/app/dashboard \
+  .next/standalone/.next/server/app/dashboard/settings \
+  .next/standalone/.next/server/app/dashboard/providers; do
+  touch "${DESTDIR}/usr/lib/routiform/${_d}/.keep"
+ done
 
-	cat > "${WRKDIR}/routiform" <<'EOF'
+ cat > "${WRKDIR}/routiform" <<'EOF'
 #!/bin/sh
 export PORT="${PORT:-20128}"
 export DATA_DIR="${DATA_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/routiform}"
@@ -506,11 +506,11 @@ export LOG_TO_FILE="${LOG_TO_FILE:-false}"
 mkdir -p "${DATA_DIR}"
 exec node /usr/lib/routiform/.next/standalone/server.js "$@"
 EOF
-	vbin "${WRKDIR}/routiform"
+ vbin "${WRKDIR}/routiform"
 }
 
 post_install() {
-	vlicense LICENSE
+ vlicense LICENSE
 }
 ```
 
