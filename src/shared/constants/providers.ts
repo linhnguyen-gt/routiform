@@ -62,6 +62,40 @@ export const OAUTH_PROVIDERS = {
   },
 };
 
+const WEB_SESSION_PROVIDER_FLAGS = {
+  "perplexity-web": process.env.ENABLE_PERPLEXITY_WEB_PROVIDER === "true",
+  "grok-web": process.env.ENABLE_GROK_WEB_PROVIDER === "true",
+};
+
+const ENABLED_WEB_SESSION_PROVIDERS = {
+  ...(WEB_SESSION_PROVIDER_FLAGS["perplexity-web"]
+    ? {
+        "perplexity-web": {
+          id: "perplexity-web",
+          alias: "pplx-web",
+          name: "Perplexity Web",
+          icon: "travel_explore",
+          color: "#20808D",
+          textIcon: "PW",
+          website: "https://www.perplexity.ai",
+        },
+      }
+    : {}),
+  ...(WEB_SESSION_PROVIDER_FLAGS["grok-web"]
+    ? {
+        "grok-web": {
+          id: "grok-web",
+          alias: "grok-web",
+          name: "Grok Web",
+          icon: "auto_awesome",
+          color: "#1DA1F2",
+          textIcon: "GW",
+          website: "https://grok.com",
+        },
+      }
+    : {}),
+};
+
 // API Key Providers
 export const APIKEY_PROVIDERS = {
   openrouter: {
@@ -81,6 +115,15 @@ export const APIKEY_PROVIDERS = {
     icon: "code",
     color: "#2563EB",
     textIcon: "GL",
+    website: "https://open.bigmodel.cn",
+  },
+  glmt: {
+    id: "glmt",
+    alias: "glmt",
+    name: "GLM Thinking",
+    icon: "psychology",
+    color: "#1D4ED8",
+    textIcon: "GT",
     website: "https://open.bigmodel.cn",
   },
   "bailian-coding-plan": {
@@ -671,6 +714,16 @@ export const APIKEY_PROVIDERS = {
     website: "https://api.laozhang.ai",
     passthroughModels: true,
   },
+  "xiaomi-mimo": {
+    id: "xiaomi-mimo",
+    alias: "mimo",
+    name: "Xiaomi MiMo",
+    icon: "smart_toy",
+    color: "#FF6900",
+    textIcon: "XM",
+    website: "https://platform.xiaomimimo.com",
+  },
+  ...ENABLED_WEB_SESSION_PROVIDERS,
 };
 
 export const OPENAI_COMPATIBLE_PREFIX = "openai-compatible-";

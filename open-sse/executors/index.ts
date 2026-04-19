@@ -13,6 +13,8 @@ import { PuterExecutor } from "./puter.ts";
 import { VertexExecutor } from "./vertex.ts";
 import { CliproxyapiExecutor } from "./cliproxyapi.ts";
 import { QwenExecutor } from "./qwen.ts";
+import { GrokWebExecutor } from "./grok-web.ts";
+import { PerplexityWebExecutor } from "./perplexity-web.ts";
 
 const executors = {
   antigravity: new AntigravityExecutor(),
@@ -35,6 +37,8 @@ const executors = {
   cliproxyapi: new CliproxyapiExecutor(),
   cpa: new CliproxyapiExecutor(), // Alias
   qwen: new QwenExecutor(),
+  "grok-web": new GrokWebExecutor(),
+  "perplexity-web": new PerplexityWebExecutor(),
 };
 
 const defaultCache = new Map();
@@ -65,3 +69,5 @@ export { PuterExecutor } from "./puter.ts";
 export { CliproxyapiExecutor, isCliproxyapiDeepModeEnabled } from "./cliproxyapi.ts";
 export { VertexExecutor } from "./vertex.ts";
 export { QwenExecutor } from "./qwen.ts";
+export { GrokWebExecutor } from "./grok-web.ts";
+export { PerplexityWebExecutor } from "./perplexity-web.ts";

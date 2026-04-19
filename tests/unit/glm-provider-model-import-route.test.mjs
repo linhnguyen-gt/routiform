@@ -222,3 +222,34 @@ test("GLM import surfaces upstream non-OK status codes", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("GLMT import uses same model import endpoint behavior as GLM", async () => {
+  await resetStorage();
+  const connection = await providersDb.createProviderConnection({
+    provider: "glmt",
+    authType: "apikey",
+    name: "glmt-intl",
+    apiKey: "glmt-key",
+    providerSpecificData: { apiRegion: "international" },
+  });
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(String(url), "https://api.z.ai/api/coding/paas/v4/models");
+    assert.equal(init.headers.Authorization, "Bearer glmt-key");
+    return Response.json({ data: [{ id: "glm-5.1", name: "GLM 5.1" }] });
+  };
+
+  try {
+    const response = await modelsRoute.GET(
+      new Request(`http://localhost/api/providers/${connection.id}/models`),
+      { params: { id: connection.id } }
+    );
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.provider, "glmt");
+    assert.equal(body.models[0].id, "glm-5.1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

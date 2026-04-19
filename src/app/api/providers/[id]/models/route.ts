@@ -9,6 +9,7 @@ import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { getModelIsHidden, resolveProxyForProvider } from "@/lib/localDb";
 import { getStaticQoderModels } from "@routiform/open-sse/services/qoderCli.ts";
 import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
+import { getGlmModelsUrl } from "@routiform/open-sse/config/glmProvider.ts";
 import { getOpencodeGoModels } from "@/lib/providers/opencodeGoModelsCatalog";
 
 type JsonRecord = Record<string, unknown>;
@@ -122,16 +123,6 @@ export function mapCodexModelsFromApi(data: unknown, includeHidden: boolean): Ar
     : withoutDisabled.filter((model) => model.hidden !== true);
 
   return mergeCodexModels(visible);
-}
-
-const GLM_MODELS_URLS = {
-  international: "https://api.z.ai/api/coding/paas/v4/models",
-  china: "https://open.bigmodel.cn/api/coding/paas/v4/models",
-} as const;
-
-function getGlmApiRegion(providerSpecificData: unknown): keyof typeof GLM_MODELS_URLS {
-  const data = asRecord(providerSpecificData);
-  return data.apiRegion === "china" ? "china" : "international";
 }
 
 function normalizeModelKey(value: unknown): string {
@@ -891,9 +882,8 @@ export async function GET(
       });
     }
 
-    if (provider === "glm") {
-      const region = getGlmApiRegion(connection.providerSpecificData);
-      const url = GLM_MODELS_URLS[region];
+    if (provider === "glm" || provider === "glmt") {
+      const url = getGlmModelsUrl(connection.providerSpecificData);
       const token = apiKey || accessToken;
 
       const response = await runWithProxyContext(proxy, () =>
