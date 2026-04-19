@@ -69,6 +69,11 @@ import {
   isFallbackDecision,
   shouldUseFallback,
 } from "@routiform/open-sse/services/emergencyFallback.ts";
+import {
+  buildCooldownAwareRetryConfig,
+  shouldRetryOnCooldown,
+  waitForCooldown,
+} from "../services/cooldownAwareRetry";
 
 /**
  * Handle chat completion request
@@ -444,11 +449,14 @@ async function handleSingleModelChat(
   });
 
   const userAgent = request?.headers?.get("user-agent") || "";
+  const retrySettings = await getSettings().catch(() => ({}) as Record<string, unknown>);
+  const retryConfig = buildCooldownAwareRetryConfig(retrySettings);
 
   // 3. Credential retry loop (accumulate tried IDs so we never ping-pong between exhausted accounts)
   const triedConnectionIds: string[] = [];
   let lastError = null;
   let lastStatus = null;
+  let sameAccountRetryCount = 0;
 
   while (true) {
     const credentialOptions =
@@ -622,8 +630,8 @@ async function handleSingleModelChat(
       markAccountExhaustedFrom429(credentials.connectionId, provider);
     }
 
-    // 7. Fallback to next account
-    const { shouldFallback } = await markAccountUnavailable(
+    // 7. Fallback to next account (with optional cooldown-aware same-account retry)
+    const fallbackDecision = await markAccountUnavailable(
       credentials.connectionId,
       Number(result.status),
       String(result.error),
@@ -631,7 +639,28 @@ async function handleSingleModelChat(
       model
     );
 
-    if (shouldFallback) {
+    const currentAttempt = sameAccountRetryCount;
+    if (
+      fallbackDecision.shouldFallback &&
+      shouldRetryOnCooldown({
+        status: Number(result.status),
+        cooldownMs: fallbackDecision.cooldownMs,
+        retryAttempt: currentAttempt,
+        config: retryConfig,
+      })
+    ) {
+      sameAccountRetryCount += 1;
+      log.info(
+        "COOLDOWN_RETRY",
+        `${provider}/${model} waiting ${Math.ceil(fallbackDecision.cooldownMs / 1000)}s before retrying same account`
+      );
+      await waitForCooldown(fallbackDecision.cooldownMs);
+      continue;
+    }
+
+    sameAccountRetryCount = 0;
+
+    if (fallbackDecision.shouldFallback) {
       log.warn("AUTH", `Account ${accountId}... unavailable (${result.status}), trying fallback`);
       triedConnectionIds.push(credentials.connectionId);
       lastError = result.error;
