@@ -2,22 +2,141 @@ import { getDbInstance } from "../db/core";
 import { Memory, MemoryConfig, MemoryType } from "./types";
 import { MemoryConfigSchema } from "./schemas";
 
-/**
- * Simple token estimation function (roughly 1 token per 4 characters)
- */
+function parseMetadata(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function toMemory(row: Record<string, unknown>): Memory {
+  return {
+    id: String(row.id || ""),
+    apiKeyId: typeof row.api_key_id === "string" ? row.api_key_id : "",
+    sessionId: typeof row.session_id === "string" ? row.session_id : "",
+    type: row.type as MemoryType,
+    key: typeof row.key === "string" ? row.key : "",
+    content: typeof row.content === "string" ? row.content : "",
+    metadata: parseMetadata(row.metadata),
+    createdAt: new Date(String(row.created_at || "")),
+    updatedAt: new Date(String(row.updated_at || "")),
+    expiresAt: row.expires_at ? new Date(String(row.expires_at)) : null,
+  };
+}
+
+function normalizeSearchTerms(searchText: string | undefined): string[] {
+  if (!searchText || typeof searchText !== "string") return [];
+  return searchText
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((term) => term.replace(/[^a-z0-9_*]/g, ""))
+    .filter((term) => term.length >= 2)
+    .slice(0, 8);
+}
+
+function buildFtsMatchQuery(searchText: string | undefined): string | null {
+  const terms = normalizeSearchTerms(searchText);
+  if (terms.length === 0) return null;
+  return terms.map((term) => `${term}*`).join(" OR ");
+}
+
+function sortAndBudget(memories: Memory[], maxTokens: number): Memory[] {
+  const sorted = [...memories].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const budgeted: Memory[] = [];
+  let totalTokens = 0;
+
+  for (const memory of sorted) {
+    const memoryTokens = estimateTokens(memory.content);
+    if (totalTokens + memoryTokens > maxTokens) {
+      if (budgeted.length === 0) {
+        budgeted.push(memory);
+      }
+      break;
+    }
+    budgeted.push(memory);
+    totalTokens += memoryTokens;
+  }
+
+  return budgeted;
+}
+
+function dedupeById(memories: Memory[]): Memory[] {
+  const seen = new Set<string>();
+  const deduped: Memory[] = [];
+  for (const memory of memories) {
+    if (seen.has(memory.id)) continue;
+    seen.add(memory.id);
+    deduped.push(memory);
+  }
+  return deduped;
+}
+
+async function fetchRecentMemories(
+  apiKeyId: string,
+  retentionDays: number,
+  limit: number
+): Promise<Memory[]> {
+  const db = getDbInstance();
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const rows = db
+    .prepare(
+      `
+        SELECT *
+        FROM memories
+        WHERE api_key_id = ?
+          AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))
+          AND datetime(created_at) >= datetime(?)
+        ORDER BY datetime(created_at) DESC
+        LIMIT ?
+      `
+    )
+    .all(apiKeyId, cutoff, limit) as Array<Record<string, unknown>>;
+  return rows.map(toMemory);
+}
+
+async function fetchSemanticMemories(
+  apiKeyId: string,
+  retentionDays: number,
+  limit: number,
+  searchText?: string
+): Promise<Memory[]> {
+  const matchQuery = buildFtsMatchQuery(searchText);
+  if (!matchQuery) return [];
+
+  const db = getDbInstance();
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const rows = db
+    .prepare(
+      `
+        SELECT m.*
+        FROM memories_fts
+        JOIN memories m ON m.id = memories_fts.id
+        WHERE memories_fts.api_key_id = ?
+          AND memories_fts MATCH ?
+          AND (m.expires_at IS NULL OR datetime(m.expires_at) > datetime('now'))
+          AND datetime(m.created_at) >= datetime(?)
+        ORDER BY bm25(memories_fts), datetime(m.created_at) DESC
+        LIMIT ?
+      `
+    )
+    .all(apiKeyId, matchQuery, cutoff, limit) as Array<Record<string, unknown>>;
+
+  return rows.map(toMemory);
+}
+
 export function estimateTokens(text: string): number {
   if (!text || typeof text !== "string") return 0;
   return Math.ceil(text.length / 4);
 }
 
-/**
- * Retrieve memories with token budget enforcement
- */
 export async function retrieveMemories(
   apiKeyId: string,
-  config: Partial<MemoryConfig> = {}
+  config: Partial<MemoryConfig> & { searchText?: string } = {}
 ): Promise<Memory[]> {
-  // Validate and normalize config
   const normalizedConfig = MemoryConfigSchema.parse({
     enabled: true,
     maxTokens: 2000,
@@ -34,87 +153,30 @@ export async function retrieveMemories(
   }
 
   const maxTokens = Math.min(Math.max(normalizedConfig.maxTokens, 100), 8000);
+  const limit = 100;
   const strategy = normalizedConfig.retrievalStrategy;
+  const searchText = typeof config.searchText === "string" ? config.searchText : undefined;
 
-  const db = getDbInstance();
-  const memories: Memory[] = [];
-  let totalTokens = 0;
-
-  // Build base query
-  let query =
-    "SELECT * FROM memory WHERE apiKeyId = ? AND (expiresAt IS NULL OR datetime(expiresAt) > datetime('now'))";
-  const params: unknown[] = [apiKeyId];
-
-  if (normalizedConfig.retentionDays > 0) {
-    const cutoff = new Date(
-      Date.now() - normalizedConfig.retentionDays * 24 * 60 * 60 * 1000
-    ).toISOString();
-    query += " AND datetime(createdAt) >= datetime(?)";
-    params.push(cutoff);
+  if (strategy === "exact") {
+    const recent = await fetchRecentMemories(apiKeyId, normalizedConfig.retentionDays, limit);
+    return sortAndBudget(recent, maxTokens);
   }
 
-  // Add ordering based on strategy
-  switch (strategy) {
-    case "semantic":
-      // For now, semantic search is same as exact (FTS5 not implemented yet)
-      query += " ORDER BY createdAt DESC";
-      break;
-    case "hybrid":
-      // Hybrid is same as exact for now
-      query += " ORDER BY createdAt DESC";
-      break;
-    case "exact":
-    default:
-      query += " ORDER BY createdAt DESC";
+  if (strategy === "semantic") {
+    const semantic = await fetchSemanticMemories(
+      apiKeyId,
+      normalizedConfig.retentionDays,
+      limit,
+      searchText
+    );
+    return sortAndBudget(semantic, maxTokens);
   }
 
-  // Add limit for performance
-  query += " LIMIT 100";
+  const [semantic, recent] = await Promise.all([
+    fetchSemanticMemories(apiKeyId, normalizedConfig.retentionDays, limit, searchText),
+    fetchRecentMemories(apiKeyId, normalizedConfig.retentionDays, limit),
+  ]);
 
-  // Execute query
-  const stmt = db.prepare(query);
-  const rows = stmt.all(...params);
-
-  // Process memories until budget exceeded
-  for (const row of rows) {
-    const memory: Memory = {
-      id: String((row as Record<string, unknown>).id),
-      apiKeyId: String((row as Record<string, unknown>).apiKeyId),
-      sessionId: String((row as Record<string, unknown>).sessionId),
-      type: (row as Record<string, unknown>).type as MemoryType,
-      key: String((row as Record<string, unknown>).key),
-      content: String((row as Record<string, unknown>).content),
-      metadata: (() => {
-        try {
-          return JSON.parse(String((row as Record<string, unknown>).metadata));
-        } catch {
-          return {};
-        }
-      })(),
-      createdAt: new Date(String((row as Record<string, unknown>).createdAt)),
-      updatedAt: new Date(String((row as Record<string, unknown>).updatedAt)),
-      expiresAt: (row as Record<string, unknown>).expiresAt
-        ? new Date(String((row as Record<string, unknown>).expiresAt))
-        : null,
-    };
-
-    // Estimate tokens for this memory
-    const memoryTokens = estimateTokens(memory.content);
-
-    // Check if adding this memory would exceed budget
-    if (totalTokens + memoryTokens > maxTokens) {
-      // If we haven't added any memories yet, add this one anyway
-      if (memories.length === 0) {
-        memories.push(memory);
-        totalTokens += memoryTokens;
-      }
-      break;
-    }
-
-    // Add memory to results
-    memories.push(memory);
-    totalTokens += memoryTokens;
-  }
-
-  return memories;
+  const merged = dedupeById([...semantic, ...recent]);
+  return sortAndBudget(merged, maxTokens);
 }
