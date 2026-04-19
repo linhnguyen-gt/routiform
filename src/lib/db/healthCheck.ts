@@ -164,8 +164,8 @@ function repairComboRows(
               removedSteps += 1;
               continue;
             }
-            nextModels.push(normalizedStep);
-            normalizedLegacyComboRefs += 1;
+            // Keep legacy string refs as-is for runtime/UI compatibility.
+            nextModels.push(rawStep);
             continue;
           }
         }
@@ -179,7 +179,9 @@ function repairComboRows(
           removedSteps += 1;
           continue;
         }
-        nextModels.push(rawStep);
+        // Normalize structured combo-ref objects back to stable string refs.
+        nextModels.push(comboName);
+        normalizedLegacyComboRefs += 1;
         continue;
       }
 
@@ -213,7 +215,7 @@ function repairComboRows(
             ? `${clearedConnectionPins} missing connection pin(s) cleared.`
             : null,
           normalizedLegacyComboRefs > 0
-            ? `${normalizedLegacyComboRefs} legacy combo ref step(s) canonicalized.`
+            ? `${normalizedLegacyComboRefs} combo-ref object step(s) normalized to string refs.`
             : null,
         ]
           .filter(Boolean)
