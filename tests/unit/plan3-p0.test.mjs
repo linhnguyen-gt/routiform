@@ -24,6 +24,13 @@ import { KiroExecutor } from "../../open-sse/executors/kiro.ts";
 import { createPassthroughStreamWithLogger } from "../../open-sse/utils/stream.ts";
 import { clearSessions, generateSessionId } from "../../open-sse/services/sessionManager.ts";
 import {
+  getCustomModelReasoningEffortDefaults,
+  getDefaultParams,
+  removeModelReasoningEffortDefault,
+  setCustomModelReasoningEffortDefaults,
+  setModelReasoningEffortDefault,
+} from "../../open-sse/config/providerRegistry.ts";
+import {
   generateToolCallId,
   generateToolUseId,
 } from "../../open-sse/translator/helpers/toolCallHelper.ts";
@@ -77,6 +84,55 @@ test("GithubExecutor keeps claude-haiku-4.5 on /chat/completions (no Responses A
   const executor = new GithubExecutor();
   const url = executor.buildUrl("claude-haiku-4.5", true);
   assert.match(url, /\/chat\/completions$/);
+});
+
+test("providerRegistry exposes model-level default reasoning for github gpt-5.3-codex", () => {
+  const defaults = getDefaultParams("github", "gpt-5.3-codex");
+  assert.deepEqual(defaults, { reasoning: { effort: "high" } });
+});
+
+test("providerRegistry does not apply github codex defaults to other codex models", () => {
+  const defaults = getDefaultParams("github", "gpt-5.2-codex");
+  assert.equal(defaults, null);
+});
+
+test("providerRegistry allows runtime override of model reasoning effort defaults", () => {
+  setCustomModelReasoningEffortDefaults({});
+  const ok = setModelReasoningEffortDefault("github", "gpt-5.3-codex", "xhigh");
+  assert.equal(ok, true);
+
+  const params = getDefaultParams("github", "gpt-5.3-codex");
+  assert.deepEqual(params, { reasoning: { effort: "xhigh" } });
+
+  const custom = getCustomModelReasoningEffortDefaults();
+  assert.equal(custom["github/gpt-5.3-codex"], "xhigh");
+
+  const removed = removeModelReasoningEffortDefault("github", "gpt-5.3-codex");
+  assert.equal(removed, true);
+  const restored = getDefaultParams("github", "gpt-5.3-codex");
+  assert.deepEqual(restored, { reasoning: { effort: "high" } });
+});
+
+test("chatCore model defaults flow into CodexExecutor when request omits reasoning effort", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.3-codex",
+    {
+      model: "gpt-5.3-codex",
+      input: "ship it",
+      instructions: "custom system prompt",
+      reasoning: { effort: "high" },
+    },
+    true,
+    {
+      providerSpecificData: {
+        requestDefaults: {
+          reasoningEffort: "low",
+        },
+      },
+    }
+  );
+  assert.deepEqual(transformed.reasoning, { effort: "high" });
 });
 
 test("DefaultExecutor uses x-api-key for kimi-coding-apikey", () => {

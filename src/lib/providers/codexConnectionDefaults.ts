@@ -47,15 +47,13 @@ export async function migrateCodexConnectionDefaultsFromLegacySettings(): Promis
     const existingDefaults = getCodexRequestDefaults(providerSpecificData);
     const nextDefaults: JsonRecord = { ...existingDefaults };
 
-    if (!existingDefaults.reasoningEffort) {
-      nextDefaults.reasoningEffort = "medium";
-    }
+    delete nextDefaults.reasoningEffort;
     if (legacyFastEnabled && !existingDefaults.serviceTier) {
       nextDefaults.serviceTier = "priority";
     }
 
     const defaultsChanged =
-      nextDefaults.reasoningEffort !== existingDefaults.reasoningEffort ||
+      existingDefaults.reasoningEffort !== undefined ||
       nextDefaults.serviceTier !== existingDefaults.serviceTier;
 
     if (!defaultsChanged) continue;

@@ -138,6 +138,24 @@ export async function registerNodejs(): Promise<void> {
       }
     }
 
+    try {
+      const { setCustomModelReasoningEffortDefaults } =
+        await import("@routiform/open-sse/config/providerRegistry.ts");
+      const defaults =
+        typeof settings.modelReasoningDefaults === "string"
+          ? JSON.parse(settings.modelReasoningDefaults)
+          : settings.modelReasoningDefaults;
+      if (defaults && typeof defaults === "object") {
+        setCustomModelReasoningEffortDefaults(defaults as Record<string, string>);
+        console.log(
+          `[STARTUP] Restored ${Object.keys(defaults as Record<string, string>).length} model reasoning default(s) from settings`
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[STARTUP] Model reasoning defaults restore failed:", msg);
+    }
+
     // Migrate legacy Codex service tier settings to per-connection defaults
     try {
       const { migrateCodexConnectionDefaultsFromLegacySettings } =

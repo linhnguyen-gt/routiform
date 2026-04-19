@@ -83,4 +83,6 @@ export const updateSettingsSchema = z.object({
   backgroundDegradation: z.unknown().optional(),
   // LKGP (Least Known Good Provider) toggle
   lkgpEnabled: z.boolean().optional(),
+  // Model-level reasoning defaults (e.g. { "github/gpt-5.3-codex": "high" })
+  modelReasoningDefaults: z.record(z.string().max(300), z.string().max(20)).optional(),
 });
