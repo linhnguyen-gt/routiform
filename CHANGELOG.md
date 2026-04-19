@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.13.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.12.0...v3.13.0) (2026-04-19)
+
+
+### Features
+
+* **api:** add sync token lifecycle and bundle etag endpoints ([e6d8774](https://github.com/linhnguyen-gt/Routiform/commit/e6d8774e6aae94506c82f3d0f6f20b2965f048f0))
+* **cli-tools:** switch openclaw routiform API mode to anthropic messages ([84174ac](https://github.com/linhnguyen-gt/Routiform/commit/84174acb3b7b7d4697f156b4d511003a272fdb7e))
+* **core:** add runtime env checks and cooldown-aware retries ([fb0c343](https://github.com/linhnguyen-gt/Routiform/commit/fb0c343786d15872d47e77906570f02b649dc7fa))
+* **memory:** add fts-backed retrieval with compatibility migration ([c553406](https://github.com/linhnguyen-gt/Routiform/commit/c55340640cb7f74c631bd5f27d1c3415cebedc54))
+* **providers:** add gated web-session and glm routing updates ([60c6af2](https://github.com/linhnguyen-gt/Routiform/commit/60c6af2c32e5617f876a6eec67a26607fd216cc1))
+* **usage:** guard call log summary storage with artifact fallback ([c253a96](https://github.com/linhnguyen-gt/Routiform/commit/c253a9694b3267f124903331c10ca9c6fdf091ac))
+* **ws:** add gated v1 websocket handshake route and runtime guard ([a711140](https://github.com/linhnguyen-gt/Routiform/commit/a7111400c0f1fdf5eca173cb3ebd283bf807abe5))
+
+
+### Bug Fixes
+
+* **api:** disable cache for combos listing endpoint ([c420428](https://github.com/linhnguyen-gt/Routiform/commit/c4204284965619e98b4a7e56ea70ef5502f08854))
+* **db:** preserve combo string references during startup health repair ([46e2b2c](https://github.com/linhnguyen-gt/Routiform/commit/46e2b2c5a892910656563d8f4ca3c1546691cf74))
+* **providers:** specialize vertex credential validation paths ([f5d31f8](https://github.com/linhnguyen-gt/Routiform/commit/f5d31f830f4a524f31a87ad950971ef0e8c4feba))
+* **tests:** validate migration route body and stabilize antigravity UA assertion ([16c970c](https://github.com/linhnguyen-gt/Routiform/commit/16c970c800ca55ece47baef7fa60faf710377c2b))
+* **ui:** add missing provider icon mappings and assets ([5e02bcb](https://github.com/linhnguyen-gt/Routiform/commit/5e02bcb869c91a892a88234fa3b105408d06e5e6))
+
 ## [3.12.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.2...v3.12.0) (2026-04-19)
 
 ### Features
