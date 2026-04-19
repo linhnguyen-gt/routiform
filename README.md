@@ -68,3 +68,32 @@ Control and secure API access with granular permissions. Create, manage, and mon
 Access and manage all system settings, from database and storage to log retention policies, ensuring complete control over your Routiform instance.
 
 ![Routiform System Settings](docs/screenshots/new/settings.png)
+
+## Beyond the Blueprint: How Routiform Evolves the AI Gateway
+
+While inspired by pioneers like [9router](https://github.com/decolua/9router) and [OmniRoute](https://github.com/diegosouzapw/OmniRoute), Routiform is not just an iteration—it's a **fundamental leap** forward. We've taken the core concepts of unified AI access and expanded them into a robust, agent-centric platform.
+
+### Core Capabilities in Action
+
+Witness Routiform's power with these feature highlights:
+
+**Dashboard Overview**
+![Routiform Dashboard](docs/screenshots/new/dashboard.png)
+
+**Unified Provider Management**
+Effortlessly connect and manage 75+ AI model providers. Activate, configure, and control them from one centralized interface.
+![Providers Management](docs/screenshots/new/providers.png)
+
+**Intelligent Routing with Combos**
+Build flexible routing policies with combos. Define fallback strategies, weight distribution, and cost-based routing to optimize performance and spend.
+![Intelligent Combos](docs/screenshots/new/combos.png)
+
+**Secure API Key Management**
+Control and secure API access with granular permissions. Create, manage, and track API keys for different applications and users.
+![API Key Management](docs/screenshots/new/api-manager.png)
+
+**Robust System Configuration**
+Access and manage all system settings, from database and storage to advanced network configurations. Full control over your Routiform instance.
+![System Settings](docs/screenshots/new/settings.png)
+
+---
