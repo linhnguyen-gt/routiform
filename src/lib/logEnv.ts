@@ -5,6 +5,7 @@ const DEFAULT_CALL_LOG_RETENTION_DAYS = 7;
 const DEFAULT_APP_LOG_MAX_SIZE = 50 * 1024 * 1024;
 const DEFAULT_APP_LOG_MAX_FILES = 20;
 const DEFAULT_CALL_LOG_MAX_ENTRIES = 10000;
+const DEFAULT_DB_BACKUP_MAX_FILES = 20;
 const DEFAULT_APP_LOG_PATH = path.join(process.cwd(), "logs", "application", "app.log");
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -66,6 +67,13 @@ export function getProxyLogMaxEntries(): number {
   return parsePositiveInt(
     process.env.PROXY_LOG_MAX_ENTRIES ?? process.env.PROXY_LOGS_TABLE_MAX_ROWS,
     DEFAULT_CALL_LOG_MAX_ENTRIES
+  );
+}
+
+export function getDbBackupMaxFiles(): number {
+  return parsePositiveInt(
+    process.env.DB_BACKUP_MAX_FILES ?? process.env.MAX_DB_BACKUPS,
+    DEFAULT_DB_BACKUP_MAX_FILES
   );
 }
 

@@ -5,6 +5,7 @@ const { checkFallbackError } = await import("../../open-sse/services/accountFall
 const { handleComboChat, shouldFallbackComboBadRequest } =
   await import("../../open-sse/services/combo.ts");
 const { resetAllCircuitBreakers } = await import("../../src/shared/utils/circuitBreaker.ts");
+const { getDefaultComboConfig } = await import("../../open-sse/services/comboConfig.ts");
 
 test.beforeEach(() => {
   resetAllCircuitBreakers();
@@ -47,6 +48,45 @@ test("T23: 429 with long Retry-After uses real reset cooldown instead of short e
   assert.equal(result.reason, "rate_limit_exceeded");
   assert.equal(result.newBackoffLevel, 0);
   assert.ok(result.cooldownMs > 3_590_000);
+});
+
+test("P0-E: 429 with short Retry-After header still overrides body heuristics", () => {
+  const headers = new Headers({ "retry-after": "15" });
+  const result = checkFallbackError(
+    429,
+    "Your quota will reset after 2h30m14s",
+    4,
+    null,
+    "groq",
+    headers
+  );
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 14_000 && result.cooldownMs <= 16_000);
+});
+
+test("P0-E: 429 with date Retry-After header takes precedence", () => {
+  const retryAt = new Date(Date.now() + 45_000).toUTCString();
+  const headers = new Headers({ "retry-after": retryAt });
+  const result = checkFallbackError(429, "rate limit exceeded", 1, null, "groq", headers);
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 40_000 && result.cooldownMs <= 50_000);
+});
+
+test("P0-E: 429 with x-ratelimit-reset header takes precedence", () => {
+  const resetSeconds = Math.floor((Date.now() + 22_000) / 1000);
+  const headers = new Headers({ "x-ratelimit-reset": String(resetSeconds) });
+  const result = checkFallbackError(429, "rate limit exceeded", 1, null, "groq", headers);
+
+  assert.equal(result.shouldFallback, true);
+  assert.equal(result.reason, "rate_limit_exceeded");
+  assert.equal(result.newBackoffLevel, 0);
+  assert.ok(result.cooldownMs >= 20_000 && result.cooldownMs <= 24_000);
 });
 
 test("T24: combo awaits short 503 cooldown before falling through to next model", async () => {
@@ -228,4 +268,123 @@ test("round-robin combo falls through invalid-argument 400s and reaches the next
   assert.equal(result.ok, true);
   const badRequestLog = log.entries.find((entry) => entry.msg.includes("provider-scoped 400"));
   assert.ok(badRequestLog);
+});
+
+test("P0-C: combo config defaults expose requestRetry and maxRetryIntervalSec", () => {
+  const config = getDefaultComboConfig();
+
+  assert.equal(config.requestRetry, undefined);
+  assert.equal(config.maxRetryIntervalSec, undefined);
+  assert.equal(config.maxRetries, 1);
+  assert.equal(config.retryDelayMs, 2000);
+});
+
+test("P0-C: legacy maxRetries remains effective without requestRetry", async () => {
+  const log = createLog();
+  let callCount = 0;
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-legacy-max-retries-compat",
+      strategy: "priority",
+      config: {
+        maxRetries: 2,
+        retryDelayMs: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: async () => {
+      callCount += 1;
+      if (callCount <= 2) {
+        return new Response(JSON.stringify({ error: { message: "temporary" } }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    },
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(callCount, 3);
+});
+
+test("P0-C: requestRetry overrides legacy maxRetries in combo flow", async () => {
+  const log = createLog();
+  let callCount = 0;
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-request-retry-overrides-max-retries",
+      strategy: "priority",
+      config: {
+        maxRetries: 0,
+        requestRetry: 1,
+        retryDelayMs: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({ error: { message: "temporary" } }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    },
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(callCount, 2);
+});
+
+test("P0-C: maxRetryIntervalSec caps retry wait for long cooldown headers", async () => {
+  const log = createLog();
+  const before = Date.now();
+
+  const result = await handleComboChat({
+    body: {},
+    combo: {
+      name: "p0c-max-retry-interval-cap",
+      strategy: "priority",
+      config: {
+        requestRetry: 1,
+        retryDelayMs: 200,
+        maxRetryIntervalSec: 1,
+      },
+      models: [{ model: "groq/model-a", weight: 0 }],
+    },
+    handleSingleModel: createStatusSequenceHandler([
+      {
+        status: 429,
+        message: "rate limit exceeded",
+        headers: { "content-type": "application/json", "retry-after": "120" },
+      },
+      {
+        status: 429,
+        message: "rate limit exceeded",
+        headers: { "content-type": "application/json", "retry-after": "120" },
+      },
+    ]),
+    isModelAvailable: () => true,
+    log,
+    settings: null,
+    allCombos: null,
+  });
+
+  const elapsedMs = Date.now() - before;
+  assert.equal(result.status, 503);
+  assert.ok(elapsedMs < 2500);
 });

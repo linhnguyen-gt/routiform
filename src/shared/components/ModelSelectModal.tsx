@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslations } from "next-intl";
 import Modal from "./Modal";
@@ -92,6 +92,7 @@ export default function ModelSelectModal({
   modelAliases = {},
   addedModelValues = [],
   multiSelect = false,
+  enableModelTest = false,
 }) {
   const tCommon = useTranslations("common");
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +104,9 @@ export default function ModelSelectModal({
   >({});
   /** OpenRouter catalog (public list); merged in standard provider branch when providerId is openrouter. */
   const [openrouterCatalog, setOpenrouterCatalog] = useState<{ id: string; name?: string }[]>([]);
+  const [testingModels, setTestingModels] = useState<Record<string, boolean>>({});
+  const [modelTestStatus, setModelTestStatus] = useState<Record<string, "ok" | "error">>({});
+  const modelTestControllersRef = useRef<Record<string, AbortController>>({});
 
   const fetchCombos = async () => {
     try {
@@ -278,6 +282,82 @@ export default function ModelSelectModal({
   useEffect(() => {
     if (isOpen) fetchOpenrouterCatalog();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      for (const controller of Object.values(modelTestControllersRef.current)) {
+        controller.abort();
+      }
+      modelTestControllersRef.current = {};
+      setTestingModels({});
+      setModelTestStatus({});
+    }
+  }, [isOpen]);
+
+  useEffect(
+    () => () => {
+      for (const controller of Object.values(modelTestControllersRef.current)) {
+        controller.abort();
+      }
+      modelTestControllersRef.current = {};
+    },
+    []
+  );
+
+  const handleTestModel = useCallback(
+    async (modelValue: string, key: string) => {
+      if (!enableModelTest || !modelValue) return;
+      if (modelTestControllersRef.current[key]) return;
+
+      const controller = new AbortController();
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 20000);
+      modelTestControllersRef.current[key] = controller;
+
+      setTestingModels((prev) => ({ ...prev, [key]: true }));
+      setModelTestStatus((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+
+      try {
+        const res = await fetch("/api/models/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: modelValue }),
+          signal: controller.signal,
+        });
+        const payload = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          status?: number | string;
+        };
+        const providerStatus =
+          typeof payload.status === "number"
+            ? payload.status
+            : typeof payload.status === "string" && /^\d+$/.test(payload.status)
+              ? Number.parseInt(payload.status, 10)
+              : null;
+        const passed = res.ok && payload.ok === true && !(providerStatus && providerStatus >= 400);
+        setModelTestStatus((prev) => ({ ...prev, [key]: passed ? "ok" : "error" }));
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError" && !timedOut) {
+          return;
+        }
+        setModelTestStatus((prev) => ({ ...prev, [key]: "error" }));
+      } finally {
+        clearTimeout(timeout);
+        if (modelTestControllersRef.current[key] === controller) {
+          delete modelTestControllersRef.current[key];
+        }
+        setTestingModels((prev) => ({ ...prev, [key]: false }));
+      }
+    },
+    [enableModelTest]
+  );
 
   const allProviders = useMemo(
     () => ({ ...OAUTH_PROVIDERS, ...FREE_PROVIDERS, ...APIKEY_PROVIDERS }),
@@ -579,7 +659,9 @@ export default function ModelSelectModal({
                       }
                     `}
                   >
-                    {isAdded && <span className="mr-0.5 opacity-70">✓</span>}
+                    {isAdded && (
+                      <span className="mr-0.5 opacity-70 text-[10px] uppercase">added</span>
+                    )}
                     {combo.name}
                   </button>
                 );
@@ -602,6 +684,78 @@ export default function ModelSelectModal({
               {group.models.map((model, modelIndex) => {
                 const isAdded = addedModelValues.includes(model.value);
                 const isHighlighted = !multiSelect && selectedModel === model.value;
+                const modelValue = String(model.value ?? "");
+                const testKey = `${providerId}:${modelValue}`;
+                const isTestingModel = !!testingModels[testKey];
+                const testStatus = modelTestStatus[testKey];
+                const testLabel = isTestingModel
+                  ? "Testing model..."
+                  : testStatus === "ok"
+                    ? "Model test passed"
+                    : testStatus === "error"
+                      ? "Model test failed"
+                      : "Test model";
+
+                if (enableModelTest) {
+                  return (
+                    <div
+                      key={`${providerId}-${String(model.id)}-${modelIndex}`}
+                      className="inline-flex"
+                    >
+                      <button
+                        onClick={() => handleSelect(model)}
+                        className={`
+                          px-2 py-1 rounded-l-xl text-xs font-medium transition-all border border-r-0 hover:cursor-pointer
+                          ${
+                            isHighlighted
+                              ? "bg-primary text-white border-primary"
+                              : isAdded
+                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                                : "bg-surface border-border text-text-main hover:border-primary/50 hover:bg-primary/5"
+                          }
+                        `}
+                      >
+                        {isAdded && (
+                          <span className="mr-0.5 opacity-70 text-[10px] uppercase">added</span>
+                        )}
+                        {String(model.name ?? model.id ?? "")}
+                        {model.isCustom ? " ★" : ""}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTestModel(modelValue, testKey)}
+                        disabled={isTestingModel}
+                        aria-label={testLabel}
+                        title={testLabel}
+                        className={`
+                          px-1.5 py-1 rounded-r-xl text-xs border transition-all
+                          ${
+                            testStatus === "ok"
+                              ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                              : testStatus === "error"
+                                ? "border-red-500/40 text-red-600 dark:text-red-400 bg-red-500/10"
+                                : "border-border text-text-muted bg-surface hover:border-primary/50 hover:text-primary"
+                          }
+                          ${isTestingModel ? "opacity-60 cursor-not-allowed" : "hover:cursor-pointer"}
+                        `}
+                      >
+                        <span
+                          className={`material-symbols-outlined text-[12px] ${isTestingModel ? "animate-spin" : ""}`}
+                          aria-hidden="true"
+                        >
+                          {isTestingModel
+                            ? "progress_activity"
+                            : testStatus === "ok"
+                              ? "check_circle"
+                              : testStatus === "error"
+                                ? "error"
+                                : "play_arrow"}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
                   <button
                     key={`${providerId}-${String(model.id)}-${modelIndex}`}
@@ -617,7 +771,9 @@ export default function ModelSelectModal({
                       }
                     `}
                   >
-                    {isAdded && <span className="mr-0.5 opacity-70">✓</span>}
+                    {isAdded && (
+                      <span className="mr-0.5 opacity-70 text-[10px] uppercase">added</span>
+                    )}
                     {String(model.name ?? model.id ?? "")}
                     {model.isCustom ? " ★" : ""}
                   </button>
@@ -667,4 +823,5 @@ ModelSelectModal.propTypes = {
   modelAliases: PropTypes.object,
   addedModelValues: PropTypes.arrayOf(PropTypes.string),
   multiSelect: PropTypes.bool,
+  enableModelTest: PropTypes.bool,
 };

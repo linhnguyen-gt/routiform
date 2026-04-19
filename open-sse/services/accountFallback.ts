@@ -421,6 +421,46 @@ export function getQuotaCooldown(backoffLevel = 0) {
   return Math.min(cooldown, BACKOFF_CONFIG.max);
 }
 
+function parseResetTimestampFromHeaders(headers) {
+  if (!headers) return null;
+
+  const retryAfter =
+    typeof headers.get === "function"
+      ? headers.get("retry-after")
+      : headers["retry-after"] || headers["Retry-After"];
+
+  if (retryAfter) {
+    const retryStr = String(retryAfter).trim();
+    const seconds = parseInt(retryStr, 10);
+    if (!isNaN(seconds) && String(seconds) === retryStr) {
+      return Date.now() + seconds * 1000;
+    }
+    const date = new Date(retryStr);
+    if (!isNaN(date.getTime())) return date.getTime();
+  }
+
+  const rlReset =
+    typeof headers.get === "function"
+      ? headers.get("x-ratelimit-reset")
+      : headers["x-ratelimit-reset"] || headers["X-RateLimit-Reset"];
+
+  if (rlReset) {
+    const ts = parseInt(String(rlReset).trim(), 10);
+    if (!isNaN(ts)) {
+      return ts > 10000000000 ? ts : ts * 1000;
+    }
+  }
+
+  return null;
+}
+
+function getHeaderCooldownMs(headers) {
+  const resetTime = parseResetTimestampFromHeaders(headers);
+  if (!resetTime) return null;
+  const waitMs = resetTime - Date.now();
+  return waitMs > 0 ? waitMs : null;
+}
+
 /**
  * Check if error should trigger account fallback (switch to next account)
  * @param {number} status - HTTP status code
@@ -440,38 +480,18 @@ export function checkFallbackError(
 ) {
   const errorStr = (errorText || "").toString();
 
-  function parseResetFromHeaders(headers, _errorStr = "") {
-    if (!headers) return null;
-
-    // Retry-After header
-    const retryAfter =
-      typeof headers.get === "function"
-        ? headers.get("retry-after")
-        : headers["retry-after"] || headers["Retry-After"];
-
-    if (retryAfter) {
-      const seconds = parseInt(retryAfter, 10);
-      if (!isNaN(seconds) && String(seconds) === String(retryAfter).trim()) {
-        return Date.now() + seconds * 1000;
-      }
-      const date = new Date(retryAfter);
-      if (!isNaN(date.getTime())) return date.getTime();
-    }
-
-    // X-RateLimit-Reset
-    const rlReset =
-      typeof headers.get === "function"
-        ? headers.get("x-ratelimit-reset")
-        : headers["x-ratelimit-reset"] || headers["X-RateLimit-Reset"];
-
-    if (rlReset) {
-      const ts = parseInt(rlReset, 10);
-      if (!isNaN(ts)) {
-        return ts > 10000000000 ? ts : ts * 1000;
-      }
-    }
-    return null;
+  // P0-E: explicit 429 + Retry-After (or x-ratelimit-reset) takes precedence
+  // over body/text heuristics.
+  const headerCooldownMs = getHeaderCooldownMs(headers);
+  if (status === HTTP_STATUS.RATE_LIMITED && headerCooldownMs !== null) {
+    return {
+      shouldFallback: true,
+      cooldownMs: headerCooldownMs,
+      newBackoffLevel: 0,
+      reason: RateLimitReason.RATE_LIMIT_EXCEEDED,
+    };
   }
+
   // Check error message FIRST - specific patterns take priority over status codes
   if (errorText) {
     const lowerError = errorStr.toLowerCase();
@@ -523,7 +543,7 @@ export function checkFallbackError(
       lowerError.includes("capacity") ||
       lowerError.includes("overloaded")
     ) {
-      const resetTime = parseResetFromHeaders(headers);
+      const resetTime = parseResetTimestampFromHeaders(headers);
       if (resetTime) {
         const waitMs = resetTime - Date.now();
         if (waitMs > 60_000) {
@@ -592,7 +612,7 @@ export function checkFallbackError(
 
   // 429 - Rate limit with exponential backoff
   if (status === HTTP_STATUS.RATE_LIMITED) {
-    const resetTime = parseResetFromHeaders(headers);
+    const resetTime = parseResetTimestampFromHeaders(headers);
     if (resetTime) {
       const waitMs = resetTime - Date.now();
       if (waitMs > 60_000) {
@@ -624,7 +644,7 @@ export function checkFallbackError(
     HTTP_STATUS.GATEWAY_TIMEOUT,
   ];
   if (transientStatuses.includes(status)) {
-    const resetTime = parseResetFromHeaders(headers, errorStr);
+    const resetTime = parseResetTimestampFromHeaders(headers);
     if (resetTime) {
       const waitMs = resetTime - Date.now();
       if (waitMs > 60_000) {

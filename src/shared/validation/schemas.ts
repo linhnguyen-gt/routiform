@@ -139,7 +139,9 @@ const comboModelEntry = z.union([
 const comboConfigSchema = z
   .object({
     maxRetries: z.number().int().min(0).max(10).optional(),
+    requestRetry: z.number().int().min(0).max(10).optional(),
     retryDelayMs: z.number().int().min(0).max(60000).optional(),
+    maxRetryIntervalSec: z.number().int().min(1).max(300).optional(),
     timeoutMs: z.number().int().min(1000).max(600000).optional(),
     healthCheckEnabled: z.boolean().optional(),
   })
@@ -178,7 +180,9 @@ const comboRuntimeConfigSchema = z
   .object({
     strategy: comboStrategySchema.optional(),
     maxRetries: z.coerce.number().int().min(0).max(10).optional(),
+    requestRetry: z.coerce.number().int().min(0).max(10).optional(),
     retryDelayMs: z.coerce.number().int().min(0).max(60000).optional(),
+    maxRetryIntervalSec: z.coerce.number().int().min(1).max(300).optional(),
     timeoutMs: z.coerce.number().int().min(1000).max(600000).optional(),
     concurrencyPerModel: z.coerce.number().int().min(1).max(20).optional(),
     queueTimeoutMs: z.coerce.number().int().min(1000).max(120000).optional(),
@@ -722,6 +726,23 @@ export const addModelAliasSchema = z.object({
 
 export const removeModelAliasSchema = z.object({
   from: z.string().trim().min(1),
+});
+
+const MODEL_REASONING_EFFORT_ENUM = z.enum(["none", "low", "medium", "high", "xhigh"]);
+
+export const updateModelReasoningDefaultsSchema = z.object({
+  defaults: z.record(z.string().trim().min(3), MODEL_REASONING_EFFORT_ENUM),
+});
+
+export const addModelReasoningDefaultSchema = z.object({
+  provider: z.string().trim().min(1),
+  model: z.string().trim().min(1),
+  effort: MODEL_REASONING_EFFORT_ENUM,
+});
+
+export const removeModelReasoningDefaultSchema = z.object({
+  provider: z.string().trim().min(1),
+  model: z.string().trim().min(1),
 });
 
 export const proxyConfigSchema = z

@@ -7,6 +7,11 @@ import {
 } from "@/models";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
+import {
+  getAuditActorFromRequest,
+  getAuditIpFromRequest,
+  logAuditEvent,
+} from "@/lib/compliance/index";
 import { updateProviderConnectionSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
@@ -147,6 +152,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const updated = await updateProviderConnection(id, updateData);
 
+    logAuditEvent({
+      action: "provider.connection.update",
+      actor: await getAuditActorFromRequest(request),
+      target: id,
+      details: {
+        updatedFields: Object.keys(updateData),
+      },
+      ipAddress: getAuditIpFromRequest(request),
+    });
+
     // Hide sensitive fields
     const result: Record<string, unknown> = { ...updated };
     delete result.apiKey;
@@ -179,6 +194,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!deleted) {
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
+
+    logAuditEvent({
+      action: "provider.connection.delete",
+      actor: await getAuditActorFromRequest(request),
+      target: id,
+      details: {
+        provider: connection.provider,
+        authType: connection.authType,
+      },
+      ipAddress: getAuditIpFromRequest(request),
+    });
 
     // Clean up synced available models for this connection
     if (connection.provider === "gemini") {

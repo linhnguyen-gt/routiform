@@ -18,6 +18,7 @@ import BackgroundDegradationTab from "./components/BackgroundDegradationTab";
 import CacheSettingsTab from "./components/CacheSettingsTab";
 import MemorySkillsTab from "./components/MemorySkillsTab";
 import ModelsDevSyncTab from "./components/ModelsDevSyncTab";
+import ModelDefaultsTab from "./components/ModelDefaultsTab";
 import ResilienceTab from "./components/ResilienceTab";
 import CliproxyapiSettingsTab from "./components/CliproxyapiSettingsTab";
 
@@ -105,6 +106,7 @@ export default function SettingsPage() {
               <RoutingTab />
               <ComboDefaultsTab />
               <ModelAliasesTab />
+              <ModelDefaultsTab />
               <BackgroundDegradationTab />
             </div>
           )}

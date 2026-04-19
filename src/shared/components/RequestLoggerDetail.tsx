@@ -6,7 +6,12 @@ import {
   PROVIDER_COLORS,
   getHttpStatusStyle as getStatusStyle,
 } from "@/shared/constants/colors";
-import { formatDuration, formatApiKeyLabel } from "@/shared/utils/formatting";
+import {
+  formatDuration,
+  formatApiKeyLabel,
+  computeTokensPerSecond,
+  formatTokensPerSecondValue,
+} from "@/shared/utils/formatting";
 
 // ─── Payload Code Block ─────────────────────────────────────────────────────
 
@@ -114,6 +119,8 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
   const tokenCacheRead = detail?.tokens?.cacheRead ?? log.tokens?.cacheRead ?? null;
   const tokenCacheCreation = detail?.tokens?.cacheCreation ?? log.tokens?.cacheCreation ?? null;
   const tokenReasoning = detail?.tokens?.reasoning ?? log.tokens?.reasoning ?? null;
+  const durationMs = detail?.duration ?? log.duration ?? 0;
+  const tokensPerSecond = computeTokensPerSecond(tokenOut, durationMs);
 
   const formatNullableToken = (value) => {
     if (value === null || value === undefined) return "N/A";
@@ -165,7 +172,7 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
                 Duration
               </div>
-              <div className="text-sm font-medium">{formatDuration(log.duration)}</div>
+              <div className="text-sm font-medium">{formatDuration(durationMs)}</div>
             </div>
             <div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
@@ -186,6 +193,9 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
                 </span>
                 <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-bold">
                   Reasoning: {formatNullableToken(tokenReasoning)}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 text-xs font-bold">
+                  TPS: {formatTokensPerSecondValue(tokensPerSecond)}
                 </span>
               </div>
             </div>

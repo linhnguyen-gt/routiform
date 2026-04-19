@@ -2,6 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { validateProviderApiKey } = await import("../../src/lib/providers/validation.ts");
+const { setSafeOutboundDnsLookupForTesting, resetSafeOutboundDnsLookupForTesting } =
+  await import("../../src/lib/network/safeOutboundFetch.ts");
+
+test.beforeEach(() => {
+  setSafeOutboundDnsLookupForTesting(async () => [{ address: "93.184.216.34", family: 4 }]);
+});
+
+test.afterEach(() => {
+  resetSafeOutboundDnsLookupForTesting();
+});
 
 test("T25: openai-compatible validation succeeds directly when /models works", async () => {
   const originalFetch = globalThis.fetch;

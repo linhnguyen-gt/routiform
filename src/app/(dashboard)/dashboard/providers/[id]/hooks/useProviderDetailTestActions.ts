@@ -70,10 +70,26 @@ export function useProviderDetailTestActions({
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean;
           valid?: boolean;
+          status?: number | string;
           latencyMs?: number;
           error?: string;
         };
-        const ok = request.fromConnectionTest ? Boolean(data.valid) : Boolean(data.ok);
+        const providerStatus =
+          typeof data.status === "number"
+            ? data.status
+            : typeof data.status === "string" && /^\d+$/.test(data.status)
+              ? Number.parseInt(data.status, 10)
+              : null;
+        const hasProviderErrorStatus = providerStatus !== null && providerStatus >= 400;
+        const hasErrorText =
+          typeof data.error === "string" &&
+          data.error.trim().length > 0 &&
+          /(?:^|\b)(?:\[\s*\d{3}\s*]|error\s*\[\s*\d{3}\s*]|payment required|paid model|add credits?|you\s+have\s+reached\s+(?:the\s+)?limit|quota exceeded|insufficient\s+(?:quota|credit|credits|balance)|unauthorized|forbidden|invalid api key)/i.test(
+            data.error
+          );
+        const ok = request.fromConnectionTest
+          ? Boolean(data.valid) && !hasProviderErrorStatus
+          : Boolean(data.ok) && !hasProviderErrorStatus && !hasErrorText;
         success = ok;
         setModelTestResults((prev) => ({ ...prev, [fullModel]: ok ? "ok" : "error" }));
         if (ok) {

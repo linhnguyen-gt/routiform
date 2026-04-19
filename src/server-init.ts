@@ -3,8 +3,37 @@ import initializeCloudSync from "./shared/services/initializeCloudSync";
 import { enforceSecrets } from "./shared/utils/secretsValidator";
 import { initAuditLog, cleanupExpiredLogs, logAuditEvent } from "./lib/compliance/index";
 import { initConsoleInterceptor } from "./lib/consoleInterceptor";
+import { enforceRuntimeEnv } from "./lib/runtime/envValidation";
+
+function getRandomBytes(byteLength: number): Uint8Array {
+  const bytes = new Uint8Array(byteLength);
+  globalThis.crypto.getRandomValues(bytes);
+  return bytes;
+}
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function toBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function ensureServerSecrets() {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim() === "") {
+    process.env.JWT_SECRET = toBase64(getRandomBytes(48));
+    console.log("[STARTUP] JWT_SECRET auto-generated for current process");
+  }
+  if (!process.env.API_KEY_SECRET || process.env.API_KEY_SECRET.trim() === "") {
+    process.env.API_KEY_SECRET = toHex(getRandomBytes(32));
+    console.log("[STARTUP] API_KEY_SECRET auto-generated for current process");
+  }
+}
 
 async function startServer() {
+  ensureServerSecrets();
+  enforceRuntimeEnv();
+
   // Trigger request-log layout migration during startup, before serving requests.
   await import("./lib/usage/migrations");
 

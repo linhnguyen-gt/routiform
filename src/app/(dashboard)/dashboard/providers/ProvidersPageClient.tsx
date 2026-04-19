@@ -88,11 +88,6 @@ export default function ProvidersPageClient() {
           onToggleConfiguredOnly={data.setShowConfiguredOnly}
           showConfiguredToggle
           showModelAvailability
-          testingMode={data.testingMode}
-          testModeKey="oauth"
-          onTestAll={() => data.handleBatchTest("oauth")}
-          testAllLabel={t("testAll")}
-          testAllAriaLabel={t("testAllOAuth")}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {data.oauthProviderEntries.map(
@@ -121,11 +116,6 @@ export default function ProvidersPageClient() {
           dotLabel={t("apiKeyLabel")}
           showConfiguredOnly={data.showConfiguredOnly}
           onToggleConfiguredOnly={data.setShowConfiguredOnly}
-          testingMode={data.testingMode}
-          testModeKey="apikey"
-          onTestAll={() => data.handleBatchTest("apikey")}
-          testAllLabel={t("testAll")}
-          testAllAriaLabel={t("testAllApiKey")}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {data.apiKeyProviderEntries.map(
@@ -160,17 +150,6 @@ export default function ProvidersPageClient() {
           dotLabel={t("compatibleLabel")}
           showConfiguredOnly={data.showConfiguredOnly}
           onToggleConfiguredOnly={data.setShowConfiguredOnly}
-          testingMode={data.testingMode}
-          testModeKey="compatible"
-          onTestAll={
-            data.compatibleProviders.length > 0 ||
-            data.anthropicCompatibleProviders.length > 0 ||
-            data.ccCompatibleProviders.length > 0
-              ? () => data.handleBatchTest("compatible")
-              : undefined
-          }
-          testAllLabel={t("testAll")}
-          testAllAriaLabel={t("testAllCompatible")}
           actions={
             <div className="flex flex-wrap gap-2">
               {data.ccCompatibleProviderEnabled && (

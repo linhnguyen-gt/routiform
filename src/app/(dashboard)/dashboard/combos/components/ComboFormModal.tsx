@@ -45,6 +45,13 @@ const PAID_PREMIUM_PRESET_MODELS = [
   { model: "antigravity/gemini-3-pro-high", weight: 0 },
 ];
 
+function createModelRowId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 type ComboSaveData = Omit<ComboRecord, "id" | "isActive">;
 
 interface ComboFormModalProps {
@@ -103,6 +110,14 @@ export function ComboFormModal({
   const [requireToolCalling, setRequireToolCalling] = useState<boolean>(
     !!combo?.requireToolCalling
   );
+  const [modelRowIds, setModelRowIds] = useState<string[]>(() =>
+    (combo?.models || []).map(() => createModelRowId())
+  );
+  const [testingModels, setTestingModels] = useState<Record<string, boolean>>({});
+  const [modelTestStatus, setModelTestStatus] = useState<Record<string, "ok" | "error">>({});
+  const modelTestControllersRef = useRef<Record<string, AbortController>>({});
+  const modalFetchControllerRef = useRef<AbortController | null>(null);
+  const modelTestSessionRef = useRef(0);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -207,12 +222,12 @@ export function ComboFormModal({
     );
   }
 
-  const fetchModalData = async () => {
+  const fetchModalData = async (signal: AbortSignal) => {
     try {
       const [aliasesRes, nodesRes, pricingRes] = await Promise.all([
-        fetch("/api/models/alias"),
-        fetch("/api/provider-nodes"),
-        fetch("/api/pricing"),
+        fetch("/api/models/alias", { signal }),
+        fetch("/api/provider-nodes", { signal }),
+        fetch("/api/pricing", { signal }),
       ]);
 
       if (!aliasesRes.ok || !nodesRes.ok) {
@@ -223,27 +238,60 @@ export function ComboFormModal({
       const pricingData = pricingRes.ok ? await pricingRes.json() : {};
 
       const [aliasesData, nodesData] = await Promise.all([aliasesRes.json(), nodesRes.json()]);
-      setPricingByProvider(
-        pricingData && typeof pricingData === "object" && !Array.isArray(pricingData)
-          ? pricingData
-          : {}
-      );
-      setModelAliases(aliasesData.aliases || {});
-      setProviderNodes(nodesData.nodes || []);
+      if (!signal.aborted) {
+        setPricingByProvider(
+          pricingData && typeof pricingData === "object" && !Array.isArray(pricingData)
+            ? pricingData
+            : {}
+        );
+        setModelAliases(aliasesData.aliases || {});
+        setProviderNodes(nodesData.nodes || []);
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       console.error("Error fetching modal data:", error);
     }
   };
 
   useEffect(() => {
-    if (isOpen) fetchModalData();
+    if (!isOpen) {
+      modalFetchControllerRef.current?.abort();
+      modalFetchControllerRef.current = null;
+      return;
+    }
+
+    const controller = new AbortController();
+    modalFetchControllerRef.current = controller;
+    fetchModalData(controller.signal);
+
+    return () => {
+      controller.abort();
+      if (modalFetchControllerRef.current === controller) {
+        modalFetchControllerRef.current = null;
+      }
+    };
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      modelTestSessionRef.current += 1;
+      for (const controller of Object.values(modelTestControllersRef.current)) {
+        controller.abort();
+      }
+      modelTestControllersRef.current = {};
+      modalFetchControllerRef.current?.abort();
+      modalFetchControllerRef.current = null;
+      setTestingModels({});
+      return;
+    }
+
+    modelTestSessionRef.current += 1;
 
     setName(initialFormState.name);
     setModels(initialFormState.models);
+    setModelRowIds(initialFormState.models.map(() => createModelRowId()));
     setStrategy(initialFormState.strategy);
     setConfig(initialFormState.config);
     setAgentSystemMessage(initialFormState.agentSystemMessage);
@@ -258,7 +306,21 @@ export function ComboFormModal({
     setShowStrategyNudge(false);
     setDragIndex(null);
     setDragOverIndex(null);
+    setTestingModels({});
+    setModelTestStatus({});
   }, [initialFormState, isOpen]);
+
+  useEffect(
+    () => () => {
+      for (const controller of Object.values(modelTestControllersRef.current)) {
+        controller.abort();
+      }
+      modelTestControllersRef.current = {};
+      modalFetchControllerRef.current?.abort();
+      modalFetchControllerRef.current = null;
+    },
+    []
+  );
 
   const triggerStrategyNudge = useCallback(() => {
     setShowStrategyNudge(true);
@@ -299,15 +361,45 @@ export function ComboFormModal({
 
   const handleToggleModel = (model: { value: string }) => {
     const value = model.value;
-    if (models.some((m) => m.model === value)) {
-      setModels(models.filter((m) => m.model !== value));
+    const existingIndex = models.findIndex((m) => m.model === value);
+    if (existingIndex >= 0) {
+      const rowId = modelRowIds[existingIndex];
+      modelTestControllersRef.current[rowId]?.abort();
+      delete modelTestControllersRef.current[rowId];
+      setTestingModels((prev) => {
+        const next = { ...prev };
+        delete next[rowId];
+        return next;
+      });
+      setModelTestStatus((prev) => {
+        const next = { ...prev };
+        delete next[rowId];
+        return next;
+      });
+      setModels(models.filter((_, index) => index !== existingIndex));
+      setModelRowIds(modelRowIds.filter((_, index) => index !== existingIndex));
     } else {
       setModels([...models, { model: value, weight: 0 }]);
+      setModelRowIds([...modelRowIds, createModelRowId()]);
     }
   };
 
   const handleRemoveModel = (index: number) => {
+    const rowId = modelRowIds[index];
+    modelTestControllersRef.current[rowId]?.abort();
+    delete modelTestControllersRef.current[rowId];
+    setTestingModels((prev) => {
+      const next = { ...prev };
+      delete next[rowId];
+      return next;
+    });
+    setModelTestStatus((prev) => {
+      const next = { ...prev };
+      delete next[rowId];
+      return next;
+    });
     setModels(models.filter((_, i) => i !== index));
+    setModelRowIds(modelRowIds.filter((_, i) => i !== index));
   };
 
   const handleWeightChange = (index: number, weight: string | number) => {
@@ -378,8 +470,10 @@ export function ComboFormModal({
     if (!name.trim()) setName(template.suggestedName);
     if (template.id === "free-stack") {
       setModels(FREE_STACK_PRESET_MODELS);
+      setModelRowIds(FREE_STACK_PRESET_MODELS.map(() => createModelRowId()));
     } else if (template.id === "paid-premium") {
       setModels(PAID_PREMIUM_PRESET_MODELS);
+      setModelRowIds(PAID_PREMIUM_PRESET_MODELS.map(() => createModelRowId()));
     }
   };
 
@@ -391,15 +485,21 @@ export function ComboFormModal({
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
     const newModels = [...models];
+    const newRowIds = [...modelRowIds];
     [newModels[index - 1], newModels[index]] = [newModels[index], newModels[index - 1]];
+    [newRowIds[index - 1], newRowIds[index]] = [newRowIds[index], newRowIds[index - 1]];
     setModels(newModels);
+    setModelRowIds(newRowIds);
   };
 
   const handleMoveDown = (index: number) => {
     if (index === models.length - 1) return;
     const newModels = [...models];
+    const newRowIds = [...modelRowIds];
     [newModels[index], newModels[index + 1]] = [newModels[index + 1], newModels[index]];
+    [newRowIds[index], newRowIds[index + 1]] = [newRowIds[index + 1], newRowIds[index]];
     setModels(newModels);
+    setModelRowIds(newRowIds);
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -433,45 +533,131 @@ export function ComboFormModal({
     if (fromIndex === null || fromIndex === dropIndex) return;
 
     const newModels = [...models];
+    const newRowIds = [...modelRowIds];
     const [moved] = newModels.splice(fromIndex, 1);
+    const [movedRowId] = newRowIds.splice(fromIndex, 1);
     newModels.splice(dropIndex, 0, moved);
+    newRowIds.splice(dropIndex, 0, movedRowId);
     setModels(newModels);
+    setModelRowIds(newRowIds);
     setDragIndex(null);
     setDragOverIndex(null);
+  };
+
+  const handleTestModel = async (modelValue: string, key: string) => {
+    if (!modelValue) return;
+    if (testingModels[key]) return;
+
+    const requestSessionId = modelTestSessionRef.current;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 20000);
+    modelTestControllersRef.current[key]?.abort();
+    modelTestControllersRef.current[key] = controller;
+
+    setTestingModels((prev) => ({ ...prev, [key]: true }));
+    setModelTestStatus((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
+    try {
+      const res = await fetch("/api/models/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelValue }),
+        signal: controller.signal,
+      });
+
+      if (modelTestSessionRef.current !== requestSessionId) {
+        return;
+      }
+
+      const payload = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+        latencyMs?: number;
+      };
+      if (res.ok && payload.ok) {
+        setModelTestStatus((prev) => ({ ...prev, [key]: "ok" }));
+        notify.success(
+          getI18nOrFallback(t, "modelTestSuccess", "Model test passed in {ms}ms.", {
+            ms: payload.latencyMs ?? 0,
+          })
+        );
+      } else {
+        const errorMessage =
+          (typeof payload.error === "string" && payload.error) ||
+          (typeof payload.message === "string" && payload.message) ||
+          getI18nOrFallback(t, "testFailed", "Test request failed");
+        setModelTestStatus((prev) => ({ ...prev, [key]: "error" }));
+        notify.error(errorMessage);
+      }
+    } catch (error) {
+      if (modelTestSessionRef.current !== requestSessionId) {
+        return;
+      }
+      if (error instanceof Error && error.name === "AbortError" && !timedOut) {
+        return;
+      }
+      setModelTestStatus((prev) => ({ ...prev, [key]: "error" }));
+      notify.error(getI18nOrFallback(t, "testFailed", "Test request failed"));
+    } finally {
+      clearTimeout(timeout);
+      if (modelTestControllersRef.current[key] === controller) {
+        delete modelTestControllersRef.current[key];
+      }
+      if (
+        modelTestSessionRef.current === requestSessionId &&
+        modelTestControllersRef.current[key] !== controller
+      ) {
+        setTestingModels((prev) => ({ ...prev, [key]: false }));
+      }
+    }
   };
 
   const handleSave = async () => {
     if (!validateName(name)) return;
     if (hasNoModels || hasInvalidWeightedTotal || hasCostOptimizedWithoutPricing) return;
+    if (saving) return;
     setSaving(true);
 
-    const saveData: ComboSaveData = {
-      name: name.trim(),
-      models: strategy === "weighted" ? models : models.map((m) => m.model),
-      strategy,
-    };
+    try {
+      const saveData: ComboSaveData = {
+        name: name.trim(),
+        models: strategy === "weighted" ? models : models.map((m) => m.model),
+        strategy,
+      };
 
-    const configToSave = { ...config };
-    if (strategy === "round-robin") {
-      if (config.concurrencyPerModel !== undefined)
-        configToSave.concurrencyPerModel = config.concurrencyPerModel;
-      if (config.queueTimeoutMs !== undefined) configToSave.queueTimeoutMs = config.queueTimeoutMs;
+      const configToSave = { ...config };
+      if (strategy === "round-robin") {
+        if (config.concurrencyPerModel !== undefined)
+          configToSave.concurrencyPerModel = config.concurrencyPerModel;
+        if (config.queueTimeoutMs !== undefined)
+          configToSave.queueTimeoutMs = config.queueTimeoutMs;
+      }
+      if (Object.keys(configToSave).length > 0) {
+        saveData.config = configToSave;
+      }
+
+      if (agentSystemMessage.trim()) saveData.system_message = agentSystemMessage.trim();
+      else delete saveData.system_message;
+      if (agentToolFilter.trim()) saveData.tool_filter_regex = agentToolFilter.trim();
+      else delete saveData.tool_filter_regex;
+      if (agentContextCache) saveData.context_cache_protection = true;
+      else delete saveData.context_cache_protection;
+      if (requireToolCalling) saveData.requireToolCalling = true;
+      else delete saveData.requireToolCalling;
+
+      await onSave(saveData);
+    } finally {
+      setSaving(false);
     }
-    if (Object.keys(configToSave).length > 0) {
-      saveData.config = configToSave;
-    }
-
-    if (agentSystemMessage.trim()) saveData.system_message = agentSystemMessage.trim();
-    else delete saveData.system_message;
-    if (agentToolFilter.trim()) saveData.tool_filter_regex = agentToolFilter.trim();
-    else delete saveData.tool_filter_regex;
-    if (agentContextCache) saveData.context_cache_protection = true;
-    else delete saveData.context_cache_protection;
-    if (requireToolCalling) saveData.requireToolCalling = true;
-    else delete saveData.requireToolCalling;
-
-    await onSave(saveData);
-    setSaving(false);
   };
 
   const isEdit = !!combo;
@@ -624,99 +810,142 @@ export function ComboFormModal({
               </div>
             ) : (
               <div className="flex flex-col gap-1 max-h-[240px] overflow-y-auto">
-                {models.map((entry, index) => (
-                  <div
-                    key={`${entry.model}-${index}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDrop={(e) => handleDrop(e, index)}
-                    className={`group/item flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-all cursor-grab active:cursor-grabbing ${
-                      dragOverIndex === index && dragIndex !== index
-                        ? "bg-primary/10 border border-primary/30"
-                        : "bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border border-transparent"
-                    } ${dragIndex === index ? "opacity-50" : ""}`}
-                  >
-                    <span className="material-symbols-outlined text-[14px] text-text-muted/40 cursor-grab shrink-0">
-                      drag_indicator
-                    </span>
+                {models.map((entry, index) => {
+                  const modelTestKey = modelRowIds[index] || `${index}:${entry.model}`;
+                  const isTestingModel = !!testingModels[modelTestKey];
+                  const status = modelTestStatus[modelTestKey];
 
-                    <span className="text-[10px] font-medium text-text-muted w-3 text-center shrink-0">
-                      {index + 1}
-                    </span>
+                  return (
+                    <div
+                      key={modelTestKey}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`group/item flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-all cursor-grab active:cursor-grabbing ${
+                        dragOverIndex === index && dragIndex !== index
+                          ? "bg-primary/10 border border-primary/30"
+                          : "bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border border-transparent"
+                      } ${dragIndex === index ? "opacity-50" : ""}`}
+                    >
+                      <span className="material-symbols-outlined text-[14px] text-text-muted/40 cursor-grab shrink-0">
+                        drag_indicator
+                      </span>
 
-                    <div className="flex-1 min-w-0 px-1 text-xs text-text-main truncate">
-                      {formatModelDisplay(entry.model)}
-                    </div>
+                      <span className="text-[10px] font-medium text-text-muted w-3 text-center shrink-0">
+                        {index + 1}
+                      </span>
 
-                    {strategy === "cost-optimized" && (
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase font-semibold ${
-                          hasPricingForModel(entry.model)
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                        }`}
+                      <div className="flex-1 min-w-0 px-1 text-xs text-text-main truncate">
+                        {formatModelDisplay(entry.model)}
+                      </div>
+
+                      {strategy === "cost-optimized" && (
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase font-semibold ${
+                            hasPricingForModel(entry.model)
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          }`}
+                          title={
+                            hasPricingForModel(entry.model)
+                              ? getI18nOrFallback(t, "pricingAvailable", "Pricing available")
+                              : getI18nOrFallback(t, "pricingMissing", "No pricing")
+                          }
+                        >
+                          {hasPricingForModel(entry.model)
+                            ? getI18nOrFallback(t, "pricingAvailableShort", "priced")
+                            : getI18nOrFallback(t, "pricingMissingShort", "no-price")}
+                        </span>
+                      )}
+
+                      {strategy === "weighted" && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={entry.weight}
+                            onChange={(e) => handleWeightChange(index, e.target.value)}
+                            className="w-10 text-[11px] text-center py-0.5 rounded border border-black/10 dark:border-white/10 bg-transparent focus:border-primary focus:outline-none"
+                          />
+                          <span className="text-[10px] text-text-muted">%</span>
+                        </div>
+                      )}
+
+                      {strategy === "priority" && (
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => handleMoveUp(index)}
+                            disabled={index === 0}
+                            className={`p-0.5 rounded ${index === 0 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
+                            aria-label={t("moveUp")}
+                            title={t("moveUp")}
+                          >
+                            <span className="material-symbols-outlined text-[12px]">
+                              arrow_upward
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleMoveDown(index)}
+                            disabled={index === models.length - 1}
+                            className={`p-0.5 rounded ${index === models.length - 1 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
+                            aria-label={t("moveDown")}
+                            title={t("moveDown")}
+                          >
+                            <span className="material-symbols-outlined text-[12px]">
+                              arrow_downward
+                            </span>
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => handleTestModel(entry.model, modelTestKey)}
+                        disabled={isTestingModel}
+                        aria-label={
+                          isTestingModel
+                            ? getI18nOrFallback(t, "testingModel", "Testing model...")
+                            : getI18nOrFallback(t, "testModel", "Test model")
+                        }
+                        className={`p-0.5 rounded transition-all ${
+                          status === "ok"
+                            ? "text-emerald-500 hover:bg-emerald-500/10"
+                            : status === "error"
+                              ? "text-red-500 hover:bg-red-500/10"
+                              : "text-text-muted hover:text-emerald-500 hover:bg-black/5 dark:hover:bg-white/5"
+                        } ${isTestingModel ? "cursor-not-allowed opacity-60" : ""}`}
                         title={
-                          hasPricingForModel(entry.model)
-                            ? getI18nOrFallback(t, "pricingAvailable", "Pricing available")
-                            : getI18nOrFallback(t, "pricingMissing", "No pricing")
+                          isTestingModel
+                            ? getI18nOrFallback(t, "testingModel", "Testing model...")
+                            : getI18nOrFallback(t, "testModel", "Test model")
                         }
                       >
-                        {hasPricingForModel(entry.model)
-                          ? getI18nOrFallback(t, "pricingAvailableShort", "priced")
-                          : getI18nOrFallback(t, "pricingMissingShort", "no-price")}
-                      </span>
-                    )}
-
-                    {strategy === "weighted" && (
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={entry.weight}
-                          onChange={(e) => handleWeightChange(index, e.target.value)}
-                          className="w-10 text-[11px] text-center py-0.5 rounded border border-black/10 dark:border-white/10 bg-transparent focus:border-primary focus:outline-none"
-                        />
-                        <span className="text-[10px] text-text-muted">%</span>
-                      </div>
-                    )}
-
-                    {strategy === "priority" && (
-                      <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={() => handleMoveUp(index)}
-                          disabled={index === 0}
-                          className={`p-0.5 rounded ${index === 0 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
-                          title={t("moveUp")}
+                        <span
+                          className={`material-symbols-outlined text-[12px] ${isTestingModel ? "animate-spin" : ""}`}
                         >
-                          <span className="material-symbols-outlined text-[12px]">
-                            arrow_upward
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleMoveDown(index)}
-                          disabled={index === models.length - 1}
-                          className={`p-0.5 rounded ${index === models.length - 1 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
-                          title={t("moveDown")}
-                        >
-                          <span className="material-symbols-outlined text-[12px]">
-                            arrow_downward
-                          </span>
-                        </button>
-                      </div>
-                    )}
+                          {isTestingModel
+                            ? "progress_activity"
+                            : status === "ok"
+                              ? "check_circle"
+                              : status === "error"
+                                ? "error"
+                                : "play_arrow"}
+                        </span>
+                      </button>
 
-                    <button
-                      onClick={() => handleRemoveModel(index)}
-                      className="p-0.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 transition-all"
-                      title={t("removeModel")}
-                    >
-                      <span className="material-symbols-outlined text-[12px]">close</span>
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => handleRemoveModel(index)}
+                        aria-label={t("removeModel")}
+                        className="p-0.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 transition-all"
+                        title={t("removeModel")}
+                      >
+                        <span className="material-symbols-outlined text-[12px]">close</span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1095,6 +1324,7 @@ export function ComboFormModal({
         selectedModel={null}
         addedModelValues={models.map((m) => m.model)}
         multiSelect
+        enableModelTest
       />
     </>
   );

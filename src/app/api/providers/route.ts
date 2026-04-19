@@ -13,6 +13,11 @@ import {
 } from "@/shared/constants/providers";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
+import {
+  getAuditActorFromRequest,
+  getAuditIpFromRequest,
+  logAuditEvent,
+} from "@/lib/compliance/index";
 import { createProviderSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { normalizeQoderPatProviderData } from "@routiform/open-sse/services/qoderCli.ts";
@@ -158,6 +163,19 @@ export async function POST(request: Request) {
       providerSpecificData,
       isActive: true,
       testStatus: testStatus || "unknown",
+    });
+
+    logAuditEvent({
+      action: "provider.connection.create",
+      actor: await getAuditActorFromRequest(request),
+      target: String((newConnection as Record<string, unknown>).id || provider),
+      details: {
+        provider,
+        authType: authType || "apikey",
+        name,
+        isActive: true,
+      },
+      ipAddress: getAuditIpFromRequest(request),
     });
 
     // Note: Gemini model sync is now triggered client-side with progress dialog

@@ -168,3 +168,25 @@ export function roundPercentageDisplay(value: number, decimals = 1) {
   const f = 10 ** decimals;
   return Math.round(clamped * f) / f;
 }
+
+/**
+ * Compute output tokens per second from output tokens and duration.
+ * Returns null when inputs are missing/invalid.
+ */
+export function computeTokensPerSecond(tokenOut: number, durationMs: number): number | null {
+  const out = Number(tokenOut || 0);
+  const ms = Number(durationMs || 0);
+  if (!Number.isFinite(out) || !Number.isFinite(ms) || out <= 0 || ms <= 0) return null;
+  const seconds = ms / 1000;
+  if (seconds <= 0) return null;
+  return out / seconds;
+}
+
+/**
+ * Format a tokens-per-second value for UI/export display.
+ */
+export function formatTokensPerSecondValue(value: number | null): string {
+  if (!Number.isFinite(value) || (value as number) <= 0) return "N/A";
+  if ((value as number) >= 1000) return `${Math.round(value as number).toLocaleString()} tok/s`;
+  return `${(value as number).toFixed(2)} tok/s`;
+}

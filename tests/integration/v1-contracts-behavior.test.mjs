@@ -171,3 +171,659 @@ test("contract: /api/v1/messages/count_tokens computes token estimate from text 
   const body = await response.json();
   assert.equal(body.input_tokens, 3);
 });
+
+test("contract: /api/v1/messages/count_tokens uses upstream count for claude models when available", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  const fetchCalls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response(JSON.stringify({ input_tokens: 42 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "hello" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 42);
+    assert.equal(fetchCalls.length, 1);
+    assert.match(fetchCalls[0].url, /\/v1\/messages\/count_tokens$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back to local estimate on upstream failure", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ error: { message: "rate limited" } }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens keeps local estimate when provider unsupported", async () => {
+  const { POST: countTokens } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const payload = {
+      model: "openai/gpt-4o-mini",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens keeps local estimate when no auth signal is present", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens keeps local estimate when auth key is invalid", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => false);
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer not-a-valid-key",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back when credentials resolver throws", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => {
+    throw new Error("credential backend unavailable");
+  });
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back when auth validator throws", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => {
+    throw new Error("validator backend unavailable");
+  });
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back on malformed upstream count response", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ input_tokens: "42" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens uses provider path with valid x-api-key", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 7 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "rk-valid",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 7);
+    assert.equal(fetchCalled, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back when key cannot access requested model", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => false);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: true }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-test",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens falls back to x-api-key when bearer key is invalid", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 11 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async (key) => key === "rk-valid");
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async (key) => ({ isActive: key === "rk-valid" }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer rk-invalid",
+          "x-api-key": "rk-valid",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 11);
+    assert.equal(fetchCalled, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});
+
+test("contract: /api/v1/messages/count_tokens keeps local estimate when key is inactive", async () => {
+  const {
+    POST: countTokens,
+    setCountTokensCredentialsResolverForTesting,
+    resetCountTokensCredentialsResolverForTesting,
+    setCountTokensAccessKeyValidatorForTesting,
+    resetCountTokensAccessKeyValidatorForTesting,
+    setCountTokensModelAccessValidatorForTesting,
+    resetCountTokensModelAccessValidatorForTesting,
+    setCountTokensApiKeyMetadataResolverForTesting,
+    resetCountTokensApiKeyMetadataResolverForTesting,
+  } = await import("../../src/app/api/v1/messages/count_tokens/route.ts");
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response(JSON.stringify({ input_tokens: 999 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  setCountTokensCredentialsResolverForTesting(async () => ({ apiKey: "anthropic-test-key" }));
+  setCountTokensAccessKeyValidatorForTesting(async () => true);
+  setCountTokensModelAccessValidatorForTesting(async () => true);
+  setCountTokensApiKeyMetadataResolverForTesting(async () => ({ isActive: false }));
+
+  try {
+    const payload = {
+      model: "claude/claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: "abcd" }],
+    };
+
+    const response = await countTokens(
+      new Request(`${BASE_URL}/api/v1/messages/count_tokens`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer sk-disabled",
+        },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetCountTokensCredentialsResolverForTesting();
+    resetCountTokensAccessKeyValidatorForTesting();
+    resetCountTokensModelAccessValidatorForTesting();
+    resetCountTokensApiKeyMetadataResolverForTesting();
+  }
+});

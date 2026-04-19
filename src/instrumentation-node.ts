@@ -6,6 +6,8 @@
  * and emit spurious "not supported in Edge Runtime" warnings.
  */
 
+import { enforceRuntimeEnv } from "@/lib/runtime/envValidation";
+
 function getRandomBytes(byteLength: number): Uint8Array {
   const bytes = new Uint8Array(byteLength);
   globalThis.crypto.getRandomValues(bytes);
@@ -63,6 +65,8 @@ async function ensureSecrets(): Promise<void> {
 }
 
 export async function registerNodejs(): Promise<void> {
+  enforceRuntimeEnv();
+
   // Initialize proxy fetch patch FIRST (before any HTTP requests)
   await import("@routiform/open-sse/index.ts");
   console.log("[STARTUP] Global fetch proxy patch initialized");
@@ -108,7 +112,28 @@ export async function registerNodejs(): Promise<void> {
   startProviderLimitsSyncScheduler();
   console.log("[STARTUP] Provider limits sync scheduler started");
 
+  let startupDeprecationSeeds: Record<string, string> = {};
   try {
+    try {
+      const { seedKnownModelAliases, getStartupModelDeprecationSeeds } =
+        await import("@/lib/db/models");
+      const seeded = await seedKnownModelAliases();
+      if (seeded.inserted > 0) {
+        console.log(
+          `[STARTUP] Seeded ${seeded.inserted} known model alias(es) (${seeded.existing} already present)`
+        );
+      }
+
+      const { addCustomAlias } = await import("@routiform/open-sse/services/modelDeprecation.ts");
+      startupDeprecationSeeds = getStartupModelDeprecationSeeds();
+      for (const [from, to] of Object.entries(startupDeprecationSeeds)) {
+        addCustomAlias(from, to);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[STARTUP] Model alias seed step failed:", msg);
+    }
+
     const { setCustomAliases } = await import("@routiform/open-sse/services/modelDeprecation.ts");
     const settings = await getSettings();
 
@@ -118,11 +143,29 @@ export async function registerNodejs(): Promise<void> {
           ? JSON.parse(settings.modelAliases)
           : settings.modelAliases;
       if (aliases && typeof aliases === "object") {
-        setCustomAliases(aliases);
+        setCustomAliases({ ...startupDeprecationSeeds, ...(aliases as Record<string, string>) });
         console.log(
           `[STARTUP] Restored ${Object.keys(aliases).length} custom model alias(es) from settings`
         );
       }
+    }
+
+    try {
+      const { setCustomModelReasoningEffortDefaults } =
+        await import("@routiform/open-sse/config/providerRegistry.ts");
+      const defaults =
+        typeof settings.modelReasoningDefaults === "string"
+          ? JSON.parse(settings.modelReasoningDefaults)
+          : settings.modelReasoningDefaults;
+      if (defaults && typeof defaults === "object") {
+        setCustomModelReasoningEffortDefaults(defaults as Record<string, string>);
+        console.log(
+          `[STARTUP] Restored ${Object.keys(defaults as Record<string, string>).length} model reasoning default(s) from settings`
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[STARTUP] Model reasoning defaults restore failed:", msg);
     }
 
     // Migrate legacy Codex service tier settings to per-connection defaults

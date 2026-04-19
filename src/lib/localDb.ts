@@ -151,6 +151,7 @@ export {
 export {
   // Backup Management
   backupDbFile,
+  backupDbFileBlocking,
   listDbBackups,
   restoreDbBackup,
 } from "./db/backup";

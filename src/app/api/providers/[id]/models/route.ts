@@ -11,6 +11,7 @@ import { getStaticQoderModels } from "@routiform/open-sse/services/qoderCli.ts";
 import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 import { getGlmModelsUrl } from "@routiform/open-sse/config/glmProvider.ts";
 import { getOpencodeGoModels } from "@/lib/providers/opencodeGoModelsCatalog";
+import { isOutboundUrlPolicyError, safeOutboundFetch } from "@/lib/network/safeOutboundFetch";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -22,6 +23,28 @@ function getProviderBaseUrl(providerSpecificData: unknown): string | null {
   const data = asRecord(providerSpecificData);
   const baseUrl = data.baseUrl;
   return typeof baseUrl === "string" && baseUrl.trim().length > 0 ? baseUrl : null;
+}
+
+function toModelsRouteError(error: unknown): { message: string; status: number } {
+  if (isOutboundUrlPolicyError(error)) {
+    return {
+      message: error.message,
+      status: 400,
+    };
+  }
+  if (error instanceof Error) {
+    const name = error.name.toLowerCase();
+    const message = error.message.toLowerCase();
+    if (
+      name === "aborterror" ||
+      name === "timeouterror" ||
+      message.includes("timeout") ||
+      message.includes("aborted due to timeout")
+    ) {
+      return { message: "Provider models fetch timeout", status: 504 };
+    }
+  }
+  return { message: "Failed to fetch models", status: 500 };
 }
 
 const DEFAULT_CODEX_MODELS_BASE_URL = "https://chatgpt.com/backend-api/codex";
@@ -714,18 +737,21 @@ export async function GET(
       for (const endpoint of endpoints) {
         const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}client_version=${encodeURIComponent(clientVersion)}`;
         const response = await runWithProxyContext(proxy, () =>
-          fetch(url, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Version: clientVersion,
-              "Openai-Beta": "responses=experimental",
-              "User-Agent": `codex-cli/${clientVersion}`,
+          safeOutboundFetch(
+            url,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Version: clientVersion,
+                "Openai-Beta": "responses=experimental",
+                "User-Agent": `codex-cli/${clientVersion}`,
+              },
             },
-            signal: AbortSignal.timeout(10_000),
-          })
+            { timeoutMs: 10_000 }
+          )
         ).catch(() => null);
 
         if (!response) continue;
@@ -806,18 +832,22 @@ export async function GET(
       const uniqueEndpoints = [...new Set(endpoints)];
       let models = null;
       let lastErrorStatus = null;
+      let policyError: unknown = null;
 
       for (const modelsUrl of uniqueEndpoints) {
         try {
           const response = await runWithProxyContext(proxy, () =>
-            fetch(modelsUrl, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
+            safeOutboundFetch(
+              modelsUrl,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${apiKey}`,
+                },
               },
-              signal: AbortSignal.timeout(5000), // Quick timeout for fallbacks
-            })
+              { timeoutMs: 5_000 }
+            )
           );
 
           if (response.ok) {
@@ -831,6 +861,10 @@ export async function GET(
             throw new Error("auth_failed");
           }
         } catch (err: unknown) {
+          if (isOutboundUrlPolicyError(err)) {
+            policyError = err;
+            break;
+          }
           const error = err as { message?: string };
           if (error.message === "auth_failed") break; // Don't try other endpoints if auth failed
         }
@@ -838,6 +872,13 @@ export async function GET(
 
       // If all endpoints failed (but not because of auth), fallback to local catalog
       if (!models) {
+        if (policyError) {
+          const mappedPolicy = toModelsRouteError(policyError);
+          return NextResponse.json(
+            { error: mappedPolicy.message },
+            { status: mappedPolicy.status }
+          );
+        }
         if (lastErrorStatus === 401 || lastErrorStatus === 403) {
           return NextResponse.json(
             { error: `Auth failed: ${lastErrorStatus}` },
@@ -887,13 +928,17 @@ export async function GET(
       const token = apiKey || accessToken;
 
       const response = await runWithProxyContext(proxy, () =>
-        fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        safeOutboundFetch(
+          url,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           },
-        })
+          { timeoutMs: 10_000 }
+        )
       );
 
       if (!response.ok) {
@@ -931,15 +976,18 @@ export async function GET(
 
       try {
         const quotaRes = await runWithProxyContext(proxy, () =>
-          fetch("https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
+          safeOutboundFetch(
+            "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ project: projectId }),
             },
-            body: JSON.stringify({ project: projectId }),
-            signal: AbortSignal.timeout(10000),
-          })
+            { timeoutMs: 10_000 }
+          )
         );
 
         if (!quotaRes.ok) {
@@ -964,9 +1012,10 @@ export async function GET(
 
         return buildResponse({ provider, connectionId, models });
       } catch (err: unknown) {
+        const mapped = toModelsRouteError(err);
         const msg = err instanceof Error ? err.message : String(err);
         console.log("[models] Gemini CLI model fetch error:", msg);
-        return NextResponse.json({ error: "Failed to fetch Gemini CLI models" }, { status: 500 });
+        return NextResponse.json({ error: mapped.message }, { status: mapped.status });
       }
     }
 
@@ -986,11 +1035,14 @@ export async function GET(
       };
 
       const catalogRes = await runWithProxyContext(proxy, () =>
-        fetch("https://api.cline.bot/api/v1/ai/cline/models", {
-          method: "GET",
-          headers,
-          signal: AbortSignal.timeout(15_000),
-        })
+        safeOutboundFetch(
+          "https://api.cline.bot/api/v1/ai/cline/models",
+          {
+            method: "GET",
+            headers,
+          },
+          { timeoutMs: 15_000 }
+        )
       );
 
       if (!catalogRes.ok) {
@@ -1011,11 +1063,14 @@ export async function GET(
       let freeSet = new Set<string>();
       try {
         const categoriesRes = await runWithProxyContext(proxy, () =>
-          fetch("https://api.cline.bot/api/v1/ai/cline/recommended-models", {
-            method: "GET",
-            headers,
-            signal: AbortSignal.timeout(10_000),
-          })
+          safeOutboundFetch(
+            "https://api.cline.bot/api/v1/ai/cline/recommended-models",
+            {
+              method: "GET",
+              headers,
+            },
+            { timeoutMs: 10_000 }
+          )
         );
         if (categoriesRes.ok) {
           const categoriesData = await categoriesRes.json();
@@ -1086,15 +1141,19 @@ export async function GET(
       const url = `${baseUrl}/models`;
       const token = accessToken || apiKey;
       const response = await runWithProxyContext(proxy, () =>
-        fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(apiKey ? { "x-api-key": apiKey } : {}),
-            "anthropic-version": "2023-06-01",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        safeOutboundFetch(
+          url,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(apiKey ? { "x-api-key": apiKey } : {}),
+              "anthropic-version": "2023-06-01",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           },
-        })
+          { timeoutMs: 15_000 }
+        )
       );
 
       if (!response.ok) {
@@ -1204,10 +1263,7 @@ export async function GET(
     while (pageUrl && pageCount < MAX_PAGES) {
       pageCount++;
       const response = await runWithProxyContext(proxy, () =>
-        fetch(pageUrl, {
-          ...fetchOptions,
-          signal: AbortSignal.timeout(15_000),
-        })
+        safeOutboundFetch(pageUrl, fetchOptions, { timeoutMs: 15_000 })
       );
 
       if (!response.ok) {
@@ -1248,7 +1304,8 @@ export async function GET(
       models: allModels,
     });
   } catch (error) {
+    const mapped = toModelsRouteError(error);
     console.log("Error fetching provider models:", error);
-    return NextResponse.json({ error: "Failed to fetch models" }, { status: 500 });
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status });
   }
 }

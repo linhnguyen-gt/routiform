@@ -89,7 +89,7 @@ test("combo test route marks a model healthy only when it returns assistant text
   assert.equal(forwardedBody.model, "openrouter/openai/gpt-5.4");
   assert.equal(forwardedBody.messages[0].content, "Reply with OK only.");
   assert.equal(forwardedBody.max_tokens, 256);
-  assert.equal(forwardedBody.temperature, 0);
+  assert.equal("temperature" in forwardedBody, false);
   assert.equal(body.resolvedBy, "openrouter/openai/gpt-5.4");
   assert.equal(body.results[0].status, "ok");
   assert.equal(body.results[0].responseText, "OK");
@@ -226,6 +226,68 @@ test("combo test route surfaces provider errors instead of downgrading them to r
   assert.equal(body.results[0].statusCode, 422);
   assert.equal(body.results[0].error, "Upstream rejected this request shape");
   assert.equal("probeMethod" in body.results[0], false);
+});
+
+test("combo test route treats embedded provider status errors as failures even when HTTP is 200", async () => {
+  await createTestCombo();
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        status: 402,
+        msg: "Payment required",
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "OK",
+            },
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+
+  const response = await route.POST(makeRequest());
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.resolvedBy, null);
+  assert.equal(body.results[0].status, "error");
+  assert.match(body.results[0].error, /provider status 402/i);
+});
+
+test("combo test route treats assistant error text payloads as failures", async () => {
+  await createTestCombo();
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "[402]: This is a paid model. To use paid models, you need to add credits.",
+            },
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+
+  const response = await route.POST(makeRequest());
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.resolvedBy, null);
+  assert.equal(body.results[0].status, "error");
+  assert.match(body.results[0].error, /\[402\]/i);
 });
 
 test("combo test route launches model probes concurrently while preserving combo order", async () => {

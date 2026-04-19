@@ -262,6 +262,39 @@ test("unlinkFileWithRetry retries EBUSY/EPERM and eventually succeeds", async ()
   }
 });
 
+test("backupDbFile rotation uses DB_BACKUP_MAX_FILES env", async () => {
+  await resetStorage();
+
+  const originalEnv = process.env.DB_BACKUP_MAX_FILES;
+  process.env.DB_BACKUP_MAX_FILES = "2";
+
+  try {
+    const db = core.getDbInstance();
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO provider_connections (id, provider, auth_type, name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).run("backup-rotation-test", "openai", "apikey", "backup-rotation-test", 1, now, now);
+
+    // Force a checkpoint so backup file size is stable across repeated snapshots.
+    core.closeDbInstance();
+    core.getDbInstance();
+
+    for (let i = 0; i < 4; i++) {
+      await backupDb.backupDbFileBlocking("manual");
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+
+    const backups = await backupDb.listDbBackups();
+    assert.equal(backups.length <= 2, true);
+  } finally {
+    if (originalEnv === undefined) {
+      delete process.env.DB_BACKUP_MAX_FILES;
+    } else {
+      process.env.DB_BACKUP_MAX_FILES = originalEnv;
+    }
+  }
+});
+
 test("provider connection persists rateLimitProtection across reopen", async () => {
   await resetStorage();
 
