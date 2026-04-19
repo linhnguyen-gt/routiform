@@ -1,20 +1,49 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { migrateCallLogsToSummaryStorageMode } from "@/lib/usage/callLogsMigration";
+
+const callLogsSummaryMigrationSchema = z.object({
+  dryRun: z.boolean().optional(),
+  limit: z.coerce.number().int().min(1).max(100000).optional(),
+});
 
 export async function POST(request: Request) {
   const authError = await requireManagementAuth(request);
   if (authError) return authError;
 
-  let body: Record<string, unknown> = {};
-  try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
-    // Optional body only.
+  let body: z.infer<typeof callLogsSummaryMigrationSchema> = {};
+
+  const rawBody = await request.text();
+  if (rawBody.trim().length > 0) {
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const parsedBody = callLogsSummaryMigrationSchema.safeParse(parsedJson);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Invalid request body",
+            details: parsedBody.error.issues.map((issue) => ({
+              field: issue.path.join("."),
+              message: issue.message,
+            })),
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    body = parsedBody.data;
   }
 
-  const dryRun = body.dryRun !== false;
-  const limit = Number(body.limit || 5000);
+  const dryRun = body.dryRun ?? true;
+  const limit = body.limit ?? 5000;
   const result = migrateCallLogsToSummaryStorageMode({ dryRun, limit });
 
   return NextResponse.json({
