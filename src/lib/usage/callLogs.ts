@@ -30,43 +30,13 @@ import {
   serializePayloadForStorage,
 } from "../logPayloads";
 import { getCallLogMaxEntries, getCallLogRetentionDays } from "../logEnv";
+import { getSettings } from "../db/settings";
+import { readCallArtifact, writeCallArtifact, type CallLogArtifact } from "./callLogArtifacts";
 
 type JsonRecord = Record<string, unknown>;
 
-type CallLogArtifact = {
-  schemaVersion: 3;
-  summary: {
-    id: string;
-    timestamp: string;
-    method: string;
-    path: string;
-    status: number;
-    model: string;
-    requestedModel: string | null;
-    provider: string;
-    account: string;
-    connectionId: string | null;
-    duration: number;
-    tokens: {
-      in: number;
-      out: number;
-      cacheRead: number | null;
-      cacheCreation: number | null;
-      reasoning: number | null;
-      promptDetails: Record<string, unknown> | null;
-      completionDetails: Record<string, unknown> | null;
-    };
-    requestType: string | null;
-    sourceFormat: string | null;
-    targetFormat: string | null;
-    apiKeyId: string | null;
-    apiKeyName: string | null;
-    comboName: string | null;
-  };
-  requestBody: unknown;
-  responseBody: unknown;
-  error: unknown;
-  pipeline?: RequestPipelinePayloads;
+type SummaryStorageMode = {
+  enabled: boolean;
 };
 
 function asRecord(value: unknown): JsonRecord {
@@ -174,15 +144,6 @@ async function resolveAccountName(connectionId: string | null | undefined) {
   return account;
 }
 
-function buildArtifactRelativePath(timestamp: string, id: string) {
-  const parsed = new Date(timestamp);
-  const safeTimestamp = (
-    Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
-  ).replace(/[:]/g, "-");
-  const dateFolder = safeTimestamp.slice(0, 10);
-  return path.posix.join(dateFolder, `${safeTimestamp}_${id}.json`);
-}
-
 function buildArtifact(
   logEntry: {
     id: string;
@@ -248,38 +209,8 @@ function buildArtifact(
     requestBody: requestBody ?? null,
     responseBody: responseBody ?? null,
     error: error ?? null,
-    ...(pipelinePayloads ? { pipeline: pipelinePayloads } : {}),
+    ...(pipelinePayloads ? { pipeline: pipelinePayloads as Record<string, unknown> } : {}),
   };
-}
-
-function writeCallArtifact(artifact: CallLogArtifact): string | null {
-  if (!CALL_LOGS_DIR) return null;
-
-  const relPath = buildArtifactRelativePath(artifact.summary.timestamp, artifact.summary.id);
-  const absPath = path.join(CALL_LOGS_DIR, relPath);
-
-  try {
-    fs.mkdirSync(path.dirname(absPath), { recursive: true });
-    fs.writeFileSync(absPath, JSON.stringify(artifact, null, 2));
-    rotateCallLogs();
-    return relPath;
-  } catch (error) {
-    console.error("[callLogs] Failed to write request artifact:", (error as Error).message);
-    return null;
-  }
-}
-
-function readArtifactFromDisk(relativePath: string | null) {
-  if (!CALL_LOGS_DIR || !relativePath) return null;
-
-  try {
-    const absPath = path.join(CALL_LOGS_DIR, relativePath);
-    if (!fs.existsSync(absPath)) return null;
-    return JSON.parse(fs.readFileSync(absPath, "utf8")) as CallLogArtifact;
-  } catch (error) {
-    console.error("[callLogs] Failed to read request artifact:", (error as Error).message);
-    return null;
-  }
 }
 
 function readLegacyLogFromDisk(entry: {
@@ -339,6 +270,16 @@ function cleanupEmptyCallLogDirs() {
     }
   } catch {
     // Best effort only.
+  }
+}
+
+async function getSummaryStorageMode(): Promise<SummaryStorageMode> {
+  try {
+    const settings = await getSettings();
+    const raw = (settings as Record<string, unknown>).call_log_summary_storage_enabled;
+    return { enabled: raw === true || raw === "1" || raw === "true" };
+  } catch {
+    return { enabled: false };
   }
 }
 
@@ -435,6 +376,16 @@ export async function saveCallLog(entry: Record<string, unknown>) {
     };
 
     const db = getDbInstance();
+    const summaryStorageMode = await getSummaryStorageMode();
+    const shouldStoreSummaryBodies = !summaryStorageMode.enabled;
+    const dbRequestBody = shouldStoreSummaryBodies
+      ? logEntry.requestBody
+      : JSON.stringify({ _artifactOnly: true, _schemaVersion: 1 });
+    const dbResponseBody = shouldStoreSummaryBodies
+      ? logEntry.responseBody
+      : JSON.stringify({ _artifactOnly: true, _schemaVersion: 1 });
+    const dbError = shouldStoreSummaryBodies ? logEntry.error : null;
+
     db.prepare(
       `
       INSERT INTO call_logs (
@@ -451,7 +402,12 @@ export async function saveCallLog(entry: Record<string, unknown>) {
         @tokensCacheRead, @tokensCacheCreation, @tokensReasoning, NULL, 0
       )
     `
-    ).run(logEntry);
+    ).run({
+      ...logEntry,
+      requestBody: dbRequestBody,
+      responseBody: dbResponseBody,
+      error: dbError,
+    });
 
     if (!noLogEnabled) {
       const { requestBody: _rb, responseBody: _respb, error: _err, ...artifactEntry } = logEntry;
@@ -462,7 +418,7 @@ export async function saveCallLog(entry: Record<string, unknown>) {
         protectedError,
         protectedPipelinePayloads
       );
-      const artifactRelPath = writeCallArtifact(artifact);
+      const artifactRelPath = writeCallArtifact(artifact, () => rotateCallLogs());
 
       if (artifactRelPath) {
         db.prepare(
@@ -621,8 +577,14 @@ export async function getCallLogs(filter: Record<string, unknown> = {}) {
       comboName: toStringOrNull(l.combo_name),
       apiKeyId: toStringOrNull(l.api_key_id),
       apiKeyName: toStringOrNull(l.api_key_name),
-      hasRequestBody: typeof l.request_body === "string" && l.request_body.length > 0,
-      hasResponseBody: typeof l.response_body === "string" && l.response_body.length > 0,
+      hasRequestBody:
+        typeof l.request_body === "string" &&
+        l.request_body.length > 0 &&
+        !String(l.request_body).includes('"_artifactOnly":true'),
+      hasResponseBody:
+        typeof l.response_body === "string" &&
+        l.response_body.length > 0 &&
+        !String(l.response_body).includes('"_artifactOnly":true'),
       hasPipelineDetails: toNumber(l.has_pipeline_details) === 1,
     };
   });
@@ -681,7 +643,7 @@ export async function getCallLogById(id: string) {
     hasPipelineDetails: toNumber(entryRow.has_pipeline_details) === 1,
   };
 
-  const artifact = readArtifactFromDisk(artifactRelPath);
+  const artifact = readCallArtifact(artifactRelPath);
   if (artifact) {
     // Merge tokens to retain detail from artifact
     const artifactTokens = artifact.summary?.tokens || {};

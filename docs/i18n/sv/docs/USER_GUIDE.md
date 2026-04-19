@@ -297,7 +297,7 @@ Edit `~/.openclaw/openclaw.json`:
       "routiform": {
         "baseUrl": "http://localhost:20128/v1",
         "apiKey": "your-routiform-api-key",
-        "api": "openai-completions",
+        "api": "anthropic-messages",
         "models": [{ "id": "if/glm-4.7", "name": "glm-4.7" }]
       }
     }

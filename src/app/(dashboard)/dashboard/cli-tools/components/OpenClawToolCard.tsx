@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/components";
-import Image from "next/image";
-import CliStatusBadge from "./CliStatusBadge";
+import { Button, Card, ManualConfigModal, ModelSelectModal } from "@/shared/components";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import CliStatusBadge from "./CliStatusBadge";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
 
@@ -286,7 +286,7 @@ export default function OpenClawToolCard({
           routiform: {
             baseUrl: getEffectiveBaseUrl(),
             apiKey: keyToUse,
-            api: "openai-completions",
+            api: "anthropic-messages",
             models: selectedModels.length
               ? selectedModels.map((modelId) => ({
                   id: modelId,

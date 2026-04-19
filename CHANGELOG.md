@@ -4,185 +4,166 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [3.12.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.2...v3.12.0) (2026-04-19)
 
-
 ### Features
 
-* **settings:** manage model reasoning defaults via dashboard ([51a6a3a](https://github.com/linhnguyen-gt/Routiform/commit/51a6a3a4462d6cee25ad242ef11527241dfdc7b9))
-
+- **settings:** manage model reasoning defaults via dashboard ([51a6a3a](https://github.com/linhnguyen-gt/Routiform/commit/51a6a3a4462d6cee25ad242ef11527241dfdc7b9))
 
 ### Bug Fixes
 
-* **api:** disable cache for combos listing endpoint ([53ffa2c](https://github.com/linhnguyen-gt/Routiform/commit/53ffa2cf10cba7855190fe19a1b67f989dd864c6))
-* **db:** preserve combo string references during startup health repair ([5064d41](https://github.com/linhnguyen-gt/Routiform/commit/5064d41effbb2f60256007c03104ad8b40e44a2e))
-* **providers:** specialize vertex credential validation paths ([1a05ef4](https://github.com/linhnguyen-gt/Routiform/commit/1a05ef4b8f10f3894cab8e562bd18c2a14ce852b))
-* **ui:** add missing provider icon mappings and assets ([3b87040](https://github.com/linhnguyen-gt/Routiform/commit/3b8704035ce704276bd792c7fdb7d616220b0e98))
+- **api:** disable cache for combos listing endpoint ([53ffa2c](https://github.com/linhnguyen-gt/Routiform/commit/53ffa2cf10cba7855190fe19a1b67f989dd864c6))
+- **db:** preserve combo string references during startup health repair ([5064d41](https://github.com/linhnguyen-gt/Routiform/commit/5064d41effbb2f60256007c03104ad8b40e44a2e))
+- **providers:** specialize vertex credential validation paths ([1a05ef4](https://github.com/linhnguyen-gt/Routiform/commit/1a05ef4b8f10f3894cab8e562bd18c2a14ce852b))
+- **ui:** add missing provider icon mappings and assets ([3b87040](https://github.com/linhnguyen-gt/Routiform/commit/3b8704035ce704276bd792c7fdb7d616220b0e98))
 
 ### [3.11.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.1...v3.11.2) (2026-04-18)
 
-
 ### Bug Fixes
 
-* add bounded combo retry controls ([90b36ec](https://github.com/linhnguyen-gt/Routiform/commit/90b36ec725be9c9e83bb21b78c524b4f6bf6f169))
-* add env-driven DB backup retention controls ([45dd38e](https://github.com/linhnguyen-gt/Routiform/commit/45dd38e68851a373ed96d856961e7969b83444a0))
-* add migration safety guardrails before risky DB upgrades ([2f017dd](https://github.com/linhnguyen-gt/Routiform/commit/2f017dd6d515f34546f4294c7e115ef5e38a112d))
-* add startup runtime env validation with compatibility guards ([f86c8bd](https://github.com/linhnguyen-gt/Routiform/commit/f86c8bdc7b1249f55e94317ef4f43bee86d63085))
-* add TPS throughput metric to request logger views ([5d8bdf6](https://github.com/linhnguyen-gt/Routiform/commit/5d8bdf6e06d8315d33c01897f23f4b8ee96c26fe))
-* expand compliance audit logging for provider flows ([1128123](https://github.com/linhnguyen-gt/Routiform/commit/1128123756f4cf9944424aeac2aea2e2b4c4538c))
-* forward sanitized x-initiator for github upstream ([a9a9c41](https://github.com/linhnguyen-gt/Routiform/commit/a9a9c41b22ff4de8efd54b1694d0027ad4116083))
-* harden count_tokens hybrid provider fallback ([ddb8195](https://github.com/linhnguyen-gt/Routiform/commit/ddb819581d14a51ef40e63a367af566c4d25436f))
-* harden outbound provider fetch against SSRF redirects ([a0b3a47](https://github.com/linhnguyen-gt/Routiform/commit/a0b3a472d89b409129826623bfd6a24a00c24bad))
-* normalize responses token field compatibility ([ac56288](https://github.com/linhnguyen-gt/Routiform/commit/ac562887d9e6a735d562411b954176c3639a4673))
-* prioritize retry headers for 429 fallback cooldowns ([4f17969](https://github.com/linhnguyen-gt/Routiform/commit/4f17969a0f2781e869a86ae448838a49d98ca1b2))
-* remove unsupported temperature from test probe payload ([8c3dd33](https://github.com/linhnguyen-gt/Routiform/commit/8c3dd3372a7bfbb172b4bd6b240c3b3e9524c54c))
-* seed known model aliases at startup for cross-proxy normalization ([d391eb4](https://github.com/linhnguyen-gt/Routiform/commit/d391eb4e5a7aad12f0458eb4379c2e7f4279f1c1))
-* stagger token healthcheck scheduling to reduce refresh bursts ([883714b](https://github.com/linhnguyen-gt/Routiform/commit/883714ba77b75f794dca4c8e184e6373f6f9ac2f))
+- add bounded combo retry controls ([90b36ec](https://github.com/linhnguyen-gt/Routiform/commit/90b36ec725be9c9e83bb21b78c524b4f6bf6f169))
+- add env-driven DB backup retention controls ([45dd38e](https://github.com/linhnguyen-gt/Routiform/commit/45dd38e68851a373ed96d856961e7969b83444a0))
+- add migration safety guardrails before risky DB upgrades ([2f017dd](https://github.com/linhnguyen-gt/Routiform/commit/2f017dd6d515f34546f4294c7e115ef5e38a112d))
+- add startup runtime env validation with compatibility guards ([f86c8bd](https://github.com/linhnguyen-gt/Routiform/commit/f86c8bdc7b1249f55e94317ef4f43bee86d63085))
+- add TPS throughput metric to request logger views ([5d8bdf6](https://github.com/linhnguyen-gt/Routiform/commit/5d8bdf6e06d8315d33c01897f23f4b8ee96c26fe))
+- expand compliance audit logging for provider flows ([1128123](https://github.com/linhnguyen-gt/Routiform/commit/1128123756f4cf9944424aeac2aea2e2b4c4538c))
+- forward sanitized x-initiator for github upstream ([a9a9c41](https://github.com/linhnguyen-gt/Routiform/commit/a9a9c41b22ff4de8efd54b1694d0027ad4116083))
+- harden count_tokens hybrid provider fallback ([ddb8195](https://github.com/linhnguyen-gt/Routiform/commit/ddb819581d14a51ef40e63a367af566c4d25436f))
+- harden outbound provider fetch against SSRF redirects ([a0b3a47](https://github.com/linhnguyen-gt/Routiform/commit/a0b3a472d89b409129826623bfd6a24a00c24bad))
+- normalize responses token field compatibility ([ac56288](https://github.com/linhnguyen-gt/Routiform/commit/ac562887d9e6a735d562411b954176c3639a4673))
+- prioritize retry headers for 429 fallback cooldowns ([4f17969](https://github.com/linhnguyen-gt/Routiform/commit/4f17969a0f2781e869a86ae448838a49d98ca1b2))
+- remove unsupported temperature from test probe payload ([8c3dd33](https://github.com/linhnguyen-gt/Routiform/commit/8c3dd3372a7bfbb172b4bd6b240c3b3e9524c54c))
+- seed known model aliases at startup for cross-proxy normalization ([d391eb4](https://github.com/linhnguyen-gt/Routiform/commit/d391eb4e5a7aad12f0458eb4379c2e7f4279f1c1))
+- stagger token healthcheck scheduling to reduce refresh bursts ([883714b](https://github.com/linhnguyen-gt/Routiform/commit/883714ba77b75f794dca4c8e184e6373f6f9ac2f))
 
 ### [3.11.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.11.0...v3.11.1) (2026-04-16)
 
-
 ### Bug Fixes
 
-* align model and provider test outcomes with real upstream status ([39a8be3](https://github.com/linhnguyen-gt/Routiform/commit/39a8be300742461171fb7b9036ce5e2b7579afd4))
+- align model and provider test outcomes with real upstream status ([39a8be3](https://github.com/linhnguyen-gt/Routiform/commit/39a8be300742461171fb7b9036ce5e2b7579afd4))
 
 ## [3.11.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.10.0...v3.11.0) (2026-04-16)
 
-
 ### Features
 
-* CLIProxyAPI dual-mode toggle and fix modal button order ([ac64b89](https://github.com/linhnguyen-gt/Routiform/commit/ac64b8999f6e424685d8896845edc9aa5f782cd8))
-
+- CLIProxyAPI dual-mode toggle and fix modal button order ([ac64b89](https://github.com/linhnguyen-gt/Routiform/commit/ac64b8999f6e424685d8896845edc9aa5f782cd8))
 
 ### Bug Fixes
 
-* add validateBody() to upstream-proxy PUT route ([7a4827d](https://github.com/linhnguyen-gt/Routiform/commit/7a4827d6fcac939866f4fc5e50a327f54a741bce))
-* apply CodeRabbit auto-fixes ([8606252](https://github.com/linhnguyen-gt/Routiform/commit/8606252ab17b29c6b696bf0a3a764082bae6ca57))
-* avoid unnecessary request body cloning in chat core ([459549d](https://github.com/linhnguyen-gt/Routiform/commit/459549dff46f58929c4fafdb627ba924cd51f48a))
-* harden provider validation and localize CPA messaging ([2bb7e90](https://github.com/linhnguyen-gt/Routiform/commit/2bb7e90bbda53edbd9d80c74c2ef93d1f5a0de7c))
-* **kimi:** inject reasoning_content for Kimi K2.x tool calls and force temperature=1 ([202e66e](https://github.com/linhnguyen-gt/Routiform/commit/202e66e3f775bb9eb7570cf2169bab7af37cc8b1))
-* resolve all TypeScript errors across dashboard and shared components ([5822501](https://github.com/linhnguyen-gt/Routiform/commit/58225011766161a3a850333c11cfe9e9452f76ea))
-* resolve lint violations in search replay and upstream proxy ([c71b918](https://github.com/linhnguyen-gt/Routiform/commit/c71b918874ff090b896cf3e35466351211eeccb0))
+- add validateBody() to upstream-proxy PUT route ([7a4827d](https://github.com/linhnguyen-gt/Routiform/commit/7a4827d6fcac939866f4fc5e50a327f54a741bce))
+- apply CodeRabbit auto-fixes ([8606252](https://github.com/linhnguyen-gt/Routiform/commit/8606252ab17b29c6b696bf0a3a764082bae6ca57))
+- avoid unnecessary request body cloning in chat core ([459549d](https://github.com/linhnguyen-gt/Routiform/commit/459549dff46f58929c4fafdb627ba924cd51f48a))
+- harden provider validation and localize CPA messaging ([2bb7e90](https://github.com/linhnguyen-gt/Routiform/commit/2bb7e90bbda53edbd9d80c74c2ef93d1f5a0de7c))
+- **kimi:** inject reasoning_content for Kimi K2.x tool calls and force temperature=1 ([202e66e](https://github.com/linhnguyen-gt/Routiform/commit/202e66e3f775bb9eb7570cf2169bab7af37cc8b1))
+- resolve all TypeScript errors across dashboard and shared components ([5822501](https://github.com/linhnguyen-gt/Routiform/commit/58225011766161a3a850333c11cfe9e9452f76ea))
+- resolve lint violations in search replay and upstream proxy ([c71b918](https://github.com/linhnguyen-gt/Routiform/commit/c71b918874ff090b896cf3e35466351211eeccb0))
 
 ## [3.10.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.2...v3.10.0) (2026-04-15)
 
-
 ### Features
 
-* **dashboard:** implement new dashboard components and credit tracking ([c0f4b02](https://github.com/linhnguyen-gt/Routiform/commit/c0f4b02cef419318e4dfd3c403ab04c527070f47))
-* enhance OpenCode configuration and linting rules ([7661c98](https://github.com/linhnguyen-gt/Routiform/commit/7661c98ca27c94ab5ebef528b4229f431b9a65f5))
-* **gemini:** add tools sanitizer and fix codex connection defaults ([475f921](https://github.com/linhnguyen-gt/Routiform/commit/475f921e44ef2060eef8b7242819d070d1f8c0f0))
-* **providers:** add DeepInfra, SambaNova, Venice.ai + fix Claude tool_use orphan rehydration ([a665313](https://github.com/linhnguyen-gt/Routiform/commit/a665313f604ab0dbb02cd7a6b61b72844039189f))
-* **providers:** add models.dev integration for opencode-go catalog ([23f05db](https://github.com/linhnguyen-gt/Routiform/commit/23f05dbf14a7c1292d2225b66b69da3128ad76a0))
-* support OpenAI usage details and standard api parameters ([1db8b5a](https://github.com/linhnguyen-gt/Routiform/commit/1db8b5a91f987c6637ef969b3430490cc02bb889))
-
+- **dashboard:** implement new dashboard components and credit tracking ([c0f4b02](https://github.com/linhnguyen-gt/Routiform/commit/c0f4b02cef419318e4dfd3c403ab04c527070f47))
+- enhance OpenCode configuration and linting rules ([7661c98](https://github.com/linhnguyen-gt/Routiform/commit/7661c98ca27c94ab5ebef528b4229f431b9a65f5))
+- **gemini:** add tools sanitizer and fix codex connection defaults ([475f921](https://github.com/linhnguyen-gt/Routiform/commit/475f921e44ef2060eef8b7242819d070d1f8c0f0))
+- **providers:** add DeepInfra, SambaNova, Venice.ai + fix Claude tool_use orphan rehydration ([a665313](https://github.com/linhnguyen-gt/Routiform/commit/a665313f604ab0dbb02cd7a6b61b72844039189f))
+- **providers:** add models.dev integration for opencode-go catalog ([23f05db](https://github.com/linhnguyen-gt/Routiform/commit/23f05dbf14a7c1292d2225b66b69da3128ad76a0))
+- support OpenAI usage details and standard api parameters ([1db8b5a](https://github.com/linhnguyen-gt/Routiform/commit/1db8b5a91f987c6637ef969b3430490cc02bb889))
 
 ### Bug Fixes
 
-* **api:** use safeParse instead of parse in skillssh install route ([c5847a4](https://github.com/linhnguyen-gt/Routiform/commit/c5847a4e62b39cd1067f4e50f0850e2f92013316))
-* **chat:** remove redundant assignment of max_tokens in fallback logic ([4c62f0c](https://github.com/linhnguyen-gt/Routiform/commit/4c62f0cf28e0cda26fb7a8e33e80de8da22af66d))
-* **claude:** rehydrate tool_result text blocks before sending to Anthropic ([259c328](https://github.com/linhnguyen-gt/Routiform/commit/259c3283d91015b0a92bee11f47a8ecda90d9f81))
-* **codex:** synthesize tool_calls when forced tool_choice ignored ([46ee603](https://github.com/linhnguyen-gt/Routiform/commit/46ee60338be4d807a3745416d7751931205c1936)), closes [#605](https://github.com/linhnguyen-gt/Routiform/issues/605)
-* **dashboard:** align combo pages and improve mobile layout ([fedcf4a](https://github.com/linhnguyen-gt/Routiform/commit/fedcf4abb70ea94cbab4dcf11930eb6d043629fd))
-* **dashboard:** enforce strict lint rules across UI ([78db6c7](https://github.com/linhnguyen-gt/Routiform/commit/78db6c7e029f50f3aa9116b9512aa54f4af2739b))
-* **dashboard:** resolve all ESLint warnings and improve type safety ([32ca13d](https://github.com/linhnguyen-gt/Routiform/commit/32ca13dc06dfd127dceb25030c05690ac4a99d13))
-* **e2e:** add data-testid to quick-test CTA button for reliable selector ([5440f36](https://github.com/linhnguyen-gt/Routiform/commit/5440f363ca2a271e096197dac010ac86e1c67d35))
-* **e2e:** update combos-flow test selector for quick test CTA button ([ca75054](https://github.com/linhnguyen-gt/Routiform/commit/ca7505462d662ee9f6aa68d12e9c463ababb9a6a))
-* **providers:** enable auto-sync for opencode-go and antigravity, fix live catalog providers ([b61910b](https://github.com/linhnguyen-gt/Routiform/commit/b61910b0626ef55b1208f163e39f432aff9a342e))
-* **providers:** fix opencode-go models.dev API parsing and live catalog hook ([86ca105](https://github.com/linhnguyen-gt/Routiform/commit/86ca10564ef97087b2c2ccb87e784f9e20d9e66d))
-* **providers:** type legacy page to satisfy lint ([2c838df](https://github.com/linhnguyen-gt/Routiform/commit/2c838df0c14f1a5a5c6798c016af4ab8fb4f6250))
-* resolve all ESLint warnings and TypeScript compilation errors ([b8e68ab](https://github.com/linhnguyen-gt/Routiform/commit/b8e68ab2b65e559cc355b6a7dc7613d280a90e60))
-* resolve all failing unit tests ([0682310](https://github.com/linhnguyen-gt/Routiform/commit/06823107f9dda4f8406c2ef7c88fa074ac534a62))
-* **tests:** update integration tests for modularized combos page and extracted helpers ([e23df57](https://github.com/linhnguyen-gt/Routiform/commit/e23df57f2c05ed701c022d179045d06af6678abf))
+- **api:** use safeParse instead of parse in skillssh install route ([c5847a4](https://github.com/linhnguyen-gt/Routiform/commit/c5847a4e62b39cd1067f4e50f0850e2f92013316))
+- **chat:** remove redundant assignment of max_tokens in fallback logic ([4c62f0c](https://github.com/linhnguyen-gt/Routiform/commit/4c62f0cf28e0cda26fb7a8e33e80de8da22af66d))
+- **claude:** rehydrate tool_result text blocks before sending to Anthropic ([259c328](https://github.com/linhnguyen-gt/Routiform/commit/259c3283d91015b0a92bee11f47a8ecda90d9f81))
+- **codex:** synthesize tool_calls when forced tool_choice ignored ([46ee603](https://github.com/linhnguyen-gt/Routiform/commit/46ee60338be4d807a3745416d7751931205c1936)), closes [#605](https://github.com/linhnguyen-gt/Routiform/issues/605)
+- **dashboard:** align combo pages and improve mobile layout ([fedcf4a](https://github.com/linhnguyen-gt/Routiform/commit/fedcf4abb70ea94cbab4dcf11930eb6d043629fd))
+- **dashboard:** enforce strict lint rules across UI ([78db6c7](https://github.com/linhnguyen-gt/Routiform/commit/78db6c7e029f50f3aa9116b9512aa54f4af2739b))
+- **dashboard:** resolve all ESLint warnings and improve type safety ([32ca13d](https://github.com/linhnguyen-gt/Routiform/commit/32ca13dc06dfd127dceb25030c05690ac4a99d13))
+- **e2e:** add data-testid to quick-test CTA button for reliable selector ([5440f36](https://github.com/linhnguyen-gt/Routiform/commit/5440f363ca2a271e096197dac010ac86e1c67d35))
+- **e2e:** update combos-flow test selector for quick test CTA button ([ca75054](https://github.com/linhnguyen-gt/Routiform/commit/ca7505462d662ee9f6aa68d12e9c463ababb9a6a))
+- **providers:** enable auto-sync for opencode-go and antigravity, fix live catalog providers ([b61910b](https://github.com/linhnguyen-gt/Routiform/commit/b61910b0626ef55b1208f163e39f432aff9a342e))
+- **providers:** fix opencode-go models.dev API parsing and live catalog hook ([86ca105](https://github.com/linhnguyen-gt/Routiform/commit/86ca10564ef97087b2c2ccb87e784f9e20d9e66d))
+- **providers:** type legacy page to satisfy lint ([2c838df](https://github.com/linhnguyen-gt/Routiform/commit/2c838df0c14f1a5a5c6798c016af4ab8fb4f6250))
+- resolve all ESLint warnings and TypeScript compilation errors ([b8e68ab](https://github.com/linhnguyen-gt/Routiform/commit/b8e68ab2b65e559cc355b6a7dc7613d280a90e60))
+- resolve all failing unit tests ([0682310](https://github.com/linhnguyen-gt/Routiform/commit/06823107f9dda4f8406c2ef7c88fa074ac534a62))
+- **tests:** update integration tests for modularized combos page and extracted helpers ([e23df57](https://github.com/linhnguyen-gt/Routiform/commit/e23df57f2c05ed701c022d179045d06af6678abf))
 
 ### [3.9.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.1...v3.9.2) (2026-04-12)
 
-
 ### Bug Fixes
 
-* **docker:** skip lefthook prepare during image build ([0459417](https://github.com/linhnguyen-gt/Routiform/commit/04594174c940beaa8ed521d280a639efbc05e4cf))
+- **docker:** skip lefthook prepare during image build ([0459417](https://github.com/linhnguyen-gt/Routiform/commit/04594174c940beaa8ed521d280a639efbc05e4cf))
 
 ### [3.9.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.9.0...v3.9.1) (2026-04-12)
 
-
 ### Bug Fixes
 
-* **ci:** restore docker install and release notes ([2d00f05](https://github.com/linhnguyen-gt/Routiform/commit/2d00f056a7ec320c64811b54d681f502a106955f))
+- **ci:** restore docker install and release notes ([2d00f05](https://github.com/linhnguyen-gt/Routiform/commit/2d00f056a7ec320c64811b54d681f502a106955f))
 
 ## [3.9.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.9...v3.9.0) (2026-04-12)
 
-
 ### Features
 
-* **availability:** adaptive provider/model quarantine with exponential back-off ([1e0cf36](https://github.com/linhnguyen-gt/Routiform/commit/1e0cf366623efebc78f8172910b7e4594798a945)), closes [#1090](https://github.com/linhnguyen-gt/Routiform/issues/1090)
-* **combos:** persistent drag-to-reorder with sort_order column ([6b4f9ef](https://github.com/linhnguyen-gt/Routiform/commit/6b4f9efcabddaf0f37ecaaee8ebf04df35db2505)), closes [#1095](https://github.com/linhnguyen-gt/Routiform/issues/1095) [diegosouzapw/OmniRoute#1095](https://github.com/diegosouzapw/OmniRoute/issues/1095)
-
+- **availability:** adaptive provider/model quarantine with exponential back-off ([1e0cf36](https://github.com/linhnguyen-gt/Routiform/commit/1e0cf366623efebc78f8172910b7e4594798a945)), closes [#1090](https://github.com/linhnguyen-gt/Routiform/issues/1090)
+- **combos:** persistent drag-to-reorder with sort_order column ([6b4f9ef](https://github.com/linhnguyen-gt/Routiform/commit/6b4f9efcabddaf0f37ecaaee8ebf04df35db2505)), closes [#1095](https://github.com/linhnguyen-gt/Routiform/issues/1095) [diegosouzapw/OmniRoute#1095](https://github.com/diegosouzapw/OmniRoute/issues/1095)
 
 ### Bug Fixes
 
-* **codex:** remove unsupported session_id parameter ([477051d](https://github.com/linhnguyen-gt/Routiform/commit/477051d129a08675ca3c69308a9a8a7c3d3bea36))
-* **core:** resolve regressions and align docs ([56b295a](https://github.com/linhnguyen-gt/Routiform/commit/56b295a6f862c6273f2240b25005899a1be8d7db))
-* **logging:** cap retained logs and harden provider handling ([75c1f37](https://github.com/linhnguyen-gt/Routiform/commit/75c1f37aa923e75de6d12181512852dc87b3be65))
-* **open-sse:** resolve typecheck drift and restore fallback diagnostics ([a328b10](https://github.com/linhnguyen-gt/Routiform/commit/a328b10f53f71401ba9cbae58e3143a7bcadd6ee))
-* **postinstall:** improve Android Termux better-sqlite3 support ([fa3f082](https://github.com/linhnguyen-gt/Routiform/commit/fa3f08208bc5b718db9b3d4cc2d06750538e7aff))
-* **token-health:** align refresh failure health aggregation ([202c6ea](https://github.com/linhnguyen-gt/Routiform/commit/202c6ead1931d16ac9a0ddc989e2cfed40960497))
+- **codex:** remove unsupported session_id parameter ([477051d](https://github.com/linhnguyen-gt/Routiform/commit/477051d129a08675ca3c69308a9a8a7c3d3bea36))
+- **core:** resolve regressions and align docs ([56b295a](https://github.com/linhnguyen-gt/Routiform/commit/56b295a6f862c6273f2240b25005899a1be8d7db))
+- **logging:** cap retained logs and harden provider handling ([75c1f37](https://github.com/linhnguyen-gt/Routiform/commit/75c1f37aa923e75de6d12181512852dc87b3be65))
+- **open-sse:** resolve typecheck drift and restore fallback diagnostics ([a328b10](https://github.com/linhnguyen-gt/Routiform/commit/a328b10f53f71401ba9cbae58e3143a7bcadd6ee))
+- **postinstall:** improve Android Termux better-sqlite3 support ([fa3f082](https://github.com/linhnguyen-gt/Routiform/commit/fa3f08208bc5b718db9b3d4cc2d06750538e7aff))
+- **token-health:** align refresh failure health aggregation ([202c6ea](https://github.com/linhnguyen-gt/Routiform/commit/202c6ead1931d16ac9a0ddc989e2cfed40960497))
 
 ### [3.8.9](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.7...v3.8.9) (2026-04-10)
 
-
 ### Bug Fixes
 
-* **claude:** harden /v1/messages compatibility and ordering ([0336ca1](https://github.com/linhnguyen-gt/Routiform/commit/0336ca180319f63681b254bf7068fbec0fa3a740))
-* **context:** harden compression fit checks ([e6dc35d](https://github.com/linhnguyen-gt/Routiform/commit/e6dc35d393106a20c943c0c28b49ec29e42b098e))
-* **openai:** align chat completions compatibility handling ([f2a2a41](https://github.com/linhnguyen-gt/Routiform/commit/f2a2a41f681d51f666de328a71a781df77b85cf4))
-* **stream:** emit final usage chunk for include_usage ([4e3620b](https://github.com/linhnguyen-gt/Routiform/commit/4e3620b10ad5f7ffaf6a1123a8334e55b762914b))
+- **claude:** harden /v1/messages compatibility and ordering ([0336ca1](https://github.com/linhnguyen-gt/Routiform/commit/0336ca180319f63681b254bf7068fbec0fa3a740))
+- **context:** harden compression fit checks ([e6dc35d](https://github.com/linhnguyen-gt/Routiform/commit/e6dc35d393106a20c943c0c28b49ec29e42b098e))
+- **openai:** align chat completions compatibility handling ([f2a2a41](https://github.com/linhnguyen-gt/Routiform/commit/f2a2a41f681d51f666de328a71a781df77b85cf4))
+- **stream:** emit final usage chunk for include_usage ([4e3620b](https://github.com/linhnguyen-gt/Routiform/commit/4e3620b10ad5f7ffaf6a1123a8334e55b762914b))
 
 ### [3.8.8](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.7...v3.8.8) (2026-04-10)
 
-
 ### Bug Fixes
 
-* **claude:** harden /v1/messages compatibility and ordering ([0336ca1](https://github.com/linhnguyen-gt/Routiform/commit/0336ca180319f63681b254bf7068fbec0fa3a740))
-* **context:** harden compression fit checks ([e6dc35d](https://github.com/linhnguyen-gt/Routiform/commit/e6dc35d393106a20c943c0c28b49ec29e42b098e))
-* **openai:** align chat completions compatibility handling ([f2a2a41](https://github.com/linhnguyen-gt/Routiform/commit/f2a2a41f681d51f666de328a71a781df77b85cf4))
-* **provider-detail:** normalize models sync and UI actions ([2cee297](https://github.com/linhnguyen-gt/Routiform/commit/2cee2974bddb045f14136b08e0871cf1439d4983))
-* **stream:** emit final usage chunk for include_usage ([4e3620b](https://github.com/linhnguyen-gt/Routiform/commit/4e3620b10ad5f7ffaf6a1123a8334e55b762914b))
+- **claude:** harden /v1/messages compatibility and ordering ([0336ca1](https://github.com/linhnguyen-gt/Routiform/commit/0336ca180319f63681b254bf7068fbec0fa3a740))
+- **context:** harden compression fit checks ([e6dc35d](https://github.com/linhnguyen-gt/Routiform/commit/e6dc35d393106a20c943c0c28b49ec29e42b098e))
+- **openai:** align chat completions compatibility handling ([f2a2a41](https://github.com/linhnguyen-gt/Routiform/commit/f2a2a41f681d51f666de328a71a781df77b85cf4))
+- **provider-detail:** normalize models sync and UI actions ([2cee297](https://github.com/linhnguyen-gt/Routiform/commit/2cee2974bddb045f14136b08e0871cf1439d4983))
+- **stream:** emit final usage chunk for include_usage ([4e3620b](https://github.com/linhnguyen-gt/Routiform/commit/4e3620b10ad5f7ffaf6a1123a8334e55b762914b))
 
 ### [3.8.7](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.6...v3.8.7) (2026-04-09)
 
-
 ### Bug Fixes
 
-* **auth:** allow settings access without auth when no password configured ([4ba566d](https://github.com/linhnguyen-gt/Routiform/commit/4ba566d10b085101a4825a6cbd21153203e2802f))
-* **jwt:** auto-generate secret when JWT_SECRET is not set ([51e4dd7](https://github.com/linhnguyen-gt/Routiform/commit/51e4dd7e690e80cc0ef8dcaedbfcfcecc8fa5e60))
-* **jwt:** remove caching to ensure fresh env values on each call ([50651e9](https://github.com/linhnguyen-gt/Routiform/commit/50651e9028931b30d45402fa828838c7a1033e3b))
+- **auth:** allow settings access without auth when no password configured ([4ba566d](https://github.com/linhnguyen-gt/Routiform/commit/4ba566d10b085101a4825a6cbd21153203e2802f))
+- **jwt:** auto-generate secret when JWT_SECRET is not set ([51e4dd7](https://github.com/linhnguyen-gt/Routiform/commit/51e4dd7e690e80cc0ef8dcaedbfcfcecc8fa5e60))
+- **jwt:** remove caching to ensure fresh env values on each call ([50651e9](https://github.com/linhnguyen-gt/Routiform/commit/50651e9028931b30d45402fa828838c7a1033e3b))
 
 ### [3.8.6](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.5...v3.8.6) (2026-04-09)
 
-
 ### Bug Fixes
 
-* **auth:** load server.env on npm install to prevent stuck /login after backup import ([bc645d2](https://github.com/linhnguyen-gt/Routiform/commit/bc645d256689a2415d98cb38389f19226954f462))
+- **auth:** load server.env on npm install to prevent stuck /login after backup import ([bc645d2](https://github.com/linhnguyen-gt/Routiform/commit/bc645d256689a2415d98cb38389f19226954f462))
 
 ### [3.8.5](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.4...v3.8.5) (2026-04-09)
 
-
 ### Bug Fixes
 
-* **auth:** load server.env on npm install to prevent stuck /login after backup import ([98d1542](https://github.com/linhnguyen-gt/Routiform/commit/98d15425418d4cc97a5a1a805b49451b06fdf4d2))
+- **auth:** load server.env on npm install to prevent stuck /login after backup import ([98d1542](https://github.com/linhnguyen-gt/Routiform/commit/98d15425418d4cc97a5a1a805b49451b06fdf4d2))
 
 ### [3.8.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.3...v3.8.4) (2026-04-09)
 
-
 ### Bug Fixes
 
-* **cli-tools:** improve debugging and remove desktop app support ([6593956](https://github.com/linhnguyen-gt/Routiform/commit/659395614872fecb77a44179242c6491d911a08f))
+- **cli-tools:** improve debugging and remove desktop app support ([6593956](https://github.com/linhnguyen-gt/Routiform/commit/659395614872fecb77a44179242c6491d911a08f))
 
 ### [3.8.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.2...v3.8.3) (2026-04-09)
 
-
 ### Bug Fixes
 
-* **ci:** add debug logging to release notes extraction ([69f7a8f](https://github.com/linhnguyen-gt/Routiform/commit/69f7a8feef8f866fbf5b857ad4acd07c47571254))
-* remove explicit any and update original project credits ([194a224](https://github.com/linhnguyen-gt/Routiform/commit/194a224a951e1742581ffa862f627b454a852b84))
+- **ci:** add debug logging to release notes extraction ([69f7a8f](https://github.com/linhnguyen-gt/Routiform/commit/69f7a8feef8f866fbf5b857ad4acd07c47571254))
+- remove explicit any and update original project credits ([194a224](https://github.com/linhnguyen-gt/Routiform/commit/194a224a951e1742581ffa862f627b454a852b84))
 
 ### [3.8.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.8.1...v3.8.2) (2026-04-09)
 

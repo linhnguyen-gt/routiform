@@ -1,6 +1,7 @@
 import { HTTP_STATUS, FETCH_TIMEOUT_MS } from "../config/constants.ts";
 import { applyFingerprint, isCliCompatEnabled } from "../config/cliFingerprints.ts";
 import { getRotatingApiKey } from "../services/apiKeyRotator.ts";
+import type { ProviderRequestDefaults } from "../services/providerRequestDefaults.ts";
 import { isClaudeCodeCompatible } from "../services/provider.ts";
 import { signRequestBody } from "../services/claudeCodeCCH.ts";
 
@@ -33,6 +34,8 @@ export type ProviderConfig = {
   refreshUrl?: string;
   authUrl?: string;
   headers?: Record<string, string>;
+  requestDefaults?: ProviderRequestDefaults;
+  timeoutMs?: number;
 };
 
 export type ProviderCredentials = {
@@ -309,7 +312,11 @@ export class BaseExecutor {
         // stalled connections. Streaming requests also need it for the initial fetch() call
         // to prevent hanging on unresponsive providers (e.g. 300s TCP default timeout — #769).
         // Stream idle detection (STREAM_IDLE_TIMEOUT_MS) handles stalls after data starts flowing.
-        const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+        const requestTimeoutMs =
+          typeof this.config.timeoutMs === "number" && this.config.timeoutMs > 0
+            ? this.config.timeoutMs
+            : FETCH_TIMEOUT_MS;
+        const timeoutSignal = AbortSignal.timeout(requestTimeoutMs);
         const combinedSignal = signal ? mergeAbortSignals(signal, timeoutSignal) : timeoutSignal;
 
         // Apply CLI fingerprint ordering if enabled for this provider

@@ -73,6 +73,15 @@ export async function registerNodejs(): Promise<void> {
 
   await ensureSecrets();
 
+  try {
+    const { getRuntimeEnvConfig } = await import("@/lib/env/runtimeEnv");
+    getRuntimeEnvConfig(process.env, (message: string) => console.warn(message));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[STARTUP] Runtime environment validation failed:", msg);
+    throw err;
+  }
+
   // Trigger request-log layout migration during startup, before any request hits usageDb.
   await import("@/lib/usage/migrations");
 
@@ -82,12 +91,14 @@ export async function registerNodejs(): Promise<void> {
   const [
     { initGracefulShutdown },
     { initApiBridgeServer },
+    { initWsBridgeRuntime },
     { startBackgroundRefresh },
     { startProviderLimitsSyncScheduler },
     { getSettings },
   ] = await Promise.all([
     import("@/lib/gracefulShutdown"),
     import("@/lib/apiBridgeServer"),
+    import("@/lib/ws/bridgeRuntime"),
     import("@/domain/quotaCache"),
     import("@/shared/services/providerLimitsSyncScheduler"),
     import("@/lib/db/settings"),
@@ -95,6 +106,7 @@ export async function registerNodejs(): Promise<void> {
 
   initGracefulShutdown();
   initApiBridgeServer();
+  initWsBridgeRuntime();
   startBackgroundRefresh();
   console.log("[STARTUP] Quota cache background refresh started");
   startProviderLimitsSyncScheduler();

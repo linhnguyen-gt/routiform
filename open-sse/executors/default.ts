@@ -2,6 +2,7 @@ import { BaseExecutor } from "./base.ts";
 import { PROVIDERS, OAUTH_ENDPOINTS as _OAUTH_ENDPOINTS } from "../config/constants.ts";
 import { getAccessToken } from "../services/tokenRefresh.ts";
 import { getRotatingApiKey } from "../services/apiKeyRotator.ts";
+import { applyProviderRequestDefaults } from "../services/providerRequestDefaults.ts";
 import {
   buildClaudeCodeCompatibleHeaders,
   CLAUDE_CODE_COMPATIBLE_DEFAULT_CHAT_PATH,
@@ -9,6 +10,24 @@ import {
 } from "../services/claudeCodeCompatible.ts";
 import { isClaudeCodeCompatible } from "../services/provider.ts";
 import { buildClineHeaders } from "../services/clineAuth.ts";
+
+function normalizeBaseUrl(baseUrl) {
+  return String(baseUrl || "")
+    .trim()
+    .replace(/\/$/, "");
+}
+
+function normalizeDatabricksChatUrl(baseUrl) {
+  const normalized = normalizeBaseUrl(baseUrl)
+    .replace(/\/chat\/completions$/, "")
+    .replace(/\/serving-endpoints\//, "/serving-endpoints/");
+  return `${normalized}/chat/completions`;
+}
+
+function normalizeXiaomiMimoChatUrl(baseUrl) {
+  const normalized = normalizeBaseUrl(baseUrl).replace(/\/chat\/completions$/, "");
+  return `${normalized}/chat/completions`;
+}
 
 function getOpenRouterAttributionHeaders() {
   const refererCandidates = [
@@ -72,10 +91,19 @@ export class DefaultExecutor extends BaseExecutor {
     switch (this.provider) {
       case "claude":
       case "glm":
+      case "glmt":
       case "kimi-coding":
       case "minimax":
       case "minimax-cn":
         return `${this.config.baseUrl}?beta=true`;
+      case "databricks": {
+        const baseUrl = credentials?.providerSpecificData?.baseUrl || this.config.baseUrl;
+        return normalizeDatabricksChatUrl(baseUrl);
+      }
+      case "xiaomi-mimo": {
+        const baseUrl = credentials?.providerSpecificData?.baseUrl || this.config.baseUrl;
+        return normalizeXiaomiMimoChatUrl(baseUrl);
+      }
       case "gemini":
         return `${this.config.baseUrl}/${model}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
       default:
@@ -101,11 +129,13 @@ export class DefaultExecutor extends BaseExecutor {
           : (headers["Authorization"] = `Bearer ${credentials.accessToken}`);
         break;
       case "claude":
+      case "anthropic":
         effectiveKey
           ? (headers["x-api-key"] = effectiveKey)
           : (headers["Authorization"] = `Bearer ${credentials.accessToken}`);
         break;
       case "glm":
+      case "glmt":
       case "kimi-coding":
       case "bailian-coding-plan":
       case "kimi-coding-apikey":
@@ -157,7 +187,9 @@ export class DefaultExecutor extends BaseExecutor {
    * "org/model-name") — we must NOT strip path segments. (Fix #493)
    */
   transformRequest(model, body, _stream, _credentials) {
-    return body;
+    void model;
+    const withDefaults = applyProviderRequestDefaults(body, this.config.requestDefaults);
+    return withDefaults;
   }
 
   /**

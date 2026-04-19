@@ -9,7 +9,7 @@ import os from "node:os";
  * Based on CLIProxyAPI's misc/header_utils.go.
  */
 
-const ANTIGRAVITY_VERSION = "1.21.9";
+const ANTIGRAVITY_VERSION = "1.107.0";
 const GEMINI_CLI_VERSION = "0.31.0";
 const GEMINI_SDK_VERSION = "1.41.0";
 const NODE_VERSION = "v22.19.0";
