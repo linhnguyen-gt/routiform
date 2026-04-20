@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.14.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.13.0...v3.14.0) (2026-04-20)
+
+
+### Features
+
+* **api:** normalize token handling and improve dashboard APIs ([c3d6b39](https://github.com/linhnguyen-gt/Routiform/commit/c3d6b3946f3ab8c78fe6941b7eeea04ed97b81a0))
+
+
+### Bug Fixes
+
+* **endpoint:** restore openapi spec response fields for dashboard ([98e3a0a](https://github.com/linhnguyen-gt/Routiform/commit/98e3a0ae646cb46f78855d412cba0615f6bfad15))
+* **i18n:** align proxy registry translations with settings namespace ([00202c9](https://github.com/linhnguyen-gt/Routiform/commit/00202c90b3d0bd9a48c5703f31f72a38cc2e707c))
+* **router:** harden codex/github fallback and openapi spec delivery ([8e33a5d](https://github.com/linhnguyen-gt/Routiform/commit/8e33a5dcbc51d5046da905400b5d336f3fe8055f))
+
 ## [3.13.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.12.0...v3.13.0) (2026-04-19)
 
 
