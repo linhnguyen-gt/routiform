@@ -52,7 +52,7 @@ const EMPTY_FORM = {
 };
 
 export default function ProxyRegistryManager() {
-  const t = useTranslations("modals");
+  const t = useTranslations("settings");
   const tc = useTranslations("common");
   const [items, setItems] = useState<ProxyItem[]>([]);
   const [loading, setLoading] = useState(false);
