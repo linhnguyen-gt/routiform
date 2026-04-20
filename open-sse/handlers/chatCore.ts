@@ -501,6 +501,27 @@ export async function handleChatCore({
 
   body = contextResult.body;
 
+  // Token field normalization for bidirectional Responses API passthrough (#1321)
+  // When the target is the OpenAI Responses API, the field must be max_output_tokens.
+  // For all other targets the normalized form is max_tokens.
+  if (targetFormat === FORMATS.OPENAI_RESPONSES) {
+    // Reverse: max_tokens / max_completion_tokens → max_output_tokens
+    if (body.max_tokens !== undefined && body.max_output_tokens === undefined) {
+      body.max_output_tokens = body.max_tokens;
+      delete body.max_tokens;
+    }
+    if (body.max_completion_tokens !== undefined && body.max_output_tokens === undefined) {
+      body.max_output_tokens = body.max_completion_tokens;
+      delete body.max_completion_tokens;
+    }
+  } else {
+    // Forward: max_output_tokens → max_tokens (CRITICAL: delete original to avoid unknown param)
+    if (body.max_output_tokens !== undefined && body.max_tokens === undefined) {
+      body.max_tokens = body.max_output_tokens;
+      delete body.max_output_tokens;
+    }
+  }
+
   // Translate request (pass reqLogger for intermediate logging)
   let translatedBody = body;
   const isClaudePassthrough = sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE;

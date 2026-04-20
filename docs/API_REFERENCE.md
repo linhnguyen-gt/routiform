@@ -351,14 +351,19 @@ These endpoints mirror Gemini's API format for clients that expect native Gemini
 
 ### Internal / System APIs
 
-| Endpoint        | Method | Description                                          |
-| --------------- | ------ | ---------------------------------------------------- |
-| `/api/init`     | GET    | Application initialization check (used on first run) |
-| `/api/tags`     | GET    | Ollama-compatible model tags (for Ollama clients)    |
-| `/api/restart`  | POST   | Trigger graceful server restart                      |
-| `/api/shutdown` | POST   | Trigger graceful server shutdown                     |
+| Endpoint            | Method | Description                                            |
+| ------------------- | ------ | ------------------------------------------------------ |
+| `/api/init`         | GET    | Application initialization check (used on first run)   |
+| `/api/openapi/spec` | GET    | Returns the parsed OpenAPI catalog from `openapi.yaml` |
+| `/api/tags`         | GET    | Ollama-compatible model tags (for Ollama clients)      |
+| `/api/restart`      | POST   | Trigger graceful server restart                        |
+| `/api/shutdown`     | POST   | Trigger graceful server shutdown                       |
 
 > **Note:** These endpoints are used internally by the system or for Ollama client compatibility. They are not typically called by end users.
+
+For each item in `endpoints`, `/api/openapi/spec` includes `responses`, `security`, `parameters`, and `requestBody` fields so the dashboard API Endpoints view can render endpoint capabilities.
+
+For packaged standalone builds, `scripts/prepublish.mjs` copies `docs/openapi.yaml` to `app/public/docs/openapi.yaml` so `/api/openapi/spec` remains available at runtime.
 
 ---
 

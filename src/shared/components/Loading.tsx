@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/utils/cn";
+import { useTranslations } from "next-intl";
 import type { HTMLAttributes } from "react";
 
 type SpinnerSize = "sm" | "md" | "lg" | "xl";
@@ -37,7 +38,9 @@ interface LoadingProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 // Modern Spinner with CSS animation
-export function Spinner({ size = "md", className, label = "Loading" }: SpinnerProps) {
+export function Spinner({ size = "md", className, label }: SpinnerProps) {
+  const t = useTranslations("common");
+  const resolvedLabel = label ?? t("loading");
   const sizeClasses: Record<SpinnerSize, string> = {
     sm: "size-4",
     md: "size-6",
@@ -56,10 +59,10 @@ export function Spinner({ size = "md", className, label = "Loading" }: SpinnerPr
     <span
       role="status"
       aria-live="polite"
-      aria-label={label}
+      aria-label={resolvedLabel}
       className={cn("inline-flex items-center justify-center", className)}
     >
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{resolvedLabel}</span>
       <svg
         aria-hidden="true"
         className={cn("text-primary", sizeClasses[size])}
@@ -108,7 +111,9 @@ export function Spinner({ size = "md", className, label = "Loading" }: SpinnerPr
 }
 
 // Full page loading with modern design
-export function PageLoading({ message = "Loading...", className }: PageLoadingProps) {
+export function PageLoading({ message, className }: PageLoadingProps) {
+  const t = useTranslations("common");
+  const resolvedMessage = message ?? t("loading");
   return (
     <div
       className={cn(
@@ -125,7 +130,7 @@ export function PageLoading({ message = "Loading...", className }: PageLoadingPr
           <Spinner size="xl" className="opacity-50 text-primary/50" />
         </div>
       </div>
-      <p className="mt-6 text-text-muted text-center animate-pulse">{message}</p>
+      <p className="mt-6 text-text-muted text-center animate-pulse">{resolvedMessage}</p>
     </div>
   );
 }

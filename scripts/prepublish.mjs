@@ -216,6 +216,19 @@ if (existsSync(publicSrc)) {
   cpSync(publicSrc, publicDest, { recursive: true });
 }
 
+// ── Step 7.5: Ensure OpenAPI spec is shipped in standalone ──
+// The dashboard reads /api/openapi/spec, which parses openapi.yaml at runtime.
+// docs/ is excluded from npm package files, so copy docs/openapi.yaml into
+// app/public/docs/openapi.yaml where the runtime route can find it.
+const openApiSrc = join(ROOT, "docs", "openapi.yaml");
+const openApiDestDir = join(APP_DIR, "public", "docs");
+const openApiDest = join(openApiDestDir, "openapi.yaml");
+if (existsSync(openApiSrc)) {
+  console.log("  📋 Copying docs/openapi.yaml to app/public/docs/... ");
+  mkdirSync(openApiDestDir, { recursive: true });
+  cpSync(openApiSrc, openApiDest);
+}
+
 // ── Step 8: Compile + copy MITM cert utilities ─────────────
 const mitmSrc = join(ROOT, "src", "mitm");
 const mitmDest = join(APP_DIR, "src", "mitm");

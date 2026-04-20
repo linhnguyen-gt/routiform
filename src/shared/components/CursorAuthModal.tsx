@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import PropTypes from "prop-types";
 import Modal from "./Modal";
 import Button from "./Button";
@@ -11,6 +12,8 @@ import Input from "./Input";
  * Auto-detect and import token from Cursor IDE's local SQLite database
  */
 export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
+  const t = useTranslations("modals");
+  const tc = useTranslations("common");
   const [accessToken, setAccessToken] = useState("");
   const [machineId, setMachineId] = useState("");
   const [error, setError] = useState(null);
@@ -36,10 +39,10 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
           setMachineId(data.machineId);
           setAutoDetected(true);
         } else {
-          setError(data.error || "Could not auto-detect tokens");
+          setError(data.error || t("cursorCouldNotDetect"));
         }
       } catch (_err) {
-        setError("Failed to auto-detect tokens");
+        setError(t("cursorFailedDetect"));
       } finally {
         setAutoDetecting(false);
       }
@@ -50,12 +53,12 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
 
   const handleImportToken = async () => {
     if (!accessToken.trim()) {
-      setError("Please enter an access token");
+      setError(t("cursorEnterAccessToken"));
       return;
     }
 
     if (!machineId.trim()) {
-      setError("Please enter a machine ID");
+      setError(t("cursorEnterMachineId"));
       return;
     }
 
@@ -89,7 +92,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} title="Connect Cursor IDE" onClose={onClose}>
+    <Modal isOpen={isOpen} title={t("cursorConnectTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {/* Auto-detecting state */}
         {autoDetecting && (
@@ -99,8 +102,8 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
                 progress_activity
               </span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Auto-detecting tokens...</h3>
-            <p className="text-sm text-text-muted">Reading from Cursor IDE database</p>
+            <h3 className="text-lg font-semibold mb-2">{t("cursorAutoDetecting")}</h3>
+            <p className="text-sm text-text-muted">{t("cursorReadingDb")}</p>
           </div>
         )}
 
@@ -115,7 +118,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
                     check_circle
                   </span>
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    Tokens auto-detected from Cursor IDE successfully!
+                    {t("cursorAutoDetectSuccess")}
                   </p>
                 </div>
               </div>
@@ -129,7 +132,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
                     info
                   </span>
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    Cursor IDE not detected. Please paste your tokens manually.
+                    {t("cursorNotDetected")}
                   </p>
                 </div>
               </div>
@@ -138,12 +141,12 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
             {/* Access Token Input */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Access Token <span className="text-red-500">*</span>
+                {t("cursorAccessToken")} <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="Access token will be auto-filled..."
+                placeholder={t("cursorAccessTokenPlaceholder")}
                 rows={3}
                 className="w-full px-3 py-2 text-sm font-mono border border-border rounded-lg bg-background focus:outline-none focus:border-primary resize-none"
               />
@@ -152,12 +155,12 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
             {/* Machine ID Input */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Machine ID <span className="text-red-500">*</span>
+                {t("cursorMachineId")} <span className="text-red-500">*</span>
               </label>
               <Input
                 value={machineId}
                 onChange={(e) => setMachineId(e.target.value)}
-                placeholder="Machine ID will be auto-filled..."
+                placeholder={t("cursorMachineIdPlaceholder")}
                 className="font-mono text-sm"
               />
             </div>
@@ -172,14 +175,14 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
             {/* Action Buttons */}
             <div className="flex gap-2">
               <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
+                {tc("cancel")}
               </Button>
               <Button
                 onClick={handleImportToken}
                 fullWidth
                 disabled={importing || !accessToken.trim() || !machineId.trim()}
               >
-                {importing ? "Importing..." : "Import Token"}
+                {importing ? t("cursorImporting") : t("cursorImportToken")}
               </Button>
             </div>
           </>

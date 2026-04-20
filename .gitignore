@@ -160,4 +160,6 @@ error/
 # AIKit - AI Development Kits
 .shared/
 plans/
-.opencode/
+.claude/
+CLAUDE.md
+.mcp.json

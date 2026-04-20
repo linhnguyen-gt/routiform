@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import PropTypes from "prop-types";
 import Modal from "./Modal";
 import Button from "./Button";
@@ -31,6 +32,8 @@ export default function OAuthModal({
   onClose,
   idcConfig: _idcConfig,
 }: OAuthModalProps) {
+  const t = useTranslations("modals");
+  const tc = useTranslations("common");
   const [step, setStep] = useState("waiting"); // waiting | input | success | error
   const [authData, setAuthData] = useState(null);
   const [callbackUrl, setCallbackUrl] = useState("");
@@ -536,7 +539,12 @@ export default function OAuthModal({
   if (!provider || !providerInfo) return null;
 
   return (
-    <Modal isOpen={isOpen} title={`Connect ${providerInfo.name}`} onClose={onClose} size="lg">
+    <Modal
+      isOpen={isOpen}
+      title={t("oauthConnectTitle", { name: providerInfo.name })}
+      onClose={onClose}
+      size="lg"
+    >
       <div className="flex flex-col gap-4">
         {/* Waiting Step (Localhost - popup mode) */}
         {step === "waiting" && !isDeviceCode && (
@@ -546,16 +554,14 @@ export default function OAuthModal({
                 progress_activity
               </span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Waiting for Authorization</h3>
-            <p className="text-sm text-text-muted mb-2">
-              Complete the authorization in the popup window.
-            </p>
+            <h3 className="text-lg font-semibold mb-2">{t("oauthWaitingAuthorization")}</h3>
+            <p className="text-sm text-text-muted mb-2">{t("oauthCompleteAuth")}</p>
             <p className="text-xs text-text-muted mb-4 opacity-70">
               If the popup closes without redirecting back (e.g. Qoder), this dialog will
               automatically switch to manual URL input mode.
             </p>
             <Button variant="ghost" onClick={() => setStep("input")}>
-              Popup blocked? Enter URL manually
+              {t("oauthPopupBlocked")}
             </Button>
           </div>
         )}
@@ -564,9 +570,7 @@ export default function OAuthModal({
         {step === "waiting" && isDeviceCode && deviceData && (
           <>
             <div className="text-center py-4">
-              <p className="text-sm text-text-muted mb-4">
-                Visit the URL below and enter the code:
-              </p>
+              <p className="text-sm text-text-muted mb-4">{t("oauthVisitUrl")}</p>
               <div className="bg-sidebar p-4 rounded-lg mb-4">
                 <p className="text-xs text-text-muted mb-1">Verification URL</p>
                 <div className="flex items-center gap-2">
@@ -597,7 +601,7 @@ export default function OAuthModal({
             {polling && (
               <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
                 <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                Waiting for authorization...
+                {t("oauthWaitingAuthorization")}
               </div>
             )}
           </>
@@ -639,7 +643,7 @@ export default function OAuthModal({
                 </div>
               )}
               <div>
-                <p className="text-sm font-medium mb-2">Step 1: Open this URL in your browser</p>
+                <p className="text-sm font-medium mb-2">{t("oauthStep1")}</p>
                 <div className="flex gap-2">
                   <Input
                     value={authData?.authUrl || ""}
@@ -657,9 +661,7 @@ export default function OAuthModal({
               </div>
 
               <div>
-                <p className="text-sm font-medium mb-2">
-                  Step 2: Paste the callback URL or auth code here
-                </p>
+                <p className="text-sm font-medium mb-2">{t("oauthStep2")}</p>
                 <p className="text-xs text-text-muted mb-2">
                   After authorization, paste the full callback URL. For Claude Code, you can also
                   paste the Authentication Code directly, for example <code>code#state</code>.
@@ -677,10 +679,10 @@ export default function OAuthModal({
 
             <div className="flex gap-2">
               <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
+                {tc("cancel")}
               </Button>
               <Button onClick={handleManualSubmit} fullWidth disabled={!callbackUrl}>
-                Connect
+                {tc("connect")}
               </Button>
             </div>
           </>
@@ -694,12 +696,12 @@ export default function OAuthModal({
                 check_circle
               </span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Connected Successfully!</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("connectedSuccess")}</h3>
             <p className="text-sm text-text-muted mb-4">
-              Your {providerInfo.name} account has been connected.
+              {t("oauthAccountConnected", { name: providerInfo.name })}
             </p>
             <Button onClick={onClose} fullWidth>
-              Done
+              {t("oauthDone")}
             </Button>
           </div>
         )}
@@ -710,14 +712,14 @@ export default function OAuthModal({
             <div className="size-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
               <span className="material-symbols-outlined text-3xl text-red-600">error</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("connectionFailed")}</h3>
             <p className="text-sm text-red-600 mb-4">{error}</p>
             <div className="flex gap-2">
               <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
+                {tc("cancel")}
               </Button>
               <Button onClick={startOAuthFlow} variant="secondary" fullWidth>
-                Try Again
+                {t("oauthTryAgain")}
               </Button>
             </div>
           </div>

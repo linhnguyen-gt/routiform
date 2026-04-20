@@ -8,23 +8,29 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 
-let cachedSpec: { data: unknown; mtime: number } | null = null;
+let cachedSpec: { data: unknown; mtime: number; specPath: string } | null = null;
+
+const OPENAPI_SPEC_CANDIDATES = [
+  ["docs", "openapi.yaml"],
+  ["public", "docs", "openapi.yaml"],
+  ["app", "docs", "openapi.yaml"],
+  ["..", "docs", "openapi.yaml"],
+] as const;
+
+export function resolveOpenApiSpecPath(baseDir: string = process.cwd()): string | null {
+  for (const candidate of OPENAPI_SPEC_CANDIDATES) {
+    const candidatePath = path.resolve(baseDir, ...candidate);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return null;
+}
 
 export async function GET() {
   try {
-    // Try multiple locations for the spec file
-    const candidates = [
-      path.join(process.cwd(), "docs", "openapi.yaml"),
-      path.join(process.cwd(), "app", "docs", "openapi.yaml"),
-    ];
-
-    let specPath = "";
-    for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        specPath = p;
-        break;
-      }
-    }
+    const specPath = resolveOpenApiSpecPath();
 
     if (!specPath) {
       return NextResponse.json({ error: "openapi.yaml not found" }, { status: 404 });
@@ -34,7 +40,7 @@ export async function GET() {
     const mtime = stat.mtimeMs;
 
     // Use cache if file hasn't changed
-    if (cachedSpec && cachedSpec.mtime === mtime) {
+    if (cachedSpec && cachedSpec.specPath === specPath && cachedSpec.mtime === mtime) {
       return NextResponse.json(cachedSpec.data);
     }
 
@@ -53,6 +59,10 @@ export async function GET() {
         summary?: string;
         description?: string;
         operationId?: string;
+        security: boolean;
+        parameters: unknown[];
+        requestBody: boolean;
+        responses: string[];
       }>;
       schemas: string[];
     } = {
@@ -79,12 +89,18 @@ export async function GET() {
             summary: (specObj.summary as string) || "",
             description: (specObj.description as string) || "",
             operationId: specObj.operationId as string | undefined,
+            security: Array.isArray(specObj.security) && specObj.security.length > 0,
+            parameters: Array.isArray(specObj.parameters) ? specObj.parameters : [],
+            requestBody: Boolean(specObj.requestBody),
+            responses: Object.keys(
+              (specObj.responses as Record<string, unknown> | undefined) || {}
+            ),
           });
         }
       }
     }
 
-    cachedSpec = { data: catalog, mtime };
+    cachedSpec = { data: catalog, mtime, specPath };
 
     return NextResponse.json(catalog);
   } catch (error: unknown) {
