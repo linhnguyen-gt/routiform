@@ -58,6 +58,21 @@ export const STRATEGY_GUIDANCE_FALLBACK: Record<
     avoid: "Avoid when models have different quality or latency and order matters.",
     example: "Example: Multiple accounts of the same model to distribute usage evenly.",
   },
+  auto: {
+    when: "Use when you have one preferred model and only want fallback on failure.",
+    avoid: "Avoid when you need balanced load between models.",
+    example: "Example: Primary coding model with cheaper backup for outages.",
+  },
+  lkgp: {
+    when: "Use when you have one preferred model and only want fallback on failure.",
+    avoid: "Avoid when you need balanced load between models.",
+    example: "Example: Primary coding model with cheaper backup for outages.",
+  },
+  "context-optimized": {
+    when: "Use when you have one preferred model and only want fallback on failure.",
+    avoid: "Avoid when you need balanced load between models.",
+    example: "Example: Primary coding model with cheaper backup for outages.",
+  },
 };
 
 export const ADVANCED_FIELD_HELP_FALLBACK = {
@@ -155,6 +170,33 @@ export const STRATEGY_RECOMMENDATIONS_FALLBACK: Record<
       "Use at least 2 models for meaningful distribution.",
       "Ideal for same-model accounts to evenly spread quota.",
       "Guarantees no model is skipped or repeated within a cycle.",
+    ],
+  },
+  auto: {
+    title: "Fail-safe baseline",
+    description: "Use one primary model and keep fallback chain short and reliable.",
+    tips: [
+      "Put your most reliable model first.",
+      "Keep 1-2 backup models with similar quality.",
+      "Use safe retries to absorb transient provider failures.",
+    ],
+  },
+  lkgp: {
+    title: "Fail-safe baseline",
+    description: "Use one primary model and keep fallback chain short and reliable.",
+    tips: [
+      "Put your most reliable model first.",
+      "Keep 1-2 backup models with similar quality.",
+      "Use safe retries to absorb transient provider failures.",
+    ],
+  },
+  "context-optimized": {
+    title: "Fail-safe baseline",
+    description: "Use one primary model and keep fallback chain short and reliable.",
+    tips: [
+      "Put your most reliable model first.",
+      "Keep 1-2 backup models with similar quality.",
+      "Use safe retries to absorb transient provider failures.",
     ],
   },
 };

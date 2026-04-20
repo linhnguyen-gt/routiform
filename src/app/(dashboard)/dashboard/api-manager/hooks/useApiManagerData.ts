@@ -84,25 +84,35 @@ export function useApiManagerData(): ApiManagerData {
   const fetchUsageStats = useCallback(async (apiKeys: ApiKeyFull[]) => {
     if (apiKeys.length === 0) return;
     try {
-      const res = await fetch("/api/usage/call-logs?limit=1000");
-      if (!res.ok) return;
-      const logs = await res.json();
-      const stats: Record<string, KeyUsageStats> = {};
+      // Fetch accurate totals from analytics and only the most recent logs for lastUsed.
+      // call-logs?limit=100 is enough because logs are returned DESC — we only need the first
+      // match per key. Using /api/usage/analytics for totalRequests avoids the limit=1000 cap.
+      const [analyticsRes, logsRes] = await Promise.all([
+        fetch("/api/usage/analytics"),
+        fetch("/api/usage/call-logs?limit=100"),
+      ]);
 
+      const analyticsData = analyticsRes.ok ? await analyticsRes.json() : {};
+      const callLogs = logsRes.ok ? await logsRes.json() : [];
+
+      // byApiKey is an array of { apiKeyName, requests, ... }
+      const byApiKey: Array<{ apiKeyName?: string; requests?: number }> = Array.isArray(
+        analyticsData?.byApiKey
+      )
+        ? analyticsData.byApiKey
+        : [];
+
+      const logList: Array<{ apiKeyName?: string; timestamp?: string }> = Array.isArray(callLogs)
+        ? callLogs
+        : [];
+
+      const stats: Record<string, KeyUsageStats> = {};
       for (const key of apiKeys) {
-        const keyLogs = (logs || []).filter(
-          (log: { apiKeyId?: string; apiKeyName?: string }) =>
-            log.apiKeyId === key.id || log.apiKeyName === key.name
-        );
+        const analyticsEntry = byApiKey.find((u) => u.apiKeyName === key.name);
+        const lastLog = logList.find((log) => log.apiKeyName === key.name);
         stats[key.id] = {
-          totalRequests: keyLogs.length,
-          lastUsed:
-            keyLogs.length > 0
-              ? keyLogs.sort(
-                  (a: { timestamp: string }, b: { timestamp: string }) =>
-                    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                )[0]?.timestamp
-              : null,
+          totalRequests: analyticsEntry?.requests ?? 0,
+          lastUsed: lastLog?.timestamp ?? null,
         };
       }
       setUsageStats(stats);

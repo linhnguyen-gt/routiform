@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Card, Button, Select, Badge } from "@/shared/components";
 import { ALIAS_TO_ID } from "@/shared/constants/providers";
 import dynamic from "next/dynamic";
@@ -27,19 +28,6 @@ interface ConnectionOption {
   provider: string;
   authType: string;
 }
-
-const ENDPOINT_OPTIONS = [
-  { value: "chat", label: "Chat Completions" },
-  { value: "responses", label: "Responses" },
-  { value: "images", label: "Image Generation" },
-  { value: "embeddings", label: "Embeddings" },
-  { value: "speech", label: "Text to Speech" },
-  { value: "transcription", label: "Audio Transcription" },
-  { value: "video", label: "Video Generation" },
-  { value: "music", label: "Music Generation" },
-  { value: "rerank", label: "Rerank" },
-  { value: "search", label: "Web Search" },
-];
 
 const DEFAULT_BODIES: Record<string, object> = {
   chat: {
@@ -197,6 +185,21 @@ function ImageResultsInline({ data }: { data: ImageGenerationData }) {
 }
 
 export default function PlaygroundPage() {
+  const te = useTranslations("endpoint");
+
+  const ENDPOINT_OPTIONS = [
+    { value: "chat", label: te("chatCompletions") },
+    { value: "responses", label: te("responses") },
+    { value: "images", label: te("imageGeneration") },
+    { value: "embeddings", label: te("embeddings") },
+    { value: "speech", label: te("textToSpeech") },
+    { value: "transcription", label: te("audioTranscription") },
+    { value: "video", label: te("videoGeneration") },
+    { value: "music", label: te("musicGeneration") },
+    { value: "rerank", label: te("rerank") },
+    { value: "search", label: te("webSearch") },
+  ];
+
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [allConnections, setAllConnections] = useState<ConnectionOption[]>([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button, Card, Modal } from "@/shared/components";
 
 type ProxyItem = {
@@ -51,6 +52,8 @@ const EMPTY_FORM = {
 };
 
 export default function ProxyRegistryManager() {
+  const t = useTranslations("modals");
+  const tc = useTranslations("common");
   const [items, setItems] = useState<ProxyItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -238,7 +241,7 @@ export default function ProxyRegistryManager() {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.host.trim()) {
-      setError("Name and host are required");
+      setError(t("proxyNameAndHostRequired"));
       return;
     }
 
@@ -301,9 +304,7 @@ export default function ProxyRegistryManager() {
       const payload = await res.json().catch(() => ({}));
       const inUse = res.status === 409;
       if (inUse) {
-        const ok = window.confirm(
-          "This proxy is still assigned. Force delete and remove all assignments?"
-        );
+        const ok = window.confirm(t("proxyForceDeleteConfirm"));
         if (!ok) return;
 
         const forceRes = await fetch(`/api/settings/proxies?id=${encodeURIComponent(id)}&force=1`, {
@@ -390,8 +391,8 @@ export default function ProxyRegistryManager() {
       <Card className="p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-lg font-semibold">Proxy Registry</h3>
-            <p className="text-sm text-text-muted">Store reusable proxies and track assignments.</p>
+            <h3 className="text-lg font-semibold">{t("proxyRegistry")}</h3>
+            <p className="text-sm text-text-muted">{t("proxyRegistryDesc")}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -402,7 +403,7 @@ export default function ProxyRegistryManager() {
               loading={migrating}
               data-testid="proxy-registry-import-legacy"
             >
-              Import Legacy
+              {t("proxyImportLegacy")}
             </Button>
             <Button
               size="sm"
@@ -411,7 +412,7 @@ export default function ProxyRegistryManager() {
               onClick={() => setBulkOpen(true)}
               data-testid="proxy-registry-open-bulk"
             >
-              Bulk Assign
+              {t("proxyBulkAssign")}
             </Button>
             <Button
               size="sm"
@@ -419,7 +420,7 @@ export default function ProxyRegistryManager() {
               onClick={openCreate}
               data-testid="proxy-registry-open-create"
             >
-              Add Proxy
+              {t("proxyAddProxy")}
             </Button>
           </div>
         </div>
@@ -431,20 +432,20 @@ export default function ProxyRegistryManager() {
         )}
 
         {loading ? (
-          <div className="text-sm text-text-muted">Loading proxies...</div>
+          <div className="text-sm text-text-muted">{t("proxyLoadingProxies")}</div>
         ) : items.length === 0 ? (
-          <div className="text-sm text-text-muted">No saved proxies yet.</div>
+          <div className="text-sm text-text-muted">{t("proxyNoSavedProxies")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-text-muted border-b border-border">
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Endpoint</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Health (24h)</th>
-                  <th className="py-2 pr-3">Usage</th>
-                  <th className="py-2">Actions</th>
+                  <th className="py-2 pr-3">{tc("name")}</th>
+                  <th className="py-2 pr-3">{t("proxyColEndpoint")}</th>
+                  <th className="py-2 pr-3">{tc("status")}</th>
+                  <th className="py-2 pr-3">{t("proxyColHealth")}</th>
+                  <th className="py-2 pr-3">{t("proxyColUsage")}</th>
+                  <th className="py-2">{tc("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -496,7 +497,7 @@ export default function ProxyRegistryManager() {
                       </td>
                       <td className="py-2 pr-3 text-xs text-text-muted">
                         {usageById[item.id] != null
-                          ? `${usageById[item.id].count} assignment(s)`
+                          ? t("proxyAssignmentCount", { count: usageById[item.id].count })
                           : "—"}
                       </td>
                       <td className="py-2">
@@ -508,7 +509,7 @@ export default function ProxyRegistryManager() {
                             onClick={() => void handleTestProxy(item)}
                             loading={testingId === item.id}
                           >
-                            Test
+                            {t("proxyTest")}
                           </Button>
                           <Button
                             size="sm"
@@ -543,13 +544,13 @@ export default function ProxyRegistryManager() {
         onClose={() => {
           if (!saving) setModalOpen(false);
         }}
-        title={editingId ? "Edit Proxy" : "Create Proxy"}
+        title={editingId ? t("proxyEditTitle") : t("proxyCreateTitle")}
         maxWidth="lg"
       >
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Name</label>
+              <label className="text-xs text-text-muted mb-1 block">{tc("name")}</label>
               <input
                 data-testid="proxy-registry-name-input"
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
@@ -558,7 +559,7 @@ export default function ProxyRegistryManager() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Type</label>
+              <label className="text-xs text-text-muted mb-1 block">{tc("type")}</label>
               <select
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.type}
@@ -570,7 +571,7 @@ export default function ProxyRegistryManager() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Host</label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldHost")}</label>
               <input
                 data-testid="proxy-registry-host-input"
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
@@ -579,7 +580,7 @@ export default function ProxyRegistryManager() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Port</label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldPort")}</label>
               <input
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.port}
@@ -587,26 +588,30 @@ export default function ProxyRegistryManager() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Username</label>
+              <label className="text-xs text-text-muted mb-1 block">
+                {t("proxyFieldUsername")}
+              </label>
               <input
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.username}
-                placeholder={editingId ? "Leave blank to keep current username" : ""}
+                placeholder={editingId ? t("proxyUsernamePlaceholder") : ""}
                 onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Password</label>
+              <label className="text-xs text-text-muted mb-1 block">
+                {t("proxyFieldPassword")}
+              </label>
               <input
                 type="password"
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.password}
-                placeholder={editingId ? "Leave blank to keep current password" : ""}
+                placeholder={editingId ? t("proxyPasswordPlaceholder") : ""}
                 onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Region</label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldRegion")}</label>
               <input
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.region}
@@ -614,7 +619,7 @@ export default function ProxyRegistryManager() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Status</label>
+              <label className="text-xs text-text-muted mb-1 block">{tc("status")}</label>
               <select
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={form.status}
@@ -627,7 +632,7 @@ export default function ProxyRegistryManager() {
           </div>
 
           <div>
-            <label className="text-xs text-text-muted mb-1 block">Notes</label>
+            <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldNotes")}</label>
             <textarea
               className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
               value={form.notes}
@@ -638,10 +643,10 @@ export default function ProxyRegistryManager() {
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button size="sm" icon="save" onClick={handleSave} loading={saving}>
-              Save
+              {tc("save")}
             </Button>
           </div>
         </div>
@@ -652,13 +657,13 @@ export default function ProxyRegistryManager() {
         onClose={() => {
           if (!bulkSaving) setBulkOpen(false);
         }}
-        title="Bulk Proxy Assignment"
+        title={t("proxyBulkAssignTitle")}
         maxWidth="lg"
       >
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Scope</label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldScope")}</label>
               <select
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={bulkScope}
@@ -671,13 +676,13 @@ export default function ProxyRegistryManager() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-text-muted mb-1 block">Proxy</label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyFieldProxy")}</label>
               <select
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
                 value={bulkProxyId}
                 onChange={(e) => setBulkProxyId(e.target.value)}
               >
-                <option value="">(clear assignment)</option>
+                <option value="">{t("proxyClearAssignment")}</option>
                 {items.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name} ({item.type}://{item.host}:{item.port})
@@ -689,9 +694,7 @@ export default function ProxyRegistryManager() {
 
           {bulkScope !== "global" && (
             <div>
-              <label className="text-xs text-text-muted mb-1 block">
-                Scope IDs (comma or newline)
-              </label>
+              <label className="text-xs text-text-muted mb-1 block">{t("proxyScopeIds")}</label>
               <textarea
                 data-testid="proxy-registry-bulk-scopeids-input"
                 className="w-full px-3 py-2 rounded bg-bg-subtle border border-border"
@@ -705,7 +708,7 @@ export default function ProxyRegistryManager() {
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
             <Button size="sm" variant="secondary" onClick={() => setBulkOpen(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button
               size="sm"
@@ -714,7 +717,7 @@ export default function ProxyRegistryManager() {
               loading={bulkSaving}
               data-testid="proxy-registry-bulk-apply"
             >
-              Apply
+              {t("proxyApply")}
             </Button>
           </div>
         </div>

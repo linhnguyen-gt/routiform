@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useTranslations } from "next-intl";
 import Card from "./Card";
 import RequestLoggerDetail from "./RequestLoggerDetail";
 import { copyToClipboard } from "@/shared/utils/clipboard";
@@ -20,29 +21,22 @@ import {
 } from "@/shared/utils/formatting";
 
 // Quick filter categories - status-based only (providers are dynamic from data)
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "error", label: "Errors", icon: "error" },
-  { key: "ok", label: "Success", icon: "check_circle" },
-  { key: "combo", label: "Combo", icon: "hub" },
-];
 
 // Column definitions for visibility toggles
-const COLUMNS = [
-  { key: "status", label: "Status" },
-  { key: "model", label: "Model" },
-  { key: "requestedModel", label: "Requested" },
-  { key: "provider", label: "Provider" },
-  { key: "protocol", label: "Req Protocol" },
-  { key: "account", label: "Account" },
-  { key: "apiKey", label: "API Key" },
-  { key: "combo", label: "Combo" },
-  { key: "tokens", label: "Tokens" },
-  { key: "duration", label: "Duration" },
-  { key: "time", label: "Time" },
-];
 
-const DEFAULT_VISIBLE = Object.fromEntries(COLUMNS.map((c) => [c.key, true]));
+const DEFAULT_VISIBLE: Record<string, boolean> = {
+  status: true,
+  model: true,
+  requestedModel: true,
+  provider: true,
+  protocol: true,
+  account: true,
+  apiKey: true,
+  combo: true,
+  tokens: true,
+  duration: true,
+  time: true,
+};
 
 function sanitizeFilenamePart(value) {
   return String(value || "log")
@@ -178,6 +172,30 @@ function getLogTotalTokens(log) {
 }
 
 export default function RequestLoggerV2() {
+  const tl = useTranslations("loggers");
+  const tc = useTranslations("common");
+
+  const STATUS_FILTERS = [
+    { key: "all", label: tl("statusAll") },
+    { key: "error", label: tl("statusErrors"), icon: "error" },
+    { key: "ok", label: tl("statusSuccess"), icon: "check_circle" },
+    { key: "combo", label: tl("statusCombo"), icon: "hub" },
+  ];
+
+  const COLUMNS = [
+    { key: "status", label: tl("colStatus") },
+    { key: "model", label: tl("colModel") },
+    { key: "requestedModel", label: tl("colRequested") },
+    { key: "provider", label: tl("colProvider") },
+    { key: "protocol", label: tl("colReqProtocol") },
+    { key: "account", label: tl("colAccount") },
+    { key: "apiKey", label: tl("colApiKey") },
+    { key: "combo", label: tl("colCombo") },
+    { key: "tokens", label: tl("colTokens") },
+    { key: "duration", label: tl("colDuration") },
+    { key: "time", label: tl("colTime") },
+  ];
+
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recording, setRecording] = useState(true);
@@ -431,7 +449,7 @@ export default function RequestLoggerV2() {
           <span
             className={`w-2 h-2 rounded-full ${recording ? "bg-red-500 animate-pulse" : "bg-text-muted"}`}
           />
-          {recording ? "Recording" : "Paused"}
+          {recording ? tl("recording") : tl("paused")}
         </button>
 
         <button
@@ -442,16 +460,16 @@ export default function RequestLoggerV2() {
               ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
               : "bg-bg-subtle border-border text-text-muted"
           }`}
-          title="Capture pipeline payloads for new requests"
+          title={tl("capturePipelineTitle")}
         >
           <span
             className={`w-2 h-2 rounded-full ${detailLoggingEnabled ? "bg-amber-500" : "bg-text-muted"}`}
           />
           {detailLoggingLoading
-            ? "Updating pipeline logs..."
+            ? tl("updatingPipelineLogs")
             : detailLoggingEnabled
-              ? "Pipeline Logs On"
-              : "Pipeline Logs Off"}
+              ? tl("pipelineLogsOn")
+              : tl("pipelineLogsOff")}
         </button>
 
         {/* Search */}
@@ -461,7 +479,7 @@ export default function RequestLoggerV2() {
           </span>
           <input
             type="text"
-            placeholder="Search model, provider, account, API key, combo..."
+            placeholder={tl("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary"
@@ -474,7 +492,7 @@ export default function RequestLoggerV2() {
           onChange={(e) => setSelectedProvider(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[140px]"
         >
-          <option value="">All Providers</option>
+          <option value="">{tl("allProviders")}</option>
           {uniqueProviders.map((p) => {
             const compatLabel = getProviderDisplayLabel(p, providerNodes);
             const pc = PROVIDER_COLORS[p];
@@ -492,7 +510,7 @@ export default function RequestLoggerV2() {
           onChange={(e) => setSelectedModel(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[180px]"
         >
-          <option value="">All Models</option>
+          <option value="">{tl("allModels")}</option>
           {uniqueModels.map((model) => (
             <option key={model} value={model}>
               {model}
@@ -506,7 +524,7 @@ export default function RequestLoggerV2() {
           onChange={(e) => setSelectedAccount(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[140px]"
         >
-          <option value="">All Accounts</option>
+          <option value="">{tl("allAccounts")}</option>
           {uniqueAccounts.map((a) => (
             <option key={a} value={a}>
               {a}
@@ -520,7 +538,7 @@ export default function RequestLoggerV2() {
           onChange={(e) => setSelectedApiKey(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[160px]"
         >
-          <option value="">All API Keys</option>
+          <option value="">{tl("allApiKeys")}</option>
           {uniqueApiKeys.map((value) => {
             const matched = logs.find((l) => (l.apiKeyId || l.apiKeyName) === value);
             const label = formatApiKeyLabel(matched?.apiKeyName, matched?.apiKeyId);
@@ -535,28 +553,28 @@ export default function RequestLoggerV2() {
         {/* Stats */}
         <div className="flex items-center gap-2 text-xs text-text-muted">
           <span className="px-2 py-1 rounded bg-bg-subtle border border-border font-mono">
-            {totalCount} total
+            {totalCount} {tl("statTotal")}
           </span>
           <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono">
-            {okCount} OK
+            {okCount} {tl("statOk")}
           </span>
           {errorCount > 0 && (
             <span className="px-2 py-1 rounded bg-red-500/10 text-red-700 dark:text-red-400 font-mono">
-              {errorCount} ERR
+              {errorCount} {tl("statErr")}
             </span>
           )}
           {comboCount > 0 && (
             <span className="px-2 py-1 rounded bg-violet-500/10 text-violet-700 dark:text-violet-400 font-mono">
-              {comboCount} combo
+              {comboCount} {tl("statCombo")}
             </span>
           )}
           {apiKeyCount > 0 && (
             <span className="px-2 py-1 rounded bg-primary/10 text-primary font-mono">
-              {apiKeyCount} keys
+              {apiKeyCount} {tl("statKeys")}
             </span>
           )}
           <span className="px-2 py-1 rounded bg-bg-subtle border border-border font-mono">
-            {sortedLogs.length} shown
+            {sortedLogs.length} {tl("statShown")}
           </span>
         </div>
 
@@ -565,25 +583,25 @@ export default function RequestLoggerV2() {
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[150px]"
-          title="Sort logs"
+          title={tc("sort")}
         >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="tokens_desc">Tokens ↓</option>
-          <option value="tokens_asc">Tokens ↑</option>
-          <option value="duration_desc">Duration ↓</option>
-          <option value="duration_asc">Duration ↑</option>
-          <option value="status_desc">Status ↓</option>
-          <option value="status_asc">Status ↑</option>
-          <option value="model_asc">Model A-Z</option>
-          <option value="model_desc">Model Z-A</option>
+          <option value="newest">{tl("sortNewest")}</option>
+          <option value="oldest">{tl("sortOldest")}</option>
+          <option value="tokens_desc">{tl("sortTokensDesc")}</option>
+          <option value="tokens_asc">{tl("sortTokensAsc")}</option>
+          <option value="duration_desc">{tl("sortDurationDesc")}</option>
+          <option value="duration_asc">{tl("sortDurationAsc")}</option>
+          <option value="status_desc">{tl("sortStatusDesc")}</option>
+          <option value="status_asc">{tl("sortStatusAsc")}</option>
+          <option value="model_asc">{tl("sortModelAZ")}</option>
+          <option value="model_desc">{tl("sortModelZA")}</option>
         </select>
 
         {/* Refresh */}
         <button
           onClick={() => fetchLogs(false)}
           className="p-2 rounded-lg hover:bg-bg-subtle text-text-muted hover:text-text-primary transition-colors"
-          title="Refresh"
+          title={tc("refresh")}
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
         </button>
@@ -648,7 +666,9 @@ export default function RequestLoggerV2() {
 
       {/* Column Visibility Toggles */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] text-text-muted uppercase tracking-wider mr-1">Columns</span>
+        <span className="text-[10px] text-text-muted uppercase tracking-wider mr-1">
+          {tc("columns")}
+        </span>
         {COLUMNS.map((col) => (
           <button
             key={col.key}
@@ -668,18 +688,16 @@ export default function RequestLoggerV2() {
       <Card className="overflow-hidden bg-black/5 dark:bg-black/20">
         <div className="p-0 overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
           {loading && logs.length === 0 ? (
-            <div className="p-8 text-center text-text-muted">Loading logs...</div>
+            <div className="p-8 text-center text-text-muted">{tl("loadingLogs")}</div>
           ) : logs.length === 0 ? (
             <div className="p-8 text-center text-text-muted">
               <span className="material-symbols-outlined text-[48px] mb-2 block opacity-40">
                 receipt_long
               </span>
-              No logs recorded yet. Make some API calls to see them here.
+              {tl("noLogsYet")}
             </div>
           ) : sortedLogs.length === 0 ? (
-            <div className="p-8 text-center text-text-muted">
-              No logs match the current filters.
-            </div>
+            <div className="p-8 text-center text-text-muted">{tl("noLogsMatch")}</div>
           ) : (
             <table className="w-full text-left border-collapse text-xs">
               <thead
@@ -746,7 +764,7 @@ export default function RequestLoggerV2() {
                     </th>
                   )}
                   <th className="px-3 py-2.5 font-semibold text-text-muted uppercase tracking-wider text-[10px] text-right">
-                    Export
+                    {tl("export")}
                   </th>
                 </tr>
               </thead>
@@ -843,7 +861,7 @@ export default function RequestLoggerV2() {
                       {visibleColumns.apiKey && (
                         <td
                           className="px-3 py-2 text-text-muted truncate max-w-[140px]"
-                          title={log.apiKeyName || log.apiKeyId || "No API key"}
+                          title={log.apiKeyName || log.apiKeyId || tl("noApiKey")}
                         >
                           {formatApiKeyLabel(log.apiKeyName, log.apiKeyId)}
                         </td>
@@ -897,12 +915,12 @@ export default function RequestLoggerV2() {
                             exportLog(log);
                           }}
                           className="inline-flex items-center gap-1 rounded border border-border bg-bg-subtle px-2 py-1 text-[11px] text-text-muted transition-colors hover:border-primary hover:text-text-primary"
-                          title="Export log as txt"
+                          title={tl("exportLogTitle")}
                         >
                           <span className="material-symbols-outlined text-[13px]">
                             {exportingLogIds.has(log.id) ? "progress_activity" : "download"}
                           </span>
-                          Export
+                          {tl("export")}
                         </button>
                       </td>
                     </tr>
