@@ -171,6 +171,9 @@ Response example:
 
 ### Authentication
 
+Management routes guarded by `requireManagementAuth` now require a valid dashboard session cookie (`auth_token`).
+Bearer API keys are intentionally rejected for these routes.
+
 | Endpoint                      | Method  | Description           |
 | ----------------------------- | ------- | --------------------- |
 | `/api/auth/login`             | POST    | Login                 |
@@ -494,6 +497,7 @@ Full architecture reference: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 ## Authentication
 
 - Dashboard routes (`/dashboard/*`) use `auth_token` cookie
+- Management APIs using `requireManagementAuth` accept dashboard session cookie only (no Bearer API key fallback)
 - Login uses saved password hash; fallback to `INITIAL_PASSWORD`
 - `requireLogin` toggleable via `/api/settings/require-login`
 - `/v1/*` routes optionally require Bearer API key when `REQUIRE_API_KEY=true`

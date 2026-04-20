@@ -169,9 +169,8 @@ describe("Context Validation & Compression", () => {
     });
 
     it("should trim tool messages when oversized", async () => {
-      const { compressContext, estimateRequestTokens } = await import(
-        "../../open-sse/services/contextManager.ts"
-      );
+      const { compressContext, estimateRequestTokens } =
+        await import("../../open-sse/services/contextManager.ts");
 
       const longToolResult = "x".repeat(10000);
       const body = {
@@ -182,7 +181,7 @@ describe("Context Validation & Compression", () => {
       };
 
       const maxTokens = 1000;
-      const targetTokens = maxTokens - 16000;
+      const targetTokens = maxTokens - Math.min(16000, Math.max(256, Math.floor(maxTokens * 0.15)));
       const result = compressContext(body, { provider: "openai", maxTokens });
       assert.ok(result.compressed, "Should compress");
       const toolMsg = result.body.messages.find((m) => m.role === "tool");
@@ -190,7 +189,8 @@ describe("Context Validation & Compression", () => {
         assert.ok(toolMsg.content.length < longToolResult.length, "Should trim tool message");
       }
       assert.ok(
-        estimateRequestTokens(result.body) <= targetTokens || result.body.messages.length < body.messages.length,
+        estimateRequestTokens(result.body) <= targetTokens ||
+          result.body.messages.length < body.messages.length,
         "Should either fit the target budget or purify oversized content away"
       );
     });
@@ -219,7 +219,7 @@ describe("Context Validation & Compression", () => {
         ],
       };
 
-      const result = compressContext(body, { provider: "openai", maxTokens: 500 });
+      const result = compressContext(body, { provider: "openai", maxTokens: 200 });
       assert.ok(result.compressed, "Should compress");
       const lastMsg = result.body.messages[result.body.messages.length - 1];
       const hasThinkingInLast =

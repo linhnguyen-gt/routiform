@@ -2,7 +2,7 @@ import { BaseExecutor } from "./base.ts";
 import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.ts";
 import { PROVIDERS } from "../config/constants.ts";
 import { generateSessionId } from "../services/sessionManager.ts";
-import { refreshCodexToken } from "../services/tokenRefresh.ts";
+import { getAccessToken } from "../services/tokenRefresh.ts";
 import { getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
 // ─── T09: Codex vs Spark Scope-Aware Rate Limiting ────────────────────────
@@ -170,6 +170,21 @@ function clampEffort(model: string, requested: string): string {
   return requested;
 }
 
+function convertSystemToDeveloperRole(body: Record<string, unknown>): void {
+  if (!Array.isArray(body.input)) return;
+
+  for (const item of body.input) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const record = item as Record<string, unknown>;
+    const role = typeof record.role === "string" ? record.role : "";
+    const type = typeof record.type === "string" ? record.type : "";
+    const isSystemMessage = role === "system" && (!type || type === "message");
+    if (isSystemMessage) {
+      record.role = "developer";
+    }
+  }
+}
+
 /**
  * Codex Executor - handles OpenAI Codex API (Responses API format)
  * Automatically injects default instructions if missing.
@@ -229,7 +244,7 @@ export class CodexExecutor extends BaseExecutor {
       log?.warn?.("TOKEN_REFRESH", "Codex: no refresh token available, re-authentication required");
       return null;
     }
-    const result = await refreshCodexToken(credentials.refreshToken, log);
+    const result = await getAccessToken("codex", credentials, log);
     if (!result || result.error) {
       log?.warn?.(
         "TOKEN_REFRESH",
@@ -264,10 +279,18 @@ export class CodexExecutor extends BaseExecutor {
       body.service_tier = requestDefaults.serviceTier;
     }
 
-    // If no instructions provided, inject default Codex instructions
-    // NOTE: must run before the passthrough return — Codex upstream rejects
-    // requests without instructions even when the body is forwarded as-is.
-    if (!body.instructions || body.instructions.trim() === "") {
+    if (nativeCodexPassthrough) {
+      convertSystemToDeveloperRole(body);
+      if (
+        !body.instructions ||
+        (typeof body.instructions === "string" && !body.instructions.trim())
+      ) {
+        body.instructions = "Follow the developer instructions in the conversation.";
+      }
+    } else if (
+      !body.instructions ||
+      (typeof body.instructions === "string" && !body.instructions.trim())
+    ) {
       body.instructions = CODEX_DEFAULT_INSTRUCTIONS;
     }
 

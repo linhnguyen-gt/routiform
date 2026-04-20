@@ -71,6 +71,7 @@ Every tool call is logged to `mcp_tool_audit` with:
 - Tool name, arguments, result
 - Duration (ms), success/failure
 - API key hash, timestamp
+- Audit DB handle is closed on graceful shutdown (`SIGINT`, `SIGTERM`, `beforeExit`)
 
 ## Files
 

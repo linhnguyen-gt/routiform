@@ -18,6 +18,7 @@ interface StatementLike<TRow = unknown> {
 
 interface AuditDatabase {
   prepare: <TRow = unknown>(sql: string) => StatementLike<TRow>;
+  close?: () => void;
 }
 
 interface AuditStatsRow {
@@ -122,6 +123,7 @@ function buildAuditFilterSql(filters: McpAuditQuery): { whereSql: string; params
 }
 
 let db: AuditDatabase | null = null;
+let shutdownHooksRegistered = false;
 
 function toNumber(value: unknown, fallback = 0): number {
   const parsed =
@@ -135,6 +137,37 @@ function toNumber(value: unknown, fallback = 0): number {
 
 function toString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+export function closeAuditDb(): boolean {
+  if (!db) return false;
+  const current = db;
+  db = null;
+
+  try {
+    if (typeof current.close === "function") {
+      current.close();
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[MCP Audit] Failed to close database:", message);
+  }
+
+  return true;
+}
+
+function registerShutdownHooks(): void {
+  if (shutdownHooksRegistered) return;
+  if (typeof process === "undefined" || typeof process.once !== "function") return;
+
+  shutdownHooksRegistered = true;
+  const shutdown = () => {
+    closeAuditDb();
+  };
+
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+  process.once("beforeExit", shutdown);
 }
 
 /**
@@ -170,6 +203,7 @@ async function getDb(): Promise<AuditDatabase | null> {
       dbPath: string
     ) => AuditDatabase;
     db = new Database(dbPath);
+    registerShutdownHooks();
     return db;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -200,7 +234,7 @@ export async function logToolCall(
 
     const inputHash = await hashInput(input);
     const outputSummary = summarizeOutput(output);
-    const apiKeyId = process.env.ROUTIFORM_API_KEY_ID || process.env.ROUTIFORM_API_KEY_ID || null;
+    const apiKeyId = process.env.ROUTIFORM_API_KEY_ID || process.env.API_KEY_ID || null;
 
     database
       .prepare(

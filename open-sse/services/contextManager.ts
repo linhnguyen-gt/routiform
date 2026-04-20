@@ -331,9 +331,21 @@ export function compressContext(
   }
 
   const provider = options.provider || "default";
-  const maxTokens = options.maxTokens || getTokenLimit(provider, body.model || options.model);
-  const reserveTokens = options.reserveTokens || CONTEXT_CONFIG.reserveTokens;
-  const targetTokens = maxTokens - reserveTokens;
+  const configuredMaxTokens = Number(options.maxTokens);
+  const maxTokens =
+    Number.isFinite(configuredMaxTokens) && configuredMaxTokens > 0
+      ? Math.floor(configuredMaxTokens)
+      : getTokenLimit(provider, body.model || options.model);
+  const defaultReserveTokens = Math.min(
+    CONTEXT_CONFIG.reserveTokens,
+    Math.max(256, Math.floor(maxTokens * 0.15))
+  );
+  const configuredReserveTokens = Number(options.reserveTokens);
+  const reserveTokens =
+    Number.isFinite(configuredReserveTokens) && configuredReserveTokens >= 0
+      ? Math.min(Math.floor(configuredReserveTokens), Math.max(0, maxTokens - 1))
+      : defaultReserveTokens;
+  const targetTokens = Math.max(0, maxTokens - reserveTokens);
 
   let messages = [...body.messages];
   let tools = Array.isArray(body.tools) ? [...body.tools] : body.tools;

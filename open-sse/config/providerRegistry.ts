@@ -415,7 +415,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
         defaultParams: { reasoning: { effort: "high" } },
       },
       { id: "gpt-5.4", name: "GPT-5.4" },
-      { id: "gpt-5.4-mini", name: "GPT-5.4 mini" },
+      { id: "gpt-5.4-mini", name: "GPT-5.4 mini", targetFormat: "openai-responses" },
       // Must stay on /chat/completions — Copilot returns 400 unsupported_api_for_model on /responses.
       { id: "claude-haiku-4.5", name: "Claude Haiku 4.5" },
       { id: "claude-opus-4-5-20251101", name: "Claude Opus 4.5" },

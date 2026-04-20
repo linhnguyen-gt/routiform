@@ -84,7 +84,7 @@ export function validateAndCompressContext({
     const compressionResult = compressContext(body, {
       provider,
       model,
-      maxTokens: validation.limit,
+      maxTokens: validation.rawLimit,
     });
 
     if (compressionResult.compressed) {
