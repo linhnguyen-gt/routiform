@@ -59,6 +59,10 @@ export async function GET() {
         summary?: string;
         description?: string;
         operationId?: string;
+        security: boolean;
+        parameters: unknown[];
+        requestBody: boolean;
+        responses: string[];
       }>;
       schemas: string[];
     } = {
@@ -85,6 +89,12 @@ export async function GET() {
             summary: (specObj.summary as string) || "",
             description: (specObj.description as string) || "",
             operationId: specObj.operationId as string | undefined,
+            security: Array.isArray(specObj.security) && specObj.security.length > 0,
+            parameters: Array.isArray(specObj.parameters) ? specObj.parameters : [],
+            requestBody: Boolean(specObj.requestBody),
+            responses: Object.keys(
+              (specObj.responses as Record<string, unknown> | undefined) || {}
+            ),
           });
         }
       }
