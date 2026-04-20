@@ -329,6 +329,12 @@ export class CodexExecutor extends BaseExecutor {
     }
     delete body.reasoning_effort;
 
+    // Codex backend /responses rejects token-cap aliases from generic OpenAI flows.
+    // Drop all token-cap fields to avoid 400 unsupported parameter errors.
+    delete body.max_tokens;
+    delete body.max_output_tokens;
+    delete body.max_completion_tokens;
+
     if (nativeCodexPassthrough) {
       return body;
     }
@@ -342,7 +348,6 @@ export class CodexExecutor extends BaseExecutor {
     delete body.top_logprobs;
     delete body.n;
     delete body.seed;
-    delete body.max_tokens;
     delete body.user; // Cursor sends this but Codex doesn't support it
     delete body.prompt_cache_retention; // Cursor sends this but Codex doesn't support it
     delete body.metadata; // Cursor sends this but Codex doesn't support it

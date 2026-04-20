@@ -17,6 +17,7 @@ import {
   lockModel,
   hasPerModelQuota,
 } from "@routiform/open-sse/services/accountFallback.ts";
+import { isModelUnavailableError } from "@routiform/open-sse/services/modelFamilyFallback.ts";
 import {
   isLocalProvider,
   getPassthroughProviders,
@@ -869,6 +870,36 @@ export async function markAccountUnavailable(
           cooldownMs: new Date(scopeRateLimitedUntil).getTime() - Date.now(),
         };
       }
+    }
+
+    // Provider/model-scoped unavailability (e.g. GitHub Copilot account does not have
+    // access to a specific model) should not suppress the whole connection.
+    // Lock only this model on this account, then allow account-level fallback to continue.
+    if (provider && model && isModelUnavailableError(status, String(errorText || ""))) {
+      const connBaseUrl = (conn?.providerSpecificData as Record<string, unknown>)?.baseUrl as
+        | string
+        | undefined;
+      const modelCooldown =
+        status === 404 && isLocalProvider(connBaseUrl)
+          ? COOLDOWN_MS.notFoundLocal
+          : COOLDOWN_MS.notFound;
+      const errorMsg =
+        typeof errorText === "string" ? errorText.slice(0, 100) : "Model unavailable";
+
+      lockModel(provider, connectionId, model, "model_unavailable", modelCooldown);
+      await updateProviderConnection(connectionId, {
+        lastErrorType: "model_unavailable",
+        lastError: errorMsg,
+        lastErrorAt: new Date().toISOString(),
+        errorCode: status,
+      });
+
+      log.info(
+        "AUTH",
+        `Model-only lockout for ${provider}:${model} — ${status} ${Math.ceil(modelCooldown / 1000)}s (connection stays active)`
+      );
+
+      return { shouldFallback: true, cooldownMs: modelCooldown };
     }
 
     const result = checkFallbackError(status, errorText, backoffLevel, model, provider, headers);

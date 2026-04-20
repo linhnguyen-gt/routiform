@@ -482,6 +482,43 @@ test("CodexExecutor preserves native responses payloads for Codex passthrough", 
   assert.ok(!("_nativeCodexPassthrough" in transformed));
 });
 
+test("CodexExecutor removes token-cap aliases for native passthrough", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.1-codex",
+    {
+      model: "gpt-5.1-codex",
+      input: "ship it",
+      max_output_tokens: 512,
+      _nativeCodexPassthrough: true,
+      stream: false,
+    },
+    false
+  );
+
+  assert.equal("max_tokens" in transformed, false);
+  assert.equal("max_output_tokens" in transformed, false);
+  assert.equal("max_completion_tokens" in transformed, false);
+});
+
+test("CodexExecutor removes token-cap aliases for non-passthrough requests", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.1-codex",
+    {
+      model: "gpt-5.1-codex",
+      input: "ship it",
+      max_completion_tokens: 1024,
+      stream: false,
+    },
+    false
+  );
+
+  assert.equal("max_tokens" in transformed, false);
+  assert.equal("max_output_tokens" in transformed, false);
+  assert.equal("max_completion_tokens" in transformed, false);
+});
+
 test("CodexExecutor normalizes suffixed models for native Codex passthrough", () => {
   const executor = new CodexExecutor();
   const transformed = executor.transformRequest(

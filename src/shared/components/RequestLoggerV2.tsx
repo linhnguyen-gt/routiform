@@ -583,7 +583,6 @@ export default function RequestLoggerV2() {
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
           className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[150px]"
-          title={tc("sort")}
         >
           <option value="newest">{tl("sortNewest")}</option>
           <option value="oldest">{tl("sortOldest")}</option>
