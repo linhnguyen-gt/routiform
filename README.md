@@ -2,39 +2,23 @@
 
 One AI endpoint for your apps, tools, and agents.
 
-Routiform is a self-hosted AI gateway and dashboard that sits between your clients and 60+ model providers. It exposes one OpenAI-compatible API surface, translates requests across provider formats, and keeps traffic flowing with retries, fallbacks, routing policies, quota awareness, and operational controls.
+Routiform is a self-hosted AI gateway and dashboard for teams that want one stable integration point across 60+ providers. You send OpenAI-compatible requests to one `/v1/*` endpoint, and Routiform handles translation, routing, retries, fallback, and operations.
 
-It is designed for developers who want to:
+It is built for developers who want to:
 
-- stop switching SDKs every time they try a new provider
-- keep Cursor, Cline, Claude Desktop, Codex, MCP clients, and custom apps on one base URL
-- route to cheaper or free models automatically when premium capacity is unavailable
-- run their own gateway instead of sending traffic through a third-party relay
-- manage provider keys, combos, quotas, logs, memory, and agent skills from one place
+- integrate once, then swap providers and models without rewriting client code
+- keep Cursor, Cline, Claude Desktop, Codex, MCP clients, and internal apps on one base URL
+- survive provider outages, model deprecations, and quota limits with policy-driven fallback
+- reduce cost using combo routing, budget guards, and lower-cost model paths
+- run their own gateway with full visibility into keys, logs, quotas, and health
 
-## What Routiform solves
+## Why teams choose Routiform
 
-### 1. Too many providers, too many incompatible APIs
-
-Routiform gives you a single `/v1/*` entrypoint and handles provider translation behind the scenes.
-
-### 2. Provider outages and quota exhaustion
-
-Requests can fail over across accounts, providers, or model families instead of hard-failing the client.
-
-### 3. Rising inference costs
-
-Routing can prefer free, lower-cost, or backup models based on policy, quota, and availability.
-
-### 4. Agent tooling fragmentation
-
-Routiform includes an MCP server, A2A protocol support, memory, and skills so agent workflows can run through the same system.
-
-### 5. Operational blind spots
-
-The dashboard centralizes provider connections, model catalogs, combo routing, usage, quotas, logs, API keys, and endpoint health.
-
----
+- **One API surface**: OpenAI-compatible routes for chat, embeddings, images, audio, video, rerank, search, and more
+- **Resilience by default**: retries, multi-account failover, model-family fallback, and emergency fallback
+- **Cost-aware routing**: weighted/priority/P2C strategies, budget controls, and quota-aware decisions
+- **Built for agents**: MCP server (25 tools), A2A v0.3 support, memory, and skills
+- **Operational control**: dashboard for providers, combos, keys, usage, logs, and endpoint health
 
 <div align="center">
 
@@ -47,9 +31,21 @@ The dashboard centralizes provider connections, model catalogs, combo routing, u
 
 </div>
 
-## Screenshot
+## Product demo
 
-![Routiform dashboard](docs/screenshots/MainRoutiform.png)
+![Routiform dashboard overview](docs/screenshots/MainRoutiform.png)
+
+### Feature demos
+
+| Endpoint workspace                                      | Combo routing builder                               |
+| ------------------------------------------------------- | --------------------------------------------------- |
+| ![Endpoint dashboard](docs/screenshots/09-endpoint.png) | ![Combos dashboard](docs/screenshots/02-combos.png) |
+
+| Settings and operational controls                       |
+| ------------------------------------------------------- |
+| ![Settings dashboard](docs/screenshots/06-settings.png) |
+
+These screens show the day-to-day workflow: manage unified endpoints, configure routing combos with fallback policies, and control operational settings from one dashboard.
 
 ## Core capabilities
 
