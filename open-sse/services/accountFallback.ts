@@ -499,6 +499,8 @@ export function checkFallbackError(
     // Subscription/capacity errors are temporary upstream issues, not permanent bans
     if (
       lowerError.includes("subscription is required") ||
+      lowerError.includes("requires a subscription") ||
+      lowerError.includes("upgrade for access") ||
       lowerError.includes("high volume") ||
       lowerError.includes("capacity is being added")
     ) {

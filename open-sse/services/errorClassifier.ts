@@ -192,6 +192,8 @@ export function classifyProviderError(statusCode: number, responseBody: unknown)
     const lowerBody = bodyStr.toLowerCase();
     if (
       lowerBody.includes("subscription is required") ||
+      lowerBody.includes("requires a subscription") ||
+      lowerBody.includes("upgrade for access") ||
       lowerBody.includes("high volume") ||
       lowerBody.includes("capacity is being added")
     ) {

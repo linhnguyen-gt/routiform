@@ -20,16 +20,37 @@ export async function persistProviderAccountErrorState({
 
   try {
     if (errorType === PROVIDER_ERROR_TYPES.FORBIDDEN) {
-      await updateProviderConnection(connectionId, {
-        isActive: false,
-        testStatus: "banned",
-        lastErrorType: errorType,
-        lastError: message,
-        errorCode: statusCode,
-      });
-      console.warn(
-        `[provider] Node ${connectionId} banned (${statusCode}) — disabling permanently`
-      );
+      // Subscription/capacity errors are temporary, not permanent bans
+      const lowerMessage = (message || "").toLowerCase();
+      if (
+        lowerMessage.includes("subscription") ||
+        lowerMessage.includes("high volume") ||
+        lowerMessage.includes("capacity is being added") ||
+        lowerMessage.includes("upgrade for access")
+      ) {
+        const retryMs = retryAfterMs || COOLDOWN_MS.rateLimit;
+        await updateProviderConnection(connectionId, {
+          rateLimitedUntil: new Date(Date.now() + retryMs).toISOString(),
+          testStatus: "unavailable",
+          lastErrorType: "rate_limited",
+          lastError: message,
+          errorCode: statusCode,
+        });
+        console.warn(
+          `[provider] Node ${connectionId.slice(0, 8)} subscription/capacity 403 — treating as temporary rate limit (${Math.ceil(retryMs / 1000)}s cooldown)`
+        );
+      } else {
+        await updateProviderConnection(connectionId, {
+          isActive: false,
+          testStatus: "banned",
+          lastErrorType: errorType,
+          lastError: message,
+          errorCode: statusCode,
+        });
+        console.warn(
+          `[provider] Node ${connectionId} banned (${statusCode}) — disabling permanently`
+        );
+      }
     } else if (errorType === PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED) {
       await updateProviderConnection(connectionId, {
         isActive: false,

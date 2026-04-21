@@ -153,6 +153,8 @@ function classifyFailure({
     numericStatus === 403 &&
     (normalized.includes("subscription") ||
       normalized.includes("high volume") ||
+      normalized.includes("requires a subscription") ||
+      normalized.includes("upgrade for access") ||
       normalized.includes("capacity"))
   ) {
     return makeDiagnosis("upstream_rate_limited", "upstream", message, "403");

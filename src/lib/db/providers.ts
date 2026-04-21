@@ -364,6 +364,8 @@ export async function updateProviderConnection(id: string, data: JsonRecord) {
     const errorLower = data.lastError.toLowerCase();
     if (
       errorLower.includes("subscription is required") ||
+      errorLower.includes("requires a subscription") ||
+      errorLower.includes("upgrade for access") ||
       errorLower.includes("high volume") ||
       errorLower.includes("capacity is being added")
     ) {
