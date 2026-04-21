@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { initTranslators } from "@routiform/open-sse/translator/index.ts";
+import { handleChat } from "@/sse/handlers/chat";
 import {
   buildComboTestRequestBody,
   extractComboTestProviderStatusError,
@@ -12,6 +14,48 @@ import { modelTestRouteSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 export const dynamic = "force-dynamic";
+
+const MODEL_TEST_TIMEOUT_MS = 30_000;
+let translatorInitPromise: Promise<void> | null = null;
+
+function modelTestTimeoutMessage(): string {
+  return `Model test timeout (${Math.trunc(MODEL_TEST_TIMEOUT_MS / 1000)}s)`;
+}
+
+function modelTestUsesHttpFetch(): boolean {
+  return process.env.ROUTIFORM_MODEL_TEST_USE_FETCH === "1";
+}
+
+function resolveModelTestExternalBaseUrl(requestOrigin: string): string {
+  const rawBaseUrl = (process.env.BASE_URL || "").trim();
+  if (!rawBaseUrl) return requestOrigin;
+  try {
+    const configured = new URL(rawBaseUrl);
+    const request = new URL(requestOrigin);
+    if (configured.origin !== request.origin) {
+      return requestOrigin;
+    }
+    return configured.origin;
+  } catch {
+    return requestOrigin;
+  }
+}
+
+function ensureTranslatorsForModelTest(): Promise<void> {
+  if (!translatorInitPromise) {
+    translatorInitPromise = Promise.resolve(initTranslators()).catch((error) => {
+      translatorInitPromise = null;
+      throw error;
+    });
+  }
+  return translatorInitPromise;
+}
+
+function createTimeoutError(): Error {
+  const error = new Error(modelTestTimeoutMessage());
+  error.name = "TimeoutError";
+  return error;
+}
 
 function isTimeoutLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -37,12 +81,13 @@ export async function POST(request: Request) {
     }
     const { model } = validation.data;
 
-    const baseUrl =
-      process.env.BASE_URL ||
-      (() => {
-        const u = new URL(request.url);
-        return `${u.protocol}//${u.host}`;
-      })();
+    const requestOrigin = (() => {
+      const u = new URL(request.url);
+      return `${u.protocol}//${u.host}`;
+    })();
+    const externalBaseUrl = resolveModelTestExternalBaseUrl(requestOrigin);
+    const externalChatCompletionsUrl = `${externalBaseUrl}/api/v1/chat/completions`;
+    const internalChatCompletionsUrl = `${requestOrigin}/api/v1/chat/completions`;
 
     let apiKey: string | null = null;
     try {
@@ -58,16 +103,39 @@ export async function POST(request: Request) {
     headers.Accept = "application/json";
     headers["X-Internal-Test"] = "combo-health-check";
     headers["X-Routiform-No-Cache"] = "true";
+    const requestBody = JSON.stringify(buildComboTestRequestBody(model));
 
     const start = Date.now();
+    const controller = new AbortController();
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        controller.abort();
+        reject(createTimeoutError());
+      }, MODEL_TEST_TIMEOUT_MS);
+    });
     let res: Response;
     try {
-      res = await fetch(`${baseUrl}/api/v1/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(buildComboTestRequestBody(model)),
-        signal: AbortSignal.timeout(15000),
-      });
+      if (modelTestUsesHttpFetch()) {
+        res = await Promise.race([
+          fetch(externalChatCompletionsUrl, {
+            method: "POST",
+            headers,
+            body: requestBody,
+            signal: controller.signal,
+          }),
+          timeoutPromise,
+        ]);
+      } else {
+        await ensureTranslatorsForModelTest();
+        const internalRequest = new Request(internalChatCompletionsUrl, {
+          method: "POST",
+          headers,
+          body: requestBody,
+          signal: controller.signal,
+        });
+        res = await Promise.race([handleChat(internalRequest), timeoutPromise]);
+      }
     } catch (error) {
       const latencyMs = Date.now() - start;
       if (isTimeoutLikeError(error)) {
@@ -76,12 +144,14 @@ export async function POST(request: Request) {
             ok: false,
             latencyMs,
             status: 504,
-            error: "Model test timeout (15s)",
+            error: modelTestTimeoutMessage(),
           },
           { status: 504 }
         );
       }
       throw error;
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
     }
     const latencyMs = Date.now() - start;
 
@@ -146,12 +216,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, latencyMs, error: null, status: res.status });
   } catch (err) {
+    const latencyMs = 0;
     if (isTimeoutLikeError(err)) {
       return NextResponse.json(
         {
           ok: false,
+          latencyMs,
           status: 504,
-          error: "Model test timeout (15s)",
+          error: modelTestTimeoutMessage(),
         },
         { status: 504 }
       );

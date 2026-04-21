@@ -496,20 +496,21 @@ logs/
 
 #### Notable API Routes
 
-| Route                                         | Methods         | Purpose                                                                               |
-| --------------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
-| `/api/provider-models`                        | GET/POST/DELETE | CRUD for custom models per provider                                                   |
-| `/api/models/catalog`                         | GET             | Aggregated catalog of all models (chat, embedding, image, custom) grouped by provider |
-| `/api/settings/proxy`                         | GET/PUT/DELETE  | Hierarchical outbound proxy configuration (`global/providers/combos/keys`)            |
-| `/api/settings/proxy/test`                    | POST            | Validates proxy connectivity and returns public IP/latency                            |
-| `/v1/providers/[provider]/chat/completions`   | POST            | Dedicated per-provider chat completions with model validation                         |
-| `/v1/providers/[provider]/embeddings`         | POST            | Dedicated per-provider embeddings with model validation                               |
-| `/v1/providers/[provider]/images/generations` | POST            | Dedicated per-provider image generation with model validation                         |
-| `/api/settings/ip-filter`                     | GET/PUT         | IP allowlist/blocklist management                                                     |
-| `/api/settings/thinking-budget`               | GET/PUT         | Reasoning token budget configuration (passthrough/auto/custom/adaptive)               |
-| `/api/settings/system-prompt`                 | GET/PUT         | Global system prompt injection for all requests                                       |
-| `/api/sessions`                               | GET             | Active session tracking and metrics                                                   |
-| `/api/rate-limits`                            | GET             | Per-account rate limit status                                                         |
+| Route                                         | Methods         | Purpose                                                                                                                                                           |
+| --------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/provider-models`                        | GET/POST/DELETE | CRUD for custom models per provider                                                                                                                               |
+| `/api/models/catalog`                         | GET             | Aggregated catalog of all models (chat, embedding, image, custom) grouped by provider                                                                             |
+| `/api/models/test`                            | POST            | Internal model smoke test route; probes `/api/v1/chat/completions` with a 30s timeout (in-process by default, HTTP fetch when `ROUTIFORM_MODEL_TEST_USE_FETCH=1`) |
+| `/api/settings/proxy`                         | GET/PUT/DELETE  | Hierarchical outbound proxy configuration (`global/providers/combos/keys`)                                                                                        |
+| `/api/settings/proxy/test`                    | POST            | Validates proxy connectivity and returns public IP/latency                                                                                                        |
+| `/v1/providers/[provider]/chat/completions`   | POST            | Dedicated per-provider chat completions with model validation                                                                                                     |
+| `/v1/providers/[provider]/embeddings`         | POST            | Dedicated per-provider embeddings with model validation                                                                                                           |
+| `/v1/providers/[provider]/images/generations` | POST            | Dedicated per-provider image generation with model validation                                                                                                     |
+| `/api/settings/ip-filter`                     | GET/PUT         | IP allowlist/blocklist management                                                                                                                                 |
+| `/api/settings/thinking-budget`               | GET/PUT         | Reasoning token budget configuration (passthrough/auto/custom/adaptive)                                                                                           |
+| `/api/settings/system-prompt`                 | GET/PUT         | Global system prompt injection for all requests                                                                                                                   |
+| `/api/sessions`                               | GET             | Active session tracking and metrics                                                                                                                               |
+| `/api/rate-limits`                            | GET             | Per-account rate limit status                                                                                                                                     |
 
 ---
 

@@ -314,7 +314,7 @@ export default function ModelSelectModal({
       const timeout = setTimeout(() => {
         timedOut = true;
         controller.abort();
-      }, 20000);
+      }, 30000);
       modelTestControllersRef.current[key] = controller;
 
       setTestingModels((prev) => ({ ...prev, [key]: true }));
