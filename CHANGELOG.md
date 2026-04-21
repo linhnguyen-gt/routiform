@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.3...v3.14.4) (2026-04-21)
+
+
+### Bug Fixes
+
+* combo 400 fallback + kimi models fetch ([01e5b01](https://github.com/linhnguyen-gt/Routiform/commit/01e5b01351de504e801358af358334f734e6453a))
+
 ### [3.14.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.2...v3.14.3) (2026-04-21)
 
 
