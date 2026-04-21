@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.0...v3.14.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **core:** harden auth and routing reliability ([f2c9ddf](https://github.com/linhnguyen-gt/Routiform/commit/f2c9ddf2374cfef4dee540e6ebdba0e6d1cd2099))
+* increase model test timeout from 20s to 30s ([b6a60b8](https://github.com/linhnguyen-gt/Routiform/commit/b6a60b8ecf232cf0122caaca801071357b94d6f5))
+
 ## [3.14.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.13.0...v3.14.0) (2026-04-20)
 
 ### Features
