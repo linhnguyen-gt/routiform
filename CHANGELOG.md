@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.2...v3.14.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* add more subscription error patterns and guard in provider-account-error-state ([8e15553](https://github.com/linhnguyen-gt/Routiform/commit/8e155538333b8ff851a5911bbe31d11061cb887d))
+
 ### [3.14.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.1...v3.14.2) (2026-04-21)
 
 
