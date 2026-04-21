@@ -723,6 +723,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     format: "openai",
     executor: "default",
     baseUrl: "https://api.moonshot.ai/v1/chat/completions",
+    modelsUrl: "https://api.moonshot.ai/v1/models",
     authType: "apikey",
     authHeader: "bearer",
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
@@ -739,6 +740,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     alias: "kmc",
     ...KIMI_CODING_SHARED,
     urlSuffix: "?beta=true",
+    modelsUrl: "https://api.kimi.com/coding/v1/models",
     authType: "oauth",
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     oauth: {
@@ -754,6 +756,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     id: "kimi-coding-apikey",
     alias: "kmca",
     ...KIMI_CODING_SHARED,
+    modelsUrl: "https://api.kimi.com/coding/v1/models",
     authType: "apikey",
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
   },

@@ -37,6 +37,7 @@ const COMBO_BAD_REQUEST_FALLBACK_PATTERNS = [
   /does not support (?:image|vision|multimodal)/i,
   /image (?:input|analysis) (?:is )?not supported/i,
   /unsupported .*image/i,
+  /provider returned error/i,
 ];
 
 const MAX_COMBO_DEPTH = 3;

@@ -205,10 +205,11 @@ type ProviderModelsConfigEntry = {
 };
 
 const KIMI_CODING_MODELS_CONFIG: ProviderModelsConfigEntry = {
-  url: "https://api.kimi.com/coding/v1/models",
+  url: "https://api.moonshot.ai/v1/models",
   method: "GET",
   headers: { "Content-Type": "application/json" },
-  authHeader: "x-api-key",
+  authHeader: "Authorization",
+  authPrefix: "Bearer ",
   parseResponse: (data) => {
     const record = asRecord(data);
     return (record.data as unknown[]) || (record.models as unknown[]) || [];

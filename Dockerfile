@@ -67,4 +67,4 @@ RUN apt-get update \
   && git config --system url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # Install CLI tools globally. Separate layer from apt for better cache reuse.
-RUN npm install -g --no-audit --no-fund @openai/codex @anthropic-ai/claude-code droid openclaw@latest
+RUN npm install -g --no-audit --no-fund @openai/codex @anthropic-ai/claude-code droid 2>/tmp/cli-install.log || { cat /tmp/cli-install.log; exit 1; } && npm install -g --no-audit --no-fund openclaw@latest 2>/tmp/openclaw-install.log || echo "openclaw install skipped (non-critical)"

@@ -107,6 +107,7 @@ const MODEL_UNAVAILABLE_FRAGMENTS = [
   "not enabled for",
   "access to model",
   "improperly formed request", // Kiro 400 (model unavailable)
+  "provider returned error", // Generic 400 from upstream (e.g. GitHub Copilot)
 ];
 
 /**

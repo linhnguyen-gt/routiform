@@ -27,3 +27,18 @@ test("combo bad-request fallback ignores unrelated 400 errors", () => {
     false
   );
 });
+
+test("combo bad-request fallback recognizes generic 'Provider returned error' 400", () => {
+  assert.equal(
+    shouldFallbackComboBadRequest(400, "[400]: Provider returned error", "github"),
+    true
+  );
+  assert.equal(
+    shouldFallbackComboBadRequest(
+      400,
+      "{'error': {'message': '[400]: Provider returned error', 'type': 'invalid_request_error', 'code': 'bad_request'}}",
+      "openai"
+    ),
+    true
+  );
+});
