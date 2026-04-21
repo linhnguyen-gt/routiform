@@ -45,6 +45,44 @@ test("compressContext: returns unchanged if fits", () => {
   assert.equal(result.compressed, false);
 });
 
+test("compressContext: computes adaptive reserve when reserveTokens is omitted", () => {
+  const body = {
+    model: "test",
+    messages: [{ role: "user", content: "hello" }],
+  };
+
+  const result = compressContext(body, { maxTokens: 1000 });
+  const expectedTargetTokens = 1000 - 256; // max(256, floor(1000 * 0.15))
+
+  assert.equal(result.compressed, false);
+  assert.ok(result.stats.final <= expectedTargetTokens);
+});
+
+test("compressContext: adaptive reserve caps at configured global reserve", () => {
+  const body = {
+    model: "test",
+    messages: [{ role: "user", content: "hello" }],
+  };
+
+  const result = compressContext(body, { maxTokens: 300000 });
+  const expectedTargetTokens = 300000 - CONTEXT_CONFIG.reserveTokens;
+
+  assert.equal(result.compressed, false);
+  assert.ok(result.stats.final <= expectedTargetTokens);
+});
+
+test("compressContext: clamps explicit reserveTokens to a valid range", () => {
+  const body = {
+    model: "test",
+    messages: [{ role: "user", content: "x".repeat(1500) }],
+  };
+
+  const result = compressContext(body, { maxTokens: 1000, reserveTokens: 5000 });
+
+  assert.ok(result.compressed);
+  assert.ok(estimateRequestTokens(result.body) <= 1);
+});
+
 test("compressContext: handles null/empty body", () => {
   assert.equal(compressContext(null).compressed, false);
   assert.equal(compressContext({}).compressed, false);
@@ -188,7 +226,8 @@ test("compressContext: full-body fit check accounts for top-level tools", () => 
     "Compressed request body should fit even when top-level tools are large"
   );
   assert.ok(
-    estimateTokens(JSON.stringify(result.body)) > estimateTokens(JSON.stringify(result.body.messages)),
+    estimateTokens(JSON.stringify(result.body)) >
+      estimateTokens(JSON.stringify(result.body.messages)),
     "Top-level tools should still contribute extra request tokens"
   );
 });

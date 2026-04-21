@@ -554,7 +554,7 @@ export function ComboFormModal({
     const timeout = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, 20000);
+    }, 30000);
     modelTestControllersRef.current[key]?.abort();
     modelTestControllersRef.current[key] = controller;
 

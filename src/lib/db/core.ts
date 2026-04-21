@@ -14,6 +14,18 @@ type SqliteDatabase = import("better-sqlite3").Database;
 type JsonRecord = Record<string, unknown>;
 type CheckpointMode = "PASSIVE" | "FULL" | "RESTART" | "TRUNCATE";
 
+export function isNativeSqliteLoadFailure(error: unknown, message: string): boolean {
+  return (
+    message.includes("Module did not self-register") ||
+    message.includes("could not be found") ||
+    message.includes("ERR_DLOPEN_FAILED") ||
+    (typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ERR_DLOPEN_FAILED")
+  );
+}
+
 // ──────────────── Environment Detection ────────────────
 
 export const isCloud = typeof globalThis.caches === "object" && globalThis.caches !== null;
@@ -504,6 +516,11 @@ export function getDbInstance(): SqliteDatabase {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.warn("[DB] Could not probe existing DB:", message);
+
+      if (isNativeSqliteLoadFailure(e, message)) {
+        throw e;
+      }
+
       // SAFETY: Never delete the database — rename to backup so data can be recovered.
       // The old code would silently destroy all user data on any probe failure.
       const failedPath = sqliteFile + `.probe-failed-${Date.now()}`;

@@ -74,6 +74,12 @@ test("GithubExecutor routes codex-family model to /responses", () => {
   assert.match(url, /\/responses$/);
 });
 
+test("GithubExecutor routes gpt-5.4-mini to /responses", () => {
+  const executor = new GithubExecutor();
+  const url = executor.buildUrl("gpt-5.4-mini", true);
+  assert.match(url, /\/responses$/);
+});
+
 test("GithubExecutor keeps non-codex model on /chat/completions", () => {
   const executor = new GithubExecutor();
   const url = executor.buildUrl("gpt-5", true);
@@ -454,6 +460,39 @@ test("CodexExecutor does not request SSE accept header for compact requests", ()
   assert.equal(headers.Accept, undefined);
 });
 
+test("CodexExecutor refreshCredentials deduplicates concurrent refreshes per token", async () => {
+  const executor = new CodexExecutor();
+  const originalFetch = globalThis.fetch;
+  let refreshCalls = 0;
+
+  globalThis.fetch = async () => {
+    refreshCalls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return new Response(
+      JSON.stringify({
+        access_token: "new-access-token",
+        refresh_token: "new-refresh-token",
+        expires_in: 3600,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    const credentials = { refreshToken: "shared-refresh-token" };
+    const [first, second] = await Promise.all([
+      executor.refreshCredentials(credentials, null),
+      executor.refreshCredentials(credentials, null),
+    ]);
+
+    assert.equal(refreshCalls, 1);
+    assert.equal(first?.accessToken, "new-access-token");
+    assert.equal(second?.accessToken, "new-access-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("CodexExecutor preserves native responses payloads for Codex passthrough", () => {
   const executor = new CodexExecutor();
   const transformed = executor.transformRequest(
@@ -480,6 +519,43 @@ test("CodexExecutor preserves native responses payloads for Codex passthrough", 
   assert.deepEqual(transformed.reasoning, { effort: "high" });
   assert.equal(transformed.reasoning_effort, undefined);
   assert.ok(!("_nativeCodexPassthrough" in transformed));
+});
+
+test("CodexExecutor converts native system input role to developer for passthrough", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.1-codex",
+    {
+      model: "gpt-5.1-codex",
+      input: [
+        { role: "system", content: "You are careful" },
+        { role: "user", content: "Ship it" },
+      ],
+      instructions: "custom system prompt",
+      _nativeCodexPassthrough: true,
+      stream: false,
+    },
+    false
+  );
+
+  assert.equal(transformed.input[0].role, "developer");
+  assert.equal(transformed.input[1].role, "user");
+});
+
+test("CodexExecutor injects minimal instructions for native passthrough when missing", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.1-codex",
+    {
+      model: "gpt-5.1-codex",
+      input: [{ role: "user", content: "Ship it" }],
+      _nativeCodexPassthrough: true,
+      stream: false,
+    },
+    false
+  );
+
+  assert.equal(transformed.instructions, "Follow the developer instructions in the conversation.");
 });
 
 test("CodexExecutor removes token-cap aliases for native passthrough", () => {

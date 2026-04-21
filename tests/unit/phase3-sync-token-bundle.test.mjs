@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { SignJWT } from "jose";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-phase3-sync-"));
+const ORIGINAL_DATA_DIR = process.env.DATA_DIR;
 process.env.DATA_DIR = TEST_DATA_DIR;
 
 const core = await import("../../src/lib/db/core.ts");
@@ -17,16 +19,26 @@ const tokenByIdRoute = await import("../../src/app/api/sync/tokens/[id]/route.ts
 const bundleRoute = await import("../../src/app/api/sync/bundle/route.ts");
 
 const ORIGINAL_INITIAL_PASSWORD = process.env.INITIAL_PASSWORD;
+const ORIGINAL_JWT_SECRET = process.env.JWT_SECRET;
 
-function withAuth(request) {
-  return new Request(request.url, {
-    method: request.method,
+function withManagementSession(url, sessionToken, method = "GET", body = null) {
+  return new Request(url, {
+    method,
     headers: {
-      ...Object.fromEntries(request.headers.entries()),
-      Authorization: `Bearer ${request._apiKey}`,
+      cookie: `auth_token=${sessionToken}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
     },
-    body: request._body || undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
+}
+
+async function createManagementSessionToken() {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+  return await new SignJWT({ authenticated: true })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(secret);
 }
 
 async function resetStorage() {
@@ -34,13 +46,9 @@ async function resetStorage() {
   apiKeysDb.resetApiKeyState();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
   fs.mkdirSync(TEST_DATA_DIR, { recursive: true });
+  process.env.JWT_SECRET = "phase3-sync-jwt-secret";
   process.env.INITIAL_PASSWORD = "phase3-sync-test-password";
   await settingsDb.updateSettings({ requireLogin: true, password: "" });
-}
-
-async function createManagementApiKey() {
-  const key = await apiKeysDb.createApiKey("phase3-management", "machine1234567890");
-  return key.key;
 }
 
 test.beforeEach(async () => {
@@ -51,6 +59,16 @@ test.after(() => {
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
+  if (ORIGINAL_DATA_DIR === undefined) {
+    delete process.env.DATA_DIR;
+  } else {
+    process.env.DATA_DIR = ORIGINAL_DATA_DIR;
+  }
+  if (ORIGINAL_JWT_SECRET === undefined) {
+    delete process.env.JWT_SECRET;
+  } else {
+    process.env.JWT_SECRET = ORIGINAL_JWT_SECRET;
+  }
   if (ORIGINAL_INITIAL_PASSWORD === undefined) {
     delete process.env.INITIAL_PASSWORD;
   } else {
@@ -73,17 +91,13 @@ test("phase3 sync tokens: management auth is required", async () => {
 });
 
 test("phase3 sync tokens: issue, list, get, revoke lifecycle", async () => {
-  const managementApiKey = await createManagementApiKey();
+  const sessionToken = await createManagementSessionToken();
 
-  const issueReq = new Request("http://localhost/api/sync/tokens", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "agent-a" }),
-  });
-  issueReq._apiKey = managementApiKey;
-  issueReq._body = JSON.stringify({ name: "agent-a" });
-
-  const issueResponse = await tokenRoute.POST(withAuth(issueReq));
+  const issueResponse = await tokenRoute.POST(
+    withManagementSession("http://localhost/api/sync/tokens", sessionToken, "POST", {
+      name: "agent-a",
+    })
+  );
   assert.equal(issueResponse.status, 201);
   const issued = await issueResponse.json();
   assert.equal(issued.name, "agent-a");
@@ -91,9 +105,9 @@ test("phase3 sync tokens: issue, list, get, revoke lifecycle", async () => {
   assert.equal(typeof issued.tokenPrefix, "string");
   assert.equal(issued.tokenPrefix.length > 0, true);
 
-  const listReq = new Request("http://localhost/api/sync/tokens");
-  listReq._apiKey = managementApiKey;
-  const listResponse = await tokenRoute.GET(withAuth(listReq));
+  const listResponse = await tokenRoute.GET(
+    withManagementSession("http://localhost/api/sync/tokens", sessionToken)
+  );
   assert.equal(listResponse.status, 200);
   const listPayload = await listResponse.json();
   assert.equal(listPayload.total, 1);
@@ -101,38 +115,39 @@ test("phase3 sync tokens: issue, list, get, revoke lifecycle", async () => {
   assert.equal(Object.prototype.hasOwnProperty.call(listPayload.items[0], "tokenHash"), false);
   assert.equal(Object.prototype.hasOwnProperty.call(listPayload.items[0], "token"), false);
 
-  const getReq = new Request(`http://localhost/api/sync/tokens/${issued.id}`);
-  getReq._apiKey = managementApiKey;
-  const getResponse = await tokenByIdRoute.GET(withAuth(getReq), {
-    params: Promise.resolve({ id: issued.id }),
-  });
+  const getResponse = await tokenByIdRoute.GET(
+    withManagementSession(`http://localhost/api/sync/tokens/${issued.id}`, sessionToken),
+    {
+      params: Promise.resolve({ id: issued.id }),
+    }
+  );
   assert.equal(getResponse.status, 200);
   const getPayload = await getResponse.json();
   assert.equal(getPayload.token.id, issued.id);
   assert.equal(Object.prototype.hasOwnProperty.call(getPayload.token, "tokenHash"), false);
   assert.equal(Object.prototype.hasOwnProperty.call(getPayload.token, "token"), false);
 
-  const revokeReq = new Request(`http://localhost/api/sync/tokens/${issued.id}`, {
-    method: "DELETE",
-  });
-  revokeReq._apiKey = managementApiKey;
-  const revokeResponse = await tokenByIdRoute.DELETE(withAuth(revokeReq), {
-    params: Promise.resolve({ id: issued.id }),
-  });
+  const revokeResponse = await tokenByIdRoute.DELETE(
+    withManagementSession(`http://localhost/api/sync/tokens/${issued.id}`, sessionToken, "DELETE"),
+    {
+      params: Promise.resolve({ id: issued.id }),
+    }
+  );
   assert.equal(revokeResponse.status, 200);
 
-  const getAfterRevokeReq = new Request(`http://localhost/api/sync/tokens/${issued.id}`);
-  getAfterRevokeReq._apiKey = managementApiKey;
-  const getAfterRevoke = await tokenByIdRoute.GET(withAuth(getAfterRevokeReq), {
-    params: Promise.resolve({ id: issued.id }),
-  });
+  const getAfterRevoke = await tokenByIdRoute.GET(
+    withManagementSession(`http://localhost/api/sync/tokens/${issued.id}`, sessionToken),
+    {
+      params: Promise.resolve({ id: issued.id }),
+    }
+  );
   assert.equal(getAfterRevoke.status, 200);
   const afterPayload = await getAfterRevoke.json();
   assert.equal(afterPayload.token.isActive, false);
 });
 
 test("phase3 sync bundle: bearer sync token auth and 200 then 304 etag flow", async () => {
-  const managementApiKey = await createManagementApiKey();
+  const sessionToken = await createManagementSessionToken();
 
   await providerDb.createProviderConnection({
     provider: "openai",
@@ -145,15 +160,13 @@ test("phase3 sync bundle: bearer sync token auth and 200 then 304 etag flow", as
     models: ["openai/gpt-4o-mini"],
     strategy: "priority",
   });
+  await apiKeysDb.createApiKey("bundle-reader", "machine1234567890");
 
-  const issueReq = new Request("http://localhost/api/sync/tokens", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "agent-b" }),
-  });
-  issueReq._apiKey = managementApiKey;
-  issueReq._body = JSON.stringify({ name: "agent-b" });
-  const issueResponse = await tokenRoute.POST(withAuth(issueReq));
+  const issueResponse = await tokenRoute.POST(
+    withManagementSession("http://localhost/api/sync/tokens", sessionToken, "POST", {
+      name: "agent-b",
+    })
+  );
   const issued = await issueResponse.json();
 
   const bundleUnauthorized = await bundleRoute.GET(new Request("http://localhost/api/sync/bundle"));

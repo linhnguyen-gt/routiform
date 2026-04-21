@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { SignJWT } from "jose";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-phase5-call-logs-"));
 const ORIGINAL_DATA_DIR = process.env.DATA_DIR;
 const ORIGINAL_RETENTION = process.env.CALL_LOG_RETENTION_DAYS;
+const ORIGINAL_INITIAL_PASSWORD = process.env.INITIAL_PASSWORD;
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.CALL_LOG_RETENTION_DAYS = "7";
 process.env.INITIAL_PASSWORD = "phase5-test-password";
@@ -19,7 +21,7 @@ const { migrateCallLogsToSummaryStorageMode } =
   await import("../../src/lib/usage/callLogsMigration.ts");
 const migrationRoute = await import("../../src/app/api/logs/migration/call-logs-summary/route.ts");
 
-const ORIGINAL_INITIAL_PASSWORD = process.env.INITIAL_PASSWORD;
+const ORIGINAL_JWT_SECRET = process.env.JWT_SECRET;
 
 async function resetStorage() {
   core.resetDbInstance();
@@ -33,16 +35,20 @@ async function resetStorage() {
   });
 }
 
-async function createManagementApiKey() {
-  const key = await apiKeysDb.createApiKey("phase5-management", "machine1234567890");
-  return key.key;
+async function createManagementSessionToken() {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+  return await new SignJWT({ authenticated: true })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(secret);
 }
 
-function withAuth(url, apiKey, body = null) {
+function withManagementSession(url, sessionToken, body = null) {
   return new Request(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      cookie: `auth_token=${sessionToken}`,
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -50,6 +56,7 @@ function withAuth(url, apiKey, body = null) {
 }
 
 test.beforeEach(async () => {
+  process.env.JWT_SECRET = "phase5-migration-jwt-secret";
   await resetStorage();
 });
 
@@ -57,6 +64,8 @@ test.after(() => {
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
+  if (ORIGINAL_JWT_SECRET === undefined) delete process.env.JWT_SECRET;
+  else process.env.JWT_SECRET = ORIGINAL_JWT_SECRET;
   if (ORIGINAL_INITIAL_PASSWORD === undefined) delete process.env.INITIAL_PASSWORD;
   else process.env.INITIAL_PASSWORD = ORIGINAL_INITIAL_PASSWORD;
   if (ORIGINAL_DATA_DIR === undefined) delete process.env.DATA_DIR;
@@ -157,9 +166,9 @@ test("phase5 migration API requires management auth and returns guarded checklis
   assert.equal(unauthorized.status, 401);
 
   await settingsDb.updateSettings({ call_log_summary_storage_enabled: true });
-  const managementApiKey = await createManagementApiKey();
+  const sessionToken = await createManagementSessionToken();
   const authorized = await migrationRoute.POST(
-    withAuth("http://localhost/api/logs/migration/call-logs-summary", managementApiKey, {
+    withManagementSession("http://localhost/api/logs/migration/call-logs-summary", sessionToken, {
       dryRun: true,
       limit: 50,
     })

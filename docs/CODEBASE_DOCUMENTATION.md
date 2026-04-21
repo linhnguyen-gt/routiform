@@ -194,17 +194,17 @@ classDiagram
     BaseExecutor <|-- GithubExecutor
 ```
 
-| Executor         | Provider                                   | Key Specializations                                                                                                                                     |
-| ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `base.ts`        | —                                          | Abstract base: URL building, headers, retry logic, credential refresh                                                                                   |
-| `default.ts`     | Claude, Gemini, OpenAI, GLM, Kimi, MiniMax | Generic OAuth token refresh for standard providers                                                                                                      |
-| `antigravity.ts` | Google Cloud Code                          | Project/session ID generation, multi-URL fallback, custom retry parsing from error messages ("reset after 2h7m23s")                                     |
-| `cursor.ts`      | Cursor IDE                                 | **Most complex**: SHA-256 checksum auth, Protobuf request encoding, binary EventStream → SSE response parsing                                           |
-| `codex.ts`       | OpenAI Codex                               | Injects system instructions, manages thinking levels, normalizes `max_output_tokens` / `max_completion_tokens` to `max_tokens` before upstream requests |
-| `gemini-cli.ts`  | Google Gemini CLI                          | Custom URL building (`streamGenerateContent`), Google OAuth token refresh                                                                               |
-| `github.ts`      | GitHub Copilot                             | Dual token system (GitHub OAuth + Copilot token), VSCode header mimicking                                                                               |
-| `kiro.ts`        | AWS CodeWhisperer                          | AWS EventStream binary parsing, AMZN event frames, token estimation                                                                                     |
-| `index.ts`       | —                                          | Factory: maps provider name → executor class, with default fallback                                                                                     |
+| Executor         | Provider                                   | Key Specializations                                                                                                                                                                            |
+| ---------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base.ts`        | —                                          | Abstract base: URL building, headers, retry logic, credential refresh                                                                                                                          |
+| `default.ts`     | Claude, Gemini, OpenAI, GLM, Kimi, MiniMax | Generic OAuth token refresh for standard providers                                                                                                                                             |
+| `antigravity.ts` | Google Cloud Code                          | Project/session ID generation, multi-URL fallback, custom retry parsing from error messages ("reset after 2h7m23s")                                                                            |
+| `cursor.ts`      | Cursor IDE                                 | **Most complex**: SHA-256 checksum auth, Protobuf request encoding, binary EventStream → SSE response parsing                                                                                  |
+| `codex.ts`       | OpenAI Codex                               | Uses shared token-refresh dedup path, manages thinking levels, converts native passthrough `input` role `system` to `developer`, strips unsupported token-cap aliases before upstream requests |
+| `gemini-cli.ts`  | Google Gemini CLI                          | Custom URL building (`streamGenerateContent`), Google OAuth token refresh                                                                                                                      |
+| `github.ts`      | GitHub Copilot                             | Dual token system (GitHub OAuth + Copilot token), VSCode header mimicking                                                                                                                      |
+| `kiro.ts`        | AWS CodeWhisperer                          | AWS EventStream binary parsing, AMZN event frames, token estimation                                                                                                                            |
+| `index.ts`       | —                                          | Factory: maps provider name → executor class, with default fallback                                                                                                                            |
 
 ---
 
@@ -303,7 +303,7 @@ Business logic that supports the handlers and executors.
 | `combo.ts`           | **Combo models**: chains of fallback models. If model A fails with a fallback-eligible error, try model B, then C, etc. Returns actual upstream status codes.                                                                                                                                                                          |
 | `usage.ts`           | Fetches quota/usage data from provider APIs (GitHub Copilot quotas, Antigravity model quotas, Codex rate limits, Kiro usage breakdowns, Claude settings).                                                                                                                                                                              |
 | `accountSelector.ts` | Smart account selection with scoring algorithm: considers priority, health status, round-robin position, and cooldown state to pick the optimal account for each request.                                                                                                                                                              |
-| `contextManager.ts`  | Request context lifecycle management: creates and tracks per-request context objects with metadata (request ID, timestamps, provider info) for debugging and logging.                                                                                                                                                                  |
+| `contextManager.ts`  | Context token budgeting and compression pipeline: estimates request size, applies adaptive reserve (`min(configReserve, max(256, floor(maxTokens*0.15)))`), then runs layered compression (`compact_tools`, `trim_tools`, `compress_thinking`, `purify_history`) to fit model limits safely.                                           |
 | `ipFilter.ts`        | IP-based access control: supports allowlist and blocklist modes. Validates client IP against configured rules before processing API requests.                                                                                                                                                                                          |
 | `sessionManager.ts`  | Session tracking with client fingerprinting: tracks active sessions using hashed client identifiers, monitors request counts, and provides session metrics.                                                                                                                                                                            |
 | `signatureCache.ts`  | Request signature-based deduplication cache: prevents duplicate requests by caching recent request signatures and returning cached responses for identical requests within a time window.                                                                                                                                              |
@@ -496,20 +496,21 @@ logs/
 
 #### Notable API Routes
 
-| Route                                         | Methods         | Purpose                                                                               |
-| --------------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
-| `/api/provider-models`                        | GET/POST/DELETE | CRUD for custom models per provider                                                   |
-| `/api/models/catalog`                         | GET             | Aggregated catalog of all models (chat, embedding, image, custom) grouped by provider |
-| `/api/settings/proxy`                         | GET/PUT/DELETE  | Hierarchical outbound proxy configuration (`global/providers/combos/keys`)            |
-| `/api/settings/proxy/test`                    | POST            | Validates proxy connectivity and returns public IP/latency                            |
-| `/v1/providers/[provider]/chat/completions`   | POST            | Dedicated per-provider chat completions with model validation                         |
-| `/v1/providers/[provider]/embeddings`         | POST            | Dedicated per-provider embeddings with model validation                               |
-| `/v1/providers/[provider]/images/generations` | POST            | Dedicated per-provider image generation with model validation                         |
-| `/api/settings/ip-filter`                     | GET/PUT         | IP allowlist/blocklist management                                                     |
-| `/api/settings/thinking-budget`               | GET/PUT         | Reasoning token budget configuration (passthrough/auto/custom/adaptive)               |
-| `/api/settings/system-prompt`                 | GET/PUT         | Global system prompt injection for all requests                                       |
-| `/api/sessions`                               | GET             | Active session tracking and metrics                                                   |
-| `/api/rate-limits`                            | GET             | Per-account rate limit status                                                         |
+| Route                                         | Methods         | Purpose                                                                                                                                                           |
+| --------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/provider-models`                        | GET/POST/DELETE | CRUD for custom models per provider                                                                                                                               |
+| `/api/models/catalog`                         | GET             | Aggregated catalog of all models (chat, embedding, image, custom) grouped by provider                                                                             |
+| `/api/models/test`                            | POST            | Internal model smoke test route; probes `/api/v1/chat/completions` with a 30s timeout (in-process by default, HTTP fetch when `ROUTIFORM_MODEL_TEST_USE_FETCH=1`) |
+| `/api/settings/proxy`                         | GET/PUT/DELETE  | Hierarchical outbound proxy configuration (`global/providers/combos/keys`)                                                                                        |
+| `/api/settings/proxy/test`                    | POST            | Validates proxy connectivity and returns public IP/latency                                                                                                        |
+| `/v1/providers/[provider]/chat/completions`   | POST            | Dedicated per-provider chat completions with model validation                                                                                                     |
+| `/v1/providers/[provider]/embeddings`         | POST            | Dedicated per-provider embeddings with model validation                                                                                                           |
+| `/v1/providers/[provider]/images/generations` | POST            | Dedicated per-provider image generation with model validation                                                                                                     |
+| `/api/settings/ip-filter`                     | GET/PUT         | IP allowlist/blocklist management                                                                                                                                 |
+| `/api/settings/thinking-budget`               | GET/PUT         | Reasoning token budget configuration (passthrough/auto/custom/adaptive)                                                                                           |
+| `/api/settings/system-prompt`                 | GET/PUT         | Global system prompt injection for all requests                                                                                                                   |
+| `/api/sessions`                               | GET             | Active session tracking and metrics                                                                                                                               |
+| `/api/rate-limits`                            | GET             | Per-account rate limit status                                                                                                                                     |
 
 ---
 

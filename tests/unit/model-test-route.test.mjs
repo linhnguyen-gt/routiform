@@ -11,6 +11,7 @@ const core = await import("../../src/lib/db/core.ts");
 const route = await import("../../src/app/api/models/test/route.ts");
 
 const originalFetch = globalThis.fetch;
+const originalModelTestUseFetch = process.env.ROUTIFORM_MODEL_TEST_USE_FETCH;
 
 async function resetStorage() {
   core.resetDbInstance();
@@ -27,15 +28,26 @@ function makeRequest(model = "kilocode/openai/gpt-5.3-codex") {
 }
 
 test.beforeEach(async () => {
+  process.env.ROUTIFORM_MODEL_TEST_USE_FETCH = "1";
   globalThis.fetch = originalFetch;
   await resetStorage();
 });
 
 test.afterEach(() => {
+  if (originalModelTestUseFetch === undefined) {
+    delete process.env.ROUTIFORM_MODEL_TEST_USE_FETCH;
+  } else {
+    process.env.ROUTIFORM_MODEL_TEST_USE_FETCH = originalModelTestUseFetch;
+  }
   globalThis.fetch = originalFetch;
 });
 
 test.after(() => {
+  if (originalModelTestUseFetch === undefined) {
+    delete process.env.ROUTIFORM_MODEL_TEST_USE_FETCH;
+  } else {
+    process.env.ROUTIFORM_MODEL_TEST_USE_FETCH = originalModelTestUseFetch;
+  }
   globalThis.fetch = originalFetch;
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
@@ -123,4 +135,39 @@ test("model test route fails when assistant text is an embedded provider error m
   assert.equal(response.status, 200);
   assert.equal(body.ok, false);
   assert.match(body.error, /\[402\]/i);
+});
+
+test("model test route returns timeout payload when upstream fetch stalls", async () => {
+  globalThis.fetch = (_input, init) =>
+    new Promise((resolve, reject) => {
+      let slowResponseTimer = null;
+      const signal = init && "signal" in init ? init.signal : undefined;
+      if (signal && "addEventListener" in signal) {
+        signal.addEventListener("abort", () => {
+          if (slowResponseTimer) clearTimeout(slowResponseTimer);
+          const abortError = new Error("aborted due to timeout");
+          abortError.name = "AbortError";
+          reject(abortError);
+        });
+      }
+      slowResponseTimer = setTimeout(() => {
+        resolve(
+          new Response(
+            JSON.stringify({ choices: [{ message: { role: "assistant", content: "OK" } }] }),
+            {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        );
+      }, 30_000);
+    });
+
+  const response = await route.POST(makeRequest());
+  const body = await response.json();
+
+  assert.equal(response.status, 504);
+  assert.equal(body.ok, false);
+  assert.equal(body.status, 504);
+  assert.equal(body.error, "Model test timeout (30s)");
 });
