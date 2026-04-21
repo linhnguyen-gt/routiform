@@ -1,32 +1,32 @@
-import { randomUUID } from "crypto";
-import {
-  getProviderConnections,
-  validateApiKey,
-  updateProviderConnection,
-  getSettings,
-  getCachedSettings,
-} from "@/lib/localDb";
 import { getQuotaWindowStatus, isAccountQuotaExhausted } from "@/domain/quotaCache";
 import {
-  isAccountUnavailable,
-  getUnavailableUntil,
-  getEarliestRateLimitedUntil,
-  formatRetryAfter,
+  getCachedSettings,
+  getProviderConnections,
+  getSettings,
+  updateProviderConnection,
+  validateApiKey,
+} from "@/lib/localDb";
+import { getProviderAlias, resolveProviderId } from "@/shared/constants/providers";
+import { fisherYatesShuffle, getNextFromDeckSync } from "@/shared/utils/shuffleDeck";
+import { COOLDOWN_MS } from "@routiform/open-sse/config/constants.ts";
+import {
+  getPassthroughProviders,
+  isLocalProvider,
+} from "@routiform/open-sse/config/providerRegistry.ts";
+import { getCodexModelScope } from "@routiform/open-sse/executors/codex.ts";
+import {
   checkFallbackError,
+  formatRetryAfter,
+  getEarliestRateLimitedUntil,
+  getUnavailableUntil,
+  hasPerModelQuota,
+  isAccountUnavailable,
   isModelLocked,
   lockModel,
-  hasPerModelQuota,
 } from "@routiform/open-sse/services/accountFallback.ts";
 import { isModelUnavailableError } from "@routiform/open-sse/services/modelFamilyFallback.ts";
-import {
-  isLocalProvider,
-  getPassthroughProviders,
-} from "@routiform/open-sse/config/providerRegistry.ts";
-import { COOLDOWN_MS } from "@routiform/open-sse/config/constants.ts";
-import { getCodexModelScope } from "@routiform/open-sse/executors/codex.ts";
-import { getProviderAlias, resolveProviderId } from "@/shared/constants/providers";
+import { randomUUID } from "crypto";
 import * as log from "../utils/logger";
-import { fisherYatesShuffle, getNextFromDeckSync } from "@/shared/utils/shuffleDeck";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -329,6 +329,9 @@ function getProviderSearchPool(provider: string): string[] {
   if (provider === "nvidia_nim") {
     return ["nvidia_nim", "nvidia"];
   }
+  if (provider === "ollama-cloud" || provider === "ollamacloud") {
+    return ["ollama-cloud", "ollamacloud"];
+  }
 
   return Array.from(new Set([provider, canonicalProvider, canonicalAlias].filter(Boolean)));
 }
@@ -378,6 +381,10 @@ export async function getProviderCredentials(
 
     // Fix #922: Check for aliases (nvidia/nvidia_nim) to ensure credentials are found
     const providersToSearch = getProviderSearchPool(provider);
+    log.debug(
+      "AUTH",
+      `getProviderCredentials: provider="${provider}" → search pool: [${providersToSearch.join(", ")}]`
+    );
     const connectionResults = await Promise.all(
       providersToSearch.map((p) => getProviderConnections({ provider: p, isActive: true }))
     );

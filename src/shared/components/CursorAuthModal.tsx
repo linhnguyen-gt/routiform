@@ -49,7 +49,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
     };
 
     autoDetect();
-  }, [isOpen]);
+  }, [isOpen, t]);
 
   const handleImportToken = async () => {
     if (!accessToken.trim()) {

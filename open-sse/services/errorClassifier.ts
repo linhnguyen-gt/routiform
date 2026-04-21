@@ -188,6 +188,15 @@ export function classifyProviderError(statusCode: number, responseBody: unknown)
     return PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED;
   }
   if (statusCode === 403) {
+    // Subscription/capacity errors are temporary, not permanent bans
+    const lowerBody = bodyStr.toLowerCase();
+    if (
+      lowerBody.includes("subscription is required") ||
+      lowerBody.includes("high volume") ||
+      lowerBody.includes("capacity is being added")
+    ) {
+      return PROVIDER_ERROR_TYPES.RATE_LIMITED;
+    }
     if (bodyStr.includes("has not been used in project")) {
       return PROVIDER_ERROR_TYPES.PROJECT_ROUTE_ERROR;
     }
