@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.1...v3.14.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* prevent auto-ban for temporary subscription/capacity errors ([4389d17](https://github.com/linhnguyen-gt/Routiform/commit/4389d17edfe6b44c0c81cf651e0fde3eb0e6a4b4))
+
 ### [3.14.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.0...v3.14.1) (2026-04-21)
 
 
