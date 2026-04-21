@@ -148,6 +148,16 @@ function classifyFailure({
     return makeDiagnosis("token_refresh_failed", "oauth", message, "refresh_failed");
   }
 
+  // 403 with subscription/quota message → treat as quota issue, not auth error
+  if (
+    numericStatus === 403 &&
+    (normalized.includes("subscription") ||
+      normalized.includes("high volume") ||
+      normalized.includes("capacity"))
+  ) {
+    return makeDiagnosis("upstream_rate_limited", "upstream", message, "403");
+  }
+
   if (numericStatus === 401 || numericStatus === 403) {
     return makeDiagnosis("upstream_auth_error", "upstream", message, String(numericStatus));
   }

@@ -359,6 +359,18 @@ export async function updateProviderConnection(id: string, data: JsonRecord) {
   const existing = db.prepare("SELECT * FROM provider_connections WHERE id = ?").get(id);
   if (!existing) return null;
 
+  // Prevent setting "banned" status for temporary subscription/capacity errors
+  if (data.testStatus === "banned" && typeof data.lastError === "string") {
+    const errorLower = data.lastError.toLowerCase();
+    if (
+      errorLower.includes("subscription is required") ||
+      errorLower.includes("high volume") ||
+      errorLower.includes("capacity is being added")
+    ) {
+      data.testStatus = "unavailable"; // Temporary unavailable instead of permanent ban
+    }
+  }
+
   const merged: JsonRecord = {
     ...toRecord(rowToCamel(existing)),
     ...data,

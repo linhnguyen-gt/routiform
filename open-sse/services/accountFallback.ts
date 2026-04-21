@@ -25,8 +25,8 @@ export const ACCOUNT_DEACTIVATED_SIGNALS = [
 
 // T10 (sub2api PR #1169): Signals that indicate billing credits are exhausted.
 // Distinct from rate-limit 429 — the account won't recover until credits are added.
+// NOTE: "insufficient_quota" removed — too broad, matches temporary capacity issues
 export const CREDITS_EXHAUSTED_SIGNALS = [
-  "insufficient_quota",
   "billing_hard_limit_reached",
   "exceeded your current quota",
   "credit_balance_too_low",
@@ -495,6 +495,19 @@ export function checkFallbackError(
   // Check error message FIRST - specific patterns take priority over status codes
   if (errorText) {
     const lowerError = errorStr.toLowerCase();
+
+    // Subscription/capacity errors are temporary upstream issues, not permanent bans
+    if (
+      lowerError.includes("subscription is required") ||
+      lowerError.includes("high volume") ||
+      lowerError.includes("capacity is being added")
+    ) {
+      return {
+        shouldFallback: true,
+        cooldownMs: COOLDOWN_MS.rateLimit ?? 60 * 1000, // 1min cooldown
+        reason: RateLimitReason.RATE_LIMIT_EXCEEDED,
+      };
+    }
 
     // T06 (sub2api #1037): Permanent account deactivation — do NOT retry, mark as permanent failure
     if (isAccountDeactivated(errorStr)) {
