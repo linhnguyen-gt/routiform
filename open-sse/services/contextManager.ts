@@ -349,7 +349,7 @@ export function compressContext(
 
   let messages = [...body.messages];
   let tools = Array.isArray(body.tools) ? [...body.tools] : body.tools;
-  const buildWorkingBody = () => ({ ...body, messages, tools });
+  const buildWorkingBody = (): JsonRecord => ({ ...body, messages, tools }) as JsonRecord;
   let currentTokens = estimateRequestTokens(buildWorkingBody());
   const stats: { original: number; layers: ContextCompressionLayerStat[] } = {
     original: currentTokens,
@@ -414,8 +414,50 @@ export function compressContext(
   currentTokens = estimateRequestTokens(buildWorkingBody());
   stats.layers.push({ name: "purify_history", tokens: currentTokens });
 
+  if (currentTokens <= targetTokens) {
+    return {
+      body: buildWorkingBody(),
+      compressed: true,
+      stats: { ...stats, final: currentTokens },
+    };
+  }
+
+  // Layer 4: System prompt truncation (Final Resort)
+  // If we are STILL over the limit, it means the system prompt itself is too large.
+  let finalBody = buildWorkingBody();
+  if (finalBody.system) {
+    const excessTokens = currentTokens - targetTokens;
+    const charsToDrop = excessTokens * 4; // Rough approximation
+    if (typeof finalBody.system === "string") {
+      if (finalBody.system.length > charsToDrop + 100) {
+        finalBody.system =
+          finalBody.system.slice(0, finalBody.system.length - charsToDrop) +
+          "\n... [system prompt truncated to fit context limit]";
+      } else {
+        finalBody.system = "[system prompt truncated to fit context limit]";
+      }
+    } else if (Array.isArray(finalBody.system)) {
+      finalBody.system = finalBody.system.map((block) => {
+        if (block.type === "text" && typeof block.text === "string") {
+          if (block.text.length > charsToDrop + 100) {
+            return {
+              ...block,
+              text:
+                block.text.slice(0, block.text.length - charsToDrop) +
+                "\n... [system prompt truncated]",
+            };
+          }
+        }
+        return block;
+      });
+    }
+  }
+
+  currentTokens = estimateRequestTokens(finalBody);
+  stats.layers.push({ name: "truncate_system", tokens: currentTokens });
+
   return {
-    body: buildWorkingBody(),
+    body: finalBody,
     compressed: true,
     stats: { ...stats, final: currentTokens },
   };
@@ -492,12 +534,27 @@ function trimToolMessages(messages, maxChars) {
       return {
         ...msg,
         content: msg.content.map((block) => {
-          if (
-            block.type === "tool_result" &&
-            typeof block.content === "string" &&
-            block.content.length > maxChars
-          ) {
-            return { ...block, content: block.content.slice(0, maxChars) + "\n... [truncated]" };
+          if (block.type === "tool_result") {
+            if (typeof block.content === "string" && block.content.length > maxChars) {
+              return { ...block, content: block.content.slice(0, maxChars) + "\n... [truncated]" };
+            } else if (Array.isArray(block.content)) {
+              return {
+                ...block,
+                content: block.content.map((subBlock) => {
+                  if (
+                    subBlock.type === "text" &&
+                    typeof subBlock.text === "string" &&
+                    subBlock.text.length > maxChars
+                  ) {
+                    return {
+                      ...subBlock,
+                      text: subBlock.text.slice(0, maxChars) + "\n... [truncated]",
+                    };
+                  }
+                  return subBlock;
+                }),
+              };
+            }
           }
           return block;
         }),

@@ -40,6 +40,21 @@ const COMBO_BAD_REQUEST_FALLBACK_PATTERNS = [
   /provider returned error/i,
 ];
 
+const ALL_ACCOUNTS_RATE_LIMITED_PATTERNS = [
+  /all\s+accounts?.*rate.?limit/i,
+  /service temporarily unavailable/i,
+];
+
+function isAllAccountsRateLimitedResponse(
+  status: number,
+  contentType: string | null,
+  errorText: string
+): boolean {
+  if (status !== 503) return false;
+  if (!contentType?.includes("application/json")) return false;
+  return ALL_ACCOUNTS_RATE_LIMITED_PATTERNS.some((p) => p.test(errorText));
+}
+
 const MAX_COMBO_DEPTH = 3;
 
 /**
@@ -1238,12 +1253,22 @@ export async function handleComboChat({
         provider
       );
 
+      // 503 "all accounts rate-limited" → fallback to next model instead of terminal error
+      const contentType = result.headers?.get("content-type") ?? null;
+      const isAllAccountsRateLimited = isAllAccountsRateLimitedResponse(
+        result.status,
+        contentType,
+        String(errorText)
+      );
+
       // Record failure in circuit breaker for transient errors
       if (TRANSIENT_FOR_BREAKER.includes(result.status)) {
         breaker._onFailure();
       }
 
-      if (!shouldFallback && !comboBadRequestFallback) {
+      if (isAllAccountsRateLimited) {
+        log.info("COMBO", `All accounts rate-limited for ${modelStr}, falling back to next model`);
+      } else if (!shouldFallback && !comboBadRequestFallback) {
         log.warn("COMBO", "Combo routing: terminal error (no fallback to next model)", {
           comboName: combo.name,
           strategy,
@@ -1573,6 +1598,14 @@ async function handleRoundRobinCombo({
           provider
         );
 
+        // 503 "all accounts rate-limited" → fallback to next model
+        const rrContentType = result.headers?.get("content-type") ?? null;
+        const rrIsAllAccountsRateLimited = isAllAccountsRateLimitedResponse(
+          result.status,
+          rrContentType,
+          String(errorText)
+        );
+
         // Transient errors → mark in semaphore AND record circuit breaker failure
         if (TRANSIENT_FOR_BREAKER.includes(result.status) && cooldownMs > 0) {
           semaphore.markRateLimited(modelStr, cooldownMs);
@@ -1583,7 +1616,12 @@ async function handleRoundRobinCombo({
           );
         }
 
-        if (!shouldFallback && !comboBadRequestFallback) {
+        if (rrIsAllAccountsRateLimited) {
+          log.info(
+            "COMBO-RR",
+            `All accounts rate-limited for ${modelStr}, falling back to next model`
+          );
+        } else if (!shouldFallback && !comboBadRequestFallback) {
           log.warn("COMBO-RR", "Combo routing (RR): terminal error (no fallback to next model)", {
             comboName: combo.name,
             strategy: "round-robin",

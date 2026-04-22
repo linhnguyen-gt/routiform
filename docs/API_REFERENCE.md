@@ -296,13 +296,14 @@ Persists the display order of combos. The `ids` array defines the new sequence; 
 
 ### CLI Tools
 
-| Endpoint                           | Method | Description         |
-| ---------------------------------- | ------ | ------------------- |
-| `/api/cli-tools/claude-settings`   | GET    | Claude CLI status   |
-| `/api/cli-tools/codex-settings`    | GET    | Codex CLI status    |
-| `/api/cli-tools/droid-settings`    | GET    | Droid CLI status    |
-| `/api/cli-tools/openclaw-settings` | GET    | OpenClaw CLI status |
-| `/api/cli-tools/runtime/[toolId]`  | GET    | Generic CLI runtime |
+| Endpoint                                 | Method | Description                                                       |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------- |
+| `/api/cli-tools/claude-settings`         | GET    | Claude CLI status                                                 |
+| `/api/cli-tools/codex-settings`          | GET    | Codex CLI status                                                  |
+| `/api/cli-tools/droid-settings`          | GET    | Droid CLI status                                                  |
+| `/api/cli-tools/openclaw-settings`       | GET    | OpenClaw CLI status                                               |
+| `/api/cli-tools/runtime/[toolId]`        | GET    | Generic CLI runtime                                               |
+| `/api/cli-tools/guide-settings/[toolId]` | POST   | Direct config save for supported tools (continue, opencode, qwen) |
 
 CLI responses include: `installed`, `runnable`, `command`, `commandPath`, `runtimeMode`, `reason`.
 

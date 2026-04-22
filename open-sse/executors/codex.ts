@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { BaseExecutor } from "./base.ts";
 import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.ts";
 import { PROVIDERS } from "../config/constants.ts";
@@ -5,7 +6,7 @@ import { generateSessionId } from "../services/sessionManager.ts";
 import { getAccessToken } from "../services/tokenRefresh.ts";
 import { getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
-// ─── T09: Codex vs Spark Scope-Aware Rate Limiting ────────────────────────
+// T09: Codex vs Spark Scope-Aware Rate Limiting
 // Codex has two independent quota pools: "codex" (standard) and "spark" (premium).
 // Exhausting one should NOT block requests to the other.
 // Ref: sub2api PR #1129 (feat(openai): split codex spark rate limiting from codex)
@@ -185,6 +186,42 @@ function convertSystemToDeveloperRole(body: Record<string, unknown>): void {
   }
 }
 
+function stripStoredItemReferences(body: Record<string, unknown>): void {
+  delete body.previous_response_id;
+  if (!Array.isArray(body.input)) return;
+  const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
+  let strippedCount = 0;
+  body.input = body.input.filter((item) => {
+    if (typeof item === "string" && SERVER_ID_PATTERN.test(item)) {
+      strippedCount++;
+      return false;
+    }
+    if (
+      item &&
+      typeof item === "object" &&
+      !Array.isArray(item) &&
+      (item as Record<string, unknown>).type === "item_reference"
+    ) {
+      strippedCount++;
+      return false;
+    }
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      if (
+        typeof (item as Record<string, unknown>).id === "string" &&
+        SERVER_ID_PATTERN.test((item as Record<string, unknown>).id as string)
+      ) {
+        delete (item as Record<string, unknown>).id;
+        strippedCount++;
+      }
+    }
+    return true;
+  });
+  if (strippedCount > 0)
+    console.debug(
+      `[Codex] stripStoredItemReferences: sanitized ${strippedCount} server-generated ID(s)`
+    );
+}
+
 /**
  * Codex Executor - handles OpenAI Codex API (Responses API format)
  * Automatically injects default instructions if missing.
@@ -225,6 +262,14 @@ export class CodexExecutor extends BaseExecutor {
     const workspaceId = credentials?.providerSpecificData?.workspaceId;
     if (workspaceId) {
       headers["chatgpt-account-id"] = workspaceId;
+    }
+
+    // Codex originator + session_id prompt-cache-affinity headers
+    headers["originator"] = "codex_cli_rs";
+
+    const sessionId = credentials?.providerSpecificData?.ccSessionId;
+    if (sessionId && typeof sessionId === "string") {
+      headers["session_id"] = sessionId;
     }
 
     return headers;
@@ -272,6 +317,11 @@ export class CodexExecutor extends BaseExecutor {
     }
     delete body._nativeCodexPassthrough;
 
+    // Strip server-generated IDs from multi-turn input.
+    // system→developer must apply on BOTH passthrough+translated paths.
+    stripStoredItemReferences(body);
+    convertSystemToDeveloperRole(body);
+
     const requestServiceTier = normalizeServiceTierValue(body.service_tier);
     if (requestServiceTier) {
       body.service_tier = requestServiceTier;
@@ -280,12 +330,16 @@ export class CodexExecutor extends BaseExecutor {
     }
 
     if (nativeCodexPassthrough) {
-      convertSystemToDeveloperRole(body);
       if (
         !body.instructions ||
         (typeof body.instructions === "string" && !body.instructions.trim())
       ) {
         body.instructions = "Follow the developer instructions in the conversation.";
+      }
+      // store defaults to true for native passthrough to enable prompt cache affinity.
+      // Non-passthrough (translated) path keeps the Codex default (false) for privacy.
+      if (body.store === undefined) {
+        body.store = true;
       }
     } else if (
       !body.instructions ||
@@ -293,9 +347,6 @@ export class CodexExecutor extends BaseExecutor {
     ) {
       body.instructions = CODEX_DEFAULT_INSTRUCTIONS;
     }
-
-    // Ensure store is false (Codex requirement)
-    body.store = false;
 
     const normalizedSessionInput = Array.isArray(body.input)
       ? body.input
@@ -360,6 +411,13 @@ export class CodexExecutor extends BaseExecutor {
 
     if (nativeCodexPassthrough) {
       return body;
+    }
+
+    // Inject prompt_cache_key for Codex Responses API cache affinity
+    if (!body.prompt_cache_key && Array.isArray(body.input)) {
+      const inputStr = JSON.stringify(body.input);
+      const hash = createHash("sha256").update(inputStr).digest("hex").slice(0, 16);
+      body.prompt_cache_key = `codex_${hash}`;
     }
 
     // Remove unsupported parameters for Codex API

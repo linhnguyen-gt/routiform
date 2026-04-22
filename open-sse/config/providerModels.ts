@@ -77,3 +77,12 @@ export function getModelsByProviderId(providerId: string): RegistryModel[] {
   const alias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
   return PROVIDER_MODELS[alias] || [];
 }
+
+/**
+ * Derive default model list for Claude Code and compatible providers.
+ * Uses the shared claude model registry as the single source of truth instead
+ * of hardcoding model lists per provider.
+ */
+export function getClaudeCodeDefaultModels(): RegistryModel[] {
+  return getModelsByProviderId("claude");
+}

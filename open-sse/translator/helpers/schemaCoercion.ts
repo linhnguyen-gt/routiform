@@ -195,6 +195,7 @@ export function isReasoner(provider: unknown, model?: unknown): boolean {
   return (
     providerStr === "deepseek" ||
     providerStr === "kimi" ||
+    providerStr === "opencode-go" ||
     (typeof model === "string" && /r1|reason|kimi-k2/i.test(modelStr))
   );
 }
