@@ -514,7 +514,7 @@ test("CodexExecutor preserves native responses payloads for Codex passthrough", 
   assert.equal(transformed.stream, true);
   assert.equal(transformed.service_tier, "priority");
   assert.equal(transformed.instructions, "custom system prompt");
-  assert.equal(transformed.store, false);
+  assert.equal(transformed.store, true);
   assert.deepEqual(transformed.metadata, { source: "codex-client" });
   assert.deepEqual(transformed.reasoning, { effort: "high" });
   assert.equal(transformed.reasoning_effort, undefined);

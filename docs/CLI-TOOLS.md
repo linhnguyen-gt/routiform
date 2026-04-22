@@ -44,6 +44,7 @@ Current list (v3.0.0-rc.16):
 | **Continue**       | `continue`    | extension  | guide      | VS Code        |
 | **Antigravity**    | `antigravity` | internal   | mitm       | Routiform      |
 | **GitHub Copilot** | `copilot`     | extension  | custom     | VS Code        |
+| **Qwen Code**      | `qwen`        | `qwen`     | custom     | npm            |
 | **OpenCode**       | `opencode`    | `opencode` | guide      | npm            |
 | **Kiro AI**        | `kiro`        | app/cli    | mitm       | desktop/CLI    |
 
@@ -52,13 +53,13 @@ Current list (v3.0.0-rc.16):
 `/dashboard/agents` and `Settings > CLI Fingerprint` use `src/shared/constants/cliCompatProviders.ts`.
 This keeps provider IDs aligned with CLI cards and legacy IDs.
 
-| CLI ID                                                                                               | Fingerprint Provider ID |
-| ---------------------------------------------------------------------------------------------------- | ----------------------- |
-| `kilo`                                                                                               | `kilocode`              |
-| `copilot`                                                                                            | `github`                |
-| `claude` / `codex` / `antigravity` / `kiro` / `cursor` / `cline` / `opencode` / `droid` / `openclaw` | same ID                 |
+| CLI ID                                                                                                        | Fingerprint Provider ID |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `kilo`                                                                                                        | `kilocode`              |
+| `copilot`                                                                                                     | `github`                |
+| `claude` / `codex` / `antigravity` / `kiro` / `cursor` / `cline` / `opencode` / `droid` / `openclaw` / `qwen` | same ID                 |
 
-Legacy IDs still accepted for compatibility: `copilot`, `kimi-coding`, `qwen`.
+Legacy IDs still accepted for compatibility: `copilot`, `kimi-coding`.
 
 ---
 
@@ -240,6 +241,24 @@ Restart VS Code after editing.
 
 ---
 
+### Qwen Code
+
+```bash
+mkdir -p ~/.qwen && cat > ~/.qwen/settings.json << EOF
+{
+  "apiBaseUrl": "http://localhost:20128/v1",
+  "apiKey": "sk-your-routiform-key",
+  "defaultModel": "auto"
+}
+EOF
+```
+
+Or use the Routiform dashboard → **CLI Tools → Qwen Code → Apply Config** (saves config directly via `/api/cli-tools/guide-settings/qwen`).
+
+**Test:** `qwen "say hello"`
+
+---
+
 ### Kiro CLI (Amazon)
 
 ```bash
@@ -324,14 +343,18 @@ ROUTIFORM_KEY="sk-your-routiform-key"
 
 npm install -g @anthropic-ai/claude-code @openai/codex opencode-ai cline kilocode
 
+# Qwen Code (via npm)
+npm install -g qwen-code
+
 # Kiro CLI
 apt-get install -y unzip 2>/dev/null; curl -fsSL https://cli.kiro.dev/install | bash
 
 # Write configs
-mkdir -p ~/.claude ~/.codex ~/.config/opencode ~/.continue
+mkdir -p ~/.claude ~/.codex ~/.config/opencode ~/.continue ~/.qwen
 
 cat > ~/.claude/settings.json   <<< "{\"apiBaseUrl\":\"$ROUTIFORM_URL\",\"apiKey\":\"$ROUTIFORM_KEY\"}"
 cat > ~/.codex/config.yaml      <<< "model: auto\napiKey: $ROUTIFORM_KEY\napiBaseUrl: $ROUTIFORM_URL"
+cat > ~/.qwen/settings.json    <<< "{\"apiBaseUrl\":\"$ROUTIFORM_URL\",\"apiKey\":\"$ROUTIFORM_KEY\",\"defaultModel\":\"auto\"}"
 cat >> ~/.bashrc << EOF
 export OPENAI_BASE_URL="$ROUTIFORM_URL"
 export OPENAI_API_KEY="$ROUTIFORM_KEY"

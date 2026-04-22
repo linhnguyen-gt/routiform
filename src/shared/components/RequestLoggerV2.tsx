@@ -213,6 +213,7 @@ export default function RequestLoggerV2() {
   const [detailLoggingLoading, setDetailLoggingLoading] = useState(false);
   const intervalRef = useRef(null);
   const hasLoadedRef = useRef(false);
+  const logsSignatureRef = useRef("");
   const [providerNodes, setProviderNodes] = useState([]);
   const [exportingLogIds, setExportingLogIds] = useState(() => new Set());
 
@@ -255,7 +256,14 @@ export default function RequestLoggerV2() {
         const res = await fetch(`/api/usage/call-logs?${params}`);
         if (res.ok) {
           const data = await res.json();
-          setLogs(data);
+          // Skip re-render if log data hasn't meaningfully changed
+          const sig = Array.isArray(data)
+            ? `${data.length}:${data[0]?.id || ""}:${data[data.length - 1]?.id || ""}`
+            : "";
+          if (sig !== logsSignatureRef.current) {
+            logsSignatureRef.current = sig;
+            setLogs(data);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch call logs:", error);
