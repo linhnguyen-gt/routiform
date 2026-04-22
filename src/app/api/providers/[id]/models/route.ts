@@ -12,6 +12,8 @@ import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 import { getGlmModelsUrl } from "@routiform/open-sse/config/glmProvider.ts";
 import { getOpencodeGoModels } from "@/lib/providers/opencodeGoModelsCatalog";
 import { isOutboundUrlPolicyError, safeOutboundFetch } from "@/lib/network/safeOutboundFetch";
+import { refreshCopilotToken, refreshGitHubToken } from "@/sse/services/tokenRefresh";
+import { updateProviderConnection } from "@/models";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -215,6 +217,82 @@ const KIMI_CODING_MODELS_CONFIG: ProviderModelsConfigEntry = {
     return (record.data as unknown[]) || (record.models as unknown[]) || [];
   },
 };
+
+const OFFICIAL_GITHUB_COPILOT_MODELS: Array<{
+  id: string;
+  name: string;
+  owned_by: string;
+  supportedEndpoints?: string[];
+  supportsThinking?: boolean;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  targetFormat?: string;
+}> = [
+  { id: "gpt-4.1", name: "GPT-4.1", owned_by: "openai" },
+  { id: "gpt-5-mini", name: "GPT-5 mini", owned_by: "openai" },
+  { id: "gpt-5.2", name: "GPT-5.2", owned_by: "openai" },
+  {
+    id: "gpt-5.2-codex",
+    name: "GPT-5.2-Codex",
+    owned_by: "openai",
+    targetFormat: "openai-responses",
+  },
+  {
+    id: "gpt-5.3-codex",
+    name: "GPT-5.3-Codex",
+    owned_by: "openai",
+    targetFormat: "openai-responses",
+  },
+  { id: "gpt-5.4", name: "GPT-5.4", owned_by: "openai" },
+  {
+    id: "gpt-5.4-mini",
+    name: "GPT-5.4 mini",
+    owned_by: "openai",
+    targetFormat: "openai-responses",
+  },
+  { id: "gpt-5.4-nano", name: "GPT-5.4 nano", owned_by: "openai" },
+  {
+    id: "claude-haiku-4.5",
+    name: "Claude Haiku 4.5",
+    owned_by: "anthropic",
+    supportsThinking: true,
+  },
+  { id: "claude-opus-4.5", name: "Claude Opus 4.5", owned_by: "anthropic", supportsThinking: true },
+  { id: "claude-opus-4.6", name: "Claude Opus 4.6", owned_by: "anthropic", supportsThinking: true },
+  {
+    id: "claude-opus-4.6-fast",
+    name: "Claude Opus 4.6 (fast mode)",
+    owned_by: "anthropic",
+    supportsThinking: true,
+  },
+  {
+    id: "claude-opus-4.7",
+    name: "Claude Opus 4.7",
+    owned_by: "anthropic",
+    inputTokenLimit: 200000,
+    outputTokenLimit: 64000,
+    supportsThinking: true,
+  },
+  { id: "claude-sonnet-4", name: "Claude Sonnet 4", owned_by: "anthropic", supportsThinking: true },
+  {
+    id: "claude-sonnet-4.5",
+    name: "Claude Sonnet 4.5",
+    owned_by: "anthropic",
+    supportsThinking: true,
+  },
+  {
+    id: "claude-sonnet-4.6",
+    name: "Claude Sonnet 4.6",
+    owned_by: "anthropic",
+    supportsThinking: true,
+  },
+  { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", owned_by: "google" },
+  { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", owned_by: "google" },
+  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", owned_by: "google" },
+  { id: "grok-code-fast-1", name: "Grok Code Fast 1", owned_by: "xai" },
+  { id: "raptor-mini", name: "Raptor mini", owned_by: "openai" },
+  { id: "goldeneye", name: "Goldeneye", owned_by: "openai", targetFormat: "openai-responses" },
+];
 
 // Providers that return hardcoded models (no remote /models API)
 const STATIC_MODEL_PROVIDERS: Record<string, () => Array<{ id: string; name: string }>> = {
@@ -913,6 +991,168 @@ export async function GET(
         ...(source === "local_catalog"
           ? { warning: "API unavailable — using cached catalog" }
           : {}),
+      });
+    }
+
+    if (provider === "github") {
+      const psd = asRecord(connection.providerSpecificData);
+      let copilotToken =
+        typeof psd.copilotToken === "string" && psd.copilotToken.trim().length > 0
+          ? psd.copilotToken
+          : null;
+      const copilotTokenExpiresAt =
+        typeof psd.copilotTokenExpiresAt === "number" ? psd.copilotTokenExpiresAt : null;
+      const nowSec = Math.floor(Date.now() / 1000);
+
+      if (!copilotToken || (copilotTokenExpiresAt && copilotTokenExpiresAt <= nowSec + 60)) {
+        let githubAccessToken = accessToken;
+        if (!githubAccessToken && typeof connection.refreshToken === "string") {
+          try {
+            const ghResult = await refreshGitHubToken(connection.refreshToken);
+            if (ghResult?.accessToken) {
+              githubAccessToken = ghResult.accessToken;
+              await updateProviderConnection(connectionId, {
+                accessToken: ghResult.accessToken,
+                refreshToken: ghResult.refreshToken || connection.refreshToken,
+                ...(ghResult.expiresIn
+                  ? {
+                      expiresAt: new Date(Date.now() + ghResult.expiresIn * 1000).toISOString(),
+                      expiresIn: ghResult.expiresIn,
+                    }
+                  : {}),
+              });
+            }
+          } catch {
+            // Token refresh failed; continue with whatever token we have
+          }
+        }
+
+        if (githubAccessToken) {
+          try {
+            const copilotResult = await refreshCopilotToken(githubAccessToken);
+            if (copilotResult?.token) {
+              copilotToken = copilotResult.token;
+              const newPsd = {
+                ...psd,
+                copilotToken: copilotResult.token,
+                copilotTokenExpiresAt: copilotResult.expiresAt,
+              };
+              await updateProviderConnection(connectionId, {
+                providerSpecificData: JSON.stringify(newPsd),
+              });
+            }
+          } catch {
+            // Copilot token refresh failed; continue
+          }
+        }
+      }
+
+      if (!copilotToken) {
+        return buildResponse({
+          provider,
+          connectionId,
+          models: OFFICIAL_GITHUB_COPILOT_MODELS.map((m) => ({ ...m })),
+          source: "local_catalog",
+        });
+      }
+
+      let apiModelsMap = new Map<string, Record<string, unknown>>();
+      try {
+        const response = await runWithProxyContext(proxy, () =>
+          safeOutboundFetch(
+            "https://api.githubcopilot.com/models",
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${copilotToken}`,
+                "copilot-integration-id": "vscode-chat",
+                "editor-version": "vscode/1.110.0",
+                "editor-plugin-version": "copilot-chat/0.38.0",
+                "user-agent": "GitHubCopilotChat/0.38.0",
+                "openai-intent": "conversation-panel",
+                "x-github-api-version": "2025-04-01",
+                "X-Initiator": "user",
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+            },
+            { timeoutMs: 15_000 }
+          )
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const rawModels = Array.isArray(data.data) ? data.data : [];
+          for (const item of rawModels) {
+            const rec = asRecord(item);
+            const id = String(rec.id ?? "").trim();
+            if (!id) continue;
+            const capabilities = asRecord(rec.capabilities);
+            const limits = asRecord(capabilities.limits);
+            const supports = asRecord(capabilities.supports);
+            const endpoints = Array.isArray(rec.supported_endpoints) ? rec.supported_endpoints : [];
+            apiModelsMap.set(id, {
+              id,
+              name: String(rec.name ?? id).trim(),
+              owned_by: String(rec.vendor ?? "github").toLowerCase(),
+              ...(endpoints.length > 0 ? { supportedEndpoints: endpoints } : {}),
+              ...(typeof limits.max_context_window_tokens === "number"
+                ? { inputTokenLimit: limits.max_context_window_tokens }
+                : {}),
+              ...(typeof limits.max_output_tokens === "number"
+                ? { outputTokenLimit: limits.max_output_tokens }
+                : {}),
+              ...(supports.adaptive_thinking === true || supports.reasoning_effort
+                ? { supportsThinking: true }
+                : {}),
+            });
+          }
+        }
+      } catch {
+        // API fetch failed; fall through to static list
+      }
+
+      const canonicalId = (id: string) =>
+        id
+          .toLowerCase()
+          .replace(/-\d{8}$/g, "")
+          .replace(/\./g, "-")
+          .trim();
+
+      const apiModelsByCanonical = new Map<string, Record<string, unknown>>();
+      for (const [id, model] of apiModelsMap) {
+        apiModelsByCanonical.set(canonicalId(id), model);
+      }
+
+      const models = OFFICIAL_GITHUB_COPILOT_MODELS.map((base) => {
+        const apiData = apiModelsByCanonical.get(canonicalId(base.id));
+        const merged: Record<string, unknown> = {
+          ...base,
+          ...(apiData
+            ? {
+                supportedEndpoints: apiData.supportedEndpoints ?? base.supportedEndpoints,
+                ...(apiData.inputTokenLimit
+                  ? { inputTokenLimit: apiData.inputTokenLimit }
+                  : base.inputTokenLimit
+                    ? { inputTokenLimit: base.inputTokenLimit }
+                    : {}),
+                ...(apiData.outputTokenLimit
+                  ? { outputTokenLimit: apiData.outputTokenLimit }
+                  : base.outputTokenLimit
+                    ? { outputTokenLimit: base.outputTokenLimit }
+                    : {}),
+                supportsThinking: apiData.supportsThinking ?? base.supportsThinking ?? false,
+              }
+            : {}),
+        };
+        return merged;
+      });
+
+      return buildResponse({
+        provider,
+        connectionId,
+        models,
+        source: apiModelsMap.size > 0 ? "api" : "local_catalog",
       });
     }
 

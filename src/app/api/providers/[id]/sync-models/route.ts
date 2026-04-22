@@ -221,8 +221,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const fetchedModels = modelsData.models || [];
 
-    // Filter out models already in the built-in registry
-    const registryIds = new Set(getModelsByProviderId(logProvider).map((m) => m.id));
+    // Filter out models already in the built-in registry (except for providers
+    // that use a curated whitelist where the sync IS the source of truth)
+    const skipRegistryFilter = logProvider === "github";
+    const registryIds = skipRegistryFilter
+      ? new Set<string>()
+      : new Set(getModelsByProviderId(logProvider).map((m) => m.id));
 
     // Replace the full model list
     const models = dedupeModelsById(

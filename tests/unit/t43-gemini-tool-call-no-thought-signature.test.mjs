@@ -80,7 +80,7 @@ test("T43: first functionCall part keeps thoughtSignature", () => {
   );
 });
 
-test("T43: multiple tool calls only tag the first functionCall part", () => {
+test("T43: multiple tool calls tag all functionCall parts (Gemini 2.0+ requirement)", () => {
   const messages = [
     { role: "user", content: "Get weather for Tokyo and London" },
     {
@@ -127,8 +127,9 @@ test("T43: multiple tool calls only tag the first functionCall part", () => {
     `first functionCall part must carry thoughtSignature. Got: ${JSON.stringify(functionCallParts[0])}`
   );
   assert.ok(
-    !("thoughtSignature" in functionCallParts[1]),
-    `parallel follow-up functionCall parts must stay unsigned. Got: ${JSON.stringify(functionCallParts[1])}`
+    typeof functionCallParts[1].thoughtSignature === "string" &&
+      functionCallParts[1].thoughtSignature.length > 0,
+    `parallel follow-up functionCall parts must also carry thoughtSignature. Got: ${JSON.stringify(functionCallParts[1])}`
   );
 });
 
