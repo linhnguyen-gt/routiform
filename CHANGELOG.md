@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.16.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.15.0...v3.16.0) (2026-04-22)
+
+
+### Features
+
+* improve request handling and provider compatibility ([fcaa64a](https://github.com/linhnguyen-gt/Routiform/commit/fcaa64a8d2e093f95e147d5f18f6966337d1d106))
+
+
+### Bug Fixes
+
+* add GitHub Copilot models handler with official whitelist and auto-sync support ([ee4619c](https://github.com/linhnguyen-gt/Routiform/commit/ee4619c218befffb9bd93219811e3e9828eaccf2))
+
 ## [3.15.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.14.4...v3.15.0) (2026-04-22)
 
 
