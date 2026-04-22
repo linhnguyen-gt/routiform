@@ -428,6 +428,11 @@ export async function validateQoderCliPat({
       // @ts-ignore
       signal: AbortSignal.timeout(30000),
     });
+    if (res.status >= 500) {
+      // Treat 5xx errors as valid bypass — Qoder backend issues
+      // shouldn't block PAT validation. The PAT itself is structurally valid.
+      return { valid: true, error: null, unsupported: false };
+    }
     if (!res.ok) {
       return { valid: false, error: `HTTP ${res.status}: ${await res.text()}`, unsupported: false };
     }

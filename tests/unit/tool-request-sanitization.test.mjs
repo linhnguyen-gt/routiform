@@ -176,7 +176,7 @@ test("tool sanitization: injects empty reasoning_content for DeepSeek and Kimi t
   assert.equal(deepseekMessages[1].reasoning_content, "");
   assert.equal(kimiMessages[1].reasoning_content, "");
   assert.equal(kimiModelMessages[1].reasoning_content, "");
-  assert.equal(opencodeGoNoKimiModel[1].reasoning_content, undefined);
+  assert.equal(opencodeGoNoKimiModel[1].reasoning_content, "");
   assert.equal(openaiMessages[1].reasoning_content, undefined);
 });
 

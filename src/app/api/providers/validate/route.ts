@@ -13,6 +13,7 @@ import {
 import { validateProviderApiKey } from "@/lib/providers/validation";
 import { validateProviderApiKeySchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
+import { resolveProxyForProvider } from "@/lib/localDb";
 
 // POST /api/providers/validate - Validate API key with provider
 export async function POST(request) {
@@ -64,6 +65,9 @@ export async function POST(request) {
         modelsPath: node.modelsPath,
       };
     }
+
+    const proxy = await resolveProxyForProvider(provider);
+    providerSpecificData.proxyUrl = proxy;
 
     const result = await validateProviderApiKey({
       provider,
