@@ -182,19 +182,16 @@ function openaiToGeminiBase(model, body, _stream) {
             .map((tc) => getGeminiThoughtSignature(tc.id))
             .find((signature) => typeof signature === "string" && signature.length > 0);
 
-          const shouldUseEmbeddedSignature = !parts.some((p) => p.thoughtSignature);
-
           for (const tc of msg.tool_calls) {
             if (tc.type !== "function") continue;
 
             const args = tryParseJSON(tc.function?.arguments || "{}");
             const signatureForToolCall = getGeminiThoughtSignature(tc.id);
-            const embeddedThoughtSignature = shouldUseEmbeddedSignature
-              ? firstPersistedSignature || signatureForToolCall || DEFAULT_THINKING_GEMINI_SIGNATURE
-              : undefined;
+            const embeddedThoughtSignature =
+              firstPersistedSignature || signatureForToolCall || DEFAULT_THINKING_GEMINI_SIGNATURE;
 
             parts.push({
-              ...(embeddedThoughtSignature ? { thoughtSignature: embeddedThoughtSignature } : {}),
+              thoughtSignature: embeddedThoughtSignature,
               functionCall: {
                 id: tc.id,
                 name: tc.function.name,
@@ -517,12 +514,9 @@ function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = nu
       if (parts.length > 0) {
         const role = msg.role === "assistant" ? "model" : "user";
         if (role === "model") {
-          const hasSignature = parts.some((p) => p.thoughtSignature);
-          if (!hasSignature) {
-            for (const p of parts) {
-              if (p.functionCall) {
-                p.thoughtSignature = DEFAULT_THINKING_GEMINI_SIGNATURE;
-              }
+          for (const p of parts) {
+            if (p.functionCall && !p.thoughtSignature) {
+              p.thoughtSignature = DEFAULT_THINKING_GEMINI_SIGNATURE;
             }
           }
         }
