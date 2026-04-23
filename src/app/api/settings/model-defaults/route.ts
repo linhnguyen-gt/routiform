@@ -7,7 +7,7 @@ import {
   removeModelReasoningEffortDefault,
   setCustomModelReasoningEffortDefaults,
   setModelReasoningEffortDefault,
-} from "@routiform/open-sse/config/providerRegistry.ts";
+} from "@routiform/open-sse/config/registry-params.ts";
 import {
   addModelReasoningDefaultSchema,
   removeModelReasoningDefaultSchema,

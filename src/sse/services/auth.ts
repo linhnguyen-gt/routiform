@@ -12,7 +12,7 @@ import { COOLDOWN_MS } from "@routiform/open-sse/config/constants.ts";
 import {
   getPassthroughProviders,
   isLocalProvider,
-} from "@routiform/open-sse/config/providerRegistry.ts";
+} from "@routiform/open-sse/config/registry-local.ts";
 import { getCodexModelScope } from "@routiform/open-sse/executors/codex.ts";
 import {
   checkFallbackError,
