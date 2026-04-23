@@ -1,4 +1,4 @@
-import type { RegistryModel } from "./providerRegistry.ts";
+import type { RegistryModel } from "./registry-types.ts";
 
 type JsonRecord = Record<string, unknown>;
 
