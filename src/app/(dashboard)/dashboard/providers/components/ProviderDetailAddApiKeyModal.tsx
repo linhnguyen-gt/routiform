@@ -4,6 +4,10 @@ import { Badge, Button, Input, Modal } from "@/shared/components";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import {
+  XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS,
+  normalizeXiaomiTokenPlanClusterBaseUrl,
+} from "@routiform/open-sse/config/xiaomiMimoTokenPlanClusters.ts";
 import { normalizeAndValidateHttpBaseUrl } from "../providerDetailApiUtils";
 import type { AddApiKeyModalProps } from "../[id]/types";
 
@@ -22,6 +26,7 @@ export function ProviderDetailAddApiKeyModal({
   const isVertex = provider === "vertex";
   const isGlm = provider === "glm";
   const isQoder = provider === "qoder";
+  const isXiaomiTokenPlan = provider === "xiaomi-mimo-token-plan";
   const defaultBailianUrl = "https://coding-intl.dashscope.aliyuncs.com/apps/anthropic/v1";
   const defaultRegion = "us-central1";
 
@@ -29,7 +34,7 @@ export function ProviderDetailAddApiKeyModal({
     name: "",
     apiKey: "",
     priority: 1,
-    baseUrl: isBailian ? defaultBailianUrl : "",
+    baseUrl: isBailian ? defaultBailianUrl : isXiaomiTokenPlan ? "" : "",
     region: isVertex ? defaultRegion : "",
     apiRegion: "international",
     validationModelId: "",
@@ -52,6 +57,9 @@ export function ProviderDetailAddApiKeyModal({
           apiKey: formData.apiKey,
           validationModelId: formData.validationModelId || undefined,
           customUserAgent: formData.customUserAgent.trim() || undefined,
+          ...(isXiaomiTokenPlan && formData.baseUrl.trim()
+            ? { baseUrl: formData.baseUrl.trim() }
+            : {}),
         }),
       });
       const data = await res.json();
@@ -72,10 +80,21 @@ export function ProviderDetailAddApiKeyModal({
     setSaveError(null);
     try {
       let validatedBailianBaseUrl: string | null = null;
+      let validatedXiaomiTokenPlanBaseUrl: string | null = null;
       if (isBailian) {
         const checked = normalizeAndValidateHttpBaseUrl(formData.baseUrl, defaultBailianUrl);
         if (checked.error) return setSaveError(checked.error);
         validatedBailianBaseUrl = checked.value;
+      }
+      if (isXiaomiTokenPlan) {
+        const root = normalizeXiaomiTokenPlanClusterBaseUrl(formData.baseUrl);
+        const allowed = new Set<string>(XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS.map((c) => c.baseUrl));
+        if (!root || !allowed.has(root)) {
+          setSaveError("Select a Token Plan cluster (China, Singapore, or Europe).");
+          setSaving(false);
+          return;
+        }
+        validatedXiaomiTokenPlanBaseUrl = root;
       }
 
       // Detect Qoder OAuth token (starts with 'pt-') and skip validation
@@ -102,7 +121,9 @@ export function ProviderDetailAddApiKeyModal({
         providerSpecificData.customUserAgent = formData.customUserAgent.trim();
       }
       if (isBailian) providerSpecificData.baseUrl = validatedBailianBaseUrl;
-      else if (isVertex) providerSpecificData.region = formData.region;
+      else if (isXiaomiTokenPlan && validatedXiaomiTokenPlanBaseUrl) {
+        providerSpecificData.baseUrl = validatedXiaomiTokenPlanBaseUrl;
+      } else if (isVertex) providerSpecificData.region = formData.region;
       else if (isGlm) providerSpecificData.apiRegion = formData.apiRegion;
 
       const payload: Record<string, unknown> = {
@@ -143,6 +164,29 @@ export function ProviderDetailAddApiKeyModal({
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder={isQoder ? "Qoder PAT" : t("productionKey")}
         />
+        {isXiaomiTokenPlan && (
+          <div>
+            <label className="text-sm font-medium text-text-main mb-1 block">
+              Token Plan cluster
+            </label>
+            <select
+              value={formData.baseUrl}
+              onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
+            >
+              <option value="">Select cluster…</option>
+              {XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS.map((c) => (
+                <option key={c.id} value={c.baseUrl}>
+                  {c.label}: {c.baseUrl}/
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-text-muted mt-1">
+              OpenAI vs Anthropic is chosen from the incoming chat request (endpoint / body), not
+              here.
+            </p>
+          </div>
+        )}
         <div className="flex gap-2">
           <Input
             label={isQoder ? "Personal Access Token" : t("apiKeyLabel")}
@@ -166,7 +210,12 @@ export function ProviderDetailAddApiKeyModal({
           <div className="pt-6">
             <Button
               onClick={() => void validateKey()}
-              disabled={!formData.apiKey || validating || saving}
+              disabled={
+                !formData.apiKey ||
+                validating ||
+                saving ||
+                (isXiaomiTokenPlan && !formData.baseUrl.trim())
+              }
               variant="secondary"
             >
               {validating ? t("checking") : t("check")}

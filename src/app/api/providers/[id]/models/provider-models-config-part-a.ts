@@ -123,6 +123,17 @@ export const providerModelsConfigPartA: Record<string, ProviderModelsConfigEntry
       return dataObj.data || dataObj.models || [];
     },
   },
+  "xiaomi-mimo-token-plan": {
+    url: "https://token-plan-cn.xiaomimimo.com/v1/models",
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[]; models?: unknown[] };
+      return dataObj.data || dataObj.models || [];
+    },
+  },
   kimi: {
     url: "https://api.moonshot.ai/v1/models",
     method: "GET",

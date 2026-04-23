@@ -60,6 +60,51 @@ test("phase2: default executor normalizes xiaomi token-plan regional URLs", asyn
   assert.equal(normalizedUrl, "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions");
 });
 
+test("phase2: xiaomi-mimo-token-plan executor uses cluster root + __routiformTargetFormat", async () => {
+  const { DefaultExecutor } = await import("../../open-sse/executors/default.ts");
+  const creds = (fmt) => ({
+    providerSpecificData: {
+      baseUrl: "https://token-plan-sgp.xiaomimimo.com",
+      __routiformTargetFormat: fmt,
+    },
+  });
+  const ex = new DefaultExecutor("xiaomi-mimo-token-plan");
+  assert.equal(
+    ex.buildUrl("mimo-v2-pro", true, 0, creds("openai")),
+    "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions"
+  );
+  assert.equal(
+    ex.buildUrl("mimo-v2-pro", true, 0, creds("claude")),
+    "https://token-plan-sgp.xiaomimimo.com/anthropic/v1/messages"
+  );
+});
+
+test("phase2: getTargetFormat uses sourceFormat for xiaomi-mimo-token-plan", async () => {
+  const { getTargetFormat } = await import("../../open-sse/services/provider.ts");
+  assert.equal(getTargetFormat("xiaomi-mimo-token-plan", {}, { sourceFormat: "openai" }), "openai");
+  assert.equal(getTargetFormat("xiaomi-mimo-token-plan", {}, { sourceFormat: "claude" }), "claude");
+});
+
+test("phase2: registry xiaomi-mimo-token-plan entry exists", async () => {
+  const { REGISTRY } = await import("../../open-sse/config/providerRegistry.ts");
+  assert.ok(REGISTRY["xiaomi-mimo-token-plan"], "token plan registry entry should exist");
+  assert.equal(REGISTRY["xiaomi-mimo-token-plan"].alias, "mimotp");
+  assert.equal(REGISTRY["xiaomi-mimo-token-plan"].baseUrl, "https://token-plan-cn.xiaomimimo.com");
+});
+
+test("phase2: xiaomi token plan models URL from cluster root", async () => {
+  const { buildXiaomiMimoTokenPlanModelsUrl } =
+    await import("../../src/app/api/providers/[id]/models/xiaomi-mimo-token-plan-models-url.ts");
+  assert.equal(
+    buildXiaomiMimoTokenPlanModelsUrl("https://token-plan-cn.xiaomimimo.com"),
+    "https://token-plan-cn.xiaomimimo.com/v1/models"
+  );
+  assert.equal(
+    buildXiaomiMimoTokenPlanModelsUrl("https://token-plan-sgp.xiaomimimo.com/v1"),
+    "https://token-plan-sgp.xiaomimimo.com/v1/models"
+  );
+});
+
 test("phase2: provider request defaults apply only missing fields", async () => {
   const { applyProviderRequestDefaults } =
     await import("../../open-sse/services/providerRequestDefaults.ts");

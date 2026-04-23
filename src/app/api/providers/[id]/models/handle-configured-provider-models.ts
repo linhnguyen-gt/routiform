@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
 import { safeOutboundFetch } from "@/lib/network/safeOutboundFetch";
 import { buildNvidiaModelsUrl } from "./nvidia-models-url";
+import { buildXiaomiMimoTokenPlanModelsUrl } from "./xiaomi-mimo-token-plan-models-url";
 import { getProviderBaseUrl } from "./json-utils";
 import { PROVIDER_MODELS_CONFIG } from "./provider-models-config";
 import type { GetModelsHandlerContext } from "./get-models-handler-context";
@@ -31,10 +32,24 @@ export async function handleConfiguredProviderModels(
     );
   }
 
+  const fromConnection = getProviderBaseUrl(ctx.connection.providerSpecificData) || "";
   let url =
     ctx.provider === "nvidia"
       ? buildNvidiaModelsUrl(getProviderBaseUrl(ctx.connection.providerSpecificData))
-      : config.url;
+      : ctx.provider === "xiaomi-mimo-token-plan"
+        ? buildXiaomiMimoTokenPlanModelsUrl(fromConnection)
+        : config.url;
+
+  if (ctx.provider === "xiaomi-mimo-token-plan" && !url) {
+    return NextResponse.json(
+      {
+        error:
+          "Configure Base URL from Xiaomi Token Plan → Subscription (OpenAI …/v1 or Anthropic …/anthropic).",
+      },
+      { status: 400 }
+    );
+  }
+  const modelsListUrlForPaging = url;
   if (config.authQuery) {
     url += `${url.includes("?") ? "&" : "?"}${config.authQuery}=${token}`;
   }
@@ -87,7 +102,7 @@ export async function handleConfiguredProviderModels(
       break;
     }
     seenTokens.add(nextPageToken);
-    pageUrl = `${config.url}${config.url.includes("?") ? "&" : "?"}pageToken=${encodeURIComponent(nextPageToken)}`;
+    pageUrl = `${modelsListUrlForPaging}${modelsListUrlForPaging.includes("?") ? "&" : "?"}pageToken=${encodeURIComponent(nextPageToken)}`;
     if (config.authQuery) {
       pageUrl += `&${config.authQuery}=${token}`;
     }

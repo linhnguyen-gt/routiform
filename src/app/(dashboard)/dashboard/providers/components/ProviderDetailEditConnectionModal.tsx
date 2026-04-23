@@ -9,6 +9,10 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { getCodexRequestDefaults as _getCodexRequestDefaults } from "@/lib/providers/requestDefaults";
 
+import {
+  XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS,
+  normalizeXiaomiTokenPlanClusterBaseUrl,
+} from "@routiform/open-sse/config/xiaomiMimoTokenPlanClusters.ts";
 import { normalizeAndValidateHttpBaseUrl } from "../providerDetailApiUtils";
 import { ERROR_TYPE_LABELS } from "../providerDetailErrorUtils";
 import type { EditConnectionModalProps } from "../[id]/types";
@@ -65,15 +69,19 @@ export function ProviderDetailEditConnectionModal({
   const isVertex = connection?.provider === "vertex";
   const isGlm = connection?.provider === "glm";
   const isCodex = connection?.provider === "codex";
+  const isXiaomiTokenPlan = connection?.provider === "xiaomi-mimo-token-plan";
   const defaultBailianUrl = "https://coding-intl.dashscope.aliyuncs.com/apps/anthropic/v1";
   const defaultRegion = "us-central1";
 
   useEffect(() => {
     if (!connection) return;
-    const baseUrl =
+    const rawBaseUrl =
       typeof connection.providerSpecificData?.baseUrl === "string"
         ? connection.providerSpecificData.baseUrl
         : "";
+    const baseUrl = isXiaomiTokenPlan
+      ? normalizeXiaomiTokenPlanClusterBaseUrl(rawBaseUrl)
+      : rawBaseUrl;
     const region =
       typeof connection.providerSpecificData?.region === "string"
         ? connection.providerSpecificData.region
@@ -103,7 +111,7 @@ export function ProviderDetailEditConnectionModal({
     setTestResult(null);
     setValidationResult(null);
     setSaveError(null);
-  }, [connection, isBailian, isVertex]);
+  }, [connection, isBailian, isVertex, isXiaomiTokenPlan]);
 
   const validateApiKey = async () => {
     if (!connection?.provider || !formData.apiKey) return false;
@@ -118,6 +126,9 @@ export function ProviderDetailEditConnectionModal({
           apiKey: formData.apiKey,
           validationModelId: formData.validationModelId || undefined,
           customUserAgent: formData.customUserAgent.trim() || undefined,
+          ...(isXiaomiTokenPlan && formData.baseUrl.trim()
+            ? { baseUrl: formData.baseUrl.trim() }
+            : {}),
         }),
       });
       const data = await res.json();
@@ -143,10 +154,21 @@ export function ProviderDetailEditConnectionModal({
         healthCheckInterval: formData.healthCheckInterval,
       };
       let validatedBailianBaseUrl: string | null = null;
+      let validatedXiaomiTokenPlanBaseUrl: string | null = null;
       if (isBailian) {
         const checked = normalizeAndValidateHttpBaseUrl(formData.baseUrl, defaultBailianUrl);
         if (checked.error) return setSaveError(checked.error);
         validatedBailianBaseUrl = checked.value;
+      }
+      if (isXiaomiTokenPlan) {
+        const root = normalizeXiaomiTokenPlanClusterBaseUrl(formData.baseUrl);
+        const allowed = new Set<string>(XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS.map((c) => c.baseUrl));
+        if (!root || !allowed.has(root)) {
+          setSaveError("Select a Token Plan cluster (China, Singapore, or Europe).");
+          setSaving(false);
+          return;
+        }
+        validatedXiaomiTokenPlanBaseUrl = root;
       }
       const isOAuth = connection.authType === "oauth";
       if (!isOAuth && formData.apiKey) {
@@ -173,11 +195,13 @@ export function ProviderDetailEditConnectionModal({
             validationModelId: formData.validationModelId || undefined,
             ...(isBailian
               ? { baseUrl: validatedBailianBaseUrl }
-              : isVertex
-                ? { region: formData.region }
-                : isGlm
-                  ? { apiRegion: formData.apiRegion }
-                  : {}),
+              : isXiaomiTokenPlan && validatedXiaomiTokenPlanBaseUrl
+                ? { baseUrl: validatedXiaomiTokenPlanBaseUrl }
+                : isVertex
+                  ? { region: formData.region }
+                  : isGlm
+                    ? { apiRegion: formData.apiRegion }
+                    : {}),
           };
       if (isCodex) {
         const providerSpecificData =
@@ -285,6 +309,29 @@ export function ProviderDetailEditConnectionModal({
             setFormData({ ...formData, priority: Number.parseInt(e.target.value) || 1 })
           }
         />
+        {isXiaomiTokenPlan && (
+          <div>
+            <label className="text-sm font-medium text-text-main mb-1 block">
+              Token Plan cluster
+            </label>
+            <select
+              value={formData.baseUrl}
+              onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
+            >
+              <option value="">Select cluster…</option>
+              {XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS.map((c) => (
+                <option key={c.id} value={c.baseUrl}>
+                  {c.label}: {c.baseUrl}/
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-text-muted mt-1">
+              OpenAI vs Anthropic is chosen from the incoming chat request (endpoint / body), not
+              here.
+            </p>
+          </div>
+        )}
         {!isOAuth && (
           <>
             <div className="flex gap-2">
@@ -300,7 +347,12 @@ export function ProviderDetailEditConnectionModal({
               <div className="pt-6">
                 <Button
                   onClick={() => void validateApiKey()}
-                  disabled={!formData.apiKey || validating || saving}
+                  disabled={
+                    !formData.apiKey ||
+                    validating ||
+                    saving ||
+                    (isXiaomiTokenPlan && !formData.baseUrl.trim())
+                  }
                   variant="secondary"
                 >
                   {validating ? t("checking") : t("check")}

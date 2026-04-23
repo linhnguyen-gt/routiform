@@ -307,7 +307,9 @@ export async function handleChatCore({
 
   const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
   const modelTargetFormat = getModelTargetFormat(alias, resolvedModel);
-  const targetFormat = modelTargetFormat || getTargetFormat(provider);
+  const targetFormat =
+    modelTargetFormat ||
+    getTargetFormat(provider, credentials?.providerSpecificData, { sourceFormat });
   const noLogEnabled = apiKeyInfo?.noLog === true;
   const detailedLoggingEnabled = !noLogEnabled && (await isDetailedLoggingEnabled());
   const persistAttemptLogs = ({
@@ -985,19 +987,31 @@ export async function handleChatCore({
     log,
   });
   const getExecutionCredentials = () => {
-    const nextCredentials = nativeCodexPassthrough
+    let nextCredentials = nativeCodexPassthrough
       ? { ...credentials, requestEndpointPath: endpointPath }
       : credentials;
 
-    if (!ccSessionId) return nextCredentials;
+    if (ccSessionId) {
+      nextCredentials = {
+        ...nextCredentials,
+        providerSpecificData: {
+          ...(nextCredentials?.providerSpecificData || {}),
+          ccSessionId,
+        },
+      };
+    }
 
-    return {
-      ...nextCredentials,
-      providerSpecificData: {
-        ...(nextCredentials?.providerSpecificData || {}),
-        ccSessionId,
-      },
-    };
+    if (provider === "xiaomi-mimo-token-plan") {
+      return {
+        ...nextCredentials,
+        providerSpecificData: {
+          ...(nextCredentials?.providerSpecificData || {}),
+          __routiformTargetFormat: targetFormat,
+        },
+      };
+    }
+
+    return nextCredentials;
   };
 
   // Create stream controller for disconnect detection
