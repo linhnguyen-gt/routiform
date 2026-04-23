@@ -168,8 +168,9 @@ export function ProviderDetailModelsSection({
       </button>
     );
 
-    const clearAllButton = (modelMeta.customModels.length > 0 ||
-      providerAliasEntries.length > 0) && (
+    const isOpenRouterProvider =
+      providerId === "openrouter" || providerStorageAlias === "openrouter";
+    const clearAllButton = !isOpenRouterProvider && modelMeta.customModels.length > 0 && (
       <button
         onClick={() =>
           handleClearAllModels(providerStorageAlias, providerAliasEntries, fetchAliases)
@@ -183,23 +184,17 @@ export function ProviderDetailModelsSection({
     );
 
     if (isManagedAvailableModelsProvider) {
-      const description =
-        providerId === "openrouter"
-          ? t("openRouterAnyModelHint")
-          : isCcCompatible
-            ? "CC Compatible available models mirror the OAuth Claude Code provider list."
-            : t("compatibleModelsDescription", {
-                type: isAnthropicCompatible ? t("anthropic") : t("openai"),
-              });
-      const inputLabel = providerId === "openrouter" ? t("modelIdFromOpenRouter") : t("modelId");
-      const inputPlaceholder =
-        providerId === "openrouter"
-          ? t("openRouterModelPlaceholder")
-          : isCcCompatible
-            ? "claude-sonnet-4-6"
-            : isAnthropicCompatible
-              ? t("anthropicCompatibleModelPlaceholder")
-              : t("openaiCompatibleModelPlaceholder");
+      const description = isCcCompatible
+        ? "CC Compatible available models mirror the OAuth Claude Code provider list."
+        : t("compatibleModelsDescription", {
+            type: isAnthropicCompatible ? t("anthropic") : t("openai"),
+          });
+      const inputLabel = t("modelId");
+      const inputPlaceholder = isCcCompatible
+        ? "claude-sonnet-4-6"
+        : isAnthropicCompatible
+          ? t("anthropicCompatibleModelPlaceholder")
+          : t("openaiCompatibleModelPlaceholder");
 
       return (
         <div>

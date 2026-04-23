@@ -43,8 +43,18 @@ export function ProviderDetailConnectionRow({
   onToggleBulkSelect,
 }: ConnectionRowProps) {
   const t = useTranslations("providers");
+  const oauthIdentifier =
+    (connection.providerSpecificData?.githubLogin as string | undefined) ||
+    (connection.providerSpecificData?.firstName && connection.providerSpecificData?.lastName
+      ? `${connection.providerSpecificData.firstName} ${connection.providerSpecificData.lastName}`
+      : undefined);
+
   const displayName = isOAuth
-    ? connection.name || connection.email || connection.displayName || t("oauthAccount")
+    ? connection.name ||
+      oauthIdentifier ||
+      connection.email ||
+      connection.displayName ||
+      t("oauthAccount")
     : connection.name;
   const applyCodexAuthLabel =
     typeof t.has === "function" && t.has("applyCodexAuthLocal")
