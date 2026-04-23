@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.0...v3.17.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **api:** persist model reasoning defaults via DB instead of runtime map ([47a3d7c](https://github.com/linhnguyen-gt/Routiform/commit/47a3d7c4d37007027b470734ed4ffe4450ae96d3))
+
 ## [3.17.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.16.2...v3.17.0) (2026-04-23)
 
 
