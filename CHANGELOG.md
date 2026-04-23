@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.17.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.16.2...v3.17.0) (2026-04-23)
+
+
+### Features
+
+* **providers:** add Xiaomi MiMo Token Plan with cluster-only connection ([bd1f0c1](https://github.com/linhnguyen-gt/Routiform/commit/bd1f0c12f007e69100b1639b2ac0991c7c3f76d0))
+
 ### [3.16.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.16.1...v3.16.2) (2026-04-23)
 
 
