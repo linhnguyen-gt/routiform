@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.16.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.16.1...v3.16.2) (2026-04-23)
+
+
+### Bug Fixes
+
+* **providers/client:** include displayName for OAuth providers in client API ([11ad7a5](https://github.com/linhnguyen-gt/Routiform/commit/11ad7a5791434e017170e4fe75a579196526b9f0))
+* **providers:** align OpenRouter models UI and add Xiaomi MiMo model sync ([c8ff64a](https://github.com/linhnguyen-gt/Routiform/commit/c8ff64a9cf94467917eacd9942ea5bda526531bb))
+
 ### [3.16.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.16.0...v3.16.1) (2026-04-22)
 
 
