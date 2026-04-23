@@ -3,7 +3,6 @@ import type { ProviderDetailActionProps } from "../types/actions";
 
 export function useProviderDetailTestActions({
   providerId,
-  providerDisplayAlias,
   connections,
   fetchConnections,
   notify,
@@ -17,7 +16,7 @@ export function useProviderDetailTestActions({
   modelTestInFlightRef,
 }: Pick<
   ProviderDetailActionProps,
-  "providerId" | "providerDisplayAlias" | "connections" | "fetchConnections" | "notify" | "t"
+  "providerId" | "connections" | "fetchConnections" | "notify" | "t"
 > & {
   setBatchTesting: (val: boolean) => void;
   setBatchTestResults: (val: Record<string, unknown>) => void;
@@ -42,25 +41,11 @@ export function useProviderDetailTestActions({
       setModelTestBannerError("");
       let success = false;
       try {
-        const activeConnectionId = connections.find(
-          (conn: { isActive?: boolean; id?: string }) => conn.isActive !== false
-        )?.id;
-        const request =
-          providerId === "openrouter" && activeConnectionId
-            ? {
-                url: `/api/providers/${encodeURIComponent(String(activeConnectionId))}/test`,
-                body: JSON.stringify({
-                  validationModelId: fullModel.startsWith(`${providerDisplayAlias}/`)
-                    ? fullModel.slice(providerDisplayAlias.length + 1)
-                    : fullModel,
-                }),
-                fromConnectionTest: true,
-              }
-            : {
-                url: "/api/models/test",
-                body: JSON.stringify({ model: fullModel }),
-                fromConnectionTest: false,
-              };
+        const request = {
+          url: "/api/models/test",
+          body: JSON.stringify({ model: fullModel }),
+          fromConnectionTest: false,
+        };
 
         const res = await fetch(request.url, {
           method: "POST",
@@ -116,8 +101,6 @@ export function useProviderDetailTestActions({
     },
     [
       connections,
-      providerId,
-      providerDisplayAlias,
       notify,
       t,
       modelTestInFlightRef,

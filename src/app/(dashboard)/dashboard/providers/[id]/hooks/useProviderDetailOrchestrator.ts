@@ -324,7 +324,7 @@ export function useProviderDetailOrchestrator() {
   const providerSupportsPat = supportsApiKeyOnFreeProvider(providerId);
   const isOAuth = providerSupportsOAuth && !providerSupportsPat;
   const allowQoderOAuthUi = providerId !== "qoder";
-  const isManagedAvailableModelsProvider = isCompatible || providerId === "openrouter";
+  const isManagedAvailableModelsProvider = isCompatible;
   const supportsAutoSync = supportsProviderModelAutoSync(providerId);
 
   const headerImgError = headerImgErrorProviderId === providerId;

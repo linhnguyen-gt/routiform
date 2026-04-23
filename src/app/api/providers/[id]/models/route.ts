@@ -481,6 +481,17 @@ const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> = {
       return dataObj.data || [];
     },
   },
+  "xiaomi-mimo": {
+    url: "https://api.xiaomimimo.com/v1/models",
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    parseResponse: (data) => {
+      const dataObj = data as { data?: unknown[]; models?: unknown[] };
+      return dataObj.data || dataObj.models || [];
+    },
+  },
   kimi: {
     url: "https://api.moonshot.ai/v1/models",
     method: "GET",

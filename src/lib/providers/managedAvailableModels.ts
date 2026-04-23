@@ -7,13 +7,10 @@ type ManagedAvailableModel = {
 };
 
 export function getCompatibleFallbackModels(
-  providerId: string,
+  _providerId: string,
   fallbackModels: ManagedAvailableModel[] = []
 ): ManagedAvailableModel[] | undefined {
-  if (providerId === "openrouter") {
-    return fallbackModels.length > 0 ? fallbackModels : getModelsByProviderId("openrouter");
-  }
-  if (isClaudeCodeCompatibleProvider(providerId)) return getModelsByProviderId("claude");
+  if (isClaudeCodeCompatibleProvider(_providerId)) return getModelsByProviderId("claude");
   return fallbackModels;
 }
 

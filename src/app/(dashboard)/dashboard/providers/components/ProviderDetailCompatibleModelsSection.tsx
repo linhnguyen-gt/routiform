@@ -167,8 +167,6 @@ export function CompatibleModelsSection({
 
   return (
     <div className="flex flex-col gap-4">
-      {providerStorageAlias === "openrouter" && modelsList}
-
       <p className="text-sm text-text-muted">{description}</p>
 
       <div className="flex items-end gap-2 flex-wrap">
@@ -194,7 +192,7 @@ export function CompatibleModelsSection({
         </Button>
       </div>
 
-      {providerStorageAlias !== "openrouter" && modelsList}
+      {modelsList}
     </div>
   );
 }

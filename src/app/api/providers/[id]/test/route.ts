@@ -855,7 +855,7 @@ export async function testSingleConnection(connectionId: string, validationModel
       method: "POST",
       path: "/api/providers/test",
       status: result.valid ? 200 : result.statusCode || 401,
-      model: "connection-test",
+      model: validationModelId || "connection-test",
       provider,
       connectionId,
       duration: latencyMs,
