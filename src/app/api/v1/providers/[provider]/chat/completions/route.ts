@@ -3,7 +3,7 @@ import { buildClientRawRequest, handleChat } from "@/sse/handlers/chat";
 import { initTranslators } from "@routiform/open-sse/translator/index.ts";
 import { errorResponse } from "@routiform/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
-import { getRegistryEntry } from "@routiform/open-sse/config/providerRegistry.ts";
+import { getRegistryEntry } from "@routiform/open-sse/config/registry-lookup.ts";
 import { providerChatCompletionSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 

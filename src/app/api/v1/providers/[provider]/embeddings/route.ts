@@ -1,7 +1,7 @@
 import { CORS_ORIGIN } from "@/shared/utils/cors";
 import { errorResponse, unavailableResponse } from "@routiform/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@routiform/open-sse/config/constants.ts";
-import { getRegistryEntry } from "@routiform/open-sse/config/providerRegistry.ts";
+import { getRegistryEntry } from "@routiform/open-sse/config/registry-lookup.ts";
 import {
   getProviderCredentials,
   clearRecoveredProviderState,

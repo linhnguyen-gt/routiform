@@ -17,7 +17,7 @@ import { getAllAudioModels } from "@routiform/open-sse/config/audioRegistry.ts";
 import { getAllModerationModels } from "@routiform/open-sse/config/moderationRegistry.ts";
 import { getAllVideoModels } from "@routiform/open-sse/config/videoRegistry.ts";
 import { getAllMusicModels } from "@routiform/open-sse/config/musicRegistry.ts";
-import { REGISTRY } from "@routiform/open-sse/config/providerRegistry.ts";
+import { REGISTRY } from "@routiform/open-sse/config/registry-providers.ts";
 import { getSyncedAvailableModels } from "@/lib/db/models";
 import { getCompatibleFallbackModels } from "@/lib/providers/managedAvailableModels";
 

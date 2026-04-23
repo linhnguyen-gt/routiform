@@ -10,7 +10,7 @@
 
 import Bottleneck from "bottleneck";
 import { parseRetryAfterFromBody, lockModel } from "./accountFallback.ts";
-import { getProviderCategory } from "../config/providerRegistry.ts";
+import { getProviderCategory } from "../config/registry-params.ts";
 import { DEFAULT_API_LIMITS } from "../config/constants.ts";
 import { getCodexRateLimitKey } from "../executors/codex.ts";
 

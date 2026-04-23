@@ -6,7 +6,7 @@ import {
   HTTP_STATUS,
   PROVIDER_PROFILES,
 } from "../config/constants.ts";
-import { getProviderCategory } from "../config/providerRegistry.ts";
+import { getProviderCategory } from "../config/registry-params.ts";
 
 // T06 (sub2api PR #1037): Signals that indicate permanent account deactivation.
 // When a 401 body contains these strings, the account is permanently dead

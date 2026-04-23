@@ -5,7 +5,7 @@
  * 3 layers: trim tool messages, compress thinking, aggressive purification.
  */
 
-import { REGISTRY } from "../config/providerRegistry.ts";
+import { REGISTRY } from "../config/registry-providers.ts";
 import { getModelContextLimit } from "../../src/lib/modelsDevSync";
 import { CONTEXT_CONFIG } from "../../src/shared/constants/context";
 

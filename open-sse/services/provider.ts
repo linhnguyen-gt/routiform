@@ -1,5 +1,5 @@
 import { PROVIDERS } from "../config/constants.ts";
-import { getRegistryEntry } from "../config/providerRegistry.ts";
+import { getRegistryEntry } from "../config/registry-lookup.ts";
 import {
   buildClaudeCodeCompatibleHeaders,
   CLAUDE_CODE_COMPATIBLE_DEFAULT_CHAT_PATH,

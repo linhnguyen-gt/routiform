@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { getRegistryEntry } from "../../config/providerRegistry.ts";
+import { getRegistryEntry } from "../../config/registry-lookup.ts";
 import {
   PROVIDER_ID_TO_ALIAS,
   getModelsByProviderId,

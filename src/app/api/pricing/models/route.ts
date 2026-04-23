@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { REGISTRY } from "@routiform/open-sse/config/providerRegistry.ts";
+import { REGISTRY } from "@routiform/open-sse/config/registry-providers.ts";
 import { getAllCustomModels, getPricing } from "@/lib/localDb";
 
 interface ModelEntry {

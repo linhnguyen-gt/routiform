@@ -20,7 +20,7 @@ import {
   getDefaultParams,
   getForceParams,
   getUnsupportedParams,
-} from "../config/providerRegistry.ts";
+} from "../config/registry-params.ts";
 import { isEmptyContentResponse } from "../services/errorClassifier.ts";
 import { resolveModelAlias } from "../services/modelDeprecation.ts";
 import { detectFormatFromEndpoint, getTargetFormat } from "../services/provider.ts";

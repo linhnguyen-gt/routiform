@@ -1,35 +1,47 @@
-import { NextResponse } from "next/server";
-import { updateSettings } from "@/lib/db/settings";
-import {
-  getBuiltInModelReasoningEffortDefaults,
-  getCustomModelReasoningEffortDefaults,
-  getEffectiveModelReasoningEffortDefaults,
-  removeModelReasoningEffortDefault,
-  setCustomModelReasoningEffortDefaults,
-  setModelReasoningEffortDefault,
-} from "@routiform/open-sse/config/providerRegistry.ts";
+import { getSettings, updateSettings } from "@/lib/db/settings";
+import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import {
   addModelReasoningDefaultSchema,
   removeModelReasoningDefaultSchema,
   updateModelReasoningDefaultsSchema,
 } from "@/shared/validation/schemas";
-import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
+import {
+  getBuiltInModelReasoningEffortDefaults,
+  setCustomModelReasoningEffortDefaults,
+} from "@routiform/open-sse/config/registry-params.ts";
+import { NextResponse } from "next/server";
 
-function snapshot() {
-  return {
-    builtIn: getBuiltInModelReasoningEffortDefaults(),
-    custom: getCustomModelReasoningEffortDefaults(),
-    effective: getEffectiveModelReasoningEffortDefaults(),
-  };
+async function readDbCustomDefaults(): Promise<Record<string, string>> {
+  const settings = await getSettings();
+  const raw = settings.modelReasoningDefaults;
+  if (!raw) return {};
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, string>)
+      : {};
+  } catch {
+    return {};
+  }
 }
 
-async function persistCustomDefaults() {
-  await updateSettings({ modelReasoningDefaults: getCustomModelReasoningEffortDefaults() });
+async function writeDbCustomDefaults(defaults: Record<string, string>) {
+  await updateSettings({ modelReasoningDefaults: defaults });
+}
+
+async function snapshot() {
+  const dbCustom = await readDbCustomDefaults();
+  const builtIn = getBuiltInModelReasoningEffortDefaults();
+  return {
+    builtIn,
+    custom: dbCustom,
+    effective: { ...builtIn, ...dbCustom },
+  };
 }
 
 export async function GET() {
   try {
-    return NextResponse.json(snapshot());
+    return NextResponse.json(await snapshot());
   } catch (error) {
     console.error("[API ERROR] /api/settings/model-defaults GET:", error);
     return NextResponse.json({ error: "Failed to get model defaults" }, { status: 500 });
@@ -58,9 +70,11 @@ export async function PUT(request: Request) {
   }
 
   try {
-    setCustomModelReasoningEffortDefaults(validation.data.defaults);
-    await persistCustomDefaults();
-    return NextResponse.json({ success: true, ...snapshot() });
+    const dbDefaults = await readDbCustomDefaults();
+    const merged = { ...dbDefaults, ...validation.data.defaults };
+    await writeDbCustomDefaults(merged);
+    setCustomModelReasoningEffortDefaults(merged);
+    return NextResponse.json({ success: true, ...(await snapshot()) });
   } catch (error) {
     console.error("[API ERROR] /api/settings/model-defaults PUT:", error);
     return NextResponse.json({ error: "Failed to update model defaults" }, { status: 500 });
@@ -90,12 +104,12 @@ export async function POST(request: Request) {
 
   try {
     const { provider, model, effort } = validation.data;
-    const ok = setModelReasoningEffortDefault(provider, model, effort);
-    if (!ok) {
-      return NextResponse.json({ error: "Invalid provider/model/effort" }, { status: 400 });
-    }
-    await persistCustomDefaults();
-    return NextResponse.json({ success: true, ...snapshot() });
+    const dbDefaults = await readDbCustomDefaults();
+    const key = `${provider}/${model}`;
+    dbDefaults[key] = effort;
+    await writeDbCustomDefaults(dbDefaults);
+    setCustomModelReasoningEffortDefaults(dbDefaults);
+    return NextResponse.json({ success: true, ...(await snapshot()) });
   } catch (error) {
     console.error("[API ERROR] /api/settings/model-defaults POST:", error);
     return NextResponse.json({ error: "Failed to add model default" }, { status: 500 });
@@ -125,12 +139,12 @@ export async function DELETE(request: Request) {
 
   try {
     const { provider, model } = validation.data;
-    const removed = removeModelReasoningEffortDefault(provider, model);
-    if (!removed) {
-      return NextResponse.json({ error: "Default not found" }, { status: 404 });
-    }
-    await persistCustomDefaults();
-    return NextResponse.json({ success: true, ...snapshot() });
+    const dbDefaults = await readDbCustomDefaults();
+    const key = `${provider}/${model}`;
+    delete dbDefaults[key];
+    await writeDbCustomDefaults(dbDefaults);
+    setCustomModelReasoningEffortDefaults(dbDefaults);
+    return NextResponse.json({ success: true, ...(await snapshot()) });
   } catch (error) {
     console.error("[API ERROR] /api/settings/model-defaults DELETE:", error);
     return NextResponse.json({ error: "Failed to remove model default" }, { status: 500 });

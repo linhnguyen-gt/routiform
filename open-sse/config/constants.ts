@@ -1,6 +1,6 @@
 import { getUpstreamTimeoutConfig } from "@/shared/utils/runtimeTimeouts";
 import { loadProviderCredentials } from "./credentialLoader.ts";
-import { generateLegacyProviders } from "./providerRegistry.ts";
+import { generateLegacyProviders } from "./registry-generators.ts";
 
 const upstreamTimeouts = getUpstreamTimeoutConfig(process.env, (message) => {
   console.warn(`[open-sse] ${message}`);

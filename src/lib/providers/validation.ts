@@ -1,4 +1,4 @@
-import { getRegistryEntry } from "@routiform/open-sse/config/providerRegistry.ts";
+import { getRegistryEntry } from "@routiform/open-sse/config/registry-lookup.ts";
 import {
   buildClaudeCodeCompatibleHeaders,
   buildClaudeCodeCompatibleValidationPayload,
