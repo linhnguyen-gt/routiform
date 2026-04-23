@@ -723,6 +723,15 @@ export const APIKEY_PROVIDERS = {
     textIcon: "XM",
     website: "https://platform.xiaomimimo.com",
   },
+  "xiaomi-mimo-token-plan": {
+    id: "xiaomi-mimo-token-plan",
+    alias: "mimotp",
+    name: "Xiaomi MiMo (Token Plan)",
+    icon: "smart_toy",
+    color: "#FF6900",
+    textIcon: "MT",
+    website: "https://platform.xiaomimimo.com",
+  },
   ...ENABLED_WEB_SESSION_PROVIDERS,
 };
 

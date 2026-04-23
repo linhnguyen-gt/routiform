@@ -340,8 +340,13 @@ export function buildProviderHeaders(provider, credentials, stream = true, body 
   return headers;
 }
 
-// Get target format for provider
-export function getTargetFormat(provider) {
+// Optional formatHints.sourceFormat: Xiaomi Token Plan routes OpenAI vs Anthropic from the client request path/body (not from stored cluster).
+export function getTargetFormat(provider, providerSpecificData, formatHints) {
+  if (provider === "xiaomi-mimo-token-plan") {
+    const sf = formatHints?.sourceFormat;
+    if (sf === "claude") return "claude";
+    return "openai";
+  }
   if (isOpenAICompatible(provider)) {
     return getOpenAICompatibleType(provider) === "responses" ? "openai-responses" : "openai";
   }

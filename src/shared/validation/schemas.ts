@@ -1179,6 +1179,8 @@ export const validateProviderApiKeySchema = z.object({
   apiKey: z.string().trim().min(1, "Provider and API key required"),
   validationModelId: z.string().trim().optional(),
   customUserAgent: z.string().trim().max(500).optional(),
+  /** Xiaomi MiMo Token Plan: Base URL from Subscription (…/v1 or …/anthropic). */
+  baseUrl: z.string().trim().max(2048).optional(),
 });
 
 const geminiPartSchema = z

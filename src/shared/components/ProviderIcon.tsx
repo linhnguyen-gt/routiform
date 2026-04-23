@@ -226,6 +226,7 @@ const SVG_ALIASES: Record<string, string> = {
   "laozhang-ai": "laozhang.svg",
   "novita-ai": "novita.svg",
   "venice.ai": "venice.svg",
+  "xiaomi-mimo-token-plan": "xiaomi-mimo.svg",
 };
 
 const ProviderIcon = memo(function ProviderIcon({

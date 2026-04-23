@@ -10,6 +10,7 @@ import {
 } from "../services/claudeCodeCompatible.ts";
 import { isClaudeCodeCompatible } from "../services/provider.ts";
 import { buildClineHeaders } from "../services/clineAuth.ts";
+import { normalizeXiaomiTokenPlanClusterBaseUrl } from "../config/xiaomiMimoTokenPlanClusters.ts";
 
 function normalizeBaseUrl(baseUrl) {
   return String(baseUrl || "")
@@ -27,6 +28,22 @@ function normalizeDatabricksChatUrl(baseUrl) {
 function normalizeXiaomiMimoChatUrl(baseUrl) {
   const normalized = normalizeBaseUrl(baseUrl).replace(/\/chat\/completions$/, "");
   return `${normalized}/chat/completions`;
+}
+
+/** Token Plan: cluster root in PSD + __routiformTargetFormat from chat (openai vs claude). */
+function normalizeXiaomiMimoTokenPlanChatUrl(clusterOrLegacy, credentials) {
+  const raw = String(
+    (credentials?.providerSpecificData?.baseUrl != null
+      ? credentials.providerSpecificData.baseUrl
+      : clusterOrLegacy) || ""
+  );
+  let root = normalizeXiaomiTokenPlanClusterBaseUrl(raw);
+  if (!root) root = "https://token-plan-cn.xiaomimimo.com";
+  const tf = String(credentials?.providerSpecificData?.__routiformTargetFormat || "openai");
+  if (tf === "claude") {
+    return `${root}/anthropic/v1/messages`;
+  }
+  return `${root}/v1/chat/completions`;
 }
 
 function getOpenRouterAttributionHeaders() {
@@ -104,6 +121,10 @@ export class DefaultExecutor extends BaseExecutor {
         const baseUrl = credentials?.providerSpecificData?.baseUrl || this.config.baseUrl;
         return normalizeXiaomiMimoChatUrl(baseUrl);
       }
+      case "xiaomi-mimo-token-plan": {
+        const fallback = credentials?.providerSpecificData?.baseUrl || this.config.baseUrl;
+        return normalizeXiaomiMimoTokenPlanChatUrl(fallback, credentials);
+      }
       case "gemini":
         return `${this.config.baseUrl}/${model}:${stream ? "streamGenerateContent?alt=sse" : "generateContent"}`;
       default:
@@ -146,6 +167,23 @@ export class DefaultExecutor extends BaseExecutor {
       case "cline": {
         const token = effectiveKey || credentials.accessToken || "";
         return buildClineHeaders(token, stream);
+      }
+      case "xiaomi-mimo-token-plan": {
+        const tf = String(credentials?.providerSpecificData?.__routiformTargetFormat || "openai");
+        if (tf === "claude") {
+          delete (headers as Record<string, string>)["Authorization"];
+          if (effectiveKey) headers["x-api-key"] = effectiveKey;
+          else if (credentials.accessToken) {
+            headers["Authorization"] = `Bearer ${credentials.accessToken}`;
+          }
+          if (!headers["anthropic-version"]) {
+            headers["anthropic-version"] = "2023-06-01";
+          }
+        } else {
+          delete (headers as Record<string, string>)["x-api-key"];
+          headers["Authorization"] = `Bearer ${effectiveKey || credentials.accessToken}`;
+        }
+        break;
       }
       default:
         if (isClaudeCodeCompatible(this.provider)) {

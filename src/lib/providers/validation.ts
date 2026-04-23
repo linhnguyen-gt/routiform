@@ -16,6 +16,10 @@ import {
 } from "@/shared/constants/providers";
 import { isOutboundUrlPolicyError, safeOutboundFetch } from "@/lib/network/safeOutboundFetch";
 import { validateQoderCliPat } from "@routiform/open-sse/services/qoderCli.ts";
+import {
+  XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS,
+  normalizeXiaomiTokenPlanClusterBaseUrl,
+} from "@routiform/open-sse/config/xiaomiMimoTokenPlanClusters.ts";
 
 type JsonRecord = Record<string, unknown>;
 const OPENAI_LIKE_FORMATS = new Set(["openai", "openai-responses"]);
@@ -1445,6 +1449,36 @@ export async function validateProviderApiKey({
           error: toValidationErrorMessage(error, "Connection failed"),
         };
       }
+    },
+    "xiaomi-mimo-token-plan": async ({
+      apiKey,
+      providerSpecificData: psd,
+    }: Record<string, unknown>) => {
+      const providerSpecificData = (psd || {}) as Record<string, unknown>;
+      const raw =
+        typeof providerSpecificData.baseUrl === "string" ? providerSpecificData.baseUrl.trim() : "";
+      if (!raw) {
+        return {
+          valid: false,
+          error: "Select a Token Plan cluster (China, Singapore, or Europe).",
+        };
+      }
+      const root = normalizeXiaomiTokenPlanClusterBaseUrl(raw);
+      const allowed = new Set<string>(XIAOMI_MIMO_TOKEN_PLAN_CLUSTERS.map((c) => c.baseUrl));
+      if (!root || !allowed.has(root)) {
+        return {
+          valid: false,
+          error: "Unknown cluster; pick China, Singapore, or Europe (cluster root only).",
+        };
+      }
+      const baseUrl = `${root}/v1`;
+      return validateOpenAILikeProvider({
+        provider: "xiaomi-mimo-token-plan",
+        apiKey: String(apiKey || ""),
+        baseUrl,
+        providerSpecificData,
+        modelId: "mimo-v2-pro",
+      });
     },
     // Search providers — use factored validator
     ...Object.fromEntries(

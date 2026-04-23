@@ -1533,6 +1533,21 @@ export const REGISTRY: Record<string, RegistryEntry> = {
     ],
   },
 
+  "xiaomi-mimo-token-plan": {
+    id: "xiaomi-mimo-token-plan",
+    alias: "mimotp",
+    format: "openai",
+    executor: "default",
+    baseUrl: "https://token-plan-cn.xiaomimimo.com",
+    authType: "apikey",
+    authHeader: "bearer",
+    models: [
+      { id: "mimo-v2-pro", name: "MiMo-V2-Pro" },
+      { id: "mimo-v2-omni", name: "MiMo-V2-Omni" },
+      { id: "mimo-v2-tts", name: "MiMo-V2-TTS" },
+    ],
+  },
+
   scaleway: {
     id: "scaleway",
     alias: "scw",

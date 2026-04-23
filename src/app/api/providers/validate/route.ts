@@ -37,11 +37,20 @@ export async function POST(request) {
     if (isValidationFailure(validation)) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
-    const { provider, apiKey, validationModelId, customUserAgent } = validation.data;
+    const {
+      provider,
+      apiKey,
+      validationModelId,
+      customUserAgent,
+      baseUrl: clientBaseUrl,
+    } = validation.data;
 
     let providerSpecificData: Record<string, unknown> = { validationModelId };
     if (customUserAgent) {
       providerSpecificData.customUserAgent = customUserAgent;
+    }
+    if (typeof clientBaseUrl === "string" && clientBaseUrl.trim().length > 0) {
+      providerSpecificData.baseUrl = clientBaseUrl.trim();
     }
 
     if (isOpenAICompatibleProvider(provider) || isAnthropicCompatibleProvider(provider)) {
