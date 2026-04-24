@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.2...v3.17.3) (2026-04-24)
+
+
+### Bug Fixes
+
+* **deepseek:** preserve reasoning_content in multi-turn conversations ([de12540](https://github.com/linhnguyen-gt/Routiform/commit/de12540e5b4d533d30cfd33aaf4b8ae449ed65b5))
+
 ### [3.17.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.1...v3.17.2) (2026-04-24)
 
 
