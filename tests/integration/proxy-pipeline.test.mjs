@@ -52,8 +52,18 @@ describe("Chat Pipeline — handleSingleModelChat decomposition", () => {
 
   it("should keep cost accounting in the core chat pipeline", () => {
     assert.ok(coreSrc, "open-sse/handlers/chatCore.ts should exist");
-    assert.match(coreSrc, /calculateCost\(/);
-    assert.match(coreSrc, /recordCost\(/);
+
+    // After refactor, cost tracking is in phase modules
+    const nonStreamSrc = readSrc("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
+    const streamSrc = readSrc("handlers/chat-core/chat-core-phase-streaming.ts");
+
+    assert.ok(nonStreamSrc, "non-stream phase module should exist");
+    assert.ok(streamSrc, "streaming phase module should exist");
+
+    assert.match(nonStreamSrc, /calculateCost\(/, "non-stream should have calculateCost");
+    assert.match(nonStreamSrc, /recordCost\(/, "non-stream should have recordCost");
+    assert.match(streamSrc, /calculateCost\(/, "streaming should have calculateCost");
+    assert.match(streamSrc, /recordCost\(/, "streaming should have recordCost");
   });
 
   it("handleSingleModelChat should use resolveModelOrError", () => {
@@ -74,8 +84,20 @@ describe("Chat Pipeline — handleSingleModelChat decomposition", () => {
   });
 
   it("chatCore should record cost for both non-streaming and streaming responses", () => {
-    assert.match(coreSrc, /if \(apiKeyInfo\?\.id && usage\)/);
-    assert.match(coreSrc, /if \(apiKeyInfo\?\.id && streamUsage\)/);
+    // After refactor, cost recording is in phase modules
+    const nonStreamSrc = readSrc("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
+    const streamSrc = readSrc("handlers/chat-core/chat-core-phase-streaming.ts");
+
+    assert.ok(nonStreamSrc, "non-stream phase module should exist");
+    assert.ok(streamSrc, "streaming phase module should exist");
+
+    // Check for cost recording logic in both phases
+    assert.match(
+      nonStreamSrc,
+      /if \(estimatedCost > 0\) recordCost/,
+      "non-stream should record cost"
+    );
+    assert.match(streamSrc, /if \(estimatedCost > 0\) recordCost/, "streaming should record cost");
   });
 });
 
