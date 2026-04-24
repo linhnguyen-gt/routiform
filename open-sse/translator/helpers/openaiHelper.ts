@@ -24,8 +24,19 @@ export function filterToOpenAIFormat(body) {
     // Keep assistant messages with tool_calls as-is
     if (msg.role === "assistant" && msg.tool_calls) return msg;
 
+    // Preserve existing reasoning_content from history (DeepSeek requirement)
+    // Also handle 'reasoning' alias (normalize to reasoning_content)
+    const existingReasoningContent = msg.reasoning_content || msg.reasoning;
+
     // Handle string content
-    if (typeof msg.content === "string") return msg;
+    if (typeof msg.content === "string") {
+      // If message already has reasoning_content, preserve it
+      if (existingReasoningContent) {
+        const { reasoning: _reasoning, ...cleanMsg } = msg;
+        return { ...cleanMsg, reasoning_content: existingReasoningContent };
+      }
+      return msg;
+    }
 
     // Handle array content
     if (Array.isArray(msg.content)) {
@@ -61,9 +72,13 @@ export function filterToOpenAIFormat(body) {
         filteredContent.push({ type: "text", text: "" });
       }
 
-      const result = { ...msg, content: filteredContent };
+      const { reasoning: _reasoning, ...cleanMsg } = msg;
+      const result = { ...cleanMsg, content: filteredContent };
       // Attach thinking as reasoning_content for OpenAI extended thinking format
-      if (thinkingText && msg.role === "assistant") {
+      // Priority: existing reasoning_content > extracted thinking > nothing
+      if (existingReasoningContent) {
+        result.reasoning_content = existingReasoningContent;
+      } else if (thinkingText && msg.role === "assistant") {
         result.reasoning_content = thinkingText;
       }
       return result;
@@ -78,6 +93,8 @@ export function filterToOpenAIFormat(body) {
     if (msg.role === "tool") return true;
     // Always keep assistant messages with tool_calls
     if (msg.role === "assistant" && msg.tool_calls) return true;
+    // Always keep assistant messages with reasoning_content (DeepSeek requirement)
+    if (msg.role === "assistant" && msg.reasoning_content) return true;
 
     if (typeof msg.content === "string") return msg.content.trim() !== "";
     if (Array.isArray(msg.content)) {
