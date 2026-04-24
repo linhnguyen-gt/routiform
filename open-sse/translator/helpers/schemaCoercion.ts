@@ -207,12 +207,7 @@ export function injectEmptyReasoningContent(messages: unknown): unknown {
 
   return messages.map((message) => {
     if (!isPlainObject(message)) return message;
-    if (
-      message.role !== "assistant" ||
-      !Array.isArray(message.tool_calls) ||
-      message.tool_calls.length === 0 ||
-      message.reasoning_content !== undefined
-    ) {
+    if (message.role !== "assistant" || message.reasoning_content !== undefined) {
       return message;
     }
 
