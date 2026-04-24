@@ -161,7 +161,7 @@ export async function recommendStrategyOverride(
       return noOverride;
     }
   } catch (_error) {
-    console.error("Failed to check adaptiveVolumeRouting setting:", error);
+    console.error("Failed to check adaptiveVolumeRouting setting:", _error);
     return noOverride;
   }
 
