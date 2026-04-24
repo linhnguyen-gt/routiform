@@ -4,19 +4,22 @@ import { asRecord } from "./json-utils";
 const DEFAULT_CODEX_MODELS_BASE_URL = "https://chatgpt.com/backend-api/codex";
 export const DEFAULT_CODEX_CLIENT_VERSION = "0.92.0";
 const DISABLED_CODEX_MODEL_IDS = new Set(["gpt-oss-120b", "gpt-oss-20b"]);
-const CODEX_ALLOWED_MODELS = ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"] as const;
-const CODEX_ALLOWED_MODEL_IDS = new Set<string>(CODEX_ALLOWED_MODELS);
-const CODEX_MODEL_DISPLAY_NAMES: Record<(typeof CODEX_ALLOWED_MODELS)[number], string> = {
-  "gpt-5.4": "gpt-5.4",
-  "gpt-5.4-mini": "gpt-5.4-mini",
-  "gpt-5.3-codex": "gpt-5.3-codex",
-  "gpt-5.2": "gpt-5.2",
-};
+
+// Fallback models from Codex documentation when API doesn't return full list
+const FALLBACK_CODEX_MODELS: Array<{ id: string; name: string }> = [
+  { id: "gpt-5.5", name: "GPT-5.5" },
+  { id: "gpt-5.4", name: "GPT-5.4" },
+  { id: "gpt-5.4-mini", name: "GPT-5.4 mini" },
+  { id: "gpt-5.3-codex", name: "GPT-5.3-Codex" },
+  { id: "gpt-5.3-codex-spark", name: "GPT-5.3-Codex Spark" },
+  { id: "gpt-5.2", name: "GPT-5.2" },
+  { id: "gpt-5", name: "GPT-5" },
+];
 
 function getDefaultCodexModels(): Array<JsonRecord> {
-  return CODEX_ALLOWED_MODELS.map((id) => ({
-    id,
-    name: CODEX_MODEL_DISPLAY_NAMES[id],
+  return FALLBACK_CODEX_MODELS.map((m) => ({
+    id: m.id,
+    name: m.name,
     hidden: false,
     owned_by: "codex",
   }));
@@ -25,26 +28,22 @@ function getDefaultCodexModels(): Array<JsonRecord> {
 export function mergeCodexModels(models: Array<JsonRecord>): Array<JsonRecord> {
   const mergedById = new Map<string, JsonRecord>();
 
+  // Start with fallback models
   for (const model of getDefaultCodexModels()) {
     mergedById.set(String(model.id), model);
   }
 
+  // Override with API models if available
   for (const model of models) {
     const id = typeof model.id === "string" ? model.id : "";
-    if (!CODEX_ALLOWED_MODEL_IDS.has(id)) continue;
+    if (!id) continue;
     mergedById.set(id, {
       ...mergedById.get(id),
       ...model,
-      id,
-      name: CODEX_MODEL_DISPLAY_NAMES[id as (typeof CODEX_ALLOWED_MODELS)[number]],
-      hidden: false,
-      owned_by: "codex",
     });
   }
 
-  return CODEX_ALLOWED_MODELS.map((id) => mergedById.get(id)).filter((m): m is JsonRecord =>
-    Boolean(m)
-  );
+  return Array.from(mergedById.values());
 }
 
 export function normalizeCodexModelsBaseUrl(baseUrl: string | null): string {
@@ -67,6 +66,9 @@ export function mapCodexModelsFromApi(data: unknown, includeHidden: boolean): Ar
     : Array.isArray(record.data)
       ? record.data
       : [];
+
+  console.log("[Codex Models] Raw API response:", JSON.stringify(data, null, 2));
+  console.log("[Codex Models] Raw models count:", rawModels.length);
 
   const mapped = rawModels
     .map((item) => {
@@ -93,11 +95,28 @@ export function mapCodexModelsFromApi(data: unknown, includeHidden: boolean): Ar
 
   const withoutDisabled = mapped.filter((model) => {
     const id = typeof model.id === "string" ? model.id : "";
-    return !DISABLED_CODEX_MODEL_IDS.has(id) && CODEX_ALLOWED_MODEL_IDS.has(id);
+    const isDisabled = DISABLED_CODEX_MODEL_IDS.has(id);
+    if (isDisabled) {
+      console.log("[Codex Models] Filtered out disabled model:", id);
+    }
+    return !isDisabled;
   });
+
+  console.log("[Codex Models] After mapping:", mapped.length);
+  console.log("[Codex Models] After disabled filter:", withoutDisabled.length);
+
   const visible = includeHidden
     ? withoutDisabled
     : withoutDisabled.filter((model) => model.hidden !== true);
+
+  console.log(
+    "[Codex Models] After hidden filter (includeHidden=" + includeHidden + "):",
+    visible.length
+  );
+  console.log(
+    "[Codex Models] Final models:",
+    visible.map((m) => ({ id: m.id, name: m.name, hidden: m.hidden }))
+  );
 
   return mergeCodexModels(visible);
 }
