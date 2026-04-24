@@ -92,7 +92,7 @@ export async function chatCorePhaseTranslateAndBundle(p: ChatCorePipeline): Prom
     unknown
   >;
 
-  const contextResult = validateAndCompressContext({
+  const contextResult = await validateAndCompressContext({
     body: p.body,
     provider: p.provider,
     model: p.effectiveModel,

@@ -48,6 +48,8 @@ export async function getSettings() {
     hiddenSidebarItems: [],
     alwaysPreserveClientCache: "auto",
     idempotencyWindowMs: 5000,
+    /** Proxy-side prompt compression: "passthrough" | "auto-compress" */
+    contextValidation: "passthrough",
   };
   for (const row of rows) {
     const record = toRecord(row);

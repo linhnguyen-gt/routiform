@@ -106,7 +106,9 @@ const MODEL_UNAVAILABLE_FRAGMENTS = [
   "does not support",
   "not enabled for",
   "access to model",
-  "improperly formed request", // Kiro 400 (model unavailable)
+  // Kiro/AWS sometimes returns a bare "Improperly formed request." for account/payload issues;
+  // do not treat that as model-unavailable (same model works on another account).
+  "improperly formed request for selected model",
   "provider returned error", // Generic 400 from upstream (e.g. GitHub Copilot)
 ];
 

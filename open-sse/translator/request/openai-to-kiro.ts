@@ -2,6 +2,7 @@
  * OpenAI to Kiro Request Translator
  * Converts OpenAI Chat Completions format to Kiro/AWS CodeWhisperer format.
  */
+import { coerceToolSchemas, sanitizeToolDescriptions } from "../helpers/schemaCoercion.ts";
 import { register } from "../registry.ts";
 import { FORMATS } from "../formats.ts";
 import { v4 as uuidv4 } from "uuid";
@@ -128,8 +129,40 @@ function ensureObject(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
 }
 
+/**
+ * Bedrock-style tool inputSchema rejects many JSON Schema meta / draft extensions.
+ * Stripping these is wire compliance only — it does not remove conversation or tools.
+ * (Real-world Claude Code payloads often include `$schema` on every tool.)
+ */
+const BEDROCK_KIRO_TOOL_SCHEMA_STRIP_KEYS = new Set([
+  "$schema",
+  "$id",
+  "$comment",
+  "definitions",
+  "$defs",
+  "propertyNames",
+]);
+
+function stripBedrockUnsupportedToolSchemaKeywords(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stripBedrockUnsupportedToolSchemaKeywords(entry));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const source = value as JsonRecord;
+  const result: JsonRecord = {};
+  for (const [key, child] of Object.entries(source)) {
+    if (BEDROCK_KIRO_TOOL_SCHEMA_STRIP_KEYS.has(key)) continue;
+    result[key] = stripBedrockUnsupportedToolSchemaKeywords(child);
+  }
+  return result;
+}
+
 function normalizeSchema(schema: unknown): JsonRecord {
-  const raw = ensureObject(schema);
+  const stripped = stripBedrockUnsupportedToolSchemaKeywords(schema);
+  const raw = ensureObject(stripped);
   const properties = ensureObject(raw.properties);
   const required = Array.isArray(raw.required)
     ? raw.required.filter((item): item is string => typeof item === "string")
@@ -544,7 +577,11 @@ export function buildKiroPayload(
   void stream;
 
   const messages = body.messages;
-  const tools = body.tools;
+  let tools = body.tools;
+  if (tools !== undefined) {
+    tools = coerceToolSchemas(tools);
+    tools = sanitizeToolDescriptions(tools);
+  }
   const { history, currentMessage } = convertMessages(messages, tools, model);
   const timestamp = new Date().toISOString();
   const finalContent = `[Context: Current time is ${timestamp}]\n\n${currentMessage.userInputMessage.content}`;

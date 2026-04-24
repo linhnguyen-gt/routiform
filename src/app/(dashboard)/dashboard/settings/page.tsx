@@ -12,6 +12,7 @@ import ComboDefaultsTab from "./components/ComboDefaultsTab";
 import ProxyTab from "./components/ProxyTab";
 import AppearanceTab from "./components/AppearanceTab";
 import ThinkingBudgetTab from "./components/ThinkingBudgetTab";
+import ContextValidationTab from "./components/ContextValidationTab";
 import SystemPromptTab from "./components/SystemPromptTab";
 import ModelAliasesTab from "./components/ModelAliasesTab";
 import BackgroundDegradationTab from "./components/BackgroundDegradationTab";
@@ -91,6 +92,7 @@ export default function SettingsPage() {
 
           {activeTab === "ai" && (
             <div className="flex flex-col gap-6">
+              <ContextValidationTab />
               <ThinkingBudgetTab />
               <SystemPromptTab />
               <CacheSettingsTab />

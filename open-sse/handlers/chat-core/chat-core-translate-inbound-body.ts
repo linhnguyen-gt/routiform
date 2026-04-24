@@ -1,5 +1,6 @@
 import { getModelNormalizeToolCallId, getModelPreserveOpenAIDeveloperRole } from "@/lib/localDb";
 import { FORMATS } from "../../translator/formats.ts";
+import { sanitizeAnthropicThinkingPayload } from "../../translator/helpers/claudeHelper.ts";
 import { translateRequest } from "../../translator/index.ts";
 import {
   buildClaudeCodeCompatibleRequest,
@@ -117,6 +118,7 @@ export async function translateInboundRequestBody({
     } else if (isClaudePassthrough) {
       translatedBody = { ...body };
       translatedBody._disableToolPrefix = true;
+      sanitizeAnthropicThinkingPayload(translatedBody);
       log?.debug?.("FORMAT", `claude passthrough (preserveCache=${preserveCacheControl})`);
     } else {
       translatedBody = { ...body };

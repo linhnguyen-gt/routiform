@@ -367,7 +367,7 @@ export function compressContext(
 
   // Layer 0: Compact tool definitions (large tool registries can dominate context budget)
   if (Array.isArray(tools) && tools.length > 0) {
-    tools = compactToolDefinitions(tools, messages, 32);
+    tools = compactToolDefinitions(tools, messages, 96);
     currentTokens = estimateRequestTokens(buildWorkingBody());
     stats.layers.push({ name: "compact_tools", tokens: currentTokens });
     if (currentTokens <= targetTokens) {
@@ -635,7 +635,8 @@ function purifyHistory(messages, fitsWithinTarget) {
     }
 
     if (keep === 0) break;
-    const nextKeep = Math.floor(keep * 0.7);
+    // Gentler decay than 0.7 (which nuked ~30% per step and felt like "half context gone")
+    const nextKeep = Math.max(0, Math.floor(keep * 0.9));
     keep = nextKeep < keep ? nextKeep : keep - 1;
   }
 

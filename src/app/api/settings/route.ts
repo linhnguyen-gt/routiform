@@ -163,6 +163,12 @@ export async function PATCH(request) {
       );
     }
 
+    if ("contextValidation" in body) {
+      const { invalidateContextValidationSettingsCache } =
+        await import("@routiform/open-sse/services/contextValidationSettings.ts");
+      invalidateContextValidationSettingsCache();
+    }
+
     // Sync models.dev sync settings (compare old vs new state)
     if (oldSettings && ("modelsDevSyncEnabled" in body || "modelsDevSyncInterval" in body)) {
       const { stopPeriodicSync, startPeriodicSync } = await import("@/lib/modelsDevSync");

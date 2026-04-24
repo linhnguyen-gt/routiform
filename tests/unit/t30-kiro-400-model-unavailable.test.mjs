@@ -12,6 +12,11 @@ test("T30: Kiro 'improperly formed request' 400 is treated as model-unavailable"
   assert.equal(unavailable, true);
 });
 
+test("T30: bare Kiro 'Improperly formed request.' 400 is not model-unavailable (account/payload)", () => {
+  assert.equal(isModelUnavailableError(400, "[400]: Improperly formed request."), false);
+  assert.equal(isModelUnavailableError(400, "Improperly formed request."), false);
+});
+
 test("T30: generic 400 without model-unavailable signal is not treated as unavailable", () => {
   const unavailable = isModelUnavailableError(400, "Bad Request: malformed JSON body");
   assert.equal(unavailable, false);

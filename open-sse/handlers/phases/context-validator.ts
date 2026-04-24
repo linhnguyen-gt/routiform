@@ -2,6 +2,7 @@ import { HTTP_STATUS } from "../../config/constants.ts";
 import { recordContextCompression, recordContextRejection } from "../../services/comboMetrics.ts";
 import { compressContext, validateContextLimit } from "../../services/contextManager.ts";
 import { createErrorResult } from "../../utils/error.ts";
+import { isProxyContextCompressionEnabled } from "../../services/contextValidationSettings.ts";
 
 /**
  * Result of context validation and compression.
@@ -24,6 +25,9 @@ export interface ContextValidationResult {
 /**
  * Validates request context size and attempts compression if needed.
  *
+ * Unless proxy context compression is enabled (Dashboard → AI → Request context,
+ * or env `ROUTIFORM_CONTEXT_VALIDATION`), returns the body unchanged.
+ *
  * Phase 1 & 2: Context Validation & Compression
  * - Validates context window BEFORE translation to catch oversized requests early
  * - Attempts compression if request exceeds limits
@@ -40,7 +44,7 @@ export interface ContextValidationResult {
  * @param persistFailureUsage - Callback to persist failure metrics
  * @returns Validation result with updated body or error
  */
-export function validateAndCompressContext({
+export async function validateAndCompressContext({
   body,
   provider,
   model,
@@ -71,7 +75,11 @@ export function validateAndCompressContext({
     warn?: (tag: string, message: string) => void;
   } | null;
   persistFailureUsage: (statusCode: number, errorCode?: string | null) => void;
-}): ContextValidationResult {
+}): Promise<ContextValidationResult> {
+  if (!(await isProxyContextCompressionEnabled())) {
+    return { valid: true, body };
+  }
+
   const validation = validateContextLimit(body, provider, model, combo);
 
   if (!validation.valid) {

@@ -219,6 +219,25 @@ function convertClaudeMessage(msg) {
             content: resultContent,
           });
           break;
+
+        case "thinking":
+        case "redacted_thinking":
+          break;
+
+        case "server_tool_use":
+          {
+            const normalizedName = normalizeToolName(block.name);
+            if (!normalizedName) break;
+            toolCalls.push({
+              id: block.id,
+              type: "function",
+              function: {
+                name: normalizedName,
+                arguments: JSON.stringify(block.input || {}),
+              },
+            });
+          }
+          break;
       }
     }
 
@@ -253,6 +272,10 @@ function convertClaudeMessage(msg) {
     if (msg.content.length === 0) {
       return { role, content: "" };
     }
+
+    // Had blocks but none mapped to parts/tools (e.g. only unknown types) — keep turn
+    // so downstream OpenAI→Kiro conversion does not drop alternating roles.
+    return { role, content: "" };
   }
 
   return null;

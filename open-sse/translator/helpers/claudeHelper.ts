@@ -1,5 +1,47 @@
 // Claude helper functions for translator
+import { capThinkingBudget, getDefaultThinkingBudget } from "@/shared/constants/modelSpecs";
 import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../../config/defaultThinkingSignature.ts";
+
+const DEFAULT_THINKING_BUDGET_FALLBACK = 10240;
+
+/**
+ * Claude Code sends thinking.type "adaptive", which Anthropic-compatible upstreams
+ * reject with 400 "Improperly formed request." Normalize to API-supported shape.
+ */
+export function sanitizeAnthropicThinkingPayload(body: Record<string, unknown>): void {
+  const thinking = body.thinking as Record<string, unknown> | undefined;
+  if (!thinking || typeof thinking !== "object") return;
+
+  if (thinking.type === "adaptive") {
+    thinking.type = "enabled";
+  }
+
+  if (thinking.type !== "enabled") return;
+
+  const modelId = typeof body.model === "string" ? body.model : "";
+  const budgetRaw = thinking.budget_tokens;
+  let budgetNum =
+    typeof budgetRaw === "number" && Number.isFinite(budgetRaw)
+      ? budgetRaw
+      : typeof budgetRaw === "string" && String(budgetRaw).trim()
+        ? Number(String(budgetRaw).trim())
+        : NaN;
+
+  if (!Number.isFinite(budgetNum) || budgetNum <= 0) {
+    const fromSpec = getDefaultThinkingBudget(modelId);
+    const raw = fromSpec > 0 ? fromSpec : DEFAULT_THINKING_BUDGET_FALLBACK;
+    budgetNum = capThinkingBudget(modelId, raw);
+  } else {
+    budgetNum = capThinkingBudget(modelId, budgetNum);
+  }
+
+  thinking.budget_tokens = budgetNum;
+
+  const maxTok = body.max_tokens;
+  if (typeof maxTok === "number" && maxTok <= budgetNum) {
+    body.max_tokens = budgetNum + 8192;
+  }
+}
 
 function isAssistantActionBlock(block) {
   return (
@@ -181,6 +223,8 @@ function markMessageCacheControl(msg: unknown, ttl: number | undefined = undefin
 // - Add thinking block for Anthropic endpoint (provider === "claude")
 // - Fix tool_use/tool_result ordering
 export function prepareClaudeRequest(body, provider = null, preserveCacheControl = false) {
+  sanitizeAnthropicThinkingPayload(body);
+
   // 1. System: remove all cache_control, add only to last block with ttl 1h
   // In passthrough mode, preserve existing cache_control markers
   if (body.system && Array.isArray(body.system) && !preserveCacheControl) {

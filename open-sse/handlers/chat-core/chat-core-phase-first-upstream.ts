@@ -44,10 +44,20 @@ export async function chatCorePhaseFirstUpstream(p: ChatCorePipeline): Promise<P
   const messages = translatedBody.messages;
   const contents = translatedBody.contents;
   const reqContents = (translatedBody.request as { contents?: unknown[] } | undefined)?.contents;
+  const conversationState = translatedBody.conversationState as
+    | { history?: unknown[]; currentMessage?: unknown }
+    | undefined;
+  const kiroTurnCount =
+    conversationState &&
+    (Array.isArray(conversationState.history) || conversationState.currentMessage != null)
+      ? (Array.isArray(conversationState.history) ? conversationState.history.length : 0) +
+        (conversationState.currentMessage != null ? 1 : 0)
+      : 0;
   const msgCount =
     (Array.isArray(messages) ? messages.length : 0) ||
     (Array.isArray(contents) ? contents.length : 0) ||
     (Array.isArray(reqContents) ? reqContents.length : 0) ||
+    kiroTurnCount ||
     0;
   log?.debug?.("REQUEST", `${p.provider.toUpperCase()} | ${p.model} | ${msgCount} msgs`);
 

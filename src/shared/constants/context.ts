@@ -1,5 +1,11 @@
-export const CONTEXT_CONFIG = {
+/**
+ * Defaults for compress layers (when enabled from Dashboard → AI → Request context,
+ * or `ROUTIFORM_CONTEXT_VALIDATION` for deployments).
+ */
+export const CONTEXT_CONFIG: {
+  readonly defaultLimit: number;
+  readonly reserveTokens: number;
+} = {
   defaultLimit: 200000,
-  validationStrategy: "auto-compress",
   reserveTokens: 16000,
-} as const;
+};
