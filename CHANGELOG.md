@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.18.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.3...v3.18.0) (2026-04-24)
+
+
+### Features
+
+* **open-sse:** Kiro tool schema, context UI, thinking and fallback fixes ([f5c8a3e](https://github.com/linhnguyen-gt/Routiform/commit/f5c8a3e70421fa88095131ef35ccec8c502eb193))
+
+
+### Bug Fixes
+
+* **deepseek:** inject empty reasoning_content for all assistant messages ([77db382](https://github.com/linhnguyen-gt/Routiform/commit/77db38256e2e1d7b51b4094ca74996502f2410b0))
+
 ### [3.17.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.2...v3.17.3) (2026-04-24)
 
 
