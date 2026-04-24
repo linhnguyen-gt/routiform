@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.1...v3.17.2) (2026-04-24)
+
+
+### Bug Fixes
+
+* **tests:** update integration tests after chat-core refactor ([2b2ba7a](https://github.com/linhnguyen-gt/Routiform/commit/2b2ba7adebf324c2dec9cb2d674a0e1145b88a7c))
+* **tests:** use readOpenSse for chat-core phase modules ([82d42b5](https://github.com/linhnguyen-gt/Routiform/commit/82d42b54ecf10bf8b4a12d607404cab877bfe1c8))
+
 ### [3.17.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.0...v3.17.1) (2026-04-23)
 
 
