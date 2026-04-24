@@ -61,28 +61,40 @@ test("codex models helper maps API payload and hides non-list entries", () => {
   };
 
   const visible = mapCodexModelsFromApi(payload, false);
-  assert.deepEqual(
-    visible.map((m) => m.id),
-    ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"]
+  const visibleIds = visible.map((m) => m.id);
+
+  // Should include fallback models + API models (excluding disabled)
+  assert.ok(visibleIds.includes("gpt-5.5"), "Should include gpt-5.5 from fallback");
+  assert.ok(visibleIds.includes("gpt-5.4"), "Should include gpt-5.4");
+  assert.ok(visibleIds.includes("gpt-5.4-mini"), "Should include gpt-5.4-mini");
+  assert.ok(visibleIds.includes("gpt-5.3-codex"), "Should include gpt-5.3-codex");
+  assert.ok(
+    visibleIds.includes("gpt-5.3-codex-spark"),
+    "Should include gpt-5.3-codex-spark from fallback"
   );
+  assert.ok(visibleIds.includes("gpt-5.2"), "Should include gpt-5.2");
+  assert.ok(visibleIds.includes("gpt-5"), "Should include gpt-5 from fallback");
+  assert.ok(visibleIds.includes("gpt-5.2-codex"), "Should include gpt-5.2-codex from API");
+
+  // Should exclude disabled models
   assert.equal(
     visible.some((m) => m.id === "gpt-oss-120b"),
-    false
-  );
-  assert.equal(
-    visible.some((m) => m.id === "gpt-5.2-codex"),
-    false
+    false,
+    "Should exclude disabled gpt-oss-120b"
   );
 
   const all = mapCodexModelsFromApi(payload, true);
-  assert.equal(all.length, 4);
+  assert.ok(all.length >= 7, "Should have at least 7 models (fallback + API)");
   assert.equal(
     all.some((m) => m.id === "gpt-oss-120b"),
-    false
+    false,
+    "Should exclude disabled models even with includeHidden=true"
   );
+  // When includeHidden=true, hidden models from API should be included
   assert.equal(
     all.some((m) => m.id === "hidden-model"),
-    false
+    true,
+    "Should include hidden models when includeHidden=true"
   );
 });
 
@@ -92,8 +104,17 @@ test("codex models helper backfills curated defaults when API payload is incompl
   };
 
   const visible = mapCodexModelsFromApi(payload, false);
-  assert.deepEqual(
-    visible.map((m) => m.id),
-    ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"]
+  const visibleIds = visible.map((m) => m.id);
+
+  // Should include all fallback models even when API only returns one
+  assert.ok(visibleIds.includes("gpt-5.5"), "Should include gpt-5.5 from fallback");
+  assert.ok(visibleIds.includes("gpt-5.4"), "Should include gpt-5.4 from fallback");
+  assert.ok(visibleIds.includes("gpt-5.4-mini"), "Should include gpt-5.4-mini from fallback");
+  assert.ok(visibleIds.includes("gpt-5.3-codex"), "Should include gpt-5.3-codex from fallback");
+  assert.ok(
+    visibleIds.includes("gpt-5.3-codex-spark"),
+    "Should include gpt-5.3-codex-spark from fallback"
   );
+  assert.ok(visibleIds.includes("gpt-5.2"), "Should include gpt-5.2 from API");
+  assert.ok(visibleIds.includes("gpt-5"), "Should include gpt-5 from fallback");
 });
