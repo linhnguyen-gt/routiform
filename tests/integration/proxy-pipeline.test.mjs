@@ -54,8 +54,8 @@ describe("Chat Pipeline — handleSingleModelChat decomposition", () => {
     assert.ok(coreSrc, "open-sse/handlers/chatCore.ts should exist");
 
     // After refactor, cost tracking is in phase modules
-    const nonStreamSrc = readSrc("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
-    const streamSrc = readSrc("handlers/chat-core/chat-core-phase-streaming.ts");
+    const nonStreamSrc = readOpenSse("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
+    const streamSrc = readOpenSse("handlers/chat-core/chat-core-phase-streaming.ts");
 
     assert.ok(nonStreamSrc, "non-stream phase module should exist");
     assert.ok(streamSrc, "streaming phase module should exist");
@@ -85,8 +85,8 @@ describe("Chat Pipeline — handleSingleModelChat decomposition", () => {
 
   it("chatCore should record cost for both non-streaming and streaming responses", () => {
     // After refactor, cost recording is in phase modules
-    const nonStreamSrc = readSrc("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
-    const streamSrc = readSrc("handlers/chat-core/chat-core-phase-streaming.ts");
+    const nonStreamSrc = readOpenSse("handlers/chat-core/chat-core-phase-non-stream-complete.ts");
+    const streamSrc = readOpenSse("handlers/chat-core/chat-core-phase-streaming.ts");
 
     assert.ok(nonStreamSrc, "non-stream phase module should exist");
     assert.ok(streamSrc, "streaming phase module should exist");
