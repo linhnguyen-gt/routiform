@@ -163,3 +163,106 @@ test("buildKiroPayload attaches image bytes from media tool results so Kiro can 
     true
   );
 });
+
+test("buildKiroPayload drops leading assistant/tool fragments from truncated history", () => {
+  const body = {
+    messages: [
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "call_early",
+            name: "read",
+            input: { filePath: "/tmp/a.ts", offset: 1, limit: 50 },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "call_early",
+        content: "orphan result",
+      },
+      {
+        role: "user",
+        content: "Continue with this task",
+      },
+    ],
+  };
+
+  const payload = buildKiroPayload("claude-sonnet-4.5", body, true, null);
+  const history = payload.conversationState.history;
+
+  assert.equal(
+    history.some((item) => Boolean(item.assistantResponseMessage)),
+    false,
+    "Leading assistant/tool fragments should be removed from Kiro history"
+  );
+  assert.equal(
+    payload.conversationState.currentMessage.userInputMessage.content.includes(
+      "Continue with this task"
+    ),
+    true
+  );
+});
+
+test("buildKiroPayload truncates oversized tool descriptions for Kiro compatibility", () => {
+  const veryLongDescription = "d".repeat(6000);
+  const body = {
+    messages: [{ role: "user", content: "Run tool" }],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "task",
+          description: veryLongDescription,
+          parameters: { type: "object", properties: { q: { type: "string" } } },
+        },
+      },
+    ],
+  };
+
+  const payload = buildKiroPayload("claude-sonnet-4.5", body, true, null);
+  const description =
+    payload.conversationState.currentMessage.userInputMessage.userInputMessageContext.tools[0]
+      .toolSpecification.description;
+
+  assert.ok(description.length <= 515, "Kiro tool description should be aggressively capped");
+  assert.equal(description.endsWith("..."), true);
+});
+
+test("buildKiroPayload trims oversized history to keep Kiro payload under size limit", () => {
+  const messages = [];
+  for (let i = 0; i < 140; i += 1) {
+    messages.push({ role: "user", content: `U${i} ${"u".repeat(1600)}` });
+    messages.push({ role: "assistant", content: `A${i} ${"a".repeat(1600)}` });
+  }
+  messages.push({ role: "user", content: "latest request" });
+
+  const payload = buildKiroPayload(
+    "claude-sonnet-4.5",
+    {
+      messages,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "task",
+            description: "Task tool",
+            parameters: { type: "object", properties: { prompt: { type: "string" } } },
+          },
+        },
+      ],
+    },
+    true,
+    null
+  );
+
+  const payloadBytes = Buffer.byteLength(JSON.stringify(payload));
+  assert.ok(payloadBytes <= 180000, `Expected payload <= 180000 bytes, got ${payloadBytes}`);
+
+  const firstHistory = payload.conversationState.history[0];
+  if (firstHistory) {
+    assert.ok(!firstHistory.assistantResponseMessage, "Trimmed history should stay user-anchored");
+  }
+});
