@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.19.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.18.0...v3.19.0) (2026-04-25)
+
+
+### Features
+
+* **context:** add dynamic context window management with model-specific limits ([6e36ee1](https://github.com/linhnguyen-gt/Routiform/commit/6e36ee1c63dedaa5a04ceab390b587b859a82613))
+* **kiro:** add dynamic model sync with dual-target API retry ([cd945d8](https://github.com/linhnguyen-gt/Routiform/commit/cd945d8f920c9af3da7d94cf04f3f758134b8f55))
+
+
+### Bug Fixes
+
+* **codex:** add x-codex-version and x-codex-installation-id headers ([01aff97](https://github.com/linhnguyen-gt/Routiform/commit/01aff9743c70476389be71ae99d8bf3997fc6f61))
+* **codex:** align client fingerprint with codex cli 0.124.0 ([fa25813](https://github.com/linhnguyen-gt/Routiform/commit/fa25813adeb6f99ec180f7e9c3f88acc60f5f088))
+* **codex:** preserve tool calls and dedupe repeated responses ([c7ddf33](https://github.com/linhnguyen-gt/Routiform/commit/c7ddf331d4d261056ed167af1273c6bb56ea1ec9))
+* **context:** improve contextManager type safety and remove env override ([83b0d7a](https://github.com/linhnguyen-gt/Routiform/commit/83b0d7adf86b07751a5da7b1b37d4d6a29fa12e5))
+* **kiro:** enforce payload size limit and truncate tool descriptions ([ee606d3](https://github.com/linhnguyen-gt/Routiform/commit/ee606d367ebc32fd848b983ccf8943113c6b1a86))
+
 ## [3.18.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.17.3...v3.18.0) (2026-04-24)
 
 
