@@ -1948,7 +1948,6 @@
     "contextValidationPassthroughDesc": "代理不做大小检查或压缩（推荐，质量更好）。",
     "contextValidationAutoCompress": "自动压缩",
     "contextValidationAutoCompressDesc": "若估计提示超过安全窗口，会裁剪工具输出、思考块与较早消息，以提高请求成功率。",
-    "contextValidationEnvOverride": "若设置了环境变量 ROUTIFORM_CONTEXT_VALIDATION，将覆盖此选项。",
     "passthrough": "直通",
     "passthroughDesc": "没有变化——客户控制思维预算",
     "auto": "自动",

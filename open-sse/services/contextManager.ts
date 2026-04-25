@@ -55,7 +55,10 @@ const SAFETY_MARGIN = 0.9; // Use 90% of limit as effective threshold
  * @param {number} [ratio] - Chars per token ratio (default: 3.5)
  * @returns {number}
  */
-export function estimateTokens(text, ratio = CHARS_PER_TOKEN_AVG) {
+export function estimateTokens(
+  text: string | object | null | undefined,
+  ratio: number = CHARS_PER_TOKEN_AVG
+): number {
   if (!text) return 0;
   const str = typeof text === "string" ? text : JSON.stringify(text);
   return Math.ceil(str.length / ratio);
@@ -68,7 +71,7 @@ export function estimateTokens(text, ratio = CHARS_PER_TOKEN_AVG) {
  * @param {number} [margin] - Safety margin (0.9 = 90% of limit)
  * @returns {number}
  */
-function getSafeLimit(limit, margin = SAFETY_MARGIN) {
+function getSafeLimit(limit: number, margin: number = SAFETY_MARGIN): number {
   return Math.floor(limit * margin);
 }
 
@@ -76,7 +79,7 @@ function getSafeLimit(limit, margin = SAFETY_MARGIN) {
  * Get token limit for a provider/model combination
  * Priority: Env override > models.dev DB > Registry defaultContextLength > DEFAULT_LIMITS
  */
-export function getTokenLimit(provider, model = null) {
+export function getTokenLimit(provider: string, model: string | null = null): number {
   // 1. Check environment variable override first
   const envOverride = getEnvOverride(provider);
   if (envOverride) return envOverride;
@@ -220,7 +223,11 @@ function detectContextLimitFromModelName(model: string): number | null {
  *   Provider supports 200k, Combo ceiling = 128k → Effective = 128k (use combo ceiling)
  *   Request with 150k tokens + 128k limit → 22k exceeded → compression triggers
  */
-export function getEffectiveContextLimit(provider, model = null, combo = null) {
+export function getEffectiveContextLimit(
+  provider: string,
+  model: string | null = null,
+  combo: Record<string, unknown> | null = null
+): number {
   // 1. Check environment variable override first (highest priority for global debug)
   const envOverride = getEnvOverride(provider);
   if (envOverride) return envOverride;
@@ -244,7 +251,7 @@ export function getEffectiveContextLimit(provider, model = null, combo = null) {
 /**
  * Estimate total tokens in a request body (messages + system + tools)
  */
-export function estimateRequestTokens(body) {
+export function estimateRequestTokens(body: JsonRecord): number {
   if (!body || typeof body !== "object") return 0;
 
   let total = 0;
@@ -254,9 +261,12 @@ export function estimateRequestTokens(body) {
     total += estimateTokens(JSON.stringify(body.messages));
   }
 
-  // Estimate system message
-  if (body.system) {
-    total += estimateTokens(body.system);
+  // Estimate system message — skip if already included inside messages array
+  const hasSystemInMessages =
+    Array.isArray(body.messages) &&
+    (body.messages as JsonRecord[]).some((m) => m.role === "system");
+  if (body.system && !hasSystemInMessages) {
+    total += estimateTokens(body.system as string | object);
   }
 
   // Estimate tools
@@ -266,7 +276,7 @@ export function estimateRequestTokens(body) {
 
   // Estimate input (for embeddings/other formats)
   if (body.input) {
-    total += estimateTokens(body.input);
+    total += estimateTokens(body.input as string | object);
   }
 
   return total;
@@ -277,7 +287,12 @@ export function estimateRequestTokens(body) {
  * Uses safety margin to account for formatting overhead (roles, JSON structure, etc.)
  * @returns {{ valid: boolean, estimatedTokens: number, limit: number, exceeded: number, rawLimit: number }}
  */
-export function validateContextLimit(body, provider, model = null, combo = null) {
+export function validateContextLimit(
+  body: JsonRecord,
+  provider: string,
+  model: string | null = null,
+  combo: Record<string, unknown> | null = null
+): { valid: boolean; estimatedTokens: number; limit: number; exceeded: number; rawLimit: number } {
   const estimatedTokens = estimateRequestTokens(body);
   const rawLimit = getEffectiveContextLimit(provider, model, combo);
   // Apply safety margin to account for formatting overhead
@@ -335,7 +350,7 @@ export function compressContext(
   const maxTokens =
     Number.isFinite(configuredMaxTokens) && configuredMaxTokens > 0
       ? Math.floor(configuredMaxTokens)
-      : getTokenLimit(provider, body.model || options.model);
+      : getTokenLimit(provider, (body.model as string | null | undefined) || options.model);
   const defaultReserveTokens = Math.min(
     CONTEXT_CONFIG.reserveTokens,
     Math.max(256, Math.floor(maxTokens * 0.15))
@@ -463,7 +478,11 @@ export function compressContext(
   };
 }
 
-function compactToolDefinitions(tools, messages, maxTools = 48) {
+function compactToolDefinitions(
+  tools: JsonRecord[],
+  messages: JsonRecord[],
+  maxTools: number = 48
+): JsonRecord[] {
   const preferredToolNames = new Set([
     "read",
     "glob",
@@ -487,7 +506,7 @@ function compactToolDefinitions(tools, messages, maxTools = 48) {
   for (const msg of messages) {
     if (!msg || typeof msg !== "object") continue;
     if (!Array.isArray(msg.tool_calls)) continue;
-    for (const tc of msg.tool_calls) {
+    for (const tc of msg.tool_calls as Array<{ function?: { name?: string }; name?: string }>) {
       const name = tc?.function?.name || tc?.name;
       if (typeof name === "string" && name.trim()) {
         calledToolNames.add(name.trim());
@@ -496,8 +515,14 @@ function compactToolDefinitions(tools, messages, maxTools = 48) {
   }
 
   const ordered = [...tools].sort((a, b) => {
-    const aName = a?.function?.name || a?.name || "";
-    const bName = b?.function?.name || b?.name || "";
+    const aName =
+      (a as { function?: { name?: string }; name?: string })?.function?.name ||
+      (a as { name?: string })?.name ||
+      "";
+    const bName =
+      (b as { function?: { name?: string }; name?: string })?.function?.name ||
+      (b as { name?: string })?.name ||
+      "";
     const aUsed = calledToolNames.has(String(aName)) ? 1 : 0;
     const bUsed = calledToolNames.has(String(bName)) ? 1 : 0;
     if (aUsed !== bUsed) return bUsed - aUsed;
@@ -509,7 +534,7 @@ function compactToolDefinitions(tools, messages, maxTools = 48) {
   return ordered.slice(0, maxTools).map((tool) => {
     const next = { ...tool };
     if (next.function && typeof next.function === "object") {
-      const fn = { ...next.function };
+      const fn = { ...(next.function as Record<string, unknown>) };
       if (typeof fn.description === "string" && fn.description.length > 300) {
         fn.description = `${fn.description.slice(0, 300)}...`;
       }
@@ -521,26 +546,43 @@ function compactToolDefinitions(tools, messages, maxTools = 48) {
 
 // ─── Layer 1: Trim Tool Messages ────────────────────────────────────────────
 
-function trimToolMessages(messages, maxChars) {
+function trimToolMessages(messages: JsonRecord[], maxChars: number): JsonRecord[] {
   return messages.map((msg) => {
-    if (msg.role === "tool" && typeof msg.content === "string" && msg.content.length > maxChars) {
-      return {
-        ...msg,
-        content: msg.content.slice(0, maxChars) + "\n... [truncated]",
-      };
+    if (msg.role === "tool") {
+      if (typeof msg.content === "string" && msg.content.length > maxChars) {
+        return {
+          ...msg,
+          content: msg.content.slice(0, maxChars) + "\n... [truncated]",
+        };
+      }
+      if (Array.isArray(msg.content)) {
+        return {
+          ...msg,
+          content: (msg.content as JsonRecord[]).map((block) => {
+            if (
+              block.type === "text" &&
+              typeof block.text === "string" &&
+              block.text.length > maxChars
+            ) {
+              return { ...block, text: block.text.slice(0, maxChars) + "\n... [truncated]" };
+            }
+            return block;
+          }),
+        };
+      }
     }
     // Handle array content (Claude format with tool_result blocks)
     if (msg.role === "user" && Array.isArray(msg.content)) {
       return {
         ...msg,
-        content: msg.content.map((block) => {
+        content: (msg.content as JsonRecord[]).map((block) => {
           if (block.type === "tool_result") {
             if (typeof block.content === "string" && block.content.length > maxChars) {
               return { ...block, content: block.content.slice(0, maxChars) + "\n... [truncated]" };
             } else if (Array.isArray(block.content)) {
               return {
                 ...block,
-                content: block.content.map((subBlock) => {
+                content: (block.content as JsonRecord[]).map((subBlock) => {
                   if (
                     subBlock.type === "text" &&
                     typeof subBlock.text === "string" &&
@@ -566,7 +608,7 @@ function trimToolMessages(messages, maxChars) {
 
 // ─── Layer 2: Compress Thinking Blocks ──────────────────────────────────────
 
-function compressThinking(messages) {
+function compressThinking(messages: JsonRecord[]): JsonRecord[] {
   // Find last assistant message index
   let lastAssistantIdx = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -582,9 +624,9 @@ function compressThinking(messages) {
 
     // Remove thinking blocks from content array
     if (Array.isArray(msg.content)) {
-      const filtered = msg.content.filter((block) => block.type !== "thinking");
+      const filtered = (msg.content as JsonRecord[]).filter((block) => block.type !== "thinking");
       if (filtered.length === 0) {
-        return { ...msg, content: "[thinking compressed]" };
+        return { ...msg, content: [{ type: "text", text: "[thinking compressed]" }] };
       }
       return { ...msg, content: filtered };
     }
@@ -604,18 +646,21 @@ function compressThinking(messages) {
 
 // ─── Layer 3: Aggressive Purification ───────────────────────────────────────
 
-function purifyHistory(messages, fitsWithinTarget) {
+function purifyHistory(
+  messages: JsonRecord[],
+  fitsWithinTarget: (msgs: JsonRecord[]) => boolean
+): JsonRecord[] {
   // Keep system message(s) and the most recent non-system messages that still fit.
   const system = messages.filter((m) => m.role === "system" || m.role === "developer");
   const nonSystem = messages.filter((m) => m.role !== "system" && m.role !== "developer");
 
-  const buildCandidate = (keep, includeSummary) => {
+  const buildCandidate = (keep: number, includeSummary: boolean): JsonRecord[] => {
     const keptMessages = keep <= 0 ? [] : nonSystem.slice(-keep);
     const candidate = [...system, ...keptMessages];
     if (includeSummary && keep < nonSystem.length) {
       const dropped = nonSystem.length - keep;
       candidate.splice(system.length, 0, {
-        role: "system",
+        role: "user",
         content: `[Context compressed: ${dropped} earlier messages removed to fit context window]`,
       });
     }

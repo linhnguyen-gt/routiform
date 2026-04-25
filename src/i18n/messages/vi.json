@@ -1946,7 +1946,6 @@
     "contextValidationPassthroughDesc": "Không kiểm tra kích thước hay nén ở proxy (khuyến nghị cho chất lượng).",
     "contextValidationAutoCompress": "Tự nén (auto-compress)",
     "contextValidationAutoCompressDesc": "Nếu ước lượng prompt vượt ngưỡng an toàn, cắt bớt tool output, khối thinking và tin nhắn cũ để request dễ thành công hơn.",
-    "contextValidationEnvOverride": "Khi biến môi trường ROUTIFORM_CONTEXT_VALIDATION được đặt, nó sẽ ghi đè lựa chọn này.",
     "passthrough": "Truyền qua",
     "passthroughDesc": "Không có thay đổi - khách hàng kiểm soát ngân sách tư duy",
     "auto": "Tự động",

@@ -73,8 +73,6 @@ export default function ContextValidationTab() {
         )}
       </div>
 
-      <p className="text-xs text-text-muted mb-4">{t("contextValidationEnvOverride")}</p>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button
           type="button"

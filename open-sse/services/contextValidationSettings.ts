@@ -14,29 +14,9 @@ export function invalidateContextValidationSettingsCache(): void {
 
 /**
  * When true, `validateAndCompressContext` may compress oversized bodies.
- * Priority: explicit env (ROUTIFORM_CONTEXT_VALIDATION) → DB `contextValidation`.
+ * Reads from DB `contextValidation` setting (managed via UI).
  */
 export async function isProxyContextCompressionEnabled(): Promise<boolean> {
-  const env = process.env.ROUTIFORM_CONTEXT_VALIDATION?.trim().toLowerCase() ?? "";
-  if (
-    env === "auto-compress" ||
-    env === "compress" ||
-    env === "on" ||
-    env === "1" ||
-    env === "true"
-  ) {
-    return true;
-  }
-  if (
-    env === "passthrough" ||
-    env === "off" ||
-    env === "disabled" ||
-    env === "0" ||
-    env === "false"
-  ) {
-    return false;
-  }
-
   const now = Date.now();
   if (cache && now - cache.at < TTL_MS) {
     return cache.value;
