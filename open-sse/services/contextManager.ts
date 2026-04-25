@@ -484,6 +484,25 @@ function compactToolDefinitions(
   maxTools: number = 48,
   body?: JsonRecord
 ): JsonRecord[] {
+  const getToolName = (tool: JsonRecord): string => {
+    const candidate =
+      (tool as { function?: { name?: string }; name?: string })?.function?.name ||
+      (tool as { name?: string })?.name ||
+      "";
+    return typeof candidate === "string" ? candidate : "";
+  };
+  const isCriticalRuntimeTool = (name: string): boolean => {
+    if (!name) return false;
+    return (
+      name.startsWith("skills_") ||
+      name.startsWith("memory_") ||
+      name === "skills_execute" ||
+      name === "skills_list" ||
+      name === "skills_enable" ||
+      name === "skills_executions"
+    );
+  };
+
   const requiredToolNames = new Set<string>();
   const rawToolChoice = body?.tool_choice;
   if (rawToolChoice && typeof rawToolChoice === "object" && !Array.isArray(rawToolChoice)) {
@@ -529,18 +548,16 @@ function compactToolDefinitions(
   }
 
   const ordered = [...tools].sort((a, b) => {
-    const aName =
-      (a as { function?: { name?: string }; name?: string })?.function?.name ||
-      (a as { name?: string })?.name ||
-      "";
-    const bName =
-      (b as { function?: { name?: string }; name?: string })?.function?.name ||
-      (b as { name?: string })?.name ||
-      "";
+    const aName = getToolName(a);
+    const bName = getToolName(b);
 
     const aRequired = requiredToolNames.has(String(aName)) ? 1 : 0;
     const bRequired = requiredToolNames.has(String(bName)) ? 1 : 0;
     if (aRequired !== bRequired) return bRequired - aRequired;
+
+    const aCritical = isCriticalRuntimeTool(String(aName)) ? 1 : 0;
+    const bCritical = isCriticalRuntimeTool(String(bName)) ? 1 : 0;
+    if (aCritical !== bCritical) return bCritical - aCritical;
 
     const aUsed = calledToolNames.has(String(aName)) ? 1 : 0;
     const bUsed = calledToolNames.has(String(bName)) ? 1 : 0;
@@ -551,23 +568,32 @@ function compactToolDefinitions(
   });
 
   const selected = ordered.slice(0, maxTools);
+
+  const criticalNames = new Set(
+    ordered
+      .map((tool) => getToolName(tool))
+      .filter((name) => typeof name === "string" && isCriticalRuntimeTool(name))
+  );
+
+  if (criticalNames.size > 0) {
+    const selectedNames = new Set(selected.map((tool) => getToolName(tool)));
+    for (const criticalName of criticalNames) {
+      if (selectedNames.has(criticalName)) continue;
+      const criticalTool = ordered.find((tool) => getToolName(tool) === criticalName);
+      if (!criticalTool) continue;
+      if (selected.length >= maxTools && maxTools > 0) selected.pop();
+      selected.unshift(criticalTool);
+      selectedNames.add(criticalName);
+    }
+  }
+
   if (requiredToolNames.size > 0) {
-    const selectedNames = new Set(
-      selected.map(
-        (tool) =>
-          (tool as { function?: { name?: string }; name?: string })?.function?.name ||
-          (tool as { name?: string })?.name ||
-          ""
-      )
-    );
+    const selectedNames = new Set(selected.map((tool) => getToolName(tool)));
 
     for (const requiredName of requiredToolNames) {
       if (selectedNames.has(requiredName)) continue;
       const requiredTool = ordered.find((tool) => {
-        const name =
-          (tool as { function?: { name?: string }; name?: string })?.function?.name ||
-          (tool as { name?: string })?.name ||
-          "";
+        const name = getToolName(tool);
         return name === requiredName;
       });
       if (!requiredTool) continue;
@@ -710,7 +736,7 @@ function purifyHistory(
         content: `[Context compressed: ${dropped} earlier messages removed to fit context window]`,
       });
     }
-    return candidate;
+    return normalizePurifiedMessages(candidate);
   };
 
   let keep = nonSystem.length;
@@ -732,4 +758,73 @@ function purifyHistory(
   }
 
   return buildCandidate(0, false);
+}
+
+function normalizePurifiedMessages(messages: JsonRecord[]): JsonRecord[] {
+  const systemPrefix = messages.filter((m) => m.role === "system" || m.role === "developer");
+  const conversation = messages.filter((m) => m.role !== "system" && m.role !== "developer");
+
+  let start = 0;
+  while (start < conversation.length && conversation[start].role !== "user") {
+    start += 1;
+  }
+  const anchoredConversation = conversation.slice(start);
+
+  const seenToolUseIds = new Set<string>();
+  const normalizedConversation: JsonRecord[] = [];
+
+  for (const msg of anchoredConversation) {
+    if (!msg || typeof msg !== "object") continue;
+    const role = typeof msg.role === "string" ? msg.role : "";
+
+    if (role === "assistant") {
+      if (Array.isArray(msg.tool_calls)) {
+        for (const toolCall of msg.tool_calls as Array<{ id?: string }>) {
+          if (typeof toolCall?.id === "string" && toolCall.id.trim()) {
+            seenToolUseIds.add(toolCall.id.trim());
+          }
+        }
+      }
+
+      if (Array.isArray(msg.content)) {
+        for (const block of msg.content as JsonRecord[]) {
+          if (
+            block?.type === "tool_use" &&
+            typeof block.id === "string" &&
+            String(block.id).trim()
+          ) {
+            seenToolUseIds.add(String(block.id).trim());
+          }
+        }
+      }
+
+      normalizedConversation.push(msg);
+      continue;
+    }
+
+    if (role === "tool") {
+      const toolCallId = typeof msg.tool_call_id === "string" ? msg.tool_call_id.trim() : "";
+      if (toolCallId && seenToolUseIds.has(toolCallId)) {
+        normalizedConversation.push(msg);
+      }
+      continue;
+    }
+
+    if (role === "user" && Array.isArray(msg.content)) {
+      const filteredContent = (msg.content as JsonRecord[]).filter((block) => {
+        if (block?.type !== "tool_result") return true;
+        const toolUseId =
+          typeof block.tool_use_id === "string" ? String(block.tool_use_id).trim() : "";
+        return !toolUseId || seenToolUseIds.has(toolUseId);
+      });
+
+      if (filteredContent.length === 0) continue;
+      normalizedConversation.push({ ...msg, content: filteredContent });
+      continue;
+    }
+
+    normalizedConversation.push(msg);
+  }
+
+  return [...systemPrefix, ...normalizedConversation];
 }
