@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.20.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.2...v3.20.0) (2026-04-25)
+
+
+### Features
+
+* **combos:** support disabling models in combo editor ([4928aac](https://github.com/linhnguyen-gt/Routiform/commit/4928aac6f6416ac170d035b01ffa6f33fc78642d))
+
+
+### Bug Fixes
+
+* **context:** preserve tool workflows during compression and improve combo model handling ([36c32b4](https://github.com/linhnguyen-gt/Routiform/commit/36c32b4beda0570403b5b93364175ebf9817445a))
+
 ### [3.19.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.1...v3.19.2) (2026-04-25)
 
 
