@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.19.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.1...v3.19.2) (2026-04-25)
+
+
+### Bug Fixes
+
+* **kiro:** constrain translated request payload size ([f6600b7](https://github.com/linhnguyen-gt/Routiform/commit/f6600b79b323e0bdab3d4b7f59f51a06a7dd7925))
+
 ### [3.19.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.0...v3.19.1) (2026-04-25)
 
 
