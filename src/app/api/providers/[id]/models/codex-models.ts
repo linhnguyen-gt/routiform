@@ -2,7 +2,7 @@ import type { JsonRecord } from "./json-types";
 import { asRecord } from "./json-utils";
 
 const DEFAULT_CODEX_MODELS_BASE_URL = "https://chatgpt.com/backend-api/codex";
-export const DEFAULT_CODEX_CLIENT_VERSION = "0.92.0";
+export const DEFAULT_CODEX_CLIENT_VERSION = "0.124.0";
 const DISABLED_CODEX_MODEL_IDS = new Set(["gpt-oss-120b", "gpt-oss-20b"]);
 
 // Fallback models from Codex documentation when API doesn't return full list

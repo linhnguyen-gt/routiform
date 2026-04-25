@@ -347,6 +347,33 @@ test("CodexExecutor always requests SSE accept header", () => {
   const executor = new CodexExecutor();
   const headers = executor.buildHeaders({ accessToken: "test-token" }, false);
   assert.equal(headers.Accept, "text/event-stream");
+  assert.equal(headers.originator, "codex_cli_rs");
+  assert.equal(headers["x-codex-version"], "0.124.0");
+  assert.match(headers["User-Agent"], /^codex_cli_rs\/0\.124\.0 /);
+  assert.equal(headers["x-codex-installation-id"], undefined);
+});
+
+test("CodexExecutor injects installation id into client_metadata payload", () => {
+  const executor = new CodexExecutor();
+  const transformed = executor.transformRequest(
+    "gpt-5.1-codex",
+    {
+      model: "gpt-5.1-codex",
+      input: [{ role: "user", content: "ship it" }],
+      client_metadata: { source: "routiform-tests" },
+    },
+    true,
+    {
+      providerSpecificData: {
+        installationId: "test-installation-id",
+      },
+    }
+  );
+
+  assert.deepEqual(transformed.client_metadata, {
+    source: "routiform-tests",
+    "x-codex-installation-id": "test-installation-id",
+  });
 });
 
 test("CodexExecutor generates stable session_id from Codex request fingerprint", () => {

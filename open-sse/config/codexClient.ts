@@ -1,5 +1,5 @@
-const DEFAULT_CODEX_CLIENT_VERSION = "0.92.0";
-const DEFAULT_CODEX_USER_AGENT = "codex-cli/0.92.0 (Windows 10.0.26100; x64)";
+const DEFAULT_CODEX_CLIENT_VERSION = "0.124.0";
+const DEFAULT_CODEX_USER_AGENT = "codex_cli_rs/0.124.0 (Mac OS 14.0.0; arm64) reqwest/0.12";
 
 function normalizeHeaderValue(value: string): string {
   return value.replace(/[\r\n]+/g, " ").trim();
@@ -22,8 +22,7 @@ export function getCodexUserAgent(): string {
 
 export function getCodexDefaultHeaders(): Record<string, string> {
   return {
-    Version: getCodexClientVersion(),
-    "Openai-Beta": "responses=experimental",
     "User-Agent": getCodexUserAgent(),
+    originator: "codex_cli_rs",
   };
 }

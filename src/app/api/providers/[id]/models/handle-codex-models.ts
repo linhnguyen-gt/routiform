@@ -52,9 +52,9 @@ export async function handleCodexModels(
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             Accept: "application/json",
-            Version: clientVersion,
-            "Openai-Beta": "responses=experimental",
-            "User-Agent": `codex-cli/${clientVersion}`,
+            "User-Agent": `codex_cli_rs/${clientVersion} (Mac OS 14.0.0; arm64) reqwest/0.12`,
+            originator: "codex_cli_rs",
+            "x-codex-version": clientVersion,
           },
         },
         { timeoutMs: 10_000 }

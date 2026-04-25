@@ -9,12 +9,16 @@ test("Phase1: codex default headers sanitize env overrides", async () => {
   process.env.CODEX_USER_AGENT = "codex-cli/custom\r\nagent";
 
   const modulePath = "../../open-sse/config/codexClient.ts";
-  const { getCodexDefaultHeaders } = await import(`${modulePath}?t=${Date.now()}`);
+  const { getCodexClientVersion, getCodexDefaultHeaders } = await import(
+    `${modulePath}?t=${Date.now()}`
+  );
   const headers = getCodexDefaultHeaders();
 
-  assert.equal(headers.Version, "1.2.3");
-  assert.equal(headers["Openai-Beta"], "responses=experimental");
+  assert.equal(getCodexClientVersion(), "1.2.3");
   assert.equal(headers["User-Agent"], "codex-cli/custom agent");
+  assert.equal(headers.originator, "codex_cli_rs");
+  assert.equal(headers.Version, undefined);
+  assert.equal(headers["Openai-Beta"], undefined);
 
   if (oldVersion === undefined) delete process.env.CODEX_CLIENT_VERSION;
   else process.env.CODEX_CLIENT_VERSION = oldVersion;

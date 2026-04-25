@@ -266,6 +266,13 @@ export class CodexExecutor extends BaseExecutor {
 
     // Codex originator + session_id prompt-cache-affinity headers
     headers["originator"] = "codex_cli_rs";
+    headers["x-codex-version"] = "0.124.0";
+
+    // Installation ID for client identification
+    const installationId = credentials?.providerSpecificData?.installationId;
+    if (installationId && typeof installationId === "string") {
+      headers["x-codex-installation-id"] = installationId;
+    }
 
     const sessionId = credentials?.providerSpecificData?.ccSessionId;
     if (sessionId && typeof sessionId === "string") {
@@ -365,6 +372,20 @@ export class CodexExecutor extends BaseExecutor {
         },
         { provider: "codex" }
       );
+    }
+
+    // Mirror Codex CLI request shape: installation identity lives in client_metadata,
+    // not a standalone HTTP header. This helps backend feature/version gating.
+    const installationId = credentials?.providerSpecificData?.installationId;
+    if (installationId && typeof installationId === "string") {
+      const currentMetadata =
+        body.client_metadata && typeof body.client_metadata === "object"
+          ? { ...(body.client_metadata as Record<string, unknown>) }
+          : {};
+      if (!currentMetadata["x-codex-installation-id"]) {
+        currentMetadata["x-codex-installation-id"] = installationId;
+      }
+      body.client_metadata = currentMetadata;
     }
 
     // Issue #806: Even for native passthrough, some clients (purist completions) might indiscriminately inject
