@@ -247,4 +247,60 @@ describe("Context Validation & Compression", () => {
       assert.ok(result.body.messages.length < body.messages.length, "Should drop old messages");
     });
   });
+
+  describe("validateAndCompressContext", () => {
+    it("should apply emergency compression for oversized tool workflows even when UI compression is off", async () => {
+      const { validateAndCompressContext } =
+        await import("../../open-sse/handlers/phases/context-validator.ts");
+      const { estimateRequestTokens } = await import("../../open-sse/services/contextManager.ts");
+
+      const hugeToolResult = "x".repeat(320000);
+      const body = {
+        model: "gpt-5.3-codex",
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "read",
+              description: "Read file",
+              parameters: { type: "object", properties: { path: { type: "string" } } },
+            },
+          },
+        ],
+        messages: [
+          { role: "user", content: "check" },
+          {
+            role: "user",
+            content: [{ type: "tool_result", tool_use_id: "tool_1", content: hugeToolResult }],
+          },
+        ],
+      };
+
+      let failureCode = null;
+      const result = await validateAndCompressContext({
+        body,
+        provider: "codex",
+        model: "gpt-5.3-codex",
+        combo: null,
+        comboName: undefined,
+        reqLogger: null,
+        log: null,
+        persistFailureUsage: (_status, code) => {
+          failureCode = code;
+        },
+      });
+
+      assert.ok(
+        result.valid || failureCode === "tool_workflow_context_too_large",
+        "Tool workflow overflow should either be compressed or rejected explicitly"
+      );
+
+      const originalTokens = estimateRequestTokens(body);
+      const finalTokens = estimateRequestTokens(result.body);
+      assert.ok(
+        finalTokens <= originalTokens,
+        "Validation path should never increase context size"
+      );
+    });
+  });
 });

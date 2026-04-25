@@ -975,6 +975,99 @@ test("parseSSEToOpenAIResponse reads final chunk with message not delta", () => 
   assert.equal(parsed.choices[0].message.content, "OK");
 });
 
+test("parseSSEToOpenAIResponse does not duplicate when delta and final message both present", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      choices: [{ index: 0, delta: { content: "Chưa." } }],
+    })}`,
+    `data: ${JSON.stringify({
+      choices: [
+        { index: 0, message: { role: "assistant", content: "Chưa." }, finish_reason: "stop" },
+      ],
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "gpt-5.3-codex");
+  assert.ok(parsed);
+  assert.equal(parsed.choices[0].message.content, "Chưa.");
+});
+
+test("parseSSEToOpenAIResponse handles cumulative duplicate delta snapshots", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      choices: [{ index: 0, delta: { content: "Bạn đúng, mình chưa làm thật.\n" } }],
+    })}`,
+    `data: ${JSON.stringify({
+      choices: [
+        {
+          index: 0,
+          delta: {
+            content: "Bạn đúng, mình chưa làm thật.\nMình sẽ làm ngay bằng tool bây giờ.",
+          },
+        },
+      ],
+    })}`,
+    `data: ${JSON.stringify({
+      choices: [
+        {
+          index: 0,
+          delta: {
+            content: "Bạn đúng, mình chưa làm thật.\nMình sẽ làm ngay bằng tool bây giờ.",
+          },
+          finish_reason: "stop",
+        },
+      ],
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "gpt-5.3-codex");
+  assert.ok(parsed);
+  assert.equal(
+    parsed.choices[0].message.content,
+    "Bạn đúng, mình chưa làm thật.\nMình sẽ làm ngay bằng tool bây giờ."
+  );
+});
+
+test("parseSSEToOpenAIResponse collapses exact duplicated final message text", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Đang làm.Đang làm." },
+          finish_reason: "stop",
+        },
+      ],
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "gpt-5.3-codex");
+  assert.ok(parsed);
+  assert.equal(parsed.choices[0].message.content, "Đang làm.");
+});
+
+test("parseSSEToOpenAIResponse collapses duplicated short message with whitespace seam", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: "Chưa done.\nChưa done." },
+          finish_reason: "stop",
+        },
+      ],
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "gpt-5.3-codex");
+  assert.ok(parsed);
+  assert.equal(parsed.choices[0].message.content, "Chưa done.");
+});
+
 function streamFromChunks(chunks) {
   const encoder = new TextEncoder();
   return new ReadableStream({
@@ -1191,6 +1284,65 @@ test("createPassthroughStreamWithLogger emits final usage-only chunk when includ
     completion_tokens: 2,
     total_tokens: 5,
   });
+});
+
+test("createPassthroughStreamWithLogger dedupes duplicated final assistant summary in onComplete", async () => {
+  let completed = null;
+  const transform = createPassthroughStreamWithLogger(
+    "openai",
+    null,
+    null,
+    "gpt-5.3-codex",
+    null,
+    null,
+    (payload) => {
+      completed = payload;
+    }
+  );
+
+  const writer = transform.writable.getWriter();
+  const reader = transform.readable.getReader();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  await writer.write(
+    encoder.encode(
+      `data: ${JSON.stringify({
+        id: "chatcmpl-dup",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "gpt-5.3-codex",
+        choices: [
+          { index: 0, delta: { role: "assistant", content: "Đang làm." }, finish_reason: null },
+        ],
+      })}\n\n`
+    )
+  );
+  await writer.write(
+    encoder.encode(
+      `data: ${JSON.stringify({
+        id: "chatcmpl-dup",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "gpt-5.3-codex",
+        choices: [{ index: 0, delta: { content: "Đang làm." }, finish_reason: "stop" }],
+        usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
+      })}\n\n`
+    )
+  );
+  await writer.write(encoder.encode("data: [DONE]\n\n"));
+  await writer.close();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    decoder.decode(value, { stream: true });
+  }
+  decoder.decode();
+
+  assert.ok(completed);
+  assert.equal(completed.responseBody.choices[0].message.content, "Đang làm.");
+  assert.equal(completed.responseBody._streamed, true);
 });
 
 test("parseSSEToOpenAIResponse reads usage from final usage-only chunk", () => {

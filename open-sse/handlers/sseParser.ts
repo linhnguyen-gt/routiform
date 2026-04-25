@@ -100,6 +100,63 @@ function toNumber(value, fallback = 0) {
   return fallback;
 }
 
+function appendTextPart(parts, chunk) {
+  if (typeof chunk !== "string" || chunk.length === 0) return;
+  const lastIndex = parts.length - 1;
+  if (lastIndex < 0) {
+    parts.push(chunk);
+    return;
+  }
+
+  const previous = parts[lastIndex];
+
+  // Some upstreams send cumulative snapshots instead of true deltas.
+  // Prefer the latest snapshot instead of duplicating text.
+  if (chunk === previous) return;
+  if (chunk.startsWith(previous)) {
+    parts[lastIndex] = chunk;
+    return;
+  }
+
+  // Deduplicate overlap when snapshots partially repeat prior output.
+  const maxOverlap = Math.min(previous.length, chunk.length);
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (previous.slice(previous.length - overlap) === chunk.slice(0, overlap)) {
+      parts.push(chunk.slice(overlap));
+      return;
+    }
+  }
+
+  parts.push(chunk);
+}
+
+function collapseExactDuplicateMessage(text) {
+  let value = typeof text === "string" ? text : "";
+  for (let pass = 0; pass < 3; pass += 1) {
+    const len = value.length;
+    if (len < 4) break;
+
+    let collapsed = false;
+    const mid = Math.floor(len / 2);
+    for (let offset = -3; offset <= 3; offset += 1) {
+      const splitAt = mid + offset;
+      if (splitAt <= 0 || splitAt >= len) continue;
+      const first = value.slice(0, splitAt);
+      const secondRaw = value.slice(splitAt);
+      const second = secondRaw.replace(/^\s+/, "");
+
+      if (first !== second) continue;
+      if (!/[\s.!?;:,)\]]$/.test(first)) continue;
+      value = first;
+      collapsed = true;
+      break;
+    }
+
+    if (!collapsed) break;
+  }
+  return value;
+}
+
 /**
  * Accumulate OpenAI `delta.content` when it is a string, array of parts (Gemini/Cline), or a single object.
  * @see https://docs.cline.bot/api/chat-completions — reasoning may appear in `delta.reasoning` or structured content.
@@ -109,14 +166,14 @@ function appendFromOpenAIDeltaContent(delta, contentParts, reasoningParts) {
   const c = d.content;
 
   if (typeof c === "string" && c.length > 0) {
-    contentParts.push(c);
+    appendTextPart(contentParts, c);
     return;
   }
 
   if (Array.isArray(c)) {
     for (const part of c) {
       if (typeof part === "string" && part.length > 0) {
-        contentParts.push(part);
+        appendTextPart(contentParts, part);
         continue;
       }
       const block = toRecord(part);
@@ -126,14 +183,14 @@ function appendFromOpenAIDeltaContent(delta, contentParts, reasoningParts) {
         (typeof block.content === "string" ? block.content : "");
       if (!chunk) continue;
       if (!bt || bt === "text" || bt === "output_text" || bt === "text_delta") {
-        contentParts.push(chunk);
+        appendTextPart(contentParts, chunk);
       } else if (
         bt.includes("reason") ||
         bt.includes("think") ||
         bt === "model_thought" ||
         bt === "thought"
       ) {
-        reasoningParts.push(chunk);
+        appendTextPart(reasoningParts, chunk);
       }
     }
     return;
@@ -141,8 +198,9 @@ function appendFromOpenAIDeltaContent(delta, contentParts, reasoningParts) {
 
   if (c && typeof c === "object" && !Array.isArray(c)) {
     const o = toRecord(c);
-    if (typeof o.text === "string" && o.text.length > 0) contentParts.push(o.text);
-    else if (typeof o.content === "string" && o.content.length > 0) contentParts.push(o.content);
+    if (typeof o.text === "string" && o.text.length > 0) appendTextPart(contentParts, o.text);
+    else if (typeof o.content === "string" && o.content.length > 0)
+      appendTextPart(contentParts, o.content);
   }
 }
 
@@ -153,6 +211,7 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
 
   const first = chunks[0];
   const contentParts = [];
+  const fallbackMessageParts = [];
   const reasoningParts = [];
   type AccumulatedToolCall = {
     id: string | null;
@@ -182,17 +241,17 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
     if (fullMessage && typeof fullMessage === "object") {
       const fm = toRecord(fullMessage);
       if (typeof fm.content === "string" && fm.content.length > 0) {
-        contentParts.push(fm.content);
+        appendTextPart(fallbackMessageParts, fm.content);
       }
       if (typeof fm.refusal === "string" && fm.refusal.length > 0) {
-        contentParts.push(fm.refusal);
+        appendTextPart(fallbackMessageParts, fm.refusal);
       }
     }
 
     appendFromOpenAIDeltaContent(delta, contentParts, reasoningParts);
 
     if (typeof delta.reasoning_content === "string" && delta.reasoning_content.length > 0) {
-      reasoningParts.push(delta.reasoning_content);
+      appendTextPart(reasoningParts, delta.reasoning_content);
     }
     // Normalize `reasoning` alias (NVIDIA kimi-k2.5 etc.)
     if (
@@ -200,10 +259,10 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
       delta.reasoning.length > 0 &&
       !delta.reasoning_content
     ) {
-      reasoningParts.push(delta.reasoning);
+      appendTextPart(reasoningParts, delta.reasoning);
     }
     if (typeof delta.thinking === "string" && delta.thinking.length > 0) {
-      reasoningParts.push(delta.thinking);
+      appendTextPart(reasoningParts, delta.thinking);
     }
 
     // T18: Accumulate tool calls correctly across streamed chunks
@@ -245,8 +304,15 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
     }
   }
 
-  const joinedContent = contentParts.length > 0 ? contentParts.join("").trim() : "";
-  const joinedReasoning = reasoningParts.length > 0 ? reasoningParts.join("").trim() : null;
+  const selectedContentParts = contentParts.length > 0 ? contentParts : fallbackMessageParts;
+  const joinedContent =
+    selectedContentParts.length > 0
+      ? collapseExactDuplicateMessage(selectedContentParts.join("").trim())
+      : "";
+  const joinedReasoning =
+    reasoningParts.length > 0
+      ? collapseExactDuplicateMessage(reasoningParts.join("").trim())
+      : null;
   const message: Record<string, unknown> = {
     role: "assistant",
     content: joinedContent,

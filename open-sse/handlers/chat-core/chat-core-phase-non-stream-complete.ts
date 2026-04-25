@@ -156,7 +156,7 @@ export async function chatCorePhaseNonStreamComplete(p: ChatCorePipeline): Promi
   persistAttemptLogs({
     status: 200,
     tokens: usage,
-    responseBody,
+    responseBody: translatedResponse,
     providerRequest: p.finalBody || translatedBody,
     providerResponse: looksLikeSSE
       ? { _streamed: true, _format: "sse-json", summary: responseBody }

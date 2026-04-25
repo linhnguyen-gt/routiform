@@ -1,0 +1,102 @@
+import type { JsonRecord } from "./json-types";
+import { asRecord } from "./json-utils";
+
+const DEFAULT_KIRO_BASE_URL = "https://codewhisperer.us-east-1.amazonaws.com";
+
+const FALLBACK_KIRO_MODELS: Array<{ id: string; name: string; credits: string }> = [
+  { id: "auto", name: "Auto", credits: "1.00x" },
+  { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", credits: "1.30x" },
+  { id: "claude-sonnet-4", name: "Claude Sonnet 4", credits: "1.30x" },
+  { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", credits: "0.40x" },
+  { id: "deepseek-3.2", name: "DeepSeek 3.2", credits: "0.25x" },
+  { id: "minimax-m2.5", name: "MiniMax M2.5", credits: "0.25x" },
+  { id: "minimax-m2.1", name: "MiniMax M2.1", credits: "0.15x" },
+  { id: "glm-5", name: "GLM-5", credits: "0.50x" },
+  { id: "qwen3-coder-next", name: "Qwen3 Coder Next", credits: "0.05x" },
+];
+
+function getDefaultKiroModels(): Array<JsonRecord> {
+  return FALLBACK_KIRO_MODELS.map((m) => ({
+    id: m.id,
+    name: `${m.name} (${m.credits} credits)`,
+    hidden: false,
+    owned_by: "kiro",
+  }));
+}
+
+export function mergeKiroModels(models: Array<JsonRecord>): Array<JsonRecord> {
+  const mergedById = new Map<string, JsonRecord>();
+
+  for (const model of getDefaultKiroModels()) {
+    mergedById.set(String(model.id), model);
+  }
+
+  for (const model of models) {
+    const id = typeof model.id === "string" ? model.id : "";
+    if (!id) continue;
+    mergedById.set(id, {
+      ...mergedById.get(id),
+      ...model,
+    });
+  }
+
+  return Array.from(mergedById.values());
+}
+
+export function normalizeKiroBaseUrl(baseUrl: string | null): string {
+  return (baseUrl || DEFAULT_KIRO_BASE_URL).trim().replace(/\/$/, "");
+}
+
+export function buildKiroModelsEndpoint(baseUrl: string): string {
+  return baseUrl;
+}
+
+function normalizeModelIdFromProfileName(name: string): string {
+  const value = name.trim().toLowerCase();
+  if (!value) return "";
+
+  const creditsSuffixPattern = /\s*\(\s*\d+(?:\.\d+)?x\s*credits\s*\)$/i;
+  const withoutCredits = value.replace(creditsSuffixPattern, "").trim();
+
+  const tokenized = withoutCredits
+    .replace(/[–—]/g, "-")
+    .replace(/[\s_/]+/g, "-")
+    .replace(/[^a-z0-9.-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return tokenized;
+}
+
+export function mapKiroModelsFromApi(data: unknown, includeHidden: boolean): Array<JsonRecord> {
+  const record = asRecord(data);
+  const rawProfiles = Array.isArray(record.profiles) ? record.profiles : [];
+
+  const mapped = rawProfiles
+    .map((item) => {
+      const profile = asRecord(item);
+      const profileName = String(profile.profile_name || profile.profileName || "").trim();
+      if (!profileName) return null;
+
+      const modelId = normalizeModelIdFromProfileName(profileName);
+      if (!modelId) return null;
+
+      return {
+        id: modelId,
+        name: profileName,
+        hidden: false,
+        owned_by: "kiro",
+        profileArn:
+          typeof profile.arn === "string"
+            ? profile.arn
+            : typeof profile.profile_arn === "string"
+              ? profile.profile_arn
+              : undefined,
+      };
+    })
+    .filter((model): model is JsonRecord => model !== null);
+
+  const visible = includeHidden ? mapped : mapped.filter((model) => model.hidden !== true);
+
+  return mergeKiroModels(visible);
+}

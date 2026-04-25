@@ -112,6 +112,30 @@ function restoreClaudePassthroughToolUseName(parsed: JsonRecord, toolNameMap: un
   return true;
 }
 
+function collapseExactDuplicateAssistantText(value: string): string {
+  let text = typeof value === "string" ? value : "";
+  for (let pass = 0; pass < 3; pass += 1) {
+    const len = text.length;
+    if (len < 4) break;
+
+    let collapsed = false;
+    const mid = Math.floor(len / 2);
+    for (let offset = -3; offset <= 3; offset += 1) {
+      const splitAt = mid + offset;
+      if (splitAt <= 0 || splitAt >= len) continue;
+      const first = text.slice(0, splitAt);
+      const second = text.slice(splitAt).replace(/^\s+/, "");
+      if (first !== second) continue;
+      if (!/[\s.!?;:,)\]]$/.test(first)) continue;
+      text = first;
+      collapsed = true;
+      break;
+    }
+    if (!collapsed) break;
+  }
+  return text;
+}
+
 // Note: TextDecoder/TextEncoder are created per-stream inside createSSEStream()
 // to avoid shared state issues with concurrent streams (TextDecoder with {stream:true}
 // maintains internal buffering state between decode() calls).
@@ -328,7 +352,8 @@ export function createSSEStream(options: StreamOptions = {}) {
                       typeof eu.prompt_tokens === "number" ? eu.prompt_tokens : undefined;
                     const completionTokens =
                       typeof eu.completion_tokens === "number" ? eu.completion_tokens : undefined;
-                    const totalTokens = typeof eu.total_tokens === "number" ? eu.total_tokens : undefined;
+                    const totalTokens =
+                      typeof eu.total_tokens === "number" ? eu.total_tokens : undefined;
                     const cacheReadTokens =
                       typeof eu.cache_read_input_tokens === "number"
                         ? eu.cache_read_input_tokens
@@ -826,12 +851,16 @@ export function createSSEStream(options: StreamOptions = {}) {
                 const u = usage as Record<string, unknown> | null;
                 const prompt = Number(u?.prompt_tokens ?? u?.input_tokens ?? 0);
                 const completion = Number(u?.completion_tokens ?? u?.output_tokens ?? 0);
-                const content = passthroughAccumulatedContent.trim() || "";
+                const content = collapseExactDuplicateAssistantText(
+                  passthroughAccumulatedContent.trim() || ""
+                );
                 const message: Record<string, unknown> = {
                   role: "assistant",
                   content: content || null,
                 };
-                const reasoning = passthroughAccumulatedReasoning.trim();
+                const reasoning = collapseExactDuplicateAssistantText(
+                  passthroughAccumulatedReasoning.trim()
+                );
                 if (reasoning) {
                   message.reasoning_content = reasoning;
                 }
@@ -989,7 +1018,9 @@ export function createSSEStream(options: StreamOptions = {}) {
               const u = state?.usage as Record<string, unknown> | null | undefined;
               const prompt = Number(u?.prompt_tokens ?? u?.input_tokens ?? 0);
               const completion = Number(u?.completion_tokens ?? u?.output_tokens ?? 0);
-              const content = (state?.accumulatedContent ?? "").trim() || "";
+              const content = collapseExactDuplicateAssistantText(
+                (state?.accumulatedContent ?? "").trim() || ""
+              );
               const message: Record<string, unknown> = {
                 role: "assistant",
                 content: content || null,

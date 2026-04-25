@@ -8,6 +8,7 @@ import { handleConfiguredProviderModels } from "./handle-configured-provider-mod
 import { handleGeminiCliModels } from "./handle-gemini-cli-models";
 import { handleGithubModels } from "./handle-github-models";
 import { handleGlmModels } from "./handle-glm-models";
+import { handleKiroModels } from "./handle-kiro-models";
 import { handleOpenAICompatibleModels } from "./handle-openai-compatible-models";
 import { handleOpencodeGoModels } from "./handle-opencode-go-models";
 import { handleQwenOauthModels } from "./handle-qwen-oauth-models";
@@ -33,6 +34,7 @@ export async function handleGetModels(
       (await handleGithubModels(ctx)) ??
       (await handleClaudeStaticModels(ctx)) ??
       (await handleGlmModels(ctx)) ??
+      (await handleKiroModels(ctx)) ??
       (await handleGeminiCliModels(ctx)) ??
       (await handleClineModels(ctx)) ??
       (await handleAnthropicCompatibleModels(ctx)) ??

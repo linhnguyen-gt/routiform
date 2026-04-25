@@ -382,7 +382,7 @@ export function compressContext(
 
   // Layer 0: Compact tool definitions (large tool registries can dominate context budget)
   if (Array.isArray(tools) && tools.length > 0) {
-    tools = compactToolDefinitions(tools, messages, 96);
+    tools = compactToolDefinitions(tools, messages, 96, body);
     currentTokens = estimateRequestTokens(buildWorkingBody());
     stats.layers.push({ name: "compact_tools", tokens: currentTokens });
     if (currentTokens <= targetTokens) {
@@ -481,8 +481,22 @@ export function compressContext(
 function compactToolDefinitions(
   tools: JsonRecord[],
   messages: JsonRecord[],
-  maxTools: number = 48
+  maxTools: number = 48,
+  body?: JsonRecord
 ): JsonRecord[] {
+  const requiredToolNames = new Set<string>();
+  const rawToolChoice = body?.tool_choice;
+  if (rawToolChoice && typeof rawToolChoice === "object" && !Array.isArray(rawToolChoice)) {
+    const toolChoice = rawToolChoice as { type?: string; function?: { name?: string } };
+    if (
+      toolChoice.type === "function" &&
+      typeof toolChoice.function?.name === "string" &&
+      toolChoice.function.name.trim()
+    ) {
+      requiredToolNames.add(toolChoice.function.name.trim());
+    }
+  }
+
   const preferredToolNames = new Set([
     "read",
     "glob",
@@ -523,6 +537,11 @@ function compactToolDefinitions(
       (b as { function?: { name?: string }; name?: string })?.function?.name ||
       (b as { name?: string })?.name ||
       "";
+
+    const aRequired = requiredToolNames.has(String(aName)) ? 1 : 0;
+    const bRequired = requiredToolNames.has(String(bName)) ? 1 : 0;
+    if (aRequired !== bRequired) return bRequired - aRequired;
+
     const aUsed = calledToolNames.has(String(aName)) ? 1 : 0;
     const bUsed = calledToolNames.has(String(bName)) ? 1 : 0;
     if (aUsed !== bUsed) return bUsed - aUsed;
@@ -531,7 +550,34 @@ function compactToolDefinitions(
     return bPreferred - aPreferred;
   });
 
-  return ordered.slice(0, maxTools).map((tool) => {
+  const selected = ordered.slice(0, maxTools);
+  if (requiredToolNames.size > 0) {
+    const selectedNames = new Set(
+      selected.map(
+        (tool) =>
+          (tool as { function?: { name?: string }; name?: string })?.function?.name ||
+          (tool as { name?: string })?.name ||
+          ""
+      )
+    );
+
+    for (const requiredName of requiredToolNames) {
+      if (selectedNames.has(requiredName)) continue;
+      const requiredTool = ordered.find((tool) => {
+        const name =
+          (tool as { function?: { name?: string }; name?: string })?.function?.name ||
+          (tool as { name?: string })?.name ||
+          "";
+        return name === requiredName;
+      });
+      if (!requiredTool) continue;
+      if (selected.length >= maxTools && maxTools > 0) selected.pop();
+      selected.unshift(requiredTool);
+      selectedNames.add(requiredName);
+    }
+  }
+
+  return selected.map((tool) => {
     const next = { ...tool };
     if (next.function && typeof next.function === "object") {
       const fn = { ...(next.function as Record<string, unknown>) };

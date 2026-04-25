@@ -231,3 +231,34 @@ test("compressContext: full-body fit check accounts for top-level tools", () => 
     "Top-level tools should still contribute extra request tokens"
   );
 });
+
+test("compressContext: keeps forced tool_choice function after tool compaction", () => {
+  const tools = Array.from({ length: 120 }, (_, i) => ({
+    type: "function",
+    function: {
+      name: `tool_${i}`,
+      description: `desc ${i}`,
+      parameters: { type: "object", properties: { x: { type: "string" } } },
+    },
+  }));
+
+  const body = {
+    model: "test",
+    tool_choice: {
+      type: "function",
+      function: { name: "tool_119" },
+    },
+    tools,
+    messages: [{ role: "user", content: "Run forced tool" }],
+  };
+
+  const result = compressContext(body, { maxTokens: 4000, reserveTokens: 200 });
+  const compactedTools = Array.isArray(result.body.tools) ? result.body.tools : [];
+  const toolNames = compactedTools
+    .map((t) => t?.function?.name || t?.name)
+    .filter((name) => typeof name === "string");
+
+  assert.ok(result.compressed, "Should trigger compression and compaction");
+  assert.ok(compactedTools.length <= 96, "Tool compaction should keep max 96 tools");
+  assert.ok(toolNames.includes("tool_119"), "Forced tool_choice function must be preserved");
+});
