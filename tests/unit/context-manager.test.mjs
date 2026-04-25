@@ -313,6 +313,50 @@ test("compressContext: preserves skills tools during tool compaction", () => {
   assert.ok(toolNames.includes("skills_list"), "skills_list must be preserved");
 });
 
+test("compressContext: preserves Claude Code core tools during tool compaction", () => {
+  const tools = Array.from({ length: 140 }, (_, i) => ({
+    name: `tool_${i}`,
+    description: "generic tool " + "x".repeat(120),
+    input_schema: { type: "object", properties: { value: { type: "string" } } },
+  }));
+
+  tools.push(
+    { name: "Read", description: "Read a file", input_schema: { type: "object" } },
+    { name: "Update", description: "Update a file", input_schema: { type: "object" } },
+    { name: "Edit", description: "Edit a file", input_schema: { type: "object" } },
+    { name: "Bash", description: "Run a shell command", input_schema: { type: "object" } }
+  );
+
+  const body = {
+    model: "claude-sonnet-4.5",
+    tools,
+    messages: [
+      { role: "user", content: "Fix the file" },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "u1", name: "Update", input: {} }],
+      },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "u1", content: "File must be read first" }],
+      },
+    ],
+  };
+
+  const result = compressContext(body, { maxTokens: 4500, reserveTokens: 200 });
+  const compactedTools = Array.isArray(result.body.tools) ? result.body.tools : [];
+  const toolNames = compactedTools.map((tool) => tool.name || tool.function?.name);
+
+  assert.ok(result.compressed, "Should trigger tool compaction");
+  assert.ok(
+    toolNames.includes("Read"),
+    "Read must remain available after Update read-first errors"
+  );
+  assert.ok(toolNames.includes("Update"), "Recently used Update must remain available");
+  assert.ok(toolNames.includes("Edit"), "Edit must remain available for file changes");
+  assert.ok(toolNames.includes("Bash"), "Bash must remain available for verification");
+});
+
 test("compressContext: purify history keeps user-anchored and tool-coherent conversation", () => {
   const body = {
     model: "claude-sonnet-4.5",

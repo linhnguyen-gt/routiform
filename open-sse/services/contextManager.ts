@@ -484,6 +484,7 @@ function compactToolDefinitions(
   maxTools: number = 48,
   body?: JsonRecord
 ): JsonRecord[] {
+  const normalizeToolNameKey = (name: string): string => name.trim().toLowerCase();
   const getToolName = (tool: JsonRecord): string => {
     const candidate =
       (tool as { function?: { name?: string }; name?: string })?.function?.name ||
@@ -492,14 +493,15 @@ function compactToolDefinitions(
     return typeof candidate === "string" ? candidate : "";
   };
   const isCriticalRuntimeTool = (name: string): boolean => {
-    if (!name) return false;
+    const normalized = normalizeToolNameKey(name);
+    if (!normalized) return false;
     return (
-      name.startsWith("skills_") ||
-      name.startsWith("memory_") ||
-      name === "skills_execute" ||
-      name === "skills_list" ||
-      name === "skills_enable" ||
-      name === "skills_executions"
+      normalized.startsWith("skills_") ||
+      normalized.startsWith("memory_") ||
+      normalized === "skills_execute" ||
+      normalized === "skills_list" ||
+      normalized === "skills_enable" ||
+      normalized === "skills_executions"
     );
   };
 
@@ -512,20 +514,24 @@ function compactToolDefinitions(
       typeof toolChoice.function?.name === "string" &&
       toolChoice.function.name.trim()
     ) {
-      requiredToolNames.add(toolChoice.function.name.trim());
+      requiredToolNames.add(normalizeToolNameKey(toolChoice.function.name));
     }
   }
 
   const preferredToolNames = new Set([
     "read",
+    "update",
+    "edit",
+    "multiedit",
+    "write",
+    "bash",
     "glob",
     "grep",
-    "bash",
-    "write",
-    "edit",
+    "todowrite",
+    "task",
+    "skill",
     "apply_patch",
     "question",
-    "task",
     "playwright_browser_navigate",
     "playwright_browser_snapshot",
     "playwright_browser_click",
@@ -538,11 +544,24 @@ function compactToolDefinitions(
   const calledToolNames = new Set<string>();
   for (const msg of messages) {
     if (!msg || typeof msg !== "object") continue;
-    if (!Array.isArray(msg.tool_calls)) continue;
-    for (const tc of msg.tool_calls as Array<{ function?: { name?: string }; name?: string }>) {
-      const name = tc?.function?.name || tc?.name;
-      if (typeof name === "string" && name.trim()) {
-        calledToolNames.add(name.trim());
+    if (Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls as Array<{ function?: { name?: string }; name?: string }>) {
+        const name = tc?.function?.name || tc?.name;
+        if (typeof name === "string" && name.trim()) {
+          calledToolNames.add(normalizeToolNameKey(name));
+        }
+      }
+    }
+
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content as Array<{ type?: string; name?: string }>) {
+        if (
+          (block?.type === "tool_use" || block?.type === "server_tool_use") &&
+          typeof block.name === "string" &&
+          block.name.trim()
+        ) {
+          calledToolNames.add(normalizeToolNameKey(block.name));
+        }
       }
     }
   }
@@ -550,20 +569,22 @@ function compactToolDefinitions(
   const ordered = [...tools].sort((a, b) => {
     const aName = getToolName(a);
     const bName = getToolName(b);
+    const aKey = normalizeToolNameKey(aName);
+    const bKey = normalizeToolNameKey(bName);
 
-    const aRequired = requiredToolNames.has(String(aName)) ? 1 : 0;
-    const bRequired = requiredToolNames.has(String(bName)) ? 1 : 0;
+    const aRequired = requiredToolNames.has(aKey) ? 1 : 0;
+    const bRequired = requiredToolNames.has(bKey) ? 1 : 0;
     if (aRequired !== bRequired) return bRequired - aRequired;
 
     const aCritical = isCriticalRuntimeTool(String(aName)) ? 1 : 0;
     const bCritical = isCriticalRuntimeTool(String(bName)) ? 1 : 0;
     if (aCritical !== bCritical) return bCritical - aCritical;
 
-    const aUsed = calledToolNames.has(String(aName)) ? 1 : 0;
-    const bUsed = calledToolNames.has(String(bName)) ? 1 : 0;
+    const aUsed = calledToolNames.has(aKey) ? 1 : 0;
+    const bUsed = calledToolNames.has(bKey) ? 1 : 0;
     if (aUsed !== bUsed) return bUsed - aUsed;
-    const aPreferred = preferredToolNames.has(String(aName)) ? 1 : 0;
-    const bPreferred = preferredToolNames.has(String(bName)) ? 1 : 0;
+    const aPreferred = preferredToolNames.has(aKey) ? 1 : 0;
+    const bPreferred = preferredToolNames.has(bKey) ? 1 : 0;
     return bPreferred - aPreferred;
   });
 
@@ -576,25 +597,26 @@ function compactToolDefinitions(
   );
 
   if (criticalNames.size > 0) {
-    const selectedNames = new Set(selected.map((tool) => getToolName(tool)));
+    const selectedNames = new Set(selected.map((tool) => normalizeToolNameKey(getToolName(tool))));
     for (const criticalName of criticalNames) {
-      if (selectedNames.has(criticalName)) continue;
+      const criticalKey = normalizeToolNameKey(criticalName);
+      if (selectedNames.has(criticalKey)) continue;
       const criticalTool = ordered.find((tool) => getToolName(tool) === criticalName);
       if (!criticalTool) continue;
       if (selected.length >= maxTools && maxTools > 0) selected.pop();
       selected.unshift(criticalTool);
-      selectedNames.add(criticalName);
+      selectedNames.add(criticalKey);
     }
   }
 
   if (requiredToolNames.size > 0) {
-    const selectedNames = new Set(selected.map((tool) => getToolName(tool)));
+    const selectedNames = new Set(selected.map((tool) => normalizeToolNameKey(getToolName(tool))));
 
     for (const requiredName of requiredToolNames) {
       if (selectedNames.has(requiredName)) continue;
       const requiredTool = ordered.find((tool) => {
         const name = getToolName(tool);
-        return name === requiredName;
+        return normalizeToolNameKey(name) === requiredName;
       });
       if (!requiredTool) continue;
       if (selected.length >= maxTools && maxTools > 0) selected.pop();
