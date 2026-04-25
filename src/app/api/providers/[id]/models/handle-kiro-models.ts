@@ -32,24 +32,39 @@ export async function handleKiroModels(ctx: GetModelsHandlerContext): Promise<Ne
       : getProviderBaseUrl(ctx.connection.providerSpecificData);
   const endpoint = buildKiroModelsEndpoint(normalizeKiroBaseUrl(configuredBaseUrl));
 
-  const response = await runWithProxyContext(ctx.proxy, () =>
-    safeOutboundFetch(
-      endpoint,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/x-amz-json-1.0",
-          Accept: "application/json",
-          "x-amz-target": "AmazonCodeWhispererService.ListAvailableProfiles",
-          "User-Agent": "AWS-SDK-JS/3.0.0 kiro-ide/1.0.0",
-          "X-Amz-User-Agent": "aws-sdk-js/3.0.0 kiro-ide/1.0.0",
+  const profileTargets = [
+    "AmazonCodeWhispererService.ListAvailableProfiles",
+    "AmazonQDeveloperService.ListAvailableProfiles",
+  ];
+
+  let response: Response | null = null;
+  let lastStatus: number | null = null;
+
+  for (const target of profileTargets) {
+    response = await runWithProxyContext(ctx.proxy, () =>
+      safeOutboundFetch(
+        endpoint,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/x-amz-json-1.0",
+            Accept: "application/json",
+            "x-amz-target": target,
+            "x-amzn-codewhisperer-optout": "true",
+            "User-Agent": "AWS-SDK-JS/3.0.0 kiro-ide/1.0.0",
+            "X-Amz-User-Agent": "aws-sdk-js/3.0.0 kiro-ide/1.0.0",
+          },
+          body: JSON.stringify({ maxResults: 50 }),
         },
-        body: JSON.stringify({}),
-      },
-      { timeoutMs: 10_000 }
-    )
-  ).catch(() => null);
+        { timeoutMs: 10_000 }
+      )
+    ).catch(() => null);
+
+    if (!response) continue;
+    if (response.ok) break;
+    lastStatus = response.status;
+  }
 
   if (!response) {
     return ctx.buildResponse({
@@ -67,7 +82,7 @@ export async function handleKiroModels(ctx: GetModelsHandlerContext): Promise<Ne
       connectionId: ctx.connectionId,
       models: buildKiroFallbackModels(),
       source: "local_catalog",
-      warning: `Kiro API unavailable (${response.status}) — using local catalog`,
+      warning: `Kiro API unavailable (${lastStatus ?? response.status}) — using local catalog`,
     });
   }
 

@@ -308,8 +308,15 @@ export const OAUTH_PROVIDERS: Record<string, RegistryEntry> = {
       authUrl: "https://prod.us-east-1.auth.desktop.kiro.dev",
     },
     models: [
-      { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5" },
-      { id: "claude-haiku-4.5", name: "Claude Haiku 4.5" },
+      { id: "auto", name: "Auto (1.00x credits)" },
+      { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5 (1.30x credits)" },
+      { id: "claude-sonnet-4", name: "Claude Sonnet 4 (1.30x credits)" },
+      { id: "claude-haiku-4.5", name: "Claude Haiku 4.5 (0.40x credits)" },
+      { id: "deepseek-3.2", name: "DeepSeek 3.2 (0.25x credits)" },
+      { id: "minimax-m2.5", name: "MiniMax M2.5 (0.25x credits)" },
+      { id: "minimax-m2.1", name: "MiniMax M2.1 (0.15x credits)" },
+      { id: "glm-5", name: "GLM-5 (0.50x credits)" },
+      { id: "qwen3-coder-next", name: "Qwen3 Coder Next (0.05x credits)" },
     ],
   },
 

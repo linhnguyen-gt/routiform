@@ -223,7 +223,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     // Filter out models already in the built-in registry (except for providers
     // that use a curated whitelist where the sync IS the source of truth)
-    const skipRegistryFilter = logProvider === "github";
+    const skipRegistryFilter = logProvider === "github" || logProvider === "kiro";
     const registryIds = skipRegistryFilter
       ? new Set<string>()
       : new Set(getModelsByProviderId(logProvider).map((m) => m.id));
