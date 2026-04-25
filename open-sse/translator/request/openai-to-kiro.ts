@@ -120,6 +120,8 @@ type KiroPayload = {
 };
 
 const KIRO_TOOL_ONLY_PLACEHOLDER = "I used tools.";
+const KIRO_TOOL_DESCRIPTION_MAX_CHARS = 512;
+const KIRO_MAX_PAYLOAD_BYTES = 180_000;
 
 function toNonEmptyString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -390,6 +392,10 @@ function buildToolSpecs(tools: unknown): KiroToolSpec[] {
       const description =
         toNonEmptyString(typedTool.function?.description || typedTool.description) ||
         `Tool: ${name}`;
+      const normalizedDescription =
+        description.length > KIRO_TOOL_DESCRIPTION_MAX_CHARS
+          ? `${description.slice(0, KIRO_TOOL_DESCRIPTION_MAX_CHARS)}...`
+          : description;
       const schema = normalizeSchema(
         typedTool.function?.parameters ?? typedTool.parameters ?? typedTool.input_schema ?? {}
       );
@@ -397,7 +403,7 @@ function buildToolSpecs(tools: unknown): KiroToolSpec[] {
       return {
         toolSpecification: {
           name,
-          description,
+          description: normalizedDescription,
           inputSchema: { json: schema },
         },
       };
@@ -482,6 +488,41 @@ function validateKiroPayload(payload: KiroPayload): KiroPayload {
   return payload;
 }
 
+function payloadSizeBytes(payload: KiroPayload): number {
+  return Buffer.byteLength(JSON.stringify(payload));
+}
+
+function enforceKiroPayloadSize(payload: KiroPayload): KiroPayload {
+  // Keep dropping oldest history items until payload fits Kiro's practical request-size limit.
+  while (
+    payload.conversationState.history.length > 0 &&
+    payloadSizeBytes(payload) > KIRO_MAX_PAYLOAD_BYTES
+  ) {
+    payload.conversationState.history.shift();
+  }
+
+  // Keep history user-anchored after trimming from the front.
+  while (
+    payload.conversationState.history.length > 0 &&
+    payload.conversationState.history[0]?.assistantResponseMessage
+  ) {
+    payload.conversationState.history.shift();
+  }
+
+  // Drop orphaned tool result text at the start of history.
+  // If the first user turn contains "[Tool Result: ...]" text but there's no preceding
+  // assistant tool_use (because we trimmed it), Kiro will reject the payload as malformed.
+  if (payload.conversationState.history.length > 0) {
+    const firstItem = payload.conversationState.history[0];
+    const firstUserContent = firstItem?.userInputMessage?.content || "";
+    if (firstUserContent.trim().startsWith("[Tool Result:")) {
+      payload.conversationState.history.shift();
+    }
+  }
+
+  return payload;
+}
+
 function convertMessages(messages: unknown, tools: unknown, model: string) {
   const history: KiroHistoryItem[] = [];
   let activeUserTurn: CanonicalUserTurn | null = null;
@@ -501,8 +542,11 @@ function convertMessages(messages: unknown, tools: unknown, model: string) {
   };
 
   const typedMessages = Array.isArray(messages) ? (messages as OpenAIMessage[]) : [];
+  const firstUserIndex = typedMessages.findIndex((message) => message?.role === "user");
+  const normalizedMessages =
+    firstUserIndex > 0 ? typedMessages.slice(firstUserIndex) : typedMessages;
 
-  for (const message of typedMessages) {
+  for (const message of normalizedMessages) {
     const role = typeof message.role === "string" ? message.role : "user";
 
     if (role === "assistant") {
@@ -618,7 +662,8 @@ export function buildKiroPayload(
     payload.inferenceConfig.topP = body.top_p;
   }
 
-  return validateKiroPayload(payload);
+  const normalizedPayload = validateKiroPayload(payload);
+  return enforceKiroPayloadSize(normalizedPayload);
 }
 
 register(FORMATS.OPENAI, FORMATS.KIRO, buildKiroPayload, null);

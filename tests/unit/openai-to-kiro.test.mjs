@@ -164,7 +164,7 @@ test("buildKiroPayload attaches image bytes from media tool results so Kiro can 
   );
 });
 
-test("buildKiroPayload preserves leading assistant/tool fragments", () => {
+test("buildKiroPayload drops leading assistant/tool fragments", () => {
   const body = {
     messages: [
       {
@@ -195,8 +195,8 @@ test("buildKiroPayload preserves leading assistant/tool fragments", () => {
 
   assert.equal(
     history.some((item) => Boolean(item.assistantResponseMessage)),
-    true,
-    "Leading assistant/tool fragments should remain in Kiro history"
+    false,
+    "Leading assistant/tool fragments should be removed from Kiro history"
   );
   assert.equal(
     payload.conversationState.currentMessage.userInputMessage.content.includes(
@@ -206,7 +206,7 @@ test("buildKiroPayload preserves leading assistant/tool fragments", () => {
   );
 });
 
-test("buildKiroPayload preserves oversized tool descriptions", () => {
+test("buildKiroPayload truncates oversized tool descriptions", () => {
   const veryLongDescription = "d".repeat(6000);
   const body = {
     messages: [{ role: "user", content: "Run tool" }],
@@ -227,10 +227,11 @@ test("buildKiroPayload preserves oversized tool descriptions", () => {
     payload.conversationState.currentMessage.userInputMessage.userInputMessageContext.tools[0]
       .toolSpecification.description;
 
-  assert.equal(description, veryLongDescription);
+  assert.ok(description.length <= 515, "Kiro tool description should be capped");
+  assert.equal(description.endsWith("..."), true);
 });
 
-test("buildKiroPayload preserves oversized history", () => {
+test("buildKiroPayload trims oversized history", () => {
   const messages = [];
   for (let i = 0; i < 140; i += 1) {
     messages.push({ role: "user", content: `U${i} ${"u".repeat(1600)}` });
@@ -258,13 +259,10 @@ test("buildKiroPayload preserves oversized history", () => {
   );
 
   const payloadBytes = Buffer.byteLength(JSON.stringify(payload));
-  assert.ok(payloadBytes > 180000, `Expected payload > 180000 bytes, got ${payloadBytes}`);
+  assert.ok(payloadBytes <= 180000, `Expected payload <= 180000 bytes, got ${payloadBytes}`);
 
   const firstHistory = payload.conversationState.history[0];
   if (firstHistory) {
-    assert.ok(
-      firstHistory.userInputMessage,
-      "Untrimmed history should preserve the first user turn"
-    );
+    assert.ok(!firstHistory.assistantResponseMessage, "Trimmed history should stay user-anchored");
   }
 });
