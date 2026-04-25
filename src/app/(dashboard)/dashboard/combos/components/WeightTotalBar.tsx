@@ -1,11 +1,12 @@
 "use client";
 
 interface WeightTotalBarProps {
-  models: Array<{ model: string; weight: number }>;
+  models: Array<{ model: string; weight: number; disabled?: boolean }>;
 }
 
 export function WeightTotalBar({ models }: WeightTotalBarProps) {
-  const total = models.reduce((sum, m) => sum + (m.weight || 0), 0);
+  const activeModels = models.filter((m) => !m.disabled);
+  const total = activeModels.reduce((sum, m) => sum + (m.weight || 0), 0);
   const isValid = total === 100;
   const colors = [
     "bg-blue-500",
@@ -21,7 +22,7 @@ export function WeightTotalBar({ models }: WeightTotalBarProps) {
   return (
     <div className="mt-1.5">
       <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden flex">
-        {models.map((m, i) => {
+        {activeModels.map((m, i) => {
           if (!m.weight) return null;
           return (
             <div
@@ -34,7 +35,7 @@ export function WeightTotalBar({ models }: WeightTotalBarProps) {
       </div>
       <div className="flex items-center justify-between mt-0.5">
         <div className="flex gap-1">
-          {models.map(
+          {activeModels.map(
             (m, i) =>
               m.weight > 0 && (
                 <span key={i} className="flex items-center gap-0.5 text-[9px] text-text-muted">

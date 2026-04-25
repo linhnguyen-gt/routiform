@@ -628,6 +628,122 @@ test("Chat→Responses: assistant with empty content + tool_calls gets minimal o
   assert.equal(afterMsg[0].content[0].text, "\u200b");
 });
 
+test("Chat→Responses: Codex keeps terminal tool output as final input item", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.3-codex",
+    {
+      messages: [
+        { role: "user", content: "x" },
+        {
+          role: "assistant",
+          content: "working",
+          tool_calls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "edit", arguments: "{}" },
+            },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "Could not find oldString" },
+      ],
+    },
+    true,
+    null
+  );
+
+  const last = out.input[out.input.length - 1];
+  assert.equal(last.type, "function_call_output");
+  assert.equal(last.call_id, "call_1");
+  assert.equal(last.output, "Could not find oldString");
+});
+
+test("Chat→Responses: non-Codex models do not get continuation cue", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-4.1",
+    {
+      messages: [
+        { role: "user", content: "x" },
+        {
+          role: "assistant",
+          content: "working",
+          tool_calls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "edit", arguments: "{}" },
+            },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "Could not find oldString" },
+      ],
+    },
+    true,
+    null
+  );
+
+  const last = out.input[out.input.length - 1];
+  assert.notEqual(last.type, "message");
+});
+
+test("Chat→Responses: Codex does not auto-inject tool_choice required", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.3-codex",
+    {
+      tools: [{ type: "function", function: { name: "read", parameters: {} } }],
+      messages: [
+        { role: "user", content: "start" },
+        {
+          role: "assistant",
+          content: "checking",
+          tool_calls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "read", arguments: "{}" },
+            },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "result" },
+        { role: "user", content: "sua di" },
+      ],
+    },
+    true,
+    null
+  );
+
+  assert.equal(out.tool_choice, undefined);
+});
+
+test("Chat→Responses: Codex keeps explicit tool_choice when provided", () => {
+  const out = openaiToOpenAIResponsesRequest(
+    "gpt-5.3-codex",
+    {
+      tools: [{ type: "function", function: { name: "read", parameters: {} } }],
+      tool_choice: "auto",
+      messages: [
+        { role: "user", content: "start" },
+        {
+          role: "assistant",
+          content: null,
+          tool_calls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "read", arguments: "{}" },
+            },
+          ],
+        },
+        { role: "tool", tool_call_id: "call_1", content: "result" },
+      ],
+    },
+    true,
+    null
+  );
+
+  assert.equal(out.tool_choice, "auto");
+});
+
 test("Chat→Responses: maps max_tokens to max_output_tokens", () => {
   const out = openaiToOpenAIResponsesRequest(
     "gpt-5.1-codex",

@@ -10,8 +10,8 @@ export function hasTranslation(t: { has?: (key: string) => boolean }, key: strin
 }
 
 export function normalizeModelEntry(entry: string | ComboModelEntry): Required<ComboModelEntry> {
-  if (typeof entry === "string") return { model: entry, weight: 0 };
-  if (!entry || typeof entry !== "object") return { model: "", weight: 0 };
+  if (typeof entry === "string") return { model: entry, weight: 0, disabled: false };
+  if (!entry || typeof entry !== "object") return { model: "", weight: 0, disabled: false };
 
   const model =
     typeof entry.model === "string"
@@ -20,8 +20,9 @@ export function normalizeModelEntry(entry: string | ComboModelEntry): Required<C
         ? entry.value
         : "";
   const parsedWeight = typeof entry.weight === "number" ? entry.weight : Number(entry.weight) || 0;
+  const disabled = typeof entry.disabled === "boolean" ? entry.disabled : false;
 
-  return { model, weight: parsedWeight };
+  return { model, weight: parsedWeight, disabled };
 }
 
 export function getModelString(entry: string | ComboModelEntry): string {

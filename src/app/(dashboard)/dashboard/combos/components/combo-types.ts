@@ -1,6 +1,7 @@
 export interface ComboModelEntry {
   model: string;
   weight?: number;
+  disabled?: boolean;
 }
 
 export interface ComboRecord {

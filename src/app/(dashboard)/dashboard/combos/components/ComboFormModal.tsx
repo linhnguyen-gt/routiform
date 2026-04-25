@@ -86,7 +86,9 @@ export function ComboFormModal({
     [combo]
   );
   const [name, setName] = useState(combo?.name || "");
-  const [models, setModels] = useState<Array<{ model: string; weight: number }>>(() => {
+  const [models, setModels] = useState<
+    Array<{ model: string; weight: number; disabled?: boolean }>
+  >(() => {
     return (combo?.models || []).map((m: string | ComboModelEntry) => normalizeModelEntry(m));
   });
   const [strategy, setStrategy] = useState(combo?.strategy || "priority");
@@ -143,29 +145,35 @@ export function ComboFormModal({
     [pricingByProvider, providerNodes]
   );
 
-  const weightTotal = models.reduce((sum, modelEntry) => sum + (modelEntry.weight || 0), 0);
-  const pricedModelCount = models.reduce(
+  const weightTotal = models.reduce(
+    (sum, modelEntry) => sum + (modelEntry.disabled ? 0 : modelEntry.weight || 0),
+    0
+  );
+  const activeModels = models.filter((m) => !m.disabled);
+  const pricedModelCount = activeModels.reduce(
     (count, modelEntry) => count + (hasPricingForModel(modelEntry.model) ? 1 : 0),
     0
   );
   const pricingCoveragePercent =
-    models.length > 0 ? Math.round((pricedModelCount / models.length) * 100) : 0;
+    activeModels.length > 0 ? Math.round((pricedModelCount / activeModels.length) * 100) : 0;
   const hasNoModels = models.length === 0;
-  const hasRoundRobinSingleModel = strategy === "round-robin" && models.length === 1;
+  const hasNoActiveModels = activeModels.length === 0;
+  const hasRoundRobinSingleModel = strategy === "round-robin" && activeModels.length === 1;
   const hasCostOptimizedWithoutPricing =
-    strategy === "cost-optimized" && models.length > 0 && pricedModelCount === 0;
+    strategy === "cost-optimized" && activeModels.length > 0 && pricedModelCount === 0;
   const hasCostOptimizedPartialPricing =
     strategy === "cost-optimized" &&
-    models.length > 0 &&
+    activeModels.length > 0 &&
     pricedModelCount > 0 &&
-    pricedModelCount < models.length;
+    pricedModelCount < activeModels.length;
   const hasInvalidWeightedTotal =
-    strategy === "weighted" && models.length > 0 && weightTotal !== 100;
+    strategy === "weighted" && activeModels.length > 0 && weightTotal !== 100;
   const saveBlocked =
     !name.trim() ||
     !!nameError ||
     saving ||
     hasNoModels ||
+    hasNoActiveModels ||
     hasInvalidWeightedTotal ||
     hasCostOptimizedWithoutPricing;
   const readinessChecks = [
@@ -176,8 +184,8 @@ export function ComboFormModal({
     },
     {
       id: "models",
-      ok: !hasNoModels,
-      label: getI18nOrFallback(t, "readinessCheckModels", "At least one model is selected"),
+      ok: !hasNoModels && !hasNoActiveModels,
+      label: getI18nOrFallback(t, "readinessCheckModels", "At least one model is active"),
     },
     {
       id: "weights",
@@ -204,6 +212,11 @@ export function ComboFormModal({
   }
   if (hasNoModels) {
     saveBlockers.push(getI18nOrFallback(t, "saveBlockModels", "Add at least one model."));
+  }
+  if (hasNoActiveModels && !hasNoModels) {
+    saveBlockers.push(
+      getI18nOrFallback(t, "saveBlockNoActiveModels", "Enable at least one model.")
+    );
   }
   if (hasInvalidWeightedTotal) {
     saveBlockers.push(
@@ -407,6 +420,15 @@ export function ComboFormModal({
     newModels[index] = {
       ...newModels[index],
       weight: Math.max(0, Math.min(100, Number(weight) || 0)),
+    };
+    setModels(newModels);
+  };
+
+  const handleToggleDisabled = (index: number) => {
+    const newModels = [...models];
+    newModels[index] = {
+      ...newModels[index],
+      disabled: !newModels[index].disabled,
     };
     setModels(newModels);
   };
@@ -630,7 +652,12 @@ export function ComboFormModal({
     try {
       const saveData: ComboSaveData = {
         name: name.trim(),
-        models: strategy === "weighted" ? models : models.map((m) => m.model),
+        models: models.map((m) => {
+          const entry: ComboModelEntry = { model: m.model };
+          if (strategy === "weighted") entry.weight = m.weight;
+          if (m.disabled) entry.disabled = true;
+          return entry;
+        }),
         strategy,
       };
 
@@ -827,8 +854,23 @@ export function ComboFormModal({
                         dragOverIndex === index && dragIndex !== index
                           ? "bg-primary/10 border border-primary/30"
                           : "bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border border-transparent"
-                      } ${dragIndex === index ? "opacity-50" : ""}`}
+                      } ${dragIndex === index ? "opacity-50" : ""} ${entry.disabled ? "opacity-50" : ""}`}
                     >
+                      <button
+                        onClick={() => handleToggleDisabled(index)}
+                        className={`shrink-0 w-8 h-4 rounded-full transition-all relative ${
+                          entry.disabled ? "bg-black/10 dark:bg-white/10" : "bg-primary"
+                        }`}
+                        title={entry.disabled ? "Enable model" : "Disable model"}
+                        aria-label={entry.disabled ? "Enable model" : "Disable model"}
+                      >
+                        <span
+                          className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${
+                            entry.disabled ? "left-0.5" : "left-[18px]"
+                          }`}
+                        />
+                      </button>
+
                       <span className="material-symbols-outlined text-[14px] text-text-muted/40 cursor-grab shrink-0">
                         drag_indicator
                       </span>
@@ -837,7 +879,9 @@ export function ComboFormModal({
                         {index + 1}
                       </span>
 
-                      <div className="flex-1 min-w-0 px-1 text-xs text-text-main truncate">
+                      <div
+                        className={`flex-1 min-w-0 px-1 text-xs truncate ${entry.disabled ? "text-text-muted line-through" : "text-text-main"}`}
+                      >
                         {formatModelDisplay(entry.model)}
                       </div>
 
@@ -958,7 +1002,7 @@ export function ComboFormModal({
                     {getI18nOrFallback(t, "pricingCoverage", "Pricing coverage")}
                   </span>
                   <span className="font-medium text-text-main">
-                    {pricedModelCount}/{models.length} ({pricingCoveragePercent}%)
+                    {pricedModelCount}/{activeModels.length} ({pricingCoveragePercent}%)
                   </span>
                 </div>
                 <div className="h-1.5 mt-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
@@ -1019,8 +1063,8 @@ export function ComboFormModal({
                   {getI18nOrFallback(
                     t,
                     "warningCostOptimizedPartialPricing",
-                    `Only ${pricedModelCount} of ${models.length} models have pricing. Routing may be partially cost-aware.`,
-                    { priced: pricedModelCount, total: models.length }
+                    `Only ${pricedModelCount} of ${activeModels.length} models have pricing. Routing may be partially cost-aware.`,
+                    { priced: pricedModelCount, total: activeModels.length }
                   )}
                 </span>
               </div>
