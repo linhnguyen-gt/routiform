@@ -31,6 +31,7 @@ export const OFFICIAL_GITHUB_COPILOT_MODELS: Array<{
     targetFormat: "openai-responses",
   },
   { id: "gpt-5.4-nano", name: "GPT-5.4 nano", owned_by: "openai" },
+  { id: "gpt-5.5", name: "GPT-5.5", owned_by: "openai" },
   {
     id: "claude-haiku-4.5",
     name: "Claude Haiku 4.5",
@@ -41,7 +42,7 @@ export const OFFICIAL_GITHUB_COPILOT_MODELS: Array<{
   { id: "claude-opus-4.6", name: "Claude Opus 4.6", owned_by: "anthropic", supportsThinking: true },
   {
     id: "claude-opus-4.6-fast",
-    name: "Claude Opus 4.6 (fast mode)",
+    name: "Claude Opus 4.6 (fast mode) (preview)",
     owned_by: "anthropic",
     supportsThinking: true,
   },
@@ -70,6 +71,11 @@ export const OFFICIAL_GITHUB_COPILOT_MODELS: Array<{
   { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", owned_by: "google" },
   { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", owned_by: "google" },
   { id: "grok-code-fast-1", name: "Grok Code Fast 1", owned_by: "xai" },
-  { id: "raptor-mini", name: "Raptor mini", owned_by: "openai" },
-  { id: "goldeneye", name: "Goldeneye", owned_by: "openai", targetFormat: "openai-responses" },
+  { id: "raptor-mini", name: "Raptor mini", owned_by: "fine-tuned-gpt-5-mini" },
+  {
+    id: "goldeneye",
+    name: "Goldeneye",
+    owned_by: "fine-tuned-gpt-5.1-codex",
+    targetFormat: "openai-responses",
+  },
 ];

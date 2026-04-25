@@ -193,6 +193,37 @@ test("compressContext: Layer 3 can drop all non-system messages when needed", ()
   }
 });
 
+test("compressContext: embeds compression summary into first kept user turn", () => {
+  const body = {
+    model: "test",
+    messages: [
+      ...Array.from({ length: 12 }, (_, i) => ({
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: `message-${i} ${"x".repeat(600)}`,
+      })),
+    ],
+  };
+
+  const result = compressContext(body, { maxTokens: 1200, reserveTokens: 0 });
+  assert.ok(result.compressed);
+
+  const conversation = result.body.messages.filter(
+    (m) => m.role !== "system" && m.role !== "developer"
+  );
+  assert.ok(conversation.length > 0);
+  assert.equal(conversation[0].role, "user");
+  assert.ok(
+    !(
+      conversation.length > 1 &&
+      conversation[0].role === "user" &&
+      conversation[1].role === "user" &&
+      typeof conversation[0].content === "string" &&
+      /Context compressed:/.test(conversation[0].content)
+    ),
+    "Compression summary should be merged into the first kept user turn when possible"
+  );
+});
+
 test("compressContext: full-body fit check accounts for top-level tools", () => {
   const body = {
     model: "test",
@@ -390,5 +421,50 @@ test("compressContext: purify history keeps user-anchored and tool-coherent conv
     roles.includes("tool"),
     false,
     "Orphan tool messages should be dropped after purification"
+  );
+});
+
+test("compressContext: purify history keeps the preceding user turn for assistant tool chains", () => {
+  const body = {
+    model: "claude-sonnet-4.5",
+    messages: [
+      { role: "user", content: "please continue implementation" },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "read_1", name: "read", input: { filePath: "a" } }],
+      },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "read_1", content: "file body" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "edit_1", name: "edit", input: { filePath: "a" } }],
+      },
+      {
+        role: "user",
+        content: [
+          { type: "tool_result", tool_use_id: "edit_1", content: "Edit applied successfully." },
+        ],
+      },
+      {
+        role: "assistant",
+        content: "I fixed the compression issue and I'm continuing the combo toggle.",
+      },
+      { role: "user", content: "ok tiep tuc lam di " + "x".repeat(5000) },
+    ],
+  };
+
+  const result = compressContext(body, { maxTokens: 1400, reserveTokens: 0 });
+  assert.ok(result.compressed, "Expected aggressive purification to trigger");
+
+  const conversation = result.body.messages.filter(
+    (m) => m.role !== "system" && m.role !== "developer"
+  );
+  assert.ok(conversation.length > 0);
+  assert.equal(
+    conversation[0].role,
+    "user",
+    `Purified history must remain user-anchored, got ${conversation.map((m) => m.role).join(",")}`
   );
 });

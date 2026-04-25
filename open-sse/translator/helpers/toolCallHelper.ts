@@ -7,7 +7,9 @@ type MessageBody = { messages?: JsonRecord[] } & JsonRecord;
 const ALPHANUM9 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function stableToolIdHash(seed: unknown): string {
-  return createHash("sha256").update(JSON.stringify(seed ?? null)).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(seed ?? null))
+    .digest("hex");
 }
 
 function toBase62(hash: string, length: number): string {
@@ -137,6 +139,19 @@ export function hasToolResults(msg: JsonRecord | null | undefined, toolCallIds: 
   // Claude format: tool_result blocks in user message content
   if (msg.role === "user" && Array.isArray(msg.content)) {
     for (const block of msg.content) {
+      if (
+        block &&
+        typeof block === "object" &&
+        !Array.isArray(block) &&
+        (block as JsonRecord).type === "text" &&
+        typeof (block as JsonRecord).text === "string"
+      ) {
+        const match = /^\[Tool Result: ([^\]]+)\]\n?[\s\S]*$/.exec(
+          (block as JsonRecord).text as string
+        );
+        if (match && toolCallIds.includes(match[1])) return true;
+      }
+
       const toolUseId =
         block && typeof block === "object" && !Array.isArray(block)
           ? (block as JsonRecord).tool_use_id

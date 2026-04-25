@@ -132,6 +132,7 @@ const comboModelEntry = z.union([
   z.object({
     model: z.string().min(1),
     weight: z.number().min(0).max(100).default(0),
+    disabled: z.boolean().optional(),
   }),
 ]);
 

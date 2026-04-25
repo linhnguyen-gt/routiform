@@ -14,14 +14,17 @@ export function resolveInitialOrderedModels(
 ): string[] {
   let orderedModels: string[];
 
+  // Filter out disabled models first
+  const activeModels = models.filter((m) => !normalizeModelEntry(m).disabled);
+
   if (allCombos) {
     const flatModels = resolveNestedComboModels(
       combo as { name: string; models?: unknown[] },
       allCombos
     );
     if (strategy === "weighted") {
-      const selected = selectWeightedModel(models);
-      orderedModels = orderModelsForWeightedFallback(models, selected);
+      const selected = selectWeightedModel(activeModels);
+      orderedModels = orderModelsForWeightedFallback(activeModels, selected);
       orderedModels = orderedModels.flatMap((m) => {
         const combos = Array.isArray(allCombos)
           ? allCombos
@@ -41,11 +44,11 @@ export function resolveInitialOrderedModels(
       log.info("COMBO", `${strategy} with nested resolution: ${orderedModels.length} total models`);
     }
   } else if (strategy === "weighted") {
-    const selected = selectWeightedModel(models);
-    orderedModels = orderModelsForWeightedFallback(models, selected);
-    log.info("COMBO", `Weighted selection: ${selected} (from ${models.length} models)`);
+    const selected = selectWeightedModel(activeModels);
+    orderedModels = orderModelsForWeightedFallback(activeModels, selected);
+    log.info("COMBO", `Weighted selection: ${selected} (from ${activeModels.length} models)`);
   } else {
-    orderedModels = models.map((m) => normalizeModelEntry(m).model);
+    orderedModels = activeModels.map((m) => normalizeModelEntry(m).model);
   }
 
   return orderedModels;

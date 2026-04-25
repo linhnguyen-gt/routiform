@@ -749,15 +749,18 @@ function purifyHistory(
   const nonSystem = messages.filter((m) => m.role !== "system" && m.role !== "developer");
 
   const buildCandidate = (keep: number, includeSummary: boolean): JsonRecord[] => {
-    const keptMessages = keep <= 0 ? [] : nonSystem.slice(-keep);
-    const candidate = [...system, ...keptMessages];
-    if (includeSummary && keep < nonSystem.length) {
-      const dropped = nonSystem.length - keep;
-      candidate.splice(system.length, 0, {
-        role: "user",
-        content: `[Context compressed: ${dropped} earlier messages removed to fit context window]`,
-      });
+    let keptMessages: JsonRecord[] = [];
+    if (keep > 0) {
+      let startIndex = Math.max(0, nonSystem.length - keep);
+      while (startIndex > 0 && nonSystem[startIndex]?.role !== "user") {
+        startIndex -= 1;
+      }
+      keptMessages = nonSystem.slice(startIndex);
     }
+    const candidate =
+      includeSummary && keep < nonSystem.length
+        ? addCompressionSummary(system, keptMessages, nonSystem.length - keep)
+        : [...system, ...keptMessages];
     return normalizePurifiedMessages(candidate);
   };
 
@@ -780,6 +783,44 @@ function purifyHistory(
   }
 
   return buildCandidate(0, false);
+}
+
+function addCompressionSummary(
+  system: JsonRecord[],
+  keptMessages: JsonRecord[],
+  dropped: number
+): JsonRecord[] {
+  const summary = `[Context compressed: ${dropped} earlier messages removed to fit context window]`;
+  const candidate = [...system, ...keptMessages];
+  const firstConversationIdx = candidate.findIndex(
+    (msg) => msg.role !== "system" && msg.role !== "developer"
+  );
+
+  if (firstConversationIdx === -1) {
+    return [...system, { role: "user", content: summary }];
+  }
+
+  const firstMessage = candidate[firstConversationIdx];
+  if (firstMessage.role === "user") {
+    if (typeof firstMessage.content === "string") {
+      candidate[firstConversationIdx] = {
+        ...firstMessage,
+        content: `${summary}\n\n${firstMessage.content}`,
+      };
+      return candidate;
+    }
+
+    if (Array.isArray(firstMessage.content)) {
+      candidate[firstConversationIdx] = {
+        ...firstMessage,
+        content: [{ type: "text", text: summary }, ...(firstMessage.content as JsonRecord[])],
+      };
+      return candidate;
+    }
+  }
+
+  candidate.splice(firstConversationIdx, 0, { role: "user", content: summary });
+  return candidate;
 }
 
 function normalizePurifiedMessages(messages: JsonRecord[]): JsonRecord[] {

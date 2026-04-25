@@ -43,6 +43,9 @@ export async function handleRoundRobinCombo(options: {
   const queueTimeout = (config as { queueTimeoutMs?: number }).queueTimeoutMs ?? 30000;
   const { maxRetries, retryDelayMs } = resolveRetrySettings(config as Record<string, unknown>);
 
+  // Filter out disabled models first
+  const activeModels = models.filter((m) => !normalizeModelEntry(m).disabled);
+
   let orderedModels: string[];
   if (allCombos) {
     orderedModels = resolveNestedComboModels(
@@ -50,7 +53,7 @@ export async function handleRoundRobinCombo(options: {
       allCombos
     );
   } else {
-    orderedModels = models.map((m) => normalizeModelEntry(m).model);
+    orderedModels = activeModels.map((m) => normalizeModelEntry(m).model);
   }
 
   if (orderedModels.length === 0) {

@@ -46,7 +46,11 @@ export function resolveNestedComboModels(
   const resolved: string[] = [];
 
   for (const entry of combo.models || []) {
-    const modelName = normalizeModelEntry(entry).model;
+    const normalized = normalizeModelEntry(entry);
+    // Skip disabled models
+    if (normalized.disabled) continue;
+
+    const modelName = normalized.model;
     const nestedCombo = combos.find((c: { name?: string }) => c.name === modelName) as
       | { name: string; models?: unknown[] }
       | undefined;

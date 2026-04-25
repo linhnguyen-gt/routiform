@@ -432,17 +432,21 @@ export function ComboFormModal({
     };
     setModels(newModels);
   };
+  let activeIndex = 0;
 
   const handleAutoBalance = () => {
-    const count = models.length;
+    const activeModels = models.filter((m) => !m.disabled);
+    const count = activeModels.length;
     if (count === 0) return;
     const weight = Math.floor(100 / count);
     const remainder = 100 - weight * count;
     setModels(
-      models.map((m, i) => ({
-        ...m,
-        weight: weight + (i === 0 ? remainder : 0),
-      }))
+      models.map((m) => {
+        if (m.disabled) return m;
+        const newWeight = weight + (activeIndex === 0 ? remainder : 0);
+        activeIndex++;
+        return { ...m, weight: newWeight };
+      })
     );
   };
 

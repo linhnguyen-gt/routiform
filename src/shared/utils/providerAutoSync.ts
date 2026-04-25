@@ -12,6 +12,7 @@ const UNSUPPORTED_MODEL_LIST_PROVIDERS = new Set([
   "perplexity",
   "bailian-coding-plan",
   "qoder",
+  "github",
 ]);
 
 export function supportsProviderModelAutoSync(providerId: string): boolean {
