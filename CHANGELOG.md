@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.19.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.0...v3.19.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* **context:** preserve agent tools during compression ([8197f3a](https://github.com/linhnguyen-gt/Routiform/commit/8197f3a2fedcdbbc8fcb945fccbbeb1143257e58))
+
 ## [3.19.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.18.0...v3.19.0) (2026-04-25)
 
 
