@@ -401,6 +401,7 @@ export class CodexExecutor extends BaseExecutor {
         modelEffort = level;
         body.model = cleanModel.slice(0, -`-${level}`.length);
         cleanModel = body.model;
+        console.log(`[Codex] Extracted reasoning effort from model suffix: ${level}`);
         break;
       }
     }
@@ -411,16 +412,24 @@ export class CodexExecutor extends BaseExecutor {
     const rawEffort =
       explicitReasoning || requestReasoningEffort || modelEffort || fallbackReasoningEffort;
 
+    console.log(
+      `[Codex] Reasoning effort sources - explicit: ${explicitReasoning}, request: ${requestReasoningEffort}, model: ${modelEffort}, final: ${rawEffort}`
+    );
+
     if (explicitReasoning) {
+      const clampedEffort = clampEffort(cleanModel, explicitReasoning);
       body.reasoning = {
         ...(body.reasoning && typeof body.reasoning === "object" ? body.reasoning : {}),
-        effort: clampEffort(cleanModel, explicitReasoning),
+        effort: clampedEffort,
       };
+      console.log(`[Codex] Reasoning effort set: ${clampedEffort} (model: ${cleanModel})`);
     } else if (rawEffort) {
+      const clampedEffort = clampEffort(cleanModel, rawEffort);
       body.reasoning = {
         ...(body.reasoning && typeof body.reasoning === "object" ? body.reasoning : {}),
-        effort: clampEffort(cleanModel, rawEffort),
+        effort: clampedEffort,
       };
+      console.log(`[Codex] Reasoning effort set: ${clampedEffort} (model: ${cleanModel})`);
     }
     delete body.reasoning_effort;
 

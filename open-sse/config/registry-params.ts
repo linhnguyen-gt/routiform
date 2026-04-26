@@ -8,7 +8,15 @@ import { getRegistryEntry } from "./registry-lookup.ts";
 const _unsupportedParamsMap = new Map<string, readonly string[]>();
 const _forceParamsMap = new Map<string, Record<string, unknown>>();
 const _defaultParamsMap = new Map<string, Record<string, unknown>>();
-const _customDefaultParamsMap = new Map<string, Record<string, unknown>>();
+
+// Use globalThis to survive Next.js hot reload
+const _globalKey = Symbol.for("__routiform_customDefaultParamsMap__");
+if (!(globalThis as Record<string, unknown>)[_globalKey]) {
+  (globalThis as Record<string, unknown>)[_globalKey] = new Map<string, Record<string, unknown>>();
+}
+const _customDefaultParamsMap: Map<string, Record<string, unknown>> = (
+  globalThis as Record<string, unknown>
+)[_globalKey] as Map<string, Record<string, unknown>>;
 
 const MODEL_REASONING_EFFORT_VALUES = new Set(["none", "low", "medium", "high", "xhigh"]);
 
@@ -142,15 +150,26 @@ export function getForceParams(provider: string, modelId: string): Record<string
 export function setCustomModelDefaultParams(
   overrides: Record<string, Record<string, unknown>>
 ): void {
+  console.log(
+    `[ModelDefaults] setCustomModelDefaultParams called with ${Object.keys(overrides || {}).length} entries`
+  );
+
   _customDefaultParamsMap.clear();
   if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) return;
 
   for (const [key, value] of Object.entries(overrides)) {
     if (!isPlainObject(value) || Object.keys(value).length === 0) continue;
     const normalizedKey = normalizeExternalProviderModelKey(key);
-    if (!normalizedKey) continue;
+    if (!normalizedKey) {
+      console.warn(`[ModelDefaults] Failed to normalize key: ${key}`);
+      continue;
+    }
     _customDefaultParamsMap.set(normalizedKey, cloneParams(value));
+    console.log(`[ModelDefaults] Stored in map: ${key} -> ${normalizedKey}`, value);
   }
+  console.log(
+    `[ModelDefaults] Total entries in _customDefaultParamsMap: ${_customDefaultParamsMap.size}`
+  );
 }
 
 /**
@@ -205,12 +224,16 @@ export function removeModelReasoningEffortDefault(provider: string, modelId: str
 export function setCustomModelReasoningEffortDefaults(overrides: Record<string, string>): void {
   const next: Record<string, Record<string, unknown>> = {};
   if (overrides && typeof overrides === "object" && !Array.isArray(overrides)) {
+    console.log("[ModelDefaults] Setting custom reasoning effort defaults:", overrides);
     for (const [key, effort] of Object.entries(overrides)) {
       const normalizedEffort = String(effort || "")
         .trim()
         .toLowerCase();
       if (!MODEL_REASONING_EFFORT_VALUES.has(normalizedEffort)) continue;
+
+      // Keep original key format (cx/gpt-5.4), let setCustomModelDefaultParams normalize it
       next[key] = { reasoning: { effort: normalizedEffort } };
+      console.log(`[ModelDefaults] Registered ${key} -> effort: ${normalizedEffort}`);
     }
   }
   setCustomModelDefaultParams(next);
@@ -261,11 +284,24 @@ export function getDefaultParams(
   const bareId = normalizedModelId.includes("/") ? normalizedModelId.split("/").pop() || "" : "";
   const bareKey = bareId ? `${entry.id}:${bareId}` : "";
 
+  console.log(`[ModelDefaults] Looking up defaults for provider=${provider}, model=${modelId}`);
+  console.log(`[ModelDefaults] Lookup keys: directKey=${directKey}, bareKey=${bareKey}`);
+  console.log(
+    `[ModelDefaults] Map size: ${_customDefaultParamsMap.size}, has directKey: ${_customDefaultParamsMap.has(directKey)}`
+  );
+
+  // Debug: print all keys in map
+  if (_customDefaultParamsMap.size > 0) {
+    console.log(`[ModelDefaults] All keys in map:`, Array.from(_customDefaultParamsMap.keys()));
+  }
+
   const builtIn =
     _defaultParamsMap.get(directKey) || (bareKey ? _defaultParamsMap.get(bareKey) : null);
   const custom =
     _customDefaultParamsMap.get(directKey) ||
     (bareKey ? _customDefaultParamsMap.get(bareKey) : null);
+
+  console.log(`[ModelDefaults] Found: builtIn=${!!builtIn}, custom=${!!custom}`);
 
   if (builtIn && custom) return mergeDefaultParams(cloneParams(builtIn), cloneParams(custom));
   if (custom) return cloneParams(custom);

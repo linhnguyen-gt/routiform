@@ -52,7 +52,7 @@ test("RequestLoggerDetail uses shared TPS helpers and includes TPS badge", () =>
 
   assert.match(source, /computeTokensPerSecond/);
   assert.match(source, /formatTokensPerSecondValue/);
-  assert.match(source, /TPS:\s*\{formatTokensPerSecondValue\(tokensPerSecond\)\}/);
+  assert.match(source, /\{formatTokensPerSecondValue\(tokensPerSecond\)\}\s+tok\/s/);
 });
 
 test("buildExportText preserves valid zero duration in export", () => {

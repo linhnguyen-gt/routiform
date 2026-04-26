@@ -157,11 +157,15 @@ export async function registerNodejs(): Promise<void> {
         typeof settings.modelReasoningDefaults === "string"
           ? JSON.parse(settings.modelReasoningDefaults)
           : settings.modelReasoningDefaults;
+      console.log("[STARTUP] Raw modelReasoningDefaults from DB:", settings.modelReasoningDefaults);
+      console.log("[STARTUP] Parsed defaults:", defaults);
       if (defaults && typeof defaults === "object") {
         setCustomModelReasoningEffortDefaults(defaults as Record<string, string>);
         console.log(
           `[STARTUP] Restored ${Object.keys(defaults as Record<string, string>).length} model reasoning default(s) from settings`
         );
+      } else {
+        console.log("[STARTUP] No model reasoning defaults found in database");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

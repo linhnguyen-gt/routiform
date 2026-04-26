@@ -92,6 +92,7 @@ export function buildExportText(log, detail) {
     `[Cache Read] ${resolved.tokens?.cacheRead ?? log.tokens?.cacheRead ?? "-"}`,
     `[Cache Write] ${resolved.tokens?.cacheCreation ?? log.tokens?.cacheCreation ?? "-"}`,
     `[Reasoning Tokens] ${resolved.tokens?.reasoning ?? log.tokens?.reasoning ?? "-"}`,
+    `[Reasoning Effort] ${(resolved.requestBody as Record<string, unknown>)?.reasoning?.effort ?? (resolved.requestBody as Record<string, unknown>)?.reasoning_effort ?? "N/A"}`,
     `[Detail Loaded] ${detail ? "yes" : "no"}`,
   ];
 

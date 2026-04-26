@@ -122,6 +122,24 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
   const durationMs = detail?.duration ?? log.duration ?? 0;
   const tokensPerSecond = computeTokensPerSecond(tokenOut, durationMs);
 
+  // Extract reasoning effort from request body
+  // Try providerRequest first (has transformed body with reasoning.effort set by executor)
+  // Fall back to clientRawRequest if providerRequest not available
+  const payloads = (detail as Record<string, unknown>)?.pipelinePayloads as
+    | Record<string, unknown>
+    | undefined;
+  const providerRequestBody =
+    (payloads?.providerRequest as Record<string, unknown>)?.body ??
+    (detail as Record<string, unknown>)?.providerRequest?.body;
+  const clientRequestBody = detail?.requestBody as Record<string, unknown> | undefined;
+
+  const reasoningEffort =
+    (providerRequestBody as Record<string, unknown>)?.reasoning?.effort ??
+    (providerRequestBody as Record<string, unknown>)?.reasoning_effort ??
+    (clientRequestBody as Record<string, unknown>)?.reasoning?.effort ??
+    (clientRequestBody as Record<string, unknown>)?.reasoning_effort ??
+    null;
+
   const formatNullableToken = (value) => {
     if (value === null || value === undefined) return "N/A";
     return Number(value).toLocaleString();
@@ -161,120 +179,168 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
           </button>
         </div>
 
-        <div className="p-6 flex flex-col gap-6">
-          {/* Metadata Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-bg-subtle rounded-xl border border-border">
-            <div>
+        <div className="p-6 flex flex-col gap-4">
+          {/* Request Overview - Time & Duration */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-bg-subtle rounded-xl border border-border">
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Time</div>
               <div className="text-sm font-medium">{formatDate(log.timestamp)}</div>
             </div>
-            <div>
+            <div className="p-4 bg-bg-subtle rounded-xl border border-border">
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
                 Duration
               </div>
               <div className="text-sm font-medium">{formatDuration(durationMs)}</div>
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Tokens
+          </div>
+
+          {/* Token Metrics */}
+          <div className="p-4 bg-bg-subtle rounded-xl border border-border">
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-3">
+              Token Usage
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Input</span>
+                <span className="px-2.5 py-1 rounded bg-primary/20 text-primary text-sm font-bold">
+                  {tokenIn.toLocaleString()}
+                </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-bold">
-                  Total In: {tokenIn.toLocaleString()}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Output</span>
+                <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-sm font-bold">
+                  {tokenOut.toLocaleString()}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
-                  Total Out: {tokenOut.toLocaleString()}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Cache Read</span>
+                <span className="px-2.5 py-1 rounded bg-sky-500/15 text-sky-700 dark:text-sky-300 text-sm font-bold">
+                  {formatNullableToken(tokenCacheRead)}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-sky-500/15 text-sky-700 dark:text-sky-300 text-xs font-bold">
-                  Cache Read: {formatNullableToken(tokenCacheRead)}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Cache Write</span>
+                <span className="px-2.5 py-1 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-sm font-bold">
+                  {formatNullableToken(tokenCacheCreation)}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
-                  Cache Write: {formatNullableToken(tokenCacheCreation)}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Reasoning</span>
+                <span className="px-2.5 py-1 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 text-sm font-bold">
+                  {formatNullableToken(tokenReasoning)}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-bold">
-                  Reasoning: {formatNullableToken(tokenReasoning)}
-                </span>
-                <span className="px-2 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 text-xs font-bold">
-                  TPS: {formatTokensPerSecondValue(tokensPerSecond)}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Effort</span>
+                <span className="px-2.5 py-1 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 text-sm font-bold">
+                  {reasoningEffort || "N/A"}
                 </span>
               </div>
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Model</div>
-              <div className="text-sm font-medium text-primary font-mono">{log.model}</div>
+          </div>
+
+          {/* Performance */}
+          <div className="p-4 bg-bg-subtle rounded-xl border border-border">
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Performance
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Requested Model
-              </div>
-              <div
-                className={`text-sm font-medium font-mono ${
-                  (detail?.requestedModel || log.requestedModel) &&
-                  (detail?.requestedModel || log.requestedModel) !== log.model
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-text-muted"
-                }`}
-              >
-                {detail?.requestedModel || log.requestedModel || "—"}
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 text-sm font-bold">
+                {formatTokensPerSecondValue(tokensPerSecond)} tok/s
+              </span>
+            </div>
+          </div>
+
+          {/* Model & Provider Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-bg-subtle rounded-xl border border-border">
+              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-3">Model</div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-muted">Actual</span>
+                  <span className="text-sm font-medium text-primary font-mono">{log.model}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-muted">Requested</span>
+                  <span
+                    className={`text-sm font-medium font-mono ${
+                      (detail?.requestedModel || log.requestedModel) &&
+                      (detail?.requestedModel || log.requestedModel) !== log.model
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-text-muted"
+                    }`}
+                  >
+                    {detail?.requestedModel || log.requestedModel || "—"}
+                  </span>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
+
+            <div className="p-4 bg-bg-subtle rounded-xl border border-border">
+              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-3">
                 Provider
               </div>
-              <span
-                className="inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase"
-                style={{ backgroundColor: providerColor.bg, color: providerColor.text }}
-              >
-                {providerColor.label}
-              </span>
-            </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Req Protocol
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-muted">Name</span>
+                  <span
+                    className="inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase"
+                    style={{ backgroundColor: providerColor.bg, color: providerColor.text }}
+                  >
+                    {providerColor.label}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-muted">Protocol</span>
+                  <span
+                    className="inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase"
+                    style={{ backgroundColor: protocol.bg, color: protocol.text }}
+                  >
+                    {protocol.label}
+                  </span>
+                </div>
               </div>
-              <span
-                className="inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase"
-                style={{ backgroundColor: protocol.bg, color: protocol.text }}
-              >
-                {protocol.label}
-              </span>
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                Account
-              </div>
-              <div className="text-sm font-medium">{detail?.account || log.account || "-"}</div>
+          </div>
+
+          {/* Account & Authentication */}
+          <div className="p-4 bg-bg-subtle rounded-xl border border-border">
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-3">
+              Authentication
             </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">
-                API Key
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Account</span>
+                <span className="text-sm font-medium">{detail?.account || log.account || "—"}</span>
               </div>
-              <div
-                className="text-sm font-medium"
-                title={
-                  detail?.apiKeyName ||
-                  detail?.apiKeyId ||
-                  log.apiKeyName ||
-                  log.apiKeyId ||
-                  "No API key"
-                }
-              >
-                {formatApiKeyLabel(
-                  detail?.apiKeyName || log.apiKeyName,
-                  detail?.apiKeyId || log.apiKeyId
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">API Key</span>
+                <span
+                  className="text-sm font-medium"
+                  title={
+                    detail?.apiKeyName ||
+                    detail?.apiKeyId ||
+                    log.apiKeyName ||
+                    log.apiKeyId ||
+                    "No API key"
+                  }
+                >
+                  {formatApiKeyLabel(
+                    detail?.apiKeyName || log.apiKeyName,
+                    detail?.apiKeyId || log.apiKeyId
+                  )}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-muted">Combo</span>
+                {detail?.comboName || log.comboName ? (
+                  <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/30 w-fit">
+                    {detail?.comboName || log.comboName}
+                  </span>
+                ) : (
+                  <span className="text-sm text-text-muted">—</span>
                 )}
               </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Combo</div>
-              {detail?.comboName || log.comboName ? (
-                <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/30">
-                  {detail?.comboName || log.comboName}
-                </span>
-              ) : (
-                <div className="text-sm text-text-muted">—</div>
-              )}
             </div>
           </div>
 

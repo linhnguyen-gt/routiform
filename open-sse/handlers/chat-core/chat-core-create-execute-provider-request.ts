@@ -105,11 +105,18 @@ export async function createExecuteProviderRequestBundle({
       const forceParamModelId = String(bodyToSend.model || modelToCall || "");
       const defaultParams = getDefaultParams(provider, forceParamModelId);
       if (defaultParams) {
+        console.log(
+          `[DefaultParams] Applying defaults for ${provider}:${forceParamModelId}:`,
+          defaultParams
+        );
         for (const [key, value] of Object.entries(defaultParams)) {
           if (bodyToSend[key] === undefined) {
             bodyToSend[key] = value;
+            console.log(`[DefaultParams] Set ${key} =`, value);
           }
         }
+      } else {
+        console.log(`[DefaultParams] No defaults found for ${provider}:${forceParamModelId}`);
       }
 
       const forceParams = getForceParams(provider, forceParamModelId);

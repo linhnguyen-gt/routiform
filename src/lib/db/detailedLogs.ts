@@ -38,7 +38,7 @@ export async function isDetailedLoggingEnabled(): Promise<boolean> {
   try {
     const settings = await getSettings();
     const val = settings.call_log_pipeline_enabled;
-    return val === true || val === "1" || val === "true";
+    return val === true || val === 1 || val === "1" || val === "true";
   } catch {
     return false;
   }
