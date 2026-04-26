@@ -138,7 +138,7 @@ export function openaiResponsesToOpenAIRequest(
       continue;
     }
 
-    if (itemType === "function_call") {
+    if (itemType === "function_call" || itemType === "custom_tool_call") {
       // Skip tool calls with empty names to avoid infinite placeholder_tool loops
       const fnName = toString(item.name).trim();
       if (!fnName) {
@@ -172,7 +172,7 @@ export function openaiResponsesToOpenAIRequest(
       continue;
     }
 
-    if (itemType === "function_call_output") {
+    if (itemType === "function_call_output" || itemType === "custom_tool_call_output") {
       // Flush assistant message first if present
       if (currentAssistantMsg) {
         messages.push(currentAssistantMsg);

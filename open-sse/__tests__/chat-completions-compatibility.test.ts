@@ -163,6 +163,45 @@ describe("chat completions compatibility shims", () => {
     );
   });
 
+  it("converts Responses custom_tool_call/custom_tool_call_output back to Chat messages", () => {
+    const result = openaiResponsesToOpenAIRequest(
+      "gpt-4o",
+      {
+        input: [
+          { type: "message", role: "user", content: [{ type: "input_text", text: "hello" }] },
+          {
+            type: "custom_tool_call",
+            call_id: "call_custom",
+            name: "custom_fn",
+            arguments: '{"param":"value"}',
+          },
+          {
+            type: "custom_tool_call_output",
+            call_id: "call_custom",
+            output: '{"result":"ok"}',
+          },
+        ],
+      },
+      false,
+      null
+    ) as Record<string, unknown>;
+
+    expect(result.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "assistant",
+          tool_calls: [
+            expect.objectContaining({
+              id: "call_custom",
+              function: expect.objectContaining({ name: "custom_fn" }),
+            }),
+          ],
+        }),
+        expect.objectContaining({ role: "tool", tool_call_id: "call_custom" }),
+      ])
+    );
+  });
+
   it("preserves refusal and official metadata in streaming chunks", () => {
     const result = sanitizeStreamingChunk({
       id: "chatcmpl-test",

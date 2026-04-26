@@ -17,7 +17,7 @@ import SystemPromptTab from "./components/SystemPromptTab";
 import ModelAliasesTab from "./components/ModelAliasesTab";
 import BackgroundDegradationTab from "./components/BackgroundDegradationTab";
 import CacheSettingsTab from "./components/CacheSettingsTab";
-import MemorySkillsTab from "./components/MemorySkillsTab";
+
 import ModelsDevSyncTab from "./components/ModelsDevSyncTab";
 import ModelDefaultsTab from "./components/ModelDefaultsTab";
 import ResilienceTab from "./components/ResilienceTab";
@@ -96,7 +96,6 @@ export default function SettingsPage() {
               <ThinkingBudgetTab />
               <SystemPromptTab />
               <CacheSettingsTab />
-              <MemorySkillsTab />
               <ModelsDevSyncTab />
             </div>
           )}
