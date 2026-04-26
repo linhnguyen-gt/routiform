@@ -170,18 +170,21 @@ export function ProviderDetailModelsSection({
 
     const isOpenRouterProvider =
       providerId === "openrouter" || providerStorageAlias === "openrouter";
-    const clearAllButton = !isOpenRouterProvider && modelMeta.customModels.length > 0 && (
-      <button
-        onClick={() =>
-          handleClearAllModels(providerStorageAlias, providerAliasEntries, fetchAliases)
-        }
-        disabled={clearingModels}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-300 dark:border-red-800 bg-transparent cursor-pointer text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
-        <span>{t("clearAllModels")}</span>
-      </button>
-    );
+    const isKiloGatewayProvider = providerId === "kilo-gateway";
+    const clearAllButton = !isOpenRouterProvider &&
+      !isKiloGatewayProvider &&
+      modelMeta.customModels.length > 0 && (
+        <button
+          onClick={() =>
+            handleClearAllModels(providerStorageAlias, providerAliasEntries, fetchAliases)
+          }
+          disabled={clearingModels}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-300 dark:border-red-800 bg-transparent cursor-pointer text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+          <span>{t("clearAllModels")}</span>
+        </button>
+      );
 
     if (isManagedAvailableModelsProvider) {
       const description = isCcCompatible
@@ -240,6 +243,7 @@ export function ProviderDetailModelsSection({
           {modelTestBanner}
           <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-border/40 pb-4">
             {autoSyncToggle}
+            {refreshModelsButton}
             {clearAllButton}
             {!canImportModels && (
               <span className="text-xs text-text-muted">{t("addConnectionToImport")}</span>
@@ -247,6 +251,7 @@ export function ProviderDetailModelsSection({
           </div>
           <PassthroughModelsSection
             providerAlias={providerId}
+            models={models}
             modelAliases={modelAliases}
             copied={copied}
             onCopy={copy}

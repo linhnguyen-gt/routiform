@@ -39,6 +39,7 @@ export interface PassthroughModelRowProps {
 
 export interface PassthroughModelsSectionProps {
   providerAlias: string;
+  models?: { id: string; name?: string }[];
   modelAliases: Record<string, string>;
   copied?: string;
   onCopy: (text: string, key: string) => void;
