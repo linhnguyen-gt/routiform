@@ -14,7 +14,7 @@ export default function ContextValidationTab() {
   const [status, setStatus] = useState<"" | "saved" | "error">("");
 
   useEffect(() => {
-    fetch("/api/settings")
+    fetch("/api/settings", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (

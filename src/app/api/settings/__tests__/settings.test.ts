@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GET, PATCH } from "../route";
 import { NextRequest } from "next/server";
-import { PATCH } from "../route";
 
 // Mock the localDb functions used in the route
 vi.mock("../../../../lib/localDb", () => {
@@ -23,7 +23,7 @@ function createPatchRequest(body: unknown): NextRequest {
   }) as NextRequest;
 }
 
-describe("PATCH /api/settings", () => {
+describe("/api/settings", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     // Default settings before each test
@@ -36,6 +36,14 @@ describe("PATCH /api/settings", () => {
       const current = await getSettings();
       return { ...current, ...updates };
     });
+  });
+
+  it("returns no-store headers on GET", async () => {
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store, no-cache, must-revalidate");
+    expect(res.headers.get("pragma")).toBe("no-cache");
+    expect(res.headers.get("expires")).toBe("0");
   });
 
   it("toggles debugMode via PATCH", async () => {
@@ -63,5 +71,14 @@ describe("PATCH /api/settings", () => {
     const calledWith = (updateSettings as unknown as { mock: { calls: unknown[][] } }).mock
       .calls[0][0] as Record<string, unknown>;
     expect(calledWith.hiddenSidebarItems).toEqual([]);
+  });
+
+  it("returns no-store headers on PATCH", async () => {
+    const req = createPatchRequest({ debugMode: true });
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store, no-cache, must-revalidate");
+    expect(res.headers.get("pragma")).toBe("no-cache");
+    expect(res.headers.get("expires")).toBe("0");
   });
 });

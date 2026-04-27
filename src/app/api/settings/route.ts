@@ -10,6 +10,15 @@ import { setCliCompatProviders } from "../../../../open-sse/config/cliFingerprin
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { validateProxyUrl, upsertUpstreamProxyConfig } from "@/lib/db/upstreamProxy";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+};
+
 export async function GET() {
   try {
     const settings = await getSettings();
@@ -24,16 +33,19 @@ export async function GET() {
     const cloudUrl = process.env.CLOUD_URL || process.env.NEXT_PUBLIC_CLOUD_URL || null;
     const machineId = await getConsistentMachineId();
 
-    return NextResponse.json({
-      ...safeSettings,
-      hasPassword: !!password || !!process.env.INITIAL_PASSWORD,
-      runtimePorts,
-      apiPort: runtimePorts.apiPort,
-      dashboardPort: runtimePorts.dashboardPort,
-      cloudConfigured: Boolean(cloudUrl),
-      cloudUrl,
-      machineId,
-    });
+    return NextResponse.json(
+      {
+        ...safeSettings,
+        hasPassword: !!password || !!process.env.INITIAL_PASSWORD,
+        runtimePorts,
+        apiPort: runtimePorts.apiPort,
+        dashboardPort: runtimePorts.dashboardPort,
+        cloudConfigured: Boolean(cloudUrl),
+        cloudUrl,
+        machineId,
+      },
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (error) {
     console.log("Error getting settings:", error);
     return NextResponse.json({ error: "Failed to load settings" }, { status: 500 });
@@ -190,7 +202,7 @@ export async function PATCH(request) {
     }
 
     const { _password, ...safeSettings } = settings;
-    return NextResponse.json(safeSettings);
+    return NextResponse.json(safeSettings, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.log("Error updating settings:", error);
     return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
