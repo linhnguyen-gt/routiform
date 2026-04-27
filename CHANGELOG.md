@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.22.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.21.1...v3.22.0) (2026-04-27)
+
+
+### Features
+
+* improve auto-compress with 7-layer intelligent pipeline ([266acab](https://github.com/linhnguyen-gt/Routiform/commit/266acabea1c90b515dbf4e7357fa5ce925e6f154))
+
 ### [3.21.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.21.0...v3.21.1) (2026-04-27)
 
 
