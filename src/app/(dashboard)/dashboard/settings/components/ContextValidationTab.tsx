@@ -8,24 +8,42 @@ type ContextValidationMode = "passthrough" | "auto-compress";
 
 export default function ContextValidationTab() {
   const t = useTranslations("settings");
-  const [mode, setMode] = useState<ContextValidationMode>("passthrough");
+  const [mode, setMode] = useState<ContextValidationMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"" | "saved" | "error">("");
 
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (
-          data?.contextValidation === "auto-compress" ||
-          data?.contextValidation === "passthrough"
-        ) {
-          setMode(data.contextValidation);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let attempts = 0;
+    const maxAttempts = 3;
+    const load = () => {
+      attempts++;
+      fetch("/api/settings", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (
+            data?.contextValidation === "auto-compress" ||
+            data?.contextValidation === "passthrough"
+          ) {
+            setMode(data.contextValidation);
+            setLoading(false);
+          } else if (attempts < maxAttempts) {
+            setTimeout(load, 1000);
+          } else {
+            setMode("passthrough");
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          if (attempts < maxAttempts) {
+            setTimeout(load, 1000);
+          } else {
+            setMode("passthrough");
+            setLoading(false);
+          }
+        });
+    };
+    load();
   }, []);
 
   const save = async (next: ContextValidationMode) => {
@@ -50,6 +68,9 @@ export default function ContextValidationTab() {
       setSaving(false);
     }
   };
+
+  const resolvedMode = mode ?? "passthrough";
+  const noSelectionYet = mode === null;
 
   return (
     <Card>
@@ -77,16 +98,18 @@ export default function ContextValidationTab() {
         <button
           type="button"
           onClick={() => save("passthrough")}
-          disabled={loading || saving}
+          disabled={loading || saving || noSelectionYet}
           className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
-            mode === "passthrough"
+            !noSelectionYet && resolvedMode === "passthrough"
               ? "border-sky-500/50 bg-sky-500/5 ring-1 ring-sky-500/20"
               : "border-border/50 hover:border-border hover:bg-surface/30"
           }`}
         >
           <span
             className={`material-symbols-outlined text-[20px] mt-0.5 ${
-              mode === "passthrough" ? "text-sky-600 dark:text-sky-400" : "text-text-muted"
+              !noSelectionYet && resolvedMode === "passthrough"
+                ? "text-sky-600 dark:text-sky-400"
+                : "text-text-muted"
             }`}
             aria-hidden
           >
@@ -105,16 +128,18 @@ export default function ContextValidationTab() {
         <button
           type="button"
           onClick={() => save("auto-compress")}
-          disabled={loading || saving}
+          disabled={loading || saving || noSelectionYet}
           className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
-            mode === "auto-compress"
+            !noSelectionYet && resolvedMode === "auto-compress"
               ? "border-sky-500/50 bg-sky-500/5 ring-1 ring-sky-500/20"
               : "border-border/50 hover:border-border hover:bg-surface/30"
           }`}
         >
           <span
             className={`material-symbols-outlined text-[20px] mt-0.5 ${
-              mode === "auto-compress" ? "text-sky-600 dark:text-sky-400" : "text-text-muted"
+              !noSelectionYet && resolvedMode === "auto-compress"
+                ? "text-sky-600 dark:text-sky-400"
+                : "text-text-muted"
             }`}
             aria-hidden
           >
