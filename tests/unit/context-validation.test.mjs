@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 describe("Context Validation & Compression", () => {
@@ -249,6 +249,24 @@ describe("Context Validation & Compression", () => {
   });
 
   describe("validateAndCompressContext", () => {
+    beforeEach(async () => {
+      const { updateSettings } = await import("../../src/lib/db/settings.ts");
+      const { invalidateContextValidationSettingsCache } =
+        await import("../../open-sse/services/contextValidationSettings.ts");
+
+      await updateSettings({ contextValidation: "auto-compress" });
+      invalidateContextValidationSettingsCache();
+    });
+
+    afterEach(async () => {
+      const { updateSettings } = await import("../../src/lib/db/settings.ts");
+      const { invalidateContextValidationSettingsCache } =
+        await import("../../open-sse/services/contextValidationSettings.ts");
+
+      await updateSettings({ contextValidation: "passthrough" });
+      invalidateContextValidationSettingsCache();
+    });
+
     it("should apply emergency compression for oversized tool workflows even when UI compression is off", async () => {
       const { validateAndCompressContext } =
         await import("../../open-sse/handlers/phases/context-validator.ts");
