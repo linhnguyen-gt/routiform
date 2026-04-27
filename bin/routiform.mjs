@@ -9,6 +9,8 @@
  *   routiform --port 3000  Start on custom port
  *   routiform --no-open    Start without opening browser
  *   routiform --mcp        Start MCP server (stdio transport for IDEs)
+ *   routiform --no-menu    Skip menu, show logs (legacy behavior for CI)
+ *   routiform --verbose    Show all logs even with menu
  *   routiform --help       Show help
  *   routiform --version    Show version
  */
@@ -18,6 +20,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir, platform } from "node:os";
+import * as readline from "node:readline";
 import { isNativeBinaryCompatible } from "../scripts/native-binary-compat.mjs";
 import { bootstrapEnv } from "../scripts/bootstrap-env.mjs";
 
@@ -97,6 +100,8 @@ if (args.includes("--help") || args.includes("-h")) {
     routiform --port <port>   Use custom API port (default: 20128)
     routiform --no-open       Don't open browser automatically
     routiform --mcp           Start MCP server (stdio transport for IDEs)
+    routiform --no-menu       Skip menu, show logs (legacy behavior for CI)
+    routiform --verbose       Show all logs even with menu
     routiform --help          Show this help
     routiform --version       Show version
 
@@ -165,6 +170,14 @@ const apiPort = parsePort(process.env.API_PORT || String(port), port);
 const dashboardPort = parsePort(process.env.DASHBOARD_PORT || String(port), port);
 
 const noOpen = args.includes("--no-open");
+const noMenu = args.includes("--no-menu");
+const verbose = args.includes("--verbose");
+
+// ── TTY Detection ──────────────────────────────────────────
+// If stdout is not a TTY (pipe, CI, cron, docker non-interactive),
+// force --no-menu behavior to avoid ANSI escape codes in logs.
+const isTTY = process.stdout.isTTY;
+const useMenu = isTTY && !noMenu;
 
 // ── Banner ─────────────────────────────────────────────────
 console.log(`
@@ -240,6 +253,35 @@ if (existsSync(sqliteBinary) && !isNativeBinaryCompatible(sqliteBinary)) {
   process.exit(1);
 }
 
+// ── Log Buffer ────────────────────────────────────────────
+// Circular buffer holding last 100 lines of server output
+const LOG_MAX = 100;
+const logBuffer = [];
+let logBufIdx = 0;
+
+function appendLogBuffer(text) {
+  // Split multi-line chunks into individual lines for cleaner display
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (logBuffer.length < LOG_MAX) {
+      logBuffer.push(line);
+    } else {
+      logBuffer[logBufIdx % LOG_MAX] = line;
+    }
+    logBufIdx++;
+  }
+}
+
+function getBufferedLogs() {
+  if (logBuffer.length < LOG_MAX) {
+    return logBuffer.join("\n");
+  }
+  // Circular buffer has wrapped — reconstruct in order
+  const start = logBufIdx % LOG_MAX;
+  const ordered = [...logBuffer.slice(start), ...logBuffer.slice(0, start)];
+  return ordered.join("\n");
+}
+
 // ── Start server ───────────────────────────────────────────
 console.log(`  \x1b[2m⏳ Starting server...\x1b[0m\n`);
 
@@ -267,9 +309,29 @@ const server = spawn("node", [`--max-old-space-size=${memoryLimit}`, serverJs], 
 
 let started = false;
 
+// Crash pattern keywords — show these immediately even when buffering
+const CRASH_PATTERNS = [
+  "EADDRINUSE",
+  "EACCES",
+  "Cannot find module",
+  "FATAL",
+  "Unhandled",
+  "uncaughtException",
+];
+
+function isCrashMessage(text) {
+  return CRASH_PATTERNS.some((p) => text.includes(p));
+}
+
 server.stdout.on("data", (data) => {
   const text = data.toString();
-  process.stdout.write(text);
+  appendLogBuffer(text);
+
+  if (!useMenu || verbose) {
+    process.stdout.write(text);
+  } else if (isCrashMessage(text)) {
+    process.stderr.write(text);
+  }
 
   // Detect server ready
   if (
@@ -282,7 +344,14 @@ server.stdout.on("data", (data) => {
 });
 
 server.stderr.on("data", (data) => {
-  process.stderr.write(data);
+  const text = data.toString();
+  appendLogBuffer(text);
+
+  if (!useMenu || verbose) {
+    process.stderr.write(text);
+  } else if (isCrashMessage(text)) {
+    process.stderr.write(text);
+  }
 });
 
 server.on("error", (err) => {
@@ -297,6 +366,15 @@ server.on("exit", (code) => {
   process.exit(code ?? 0);
 });
 
+// ── Version ───────────────────────────────────────────────
+let versionString = "unknown";
+try {
+  const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  versionString = version;
+} catch {
+  // keep unknown
+}
+
 // ── Graceful shutdown ──────────────────────────────────────
 function shutdown() {
   console.log("\n\x1b[33m⏹ Shutting down Routiform...\x1b[0m");
@@ -310,12 +388,346 @@ function shutdown() {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
+// ── ANSI helpers ───────────────────────────────────────────
+const CSI = "\x1b[";
+const CURSOR_HIDE = `${CSI}?25l`;
+const CURSOR_SHOW = `${CSI}?25h`;
+const CLEAR_SCREEN = `${CSI}2J${CSI}H`;
+const MOVE_UP = (n) => `${CSI}${n}A`;
+const ERASE_LINE = `${CSI}2K`;
+const BOLD = `${CSI}1m`;
+const DIM = `${CSI}2m`;
+const CYAN = `${CSI}36m`;
+const GREEN = `${CSI}32m`;
+const YELLOW = `${CSI}33m`;
+const WHITE = `${CSI}37m`;
+const RESET = `${CSI}0m`;
+
+function clearScreen() {
+  process.stdout.write(CLEAR_SCREEN);
+}
+
+// ── Menu System ────────────────────────────────────────────
+let menuActive = false;
+let menuSelectedIdx = 0;
+const MENU_ITEMS = [
+  { label: "Web UI (Open in Browser)", action: "web", icon: "★" },
+  { label: "Terminal UI (Interactive CLI)", action: "repl", icon: "☆" },
+  { label: "Hide to Tray (Background)", action: "tray", icon: "☆" },
+  { label: "Exit", action: "exit", icon: "☆" },
+];
+
+function renderMenu() {
+  const dashboardUrl = `http://localhost:${dashboardPort}`;
+  const apiUrl = `http://localhost:${apiPort}`;
+
+  // Build menu output
+  let out = "";
+  out += `\n${CLEAR_SCREEN}`;
+  out += `${CYAN}${BOLD}========================================${RESET}\n`;
+  out += `${CYAN}${BOLD}  Routiform v${versionString}${RESET}\n`;
+  out += `  🚀 Server: ${dashboardUrl}\n`;
+  out += `  🔌 API:    ${apiUrl}/v1\n`;
+  out += `${CYAN}${BOLD}========================================${RESET}\n`;
+  out += `\n`;
+
+  for (let i = 0; i < MENU_ITEMS.length; i++) {
+    const item = MENU_ITEMS[i];
+    const selected = i === menuSelectedIdx;
+    if (selected) {
+      out += ` ${GREEN}▶ ${item.icon} ${item.label}${RESET}\n`;
+    } else {
+      out += `   ${DIM}${item.icon} ${item.label}${RESET}\n`;
+    }
+  }
+
+  out += `\n${DIM}Use ↑/↓ arrow keys to navigate, Enter to select${RESET}\n`;
+  out += CURSOR_HIDE;
+
+  process.stdout.write(out);
+}
+
+async function openBrowser(url) {
+  try {
+    const open = await import("open");
+    await open.default(url);
+  } catch {
+    // open is optional — if not available, just skip
+  }
+}
+
+// ── REPL Terminal UI ──────────────────────────────────────
+let replActive = false;
+let replRl = null;
+
+async function handleReplCommand(cmd) {
+  const trimmed = cmd.trim();
+
+  if (!trimmed) {
+    return;
+  }
+
+  switch (trimmed) {
+    case "health": {
+      const apiUrl = `http://localhost:${apiPort}`;
+      try {
+        const res = await fetch(`${apiUrl}/v1/health`);
+        const body = await res.text();
+        process.stdout.write(`\n${GREEN}${body}${RESET}\n`);
+      } catch (err) {
+        process.stdout.write(`\n${YELLOW}Health check failed: ${err.message}${RESET}\n`);
+      }
+      break;
+    }
+
+    case "combos": {
+      const apiUrl = `http://localhost:${apiPort}`;
+      try {
+        const res = await fetch(`${apiUrl}/v1/combos`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            process.stdout.write(`\n${BOLD}Active Combos (${data.length}):${RESET}\n`);
+            for (const combo of data) {
+              const name = combo.name || combo.id || "unnamed";
+              const active =
+                combo.active !== false ? `${GREEN}active${RESET}` : `${DIM}inactive${RESET}`;
+              process.stdout.write(`  ${GREEN}▪${RESET} ${name} [${active}]\n`);
+            }
+          } else {
+            process.stdout.write(`\n${GREEN}${JSON.stringify(data, null, 2)}${RESET}\n`);
+          }
+        } else {
+          process.stdout.write(`\n${YELLOW}Failed to fetch combos (HTTP ${res.status})${RESET}\n`);
+        }
+      } catch (err) {
+        process.stdout.write(`\n${YELLOW}Failed to fetch combos: ${err.message}${RESET}\n`);
+      }
+      break;
+    }
+
+    case "quota": {
+      const apiUrl = `http://localhost:${apiPort}`;
+      try {
+        const res = await fetch(`${apiUrl}/v1/quota`);
+        const body = await res.text();
+        process.stdout.write(`\n${GREEN}${body}${RESET}\n`);
+      } catch (err) {
+        process.stdout.write(`\n${YELLOW}Quota check failed: ${err.message}${RESET}\n`);
+      }
+      break;
+    }
+
+    case "route": {
+      process.stdout.write(`\n${YELLOW}Usage: route <model-name>${RESET}\n`);
+      process.stdout.write(`Example: route openai/gpt-4o\n`);
+      break;
+    }
+
+    case "logs": {
+      const logs = getBufferedLogs();
+      process.stdout.write(`\n${DIM}── Server Logs (last ${LOG_MAX} lines) ──${RESET}\n`);
+      process.stdout.write(logs || "(no logs yet)");
+      process.stdout.write(`\n${DIM}── End of logs ──${RESET}\n`);
+      break;
+    }
+
+    case "clear": {
+      clearScreen();
+      break;
+    }
+
+    case "exit": {
+      replActive = false;
+      if (replRl) {
+        replRl.close();
+        replRl = null;
+      }
+      process.stdout.write(CURSOR_HIDE);
+      menuActive = true;
+      renderMenu();
+      break;
+    }
+
+    default: {
+      // Check for "route <model>" command
+      if (trimmed.startsWith("route ")) {
+        const model = trimmed.slice(6).trim();
+        if (model) {
+          const apiUrl = `http://localhost:${apiPort}`;
+          process.stdout.write(`\n${DIM}Routing test for model: ${model}...${RESET}\n`);
+          try {
+            const res = await fetch(`${apiUrl}/v1/chat/completions`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model,
+                messages: [{ role: "user", content: "Hello, this is a test route. Say hi." }],
+                max_tokens: 20,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const content = data?.choices?.[0]?.message?.content || JSON.stringify(data);
+              process.stdout.write(`\n${GREEN}✓ Route OK: ${content}${RESET}\n`);
+            } else {
+              const errBody = await res.text();
+              process.stdout.write(
+                `\n${YELLOW}✖ Route failed (HTTP ${res.status}): ${errBody}${RESET}\n`
+              );
+            }
+          } catch (err) {
+            process.stdout.write(`\n${YELLOW}✖ Route error: ${err.message}${RESET}\n`);
+          }
+        } else {
+          process.stdout.write(`\n${YELLOW}Usage: route <model-name>${RESET}\n`);
+        }
+      } else {
+        process.stdout.write(`\n${YELLOW}Unknown command: ${trimmed}${RESET}\n`);
+        process.stdout.write(
+          `${DIM}Available: health, combos, quota, route <model>, logs, clear, exit${RESET}\n`
+        );
+      }
+      break;
+    }
+  }
+
+  // Re-show the prompt
+  if (replActive && replRl) {
+    replRl.prompt(true);
+  }
+}
+
+function startRepl() {
+  replActive = true;
+  menuActive = false;
+  process.stdout.write(CURSOR_SHOW);
+  clearScreen();
+
+  const apiUrl = `http://localhost:${apiPort}`;
+  process.stdout.write(`${CYAN}${BOLD}╔══════════════════════════════════════════╗${RESET}\n`);
+  process.stdout.write(
+    `${CYAN}${BOLD}║${RESET}     ${BOLD}Routiform Terminal UI${RESET}              ${CYAN}${BOLD}║${RESET}\n`
+  );
+  process.stdout.write(
+    `${CYAN}${BOLD}║${RESET}     Server: ${dashboardPort}                       ${CYAN}${BOLD}║${RESET}\n`
+  );
+  process.stdout.write(`${CYAN}${BOLD}╚══════════════════════════════════════════╝${RESET}\n`);
+  process.stdout.write(
+    `\n${DIM}Commands: health, combos, quota, route <model>, logs, clear, exit${RESET}\n\n`
+  );
+
+  replRl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: `${GREEN}routiform> ${RESET}`,
+    terminal: true,
+  });
+
+  replRl.prompt();
+
+  replRl.on("line", (line) => {
+    handleReplCommand(line);
+  });
+
+  replRl.on("close", () => {
+    if (replActive) {
+      // User pressed Ctrl+D in REPL → return to menu
+      replActive = false;
+      process.stdout.write(CURSOR_HIDE);
+      menuActive = true;
+      renderMenu();
+    }
+  });
+}
+
+// ── Menu key handler ──────────────────────────────────────
+function handleMenuKey(str, key) {
+  if (!menuActive) return;
+
+  if (key.name === "up") {
+    menuSelectedIdx = (menuSelectedIdx - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
+    renderMenu();
+  } else if (key.name === "down") {
+    menuSelectedIdx = (menuSelectedIdx + 1) % MENU_ITEMS.length;
+    renderMenu();
+  } else if (key.name === "return" || key.name === "enter") {
+    const selected = MENU_ITEMS[menuSelectedIdx];
+    executeMenuAction(selected.action);
+  }
+}
+
+async function executeMenuAction(action) {
+  const dashboardUrl = `http://localhost:${dashboardPort}`;
+
+  switch (action) {
+    case "web":
+      process.stdout.write(CURSOR_SHOW);
+      clearScreen();
+      console.log(`  ${GREEN}✔ Opening Web UI...${RESET}\n`);
+      if (!noOpen) {
+        await openBrowser(dashboardUrl);
+      } else {
+        console.log(`  ${YELLOW}--no-open flag set, skipping browser${RESET}`);
+        console.log(`  Dashboard: ${dashboardUrl}\n`);
+      }
+      // After opening browser, return to menu (don't exit)
+      process.stdout.write(CURSOR_HIDE);
+      menuActive = true;
+      renderMenu();
+      break;
+
+    case "repl":
+      process.stdout.write(CURSOR_SHOW);
+      startRepl();
+      break;
+
+    case "tray":
+      process.stdout.write(CURSOR_SHOW);
+      clearScreen();
+      console.log(`\n  ${CYAN}${BOLD}⚡ Routiform is running in background${RESET}\n`);
+      console.log(`  ${DIM}Server:${RESET}  http://localhost:${dashboardPort}`);
+      console.log(`  ${DIM}API:${RESET}     http://localhost:${apiPort}/v1\n`);
+      console.log(`  ${DIM}To stop:${RESET}   pkill -f "node.*routiform"`);
+      console.log(`  ${DIM}Or:${RESET}        kill ${server.pid}\n`);
+      // Detach from terminal
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      menuActive = false;
+      // Keep server running in background
+      break;
+
+    case "exit":
+      process.stdout.write(CURSOR_SHOW);
+      clearScreen();
+      shutdown();
+      break;
+
+    default:
+      break;
+  }
+}
+
+// ── Initialize menu key handler ───────────────────────────
+if (useMenu) {
+  readline.emitKeypressEvents(process.stdin);
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+  process.stdin.on("keypress", handleMenuKey);
+} else {
+  // Legacy behavior: no menu, clean exit
+  process.stdin.resume();
+}
+
 // ── On ready ───────────────────────────────────────────────
 async function onReady() {
   const dashboardUrl = `http://localhost:${dashboardPort}`;
   const apiUrl = `http://localhost:${apiPort}`;
 
-  console.log(`
+  if (!useMenu) {
+    // Legacy / --no-menu mode: print status and exit cleanly
+    console.log(`
   \x1b[32m✔ Routiform is running!\x1b[0m
 
   \x1b[1m  Dashboard:\x1b[0m  ${dashboardUrl}
@@ -327,14 +739,20 @@ async function onReady() {
   \x1b[2m  Press Ctrl+C to stop\x1b[0m
   `);
 
-  if (!noOpen) {
-    try {
-      const open = await import("open");
-      await open.default(dashboardUrl);
-    } catch {
-      // open is optional — if not available, just skip
+    if (!noOpen) {
+      await openBrowser(dashboardUrl);
     }
+    return;
   }
+
+  // Interactive menu mode
+  if (!noOpen) {
+    await openBrowser(dashboardUrl);
+  }
+
+  menuActive = true;
+  menuSelectedIdx = 0;
+  renderMenu();
 }
 
 // Fallback: if no "Ready" message detected in 15s, assume server is up

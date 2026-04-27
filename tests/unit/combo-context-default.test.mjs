@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { CONTEXT_CONFIG } from "../../src/shared/constants/context.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "routiform-combo-context-default-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -25,7 +26,7 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("createCombo defaults context_length to 200000", async () => {
+test("createCombo defaults context_length to CONTEXT_CONFIG.defaultLimit", async () => {
   const combo = await combosDb.createCombo({
     name: "ctx-default",
     models: [{ provider: "openai", model: "gpt-4o-mini" }],
@@ -33,10 +34,10 @@ test("createCombo defaults context_length to 200000", async () => {
     config: {},
   });
 
-  assert.equal(combo.context_length, 200000);
+  assert.equal(combo.context_length, CONTEXT_CONFIG.defaultLimit);
 
   const fetchedByName = await combosDb.getComboByName("ctx-default");
-  assert.equal(fetchedByName?.context_length, 200000);
+  assert.equal(fetchedByName?.context_length, CONTEXT_CONFIG.defaultLimit);
 });
 
 test("createCombo preserves explicit context_length", async () => {

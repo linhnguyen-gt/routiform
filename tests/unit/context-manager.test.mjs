@@ -26,7 +26,7 @@ test("estimateTokens: handles null", () => {
 // ─── getTokenLimit ──────────────────────────────────────────────────────────
 
 test("getTokenLimit: detects claude", () => {
-  assert.equal(getTokenLimit("claude", "claude-sonnet-4"), 200000);
+  assert.equal(getTokenLimit("claude", "claude-sonnet-4"), CONTEXT_CONFIG.defaultLimit);
 });
 
 test("getTokenLimit: detects gemini", () => {
