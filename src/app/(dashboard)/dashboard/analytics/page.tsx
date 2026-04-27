@@ -4,9 +4,11 @@ import { useState, Suspense } from "react";
 import { UsageAnalytics, CardSkeleton, SegmentedControl } from "@/shared/components";
 import EvalsTab from "../usage/components/EvalsTab";
 import SearchAnalyticsTab from "./SearchAnalyticsTab";
-import DiversityScoreCard from "./components/DiversityScoreCard";
-import ProviderUtilizationTab from "./ProviderUtilizationTab";
-import ComboHealthTab from "./ComboHealthTab";
+import ProvidersTab from "./ProvidersTab";
+import KpiMetricsRow from "./components/KpiMetricsRow";
+import SystemHealthCard from "./components/SystemHealthCard";
+import RecentActivityFeed from "./components/RecentActivityFeed";
+import ProviderUtilizationPreview from "./components/ProviderUtilizationPreview";
 import { useTranslations } from "next-intl";
 
 export default function AnalyticsPage() {
@@ -19,8 +21,7 @@ export default function AnalyticsPage() {
     overview: t("overviewDescription"),
     evals: t("evalsDescription"),
     search: "Search request analytics — provider breakdown, cache hit rate, and cost tracking.",
-    utilization: t("utilizationDescription"),
-    comboHealth: t("comboHealthDescription"),
+    providers: "Provider utilization trends and health metrics across all providers.",
   };
 
   return (
@@ -43,27 +44,49 @@ export default function AnalyticsPage() {
           { value: "overview", label: t("overview") },
           { value: "evals", label: t("evals") },
           { value: "search", label: "Search" },
-          { value: "utilization", label: t("utilization") },
-          { value: "comboHealth", label: t("comboHealth") },
+          { value: "providers", label: "Providers" },
         ]}
         value={activeTab}
         onChange={setActiveTab}
       />
 
       {activeTab === "overview" && (
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
+        <div className="flex flex-col gap-6">
+          {/* KPI Metrics Row */}
+          <Suspense fallback={<CardSkeleton />}>
+            <KpiMetricsRow />
+          </Suspense>
+
+          {/* Usage Analytics */}
           <Suspense fallback={<CardSkeleton />}>
             <UsageAnalytics range={usageRange} onRangeChange={setUsageRange} />
           </Suspense>
-          <aside className="xl:sticky xl:top-4 xl:self-start">
-            <DiversityScoreCard usageRange={usageRange} />
-          </aside>
+
+          {/* Provider Health Grid */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] xl:items-start">
+            <Suspense fallback={<CardSkeleton />}>
+              <div className="card p-6">
+                <h3 className="text-lg font-semibold text-text mb-4">Provider Utilization</h3>
+                <ProviderUtilizationPreview
+                  usageRange={usageRange}
+                  onViewAll={() => setActiveTab("providers")}
+                />
+              </div>
+            </Suspense>
+            <Suspense fallback={<CardSkeleton />}>
+              <SystemHealthCard usageRange={usageRange} />
+            </Suspense>
+          </div>
+
+          {/* Recent Activity Feed */}
+          <Suspense fallback={<CardSkeleton />}>
+            <RecentActivityFeed />
+          </Suspense>
         </div>
       )}
       {activeTab === "evals" && <EvalsTab />}
       {activeTab === "search" && <SearchAnalyticsTab />}
-      {activeTab === "utilization" && <ProviderUtilizationTab />}
-      {activeTab === "comboHealth" && <ComboHealthTab />}
+      {activeTab === "providers" && <ProvidersTab />}
     </div>
   );
 }

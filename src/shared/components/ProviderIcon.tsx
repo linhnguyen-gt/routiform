@@ -236,6 +236,27 @@ const ProviderIcon = memo(function ProviderIcon({
   className,
   style,
 }: ProviderIconProps) {
+  // Handle null/undefined providerId
+  if (!providerId || typeof providerId !== "string") {
+    return (
+      <span
+        className={className}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: size,
+          height: size,
+          ...style,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: size }}>
+          help_outline
+        </span>
+      </span>
+    );
+  }
+
   const normalizedId = providerId.toLowerCase();
   const lobehubId = LOBEHUB_PROVIDER_MAP[normalizedId] ?? null;
   const hasPng = KNOWN_PNGS.has(normalizedId) || normalizedId in PNG_ALIASES;

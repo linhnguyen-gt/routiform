@@ -11,12 +11,17 @@ const _defaultParamsMap = new Map<string, Record<string, unknown>>();
 
 // Use globalThis to survive Next.js hot reload
 const _globalKey = Symbol.for("__routiform_customDefaultParamsMap__");
-if (!(globalThis as Record<string, unknown>)[_globalKey]) {
-  (globalThis as Record<string, unknown>)[_globalKey] = new Map<string, Record<string, unknown>>();
+
+interface GlobalWithCustomParams {
+  [key: symbol]: Map<string, Record<string, unknown>>;
+}
+
+if (!(globalThis as GlobalWithCustomParams)[_globalKey]) {
+  (globalThis as GlobalWithCustomParams)[_globalKey] = new Map<string, Record<string, unknown>>();
 }
 const _customDefaultParamsMap: Map<string, Record<string, unknown>> = (
-  globalThis as Record<string, unknown>
-)[_globalKey] as Map<string, Record<string, unknown>>;
+  globalThis as GlobalWithCustomParams
+)[_globalKey];
 
 const MODEL_REASONING_EFFORT_VALUES = new Set(["none", "low", "medium", "high", "xhigh"]);
 

@@ -442,6 +442,12 @@ export default function SystemStorageTab() {
           </span>
           {t("exportDatabase")}
         </Button>
+        <Button variant="outline" size="sm" onClick={handleImportClick} loading={importLoading}>
+          <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+            upload
+          </span>
+          {t("importDatabase")}
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -477,12 +483,6 @@ export default function SystemStorageTab() {
             folder_zip
           </span>
           {t("exportAll")}
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleImportClick} loading={importLoading}>
-          <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
-            upload
-          </span>
-          {t("importDatabase")}
         </Button>
         <Button
           variant="outline"

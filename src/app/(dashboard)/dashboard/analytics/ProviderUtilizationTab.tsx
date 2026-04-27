@@ -357,65 +357,67 @@ export default function ProviderUtilizationTab() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {latestPoints.map((point) => {
-                const isLow = point.remainingPct <= 20;
+              {latestPoints
+                .filter((point) => point.provider && point.provider.trim() !== "")
+                .map((point) => {
+                  const isLow = point.remainingPct <= 20;
 
-                return (
-                  <Card.Section key={point.provider} className="flex h-full flex-col gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/5 bg-surface text-text-main dark:border-white/5">
-                          <ProviderIcon providerId={point.provider} size={22} />
+                  return (
+                    <Card.Section key={point.provider} className="flex h-full flex-col gap-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/5 bg-surface text-text-main dark:border-white/5">
+                            <ProviderIcon providerId={point.provider} size={22} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-text-main">{point.provider}</p>
+                            <p className="text-xs text-text-muted">Latest quota snapshot</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-text-main">{point.provider}</p>
-                          <p className="text-xs text-text-muted">Latest quota snapshot</p>
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                          point.isExhausted
-                            ? "bg-error/10 text-error"
-                            : isLow
-                              ? "bg-warning/10 text-warning"
-                              : "bg-success/10 text-success"
-                        }`}
-                      >
-                        {point.isExhausted ? "Exhausted" : isLow ? "Low" : "Healthy"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-3xl font-bold text-text-main">
-                          {point.remainingPct.toFixed(point.remainingPct < 10 ? 1 : 0)}%
-                        </p>
-                        <p className="mt-1 text-xs text-text-muted">Remaining capacity</p>
-                      </div>
-                      <div className="text-right text-xs text-text-muted">
-                        <p>{formatTooltipTimestamp(point.timestamp, range)}</p>
-                        <p className="mt-1 uppercase tracking-[0.14em]">{point.windowKey}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <div className="h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            point.isExhausted ? "bg-error" : isLow ? "bg-warning" : "bg-primary"
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                            point.isExhausted
+                              ? "bg-error/10 text-error"
+                              : isLow
+                                ? "bg-warning/10 text-warning"
+                                : "bg-success/10 text-success"
                           }`}
-                          style={{ width: `${Math.max(point.remainingPct, 0)}%` }}
-                        />
+                        >
+                          {point.isExhausted ? "Exhausted" : isLow ? "Low" : "Healthy"}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-text-muted">
-                        <span>0%</span>
-                        <span>Remaining quota</span>
-                        <span>100%</span>
+
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-3xl font-bold text-text-main">
+                            {point.remainingPct.toFixed(point.remainingPct < 10 ? 1 : 0)}%
+                          </p>
+                          <p className="mt-1 text-xs text-text-muted">Remaining capacity</p>
+                        </div>
+                        <div className="text-right text-xs text-text-muted">
+                          <p>{formatTooltipTimestamp(point.timestamp, range)}</p>
+                          <p className="mt-1 uppercase tracking-[0.14em]">{point.windowKey}</p>
+                        </div>
                       </div>
-                    </div>
-                  </Card.Section>
-                );
-              })}
+
+                      <div className="flex flex-col gap-2">
+                        <div className="h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              point.isExhausted ? "bg-error" : isLow ? "bg-warning" : "bg-primary"
+                            }`}
+                            style={{ width: `${Math.max(point.remainingPct, 0)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-text-muted">
+                          <span>0%</span>
+                          <span>Remaining quota</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+                    </Card.Section>
+                  );
+                })}
             </div>
           </div>
         )}

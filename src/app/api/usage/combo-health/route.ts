@@ -33,15 +33,21 @@ type PerformanceRow = {
 
 type QuotaSnapshotView = {
   connectionId?: string;
+  connection_id?: string;
   remainingPercentage?: number | null;
+  remaining_percentage?: number | null;
   isExhausted?: number;
+  is_exhausted?: number;
   createdAt?: string;
+  created_at?: string;
 };
 
 type ProviderHealth = {
   provider: string;
+  name: string;
   remainingPct: number;
   isExhausted: boolean;
+  share: number;
   trend: "improving" | "stable" | "declining";
 };
 
@@ -122,78 +128,62 @@ function buildProviderHealth(provider: string, snapshots: QuotaSnapshotRow[]): P
   if (snapshots.length === 0) {
     return {
       provider,
+      name: provider,
       remainingPct: 0,
       isExhausted: false,
+      share: 0,
       trend: "stable",
     };
   }
 
-  const histories = new Map<string, QuotaSnapshotRow[]>();
-  for (const snapshot of snapshots) {
-    const snapshotView = snapshot as unknown as QuotaSnapshotView;
-    const connectionId = snapshotView.connectionId || "unknown";
-    const existing = histories.get(connectionId) ?? [];
-    existing.push(snapshot);
-    histories.set(connectionId, existing);
+  const normalizedSnapshots = snapshots
+    .map((snapshot) => {
+      const view = snapshot as unknown as QuotaSnapshotView;
+      return {
+        createdAt: view.createdAt ?? view.created_at ?? "",
+        remainingPct: view.remainingPercentage ?? view.remaining_percentage,
+        isExhausted: view.isExhausted ?? view.is_exhausted ?? 0,
+      };
+    })
+    .filter((snapshot) => snapshot.remainingPct !== null && snapshot.remainingPct !== undefined)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const latestSnapshot = normalizedSnapshots[0];
+
+  if (!latestSnapshot) {
+    return {
+      provider,
+      name: provider,
+      remainingPct: 0,
+      isExhausted: false,
+      share: 0,
+      trend: "stable",
+    };
   }
-
-  const firstValues: number[] = [];
-  const lastValues: number[] = [];
-  let isExhausted = false;
-
-  for (const history of histories.values()) {
-    const ordered = [...history].sort((left, right) => {
-      const leftView = left as unknown as QuotaSnapshotView;
-      const rightView = right as unknown as QuotaSnapshotView;
-      return (leftView.createdAt || "").localeCompare(rightView.createdAt || "");
-    });
-    const firstSnapshot = ordered.find((entry) => {
-      const entryView = entry as unknown as QuotaSnapshotView;
-      return entryView.remainingPercentage !== null && entryView.remainingPercentage !== undefined;
-    });
-    const lastSnapshot = [...ordered].reverse().find((entry) => {
-      const entryView = entry as unknown as QuotaSnapshotView;
-      return entryView.remainingPercentage !== null && entryView.remainingPercentage !== undefined;
-    });
-    const firstSnapshotView = firstSnapshot as unknown as QuotaSnapshotView | undefined;
-    const lastSnapshotView = lastSnapshot as unknown as QuotaSnapshotView | undefined;
-
-    if (
-      firstSnapshotView?.remainingPercentage !== null &&
-      firstSnapshotView?.remainingPercentage !== undefined
-    ) {
-      firstValues.push(firstSnapshotView.remainingPercentage);
-    }
-
-    if (
-      lastSnapshotView?.remainingPercentage !== null &&
-      lastSnapshotView?.remainingPercentage !== undefined
-    ) {
-      lastValues.push(lastSnapshotView.remainingPercentage);
-    }
-
-    const latestEntry = ordered[ordered.length - 1] as unknown as QuotaSnapshotView | undefined;
-    isExhausted = isExhausted || latestEntry?.isExhausted === 1;
-  }
-
-  const firstAverage =
-    firstValues.length > 0
-      ? firstValues.reduce((accumulator, value) => accumulator + value, 0) / firstValues.length
-      : 0;
-  const lastAverage =
-    lastValues.length > 0
-      ? lastValues.reduce((accumulator, value) => accumulator + value, 0) / lastValues.length
-      : 0;
-  const delta = lastAverage - firstAverage;
 
   let trend: ProviderHealth["trend"] = "stable";
-  if (delta >= 5) trend = "improving";
-  if (delta <= -5) trend = "declining";
+  const recentSnapshots = normalizedSnapshots.slice(0, 10);
+
+  if (recentSnapshots.length >= 3) {
+    const midpoint = Math.floor(recentSnapshots.length / 2);
+    const olderHalf = recentSnapshots.slice(midpoint);
+    const newerHalf = recentSnapshots.slice(0, midpoint);
+    const olderAverage =
+      olderHalf.reduce((sum, snapshot) => sum + (snapshot.remainingPct ?? 0), 0) / olderHalf.length;
+    const newerAverage =
+      newerHalf.reduce((sum, snapshot) => sum + (snapshot.remainingPct ?? 0), 0) / newerHalf.length;
+    const delta = newerAverage - olderAverage;
+
+    if (delta >= 5) trend = "improving";
+    if (delta <= -5) trend = "declining";
+  }
 
   return {
     provider,
-    remainingPct: roundNumber(lastAverage),
-    isExhausted,
+    name: provider,
+    remainingPct: roundNumber(latestSnapshot.remainingPct ?? 0),
+    isExhausted: latestSnapshot.isExhausted === 1,
+    share: 0,
     trend,
   };
 }
@@ -279,10 +269,49 @@ function buildPerformance(comboName: string, since: string): ComboHealthMetrics[
   };
 }
 
-function buildQuotaHealth(providers: string[], since: string): ComboHealthMetrics["quotaHealth"] {
-  const providerHealth = providers.map((provider) =>
-    buildProviderHealth(provider, getQuotaSnapshots({ provider, since }))
-  );
+function buildQuotaHealth(
+  providers: string[],
+  comboName: string,
+  since: string
+): ComboHealthMetrics["quotaHealth"] {
+  const db = getDbInstance();
+
+  // Get request counts per provider
+  const providerCounts = new Map<string, number>();
+  let totalRequests = 0;
+
+  for (const provider of providers) {
+    const row = db
+      .prepare(
+        `SELECT COUNT(*) as count
+         FROM call_logs
+         WHERE combo_name = ?
+           AND model LIKE ?
+           AND timestamp >= ?`
+      )
+      .get(comboName, `${provider}/%`, since) as { count: number } | undefined;
+
+    const count = toSafeNumber(row?.count);
+    providerCounts.set(provider, count);
+    totalRequests += count;
+  }
+
+  const providerHealth = providers.map((provider) => {
+    // Get latest snapshot regardless of time range for accurate quota status
+    const allSnapshots = getQuotaSnapshots({
+      provider,
+      since: new Date(0).toISOString(), // Get all snapshots
+    });
+    const health = buildProviderHealth(provider, allSnapshots);
+    const count = providerCounts.get(provider) || 0;
+    const share = totalRequests > 0 ? count / totalRequests : 0;
+
+    return {
+      ...health,
+      name: provider,
+      share: roundNumber(share, 4),
+    };
+  });
 
   const worstRemainingPct =
     providerHealth.length > 0
@@ -314,7 +343,7 @@ function buildComboHealth(combo: ComboRecord, since: string): ComboHealthMetrics
         ? combo.strategy
         : "priority",
     models,
-    quotaHealth: buildQuotaHealth(providers, since),
+    quotaHealth: buildQuotaHealth(providers, comboName, since),
     usageSkew: buildUsageSkew(comboName, models, since),
     performance: buildPerformance(comboName, since),
   };

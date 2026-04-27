@@ -162,6 +162,7 @@ function normalizeQuotas(rawQuotas: Record<string, unknown>): Record<string, Quo
       const qObj = q as Record<string, unknown>;
       const total = typeof qObj.total === "number" ? qObj.total : 0;
       const used = typeof qObj.used === "number" ? qObj.used : 0;
+      const remaining = typeof qObj.remaining === "number" ? qObj.remaining : null;
       const remainingPercentage =
         typeof qObj.remainingPercentage === "number" ? qObj.remainingPercentage : null;
       const resetAt = qObj.resetAt != null ? qObj.resetAt : null;
@@ -169,7 +170,7 @@ function normalizeQuotas(rawQuotas: Record<string, unknown>): Record<string, Quo
       result[key] = {
         remainingPercentage:
           safePercentage(remainingPercentage) ??
-          (total > 0 ? Math.round(((total - used) / total) * 100) : 0),
+          (total > 0 ? Math.round((((remaining ?? total - used) as number) / total) * 100) : 0),
         resetAt: typeof resetAt === "string" ? resetAt : null,
       };
     }
@@ -215,7 +216,12 @@ export function setQuotaCache(
 
       const remainingPercentage =
         safePercentage(qRemainingPercentage) ??
-        (total > 0 ? Math.round(((total - used) / total) * 100) : 0);
+        (total > 0 ? Math.round(((total - used) / total) * 100) : null);
+
+      if (remainingPercentage === null) {
+        continue;
+      }
+
       try {
         saveQuotaSnapshot({
           provider,
