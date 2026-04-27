@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.21.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.21.0...v3.21.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* remove contextValidation default override and add cache headers to settings endpoint ([b33d9da](https://github.com/linhnguyen-gt/Routiform/commit/b33d9dafe3cc3c001c2a65d53c63744a30393bf4))
+
 ## [3.21.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.20.0...v3.21.0) (2026-04-27)
 
 
