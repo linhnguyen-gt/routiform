@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.21.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.20.0...v3.21.0) (2026-04-27)
+
+
+### Features
+
+* add analytics API endpoints ([fab15f2](https://github.com/linhnguyen-gt/Routiform/commit/fab15f2efd582ba3a0642d7cd9177c4108bdf513))
+* add provider analytics dashboard ([d4ac905](https://github.com/linhnguyen-gt/Routiform/commit/d4ac905d555ca6e766c1e66b5b15441a137a3d35))
+* add registry models support for kilo-gateway provider ([641bbe3](https://github.com/linhnguyen-gt/Routiform/commit/641bbe38d41169d19926d808c4cc99ec1f6ddbf7))
+* redesign request log detail modal with better visual hierarchy ([7c2b507](https://github.com/linhnguyen-gt/Routiform/commit/7c2b50719aba14c0244019601bae0d17e4b94682))
+
+
+### Bug Fixes
+
+* analytics e2e tests and client-side compatibility ([699ebea](https://github.com/linhnguyen-gt/Routiform/commit/699ebeaa71bdda246adb9a49160589113e62a669))
+* **tests:** stabilize context validation coverage ([da0ef07](https://github.com/linhnguyen-gt/Routiform/commit/da0ef07afc391004f1316028dd6c91f9b1c10714))
+
 ## [3.20.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.19.2...v3.20.0) (2026-04-25)
 
 
