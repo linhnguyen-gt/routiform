@@ -1,5 +1,3 @@
-import os from "node:os";
-
 /**
  * Antigravity and Gemini CLI header utilities.
  *
@@ -15,29 +13,41 @@ const GEMINI_SDK_VERSION = "1.41.0";
 const NODE_VERSION = "v22.19.0";
 
 function getPlatform(): string {
-  const p = os.platform();
-  switch (p) {
-    case "win32":
-      return "win32";
-    case "darwin":
-      return "darwin";
-    default:
-      return p; // "linux", etc.
+  // Only use os module on server-side
+  if (typeof window === "undefined") {
+    const os = require("node:os");
+    const p = os.platform();
+    switch (p) {
+      case "win32":
+        return "win32";
+      case "darwin":
+        return "darwin";
+      default:
+        return p; // "linux", etc.
+    }
   }
+  // Client-side fallback
+  return "darwin";
 }
 
 function getArch(): string {
-  const a = os.arch();
-  switch (a) {
-    case "x64":
-      return "x64";
-    case "ia32":
-      return "x86";
-    case "arm64":
-      return "arm64";
-    default:
-      return a;
+  // Only use os module on server-side
+  if (typeof window === "undefined") {
+    const os = require("node:os");
+    const a = os.arch();
+    switch (a) {
+      case "x64":
+        return "x64";
+      case "ia32":
+        return "x86";
+      case "arm64":
+        return "arm64";
+      default:
+        return a;
+    }
   }
+  // Client-side fallback
+  return "arm64";
 }
 
 /**

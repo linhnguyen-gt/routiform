@@ -90,6 +90,11 @@ export async function proxy(request: unknown) {
 
   // ──────────────── Protect Dashboard Routes ────────────────
   if (pathname.startsWith("/dashboard")) {
+    // E2E test bypass: skip auth when E2E_DISABLE_AUTH is set
+    if (process.env.E2E_DISABLE_AUTH === "true") {
+      return response;
+    }
+
     // Always allow onboarding — it has its own setupComplete guard
     if (pathname.startsWith("/dashboard/onboarding")) {
       return response;

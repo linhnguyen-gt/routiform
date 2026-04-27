@@ -212,8 +212,10 @@ test.describe("Analytics Tabs UI", () => {
       .first();
     await utilizationTab.click();
 
-    await page.waitForTimeout(500);
+    // Wait for initial data to load
+    await page.waitForTimeout(1000);
 
+    // Setup request listener before clicking
     let networkRequestMade = false;
     page.on("request", (request) => {
       if (request.url().includes("/api/usage/utilization")) {
@@ -225,6 +227,8 @@ test.describe("Analytics Tabs UI", () => {
     });
 
     const timeRangeSelector = getTimeRangeSelector(page);
+    await expect(timeRangeSelector).toBeVisible({ timeout: 10000 });
+
     const sevenDayButton = timeRangeSelector
       .locator('button[role="tab"]')
       .filter({ hasText: "7d" })
@@ -245,11 +249,10 @@ test.describe("Analytics Tabs UI", () => {
       }
     }
 
-    await page.waitForTimeout(1000);
-
     await expect
       .poll(() => networkRequestMade, {
         message: "Expected time range change to trigger network request",
+        timeout: 10000,
       })
       .toBe(true);
   });

@@ -5,6 +5,8 @@ import { UsageAnalytics, CardSkeleton, SegmentedControl } from "@/shared/compone
 import EvalsTab from "../usage/components/EvalsTab";
 import SearchAnalyticsTab from "./SearchAnalyticsTab";
 import ProvidersTab from "./ProvidersTab";
+import ProviderUtilizationTab from "./ProviderUtilizationTab";
+import ComboHealthTab from "./ComboHealthTab";
 import KpiMetricsRow from "./components/KpiMetricsRow";
 import SystemHealthCard from "./components/SystemHealthCard";
 import RecentActivityFeed from "./components/RecentActivityFeed";
@@ -22,6 +24,9 @@ export default function AnalyticsPage() {
     evals: t("evalsDescription"),
     search: "Search request analytics — provider breakdown, cache hit rate, and cost tracking.",
     providers: "Provider utilization trends and health metrics across all providers.",
+    utilization:
+      "Real-time provider quota tracking with historical trends and capacity monitoring.",
+    "combo health": "Monitor combo performance, quota health, usage skew, and routing efficiency.",
   };
 
   return (
@@ -45,6 +50,8 @@ export default function AnalyticsPage() {
           { value: "evals", label: t("evals") },
           { value: "search", label: "Search" },
           { value: "providers", label: "Providers" },
+          { value: "utilization", label: "Utilization" },
+          { value: "combo health", label: "Combo Health" },
         ]}
         value={activeTab}
         onChange={setActiveTab}
@@ -87,6 +94,8 @@ export default function AnalyticsPage() {
       {activeTab === "evals" && <EvalsTab />}
       {activeTab === "search" && <SearchAnalyticsTab />}
       {activeTab === "providers" && <ProvidersTab />}
+      {activeTab === "utilization" && <ProviderUtilizationTab />}
+      {activeTab === "combo health" && <ComboHealthTab />}
     </div>
   );
 }
