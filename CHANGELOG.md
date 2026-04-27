@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.22.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.22.0...v3.22.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* context validation resets to passthrough on server restart ([87ca2d2](https://github.com/linhnguyen-gt/Routiform/commit/87ca2d2d36b1805e7ad312b0d19d6e915b7f95a6))
+
 ## [3.22.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.21.1...v3.22.0) (2026-04-27)
 
 
