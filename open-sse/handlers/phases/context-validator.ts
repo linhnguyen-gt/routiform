@@ -70,6 +70,11 @@ export async function validateAndCompressContext({
       finalTokens: number;
       layers?: string[];
       rejected: boolean;
+      droppedMessageCount?: number;
+      truncatedToolCount?: number;
+      compressedThinkingCount?: number;
+      summaryInserted?: boolean;
+      systemTruncated?: boolean;
     }) => void;
   } | null;
   log?: {
@@ -135,6 +140,11 @@ export async function validateAndCompressContext({
           finalTokens: newValidation.estimatedTokens,
           layers: compressionResult.stats.layers?.map((l) => l.name) || [],
           rejected: false,
+          droppedMessageCount: compressionResult.stats.droppedMessageCount,
+          truncatedToolCount: compressionResult.stats.truncatedToolCount,
+          compressedThinkingCount: compressionResult.stats.compressedThinkingCount,
+          summaryInserted: compressionResult.stats.summaryInserted,
+          systemTruncated: compressionResult.stats.systemTruncated,
         });
 
         return { valid: true, body };

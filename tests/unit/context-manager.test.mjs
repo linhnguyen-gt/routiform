@@ -7,9 +7,15 @@ const { CONTEXT_CONFIG } = await import("../../src/shared/constants/context.ts")
 
 // ─── estimateTokens ─────────────────────────────────────────────────────────
 
-test("estimateTokens: estimates from string", () => {
-  assert.equal(estimateTokens("hello"), 2); // 5/4 = 2
-  assert.equal(estimateTokens("a".repeat(100)), Math.ceil(100 / 3.5));
+test("estimateTokens: estimates from string with content-type detection", () => {
+  // "hello" is text content → 4.0 chars/token → Math.ceil(5/4) = 2
+  assert.equal(estimateTokens("hello"), 2);
+  // "aaa..." is text content → 4.0 chars/token → Math.ceil(100/4) = 25
+  assert.equal(estimateTokens("a".repeat(100)), 25);
+  // JSON content uses 2.8 chars/token ratio
+  assert.ok(estimateTokens(JSON.stringify({ key: "value" })) > 0);
+  // Explicit ratio override still works
+  assert.equal(estimateTokens("hello", 3.5), 2);
 });
 
 test("estimateTokens: handles null", () => {

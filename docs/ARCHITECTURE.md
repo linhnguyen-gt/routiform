@@ -198,7 +198,7 @@ Main flow modules:
   - `input-sanitizer.ts` — request normalization and memory injection
   - `semantic-cache-handler.ts` — semantic cache lookup
   - `background-task-redirector.ts` — async task routing
-  - `context-validator.ts` — context window validation and compression (compresses against raw model limit, then revalidates with safe limit)
+  - `context-validator.ts` — context window validation and compression (compresses against raw model limit, then revalidates with safe limit). Passes compression telemetry (dropped messages, truncated tools, compressed thinking blocks, summary insertion, system truncation) to reqLogger for dashboard visibility.
   - `model-fallback-handler.ts` — model-level fallback logic
   - `emergency-fallback-handler.ts` — last-resort fallback strategies
 - Handler utilities: `open-sse/handlers/utils/*` (3 modules)
@@ -227,7 +227,7 @@ Main flow modules:
 Services (business logic):
 
 - Account selection/scoring: `open-sse/services/accountSelector.ts`
-- Context lifecycle management: `open-sse/services/contextManager.ts`
+- Context lifecycle management: `open-sse/services/contextManager.ts` — 7-layer compression pipeline with importance-aware history purification, signal-aware tool trimming, content-type-aware token estimation, and structured compression summaries
 - IP filter enforcement: `open-sse/services/ipFilter.ts`
 - Session tracking: `open-sse/services/sessionManager.ts`
 - Request deduplication: `open-sse/services/signatureCache.ts`

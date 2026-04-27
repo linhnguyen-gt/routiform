@@ -108,6 +108,23 @@ curl -s http://localhost:20128/api/cli-tools/openclaw-settings | jq '{installed,
 
 Set `ENABLE_REQUEST_LOGS=true` in your `.env` file. Logs appear under `logs/` directory.
 
+### "Prompt too long" / Context window exceeded
+
+If a request is rejected for context size:
+
+1. Go to **Dashboard → AI → Request context**
+2. Enable **auto-compress** if you want the proxy to shrink oversized payloads before forwarding them upstream
+3. Retry the request and inspect request logs / dashboard telemetry
+
+Current auto-compress behavior is designed to preserve high-signal context more safely:
+
+- tool output trimming keeps error and warning lines when possible
+- recent and important messages are prioritized over low-value history
+- dropped history can be replaced with a structured summary of goals, constraints, decisions, prior errors, and open issues
+- compression telemetry records dropped messages, truncated tool outputs, compressed thinking blocks, summary insertion, and system truncation
+
+If the request still exceeds the provider limit after compression, reduce very large tool outputs, oversized schemas, or long conversation history before retrying.
+
 ### Check Provider Health
 
 ```bash

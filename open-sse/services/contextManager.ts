@@ -38,9 +38,19 @@ function getEnvOverride(provider: string): number | null {
 }
 
 // Token estimation ratios based on common LLM tokenizers (cl100k_base, p50k_base)
-// English text: ~4 chars/token, code: ~3-3.5 chars/token
-// Using conservative estimate to be safe (3.5 chars/token average)
-const CHARS_PER_TOKEN_AVG = 3.5;
+// Different content types have different chars-per-token ratios:
+// - Plain English text: ~4 chars/token (natural language is efficient)
+// - Code: ~3.0 chars/token (syntax overhead, shorter identifiers)
+// - JSON/structured: ~2.8 chars/token (keys, braces, quotes add tokens)
+// - Tool schemas: ~2.5 chars/token (heavily structured, many short tokens)
+// Conservative defaults target accuracy rather than undercounting.
+const CHARS_PER_TOKEN: Record<string, number> = {
+  text: 4.0,
+  code: 3.0,
+  json: 2.8,
+  schema: 2.5,
+  default: 3.5,
+};
 
 // Safety margin multiplier - reduces effective limit to account for:
 // - Formatting overhead (roles, timestamps, formatting)
@@ -49,19 +59,63 @@ const CHARS_PER_TOKEN_AVG = 3.5;
 // - JSON structure overhead
 const SAFETY_MARGIN = 0.9; // Use 90% of limit as effective threshold
 
+/** Detect the dominant content type of a string for token estimation. */
+function detectContentType(str: string): "text" | "code" | "json" | "schema" {
+  if (str.length === 0) return "text";
+  const trimmed = str.trim();
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      JSON.parse(trimmed);
+      // Distinguish tool schemas from plain JSON
+      const obj = JSON.parse(trimmed);
+      if (
+        typeof obj === "object" &&
+        obj !== null &&
+        ("type" in obj || "properties" in obj || "parameters" in obj || "function" in obj)
+      ) {
+        return "schema";
+      }
+      return "json";
+    } catch {
+      // Not valid JSON, check for code-like patterns
+    }
+  }
+  // Heuristic for code: frequent symbols, braces, semicolons
+  const codeIndicators = (str.match(/[{}();=<>[\]]/g) || []).length;
+  if (codeIndicators / str.length > 0.04) return "code";
+  return "text";
+}
+
 /**
- * Estimate token count from text length using provider-specific ratios
- * @param {string|object} text - Text or object to estimate
- * @param {number} [ratio] - Chars per token ratio (default: 3.5)
+ * Estimate token count from text, optionally using content-type-aware ratios.
+ * @param {string|object|null|undefined} text - Text or object to estimate
+ * @param {number} [ratio] - Override chars per token ratio (default: auto-detect)
  * @returns {number}
  */
-export function estimateTokens(
-  text: string | object | null | undefined,
-  ratio: number = CHARS_PER_TOKEN_AVG
-): number {
+export function estimateTokens(text: string | object | null | undefined, ratio?: number): number {
   if (!text) return 0;
   const str = typeof text === "string" ? text : JSON.stringify(text);
-  return Math.ceil(str.length / ratio);
+  const effectiveRatio =
+    ratio ?? CHARS_PER_TOKEN[detectContentType(str)] ?? CHARS_PER_TOKEN.default;
+  return Math.ceil(str.length / effectiveRatio);
+}
+
+/**
+ * Estimate tokens with explicit content-type detection. Useful for telemetry.
+ * Returns both the count and the detected type.
+ */
+export function estimateTokensDetailed(
+  text: string | object | null | undefined,
+  ratio?: number
+): { tokens: number; contentType: string; ratio: number } {
+  if (!text) return { tokens: 0, contentType: "text", ratio: CHARS_PER_TOKEN.text };
+  const str = typeof text === "string" ? text : JSON.stringify(text);
+  const contentType = detectContentType(str);
+  const effectiveRatio = ratio ?? CHARS_PER_TOKEN[contentType] ?? CHARS_PER_TOKEN.default;
+  return { tokens: Math.ceil(str.length / effectiveRatio), contentType, ratio: effectiveRatio };
 }
 
 /**
@@ -311,6 +365,8 @@ export function validateContextLimit(
 export type ContextCompressionLayerStat = {
   name: string;
   tokens: number;
+  tokensRemoved?: number;
+  details?: Record<string, number | boolean>;
 };
 
 /** Token counts and which compression layers ran (empty `layers` when none ran). */
@@ -318,6 +374,11 @@ export type CompressContextStats = {
   original: number;
   final: number;
   layers: ContextCompressionLayerStat[];
+  droppedMessageCount?: number;
+  truncatedToolCount?: number;
+  compressedThinkingCount?: number;
+  summaryInserted?: boolean;
+  systemTruncated?: boolean;
 };
 
 /**
@@ -366,9 +427,14 @@ export function compressContext(
   let tools = Array.isArray(body.tools) ? [...body.tools] : body.tools;
   const buildWorkingBody = (): JsonRecord => ({ ...body, messages, tools }) as JsonRecord;
   let currentTokens = estimateRequestTokens(buildWorkingBody());
-  const stats: { original: number; layers: ContextCompressionLayerStat[] } = {
+  const stats: Omit<CompressContextStats, "final"> & { final?: number } = {
     original: currentTokens,
     layers: [],
+    droppedMessageCount: 0,
+    truncatedToolCount: 0,
+    compressedThinkingCount: 0,
+    summaryInserted: false,
+    systemTruncated: false,
   };
 
   // Already fits
@@ -382,9 +448,14 @@ export function compressContext(
 
   // Layer 0: Compact tool definitions (large tool registries can dominate context budget)
   if (Array.isArray(tools) && tools.length > 0) {
+    const tokensBefore = currentTokens;
     tools = compactToolDefinitions(tools, messages, 96, body);
     currentTokens = estimateRequestTokens(buildWorkingBody());
-    stats.layers.push({ name: "compact_tools", tokens: currentTokens });
+    stats.layers.push({
+      name: "compact_tools",
+      tokens: currentTokens,
+      tokensRemoved: tokensBefore - currentTokens,
+    });
     if (currentTokens <= targetTokens) {
       return {
         body: buildWorkingBody(),
@@ -394,82 +465,193 @@ export function compressContext(
     }
   }
 
-  // Layer 1: Trim tool_result/tool messages
-  messages = trimToolMessages(messages, 2000); // Max 2000 chars per tool result
-  currentTokens = estimateRequestTokens(buildWorkingBody());
-  stats.layers.push({ name: "trim_tools", tokens: currentTokens });
-
-  if (currentTokens <= targetTokens) {
-    return {
-      body: buildWorkingBody(),
-      compressed: true,
-      stats: { ...stats, final: currentTokens },
-    };
+  // Layer 1: Trim tool_result/tool messages (signal-aware)
+  {
+    const tokensBefore = currentTokens;
+    const trimResult = trimToolMessages(messages, 2000);
+    messages = trimResult.messages;
+    stats.truncatedToolCount = trimResult.truncatedCount;
+    currentTokens = estimateRequestTokens(buildWorkingBody());
+    stats.layers.push({
+      name: "trim_tools",
+      tokens: currentTokens,
+      tokensRemoved: tokensBefore - currentTokens,
+      details: { truncatedCount: trimResult.truncatedCount },
+    });
+    if (currentTokens <= targetTokens) {
+      return {
+        body: buildWorkingBody(),
+        compressed: true,
+        stats: { ...stats, final: currentTokens },
+      };
+    }
   }
 
   // Layer 2: Compress thinking blocks (remove from non-last assistant messages)
-  messages = compressThinking(messages);
-  currentTokens = estimateRequestTokens(buildWorkingBody());
-  stats.layers.push({ name: "compress_thinking", tokens: currentTokens });
-
-  if (currentTokens <= targetTokens) {
-    return {
-      body: buildWorkingBody(),
-      compressed: true,
-      stats: { ...stats, final: currentTokens },
-    };
+  {
+    const tokensBefore = currentTokens;
+    let thinkingCount = 0;
+    const newMessages = compressThinking(messages);
+    // Count how many thinking blocks were removed
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === "assistant") {
+        const wasThinking = Array.isArray(messages[i].content)
+          ? (messages[i].content as JsonRecord[]).filter((b) => b.type === "thinking").length
+          : typeof messages[i].content === "string"
+            ? ((messages[i].content as string).match(/<thinking>[\s\S]*?<\/thinking>/g) || [])
+                .length +
+              ((messages[i].content as string).match(/<antThinking>[\s\S]*?<\/antThinking>/g) || [])
+                .length
+            : 0;
+        const isStillThinking = Array.isArray(newMessages[i].content)
+          ? (newMessages[i].content as JsonRecord[]).filter((b) => b.type === "thinking").length
+          : typeof newMessages[i].content === "string" && i !== newMessages.length - 1
+            ? 0
+            : Array.isArray(newMessages[i].content)
+              ? (newMessages[i].content as JsonRecord[]).filter((b) => b.type === "thinking").length
+              : 0;
+        thinkingCount += Math.max(0, wasThinking - isStillThinking);
+      }
+    }
+    messages = newMessages;
+    stats.compressedThinkingCount = thinkingCount;
+    currentTokens = estimateRequestTokens(buildWorkingBody());
+    stats.layers.push({
+      name: "compress_thinking",
+      tokens: currentTokens,
+      tokensRemoved: tokensBefore - currentTokens,
+      details: { thinkingBlocksRemoved: thinkingCount },
+    });
+    if (currentTokens <= targetTokens) {
+      return {
+        body: buildWorkingBody(),
+        compressed: true,
+        stats: { ...stats, final: currentTokens },
+      };
+    }
   }
 
-  // Layer 3: Aggressive purification — drop oldest messages keeping the newest content that still fits.
-  messages = purifyHistory(
-    messages,
-    (candidateMessages) =>
-      estimateRequestTokens({ ...body, messages: candidateMessages, tools }) <= targetTokens
-  );
-  currentTokens = estimateRequestTokens(buildWorkingBody());
-  stats.layers.push({ name: "purify_history", tokens: currentTokens });
-
-  if (currentTokens <= targetTokens) {
-    return {
-      body: buildWorkingBody(),
-      compressed: true,
-      stats: { ...stats, final: currentTokens },
-    };
+  // Layer 3: Importance-aware purification — drop least important messages until fitting.
+  {
+    const tokensBefore = currentTokens;
+    const purifyResult = purifyHistory(
+      messages,
+      (candidateMessages) =>
+        estimateRequestTokens({ ...body, messages: candidateMessages, tools }) <= targetTokens
+    );
+    messages = purifyResult.messages;
+    stats.droppedMessageCount = purifyResult.droppedCount;
+    stats.summaryInserted = purifyResult.droppedCount > 0;
+    currentTokens = estimateRequestTokens(buildWorkingBody());
+    stats.layers.push({
+      name: "purify_history",
+      tokens: currentTokens,
+      tokensRemoved: tokensBefore - currentTokens,
+      details: { droppedMessages: purifyResult.droppedCount },
+    });
+    if (currentTokens <= targetTokens) {
+      return {
+        body: buildWorkingBody(),
+        compressed: true,
+        stats: { ...stats, final: currentTokens },
+      };
+    }
   }
 
-  // Layer 4: System prompt truncation (Final Resort)
-  // If we are STILL over the limit, it means the system prompt itself is too large.
+  // Layer 3.5: Re-attempt tool trimming with more aggressive budget before system truncation
+  {
+    const tokensBefore = currentTokens;
+    const aggressiveTrimResult = trimToolMessages(messages, 500);
+    if (aggressiveTrimResult.truncatedCount > 0) {
+      messages = aggressiveTrimResult.messages;
+      stats.truncatedToolCount += aggressiveTrimResult.truncatedCount;
+      currentTokens = estimateRequestTokens(buildWorkingBody());
+      if (currentTokens < tokensBefore) {
+        stats.layers.push({
+          name: "aggressive_trim_tools",
+          tokens: currentTokens,
+          tokensRemoved: tokensBefore - currentTokens,
+          details: { truncatedCount: aggressiveTrimResult.truncatedCount },
+        });
+        if (currentTokens <= targetTokens) {
+          return {
+            body: buildWorkingBody(),
+            compressed: true,
+            stats: { ...stats, final: currentTokens },
+          };
+        }
+      }
+    }
+  }
+
+  // Layer 4: System prompt truncation (Nuclear — Last Resort)
+  // Only after all other layers have been exhausted.
   let finalBody = buildWorkingBody();
   if (finalBody.system) {
+    const tokensBefore = currentTokens;
     const excessTokens = currentTokens - targetTokens;
-    const charsToDrop = excessTokens * 4; // Rough approximation
+    // Estimate chars to drop based on the type of content in the system prompt
+    const systemStr =
+      typeof finalBody.system === "string" ? finalBody.system : JSON.stringify(finalBody.system);
+    const sysRatio = CHARS_PER_TOKEN[detectContentType(systemStr)] || CHARS_PER_TOKEN.default;
+    const charsToDrop = Math.ceil(excessTokens * sysRatio);
+
     if (typeof finalBody.system === "string") {
-      if (finalBody.system.length > charsToDrop + 100) {
+      // Preserve instruction-critical prefix (first 30% or at least 200 chars)
+      const preservedChars = Math.max(200, Math.ceil(finalBody.system.length * 0.3));
+      if (finalBody.system.length > charsToDrop + preservedChars) {
+        // Truncate from the tail, preserving the prefix
+        const truncationPoint = finalBody.system.length - charsToDrop;
         finalBody.system =
-          finalBody.system.slice(0, finalBody.system.length - charsToDrop) +
-          "\n... [system prompt truncated to fit context limit]";
+          finalBody.system.slice(0, truncationPoint) +
+          "\n\n[... system prompt truncated to fit context limit — critical instructions preserved above ...]";
+      } else if (finalBody.system.length > 100) {
+        // Even truncating everything beyond prefix won't fit; keep only prefix
+        finalBody.system =
+          finalBody.system.slice(0, preservedChars) +
+          "\n\n[... system prompt heavily truncated — some instructions may be lost ...]";
       } else {
         finalBody.system = "[system prompt truncated to fit context limit]";
       }
     } else if (Array.isArray(finalBody.system)) {
-      finalBody.system = finalBody.system.map((block) => {
-        if (block.type === "text" && typeof block.text === "string") {
-          if (block.text.length > charsToDrop + 100) {
-            return {
-              ...block,
+      // For array system prompts, truncate text blocks from the tail
+      const blocks = [...(finalBody.system as JsonRecord[])];
+      let remaining = charsToDrop;
+      // Traverse from back to front, truncating text blocks
+      for (let i = blocks.length - 1; i >= 0 && remaining > 0; i--) {
+        if (blocks[i].type === "text" && typeof blocks[i].text === "string") {
+          const preservedChars = Math.max(100, Math.ceil((blocks[i].text as string).length * 0.2));
+          if ((blocks[i].text as string).length > remaining + preservedChars) {
+            blocks[i] = {
+              ...blocks[i],
               text:
-                block.text.slice(0, block.text.length - charsToDrop) +
-                "\n... [system prompt truncated]",
+                (blocks[i].text as string).slice(0, (blocks[i].text as string).length - remaining) +
+                "\n[... truncated]",
             };
+            remaining = 0;
+          } else if ((blocks[i].text as string).length > remaining) {
+            blocks[i] = {
+              ...blocks[i],
+              text: (blocks[i].text as string).slice(0, preservedChars) + "\n[... truncated]",
+            };
+            remaining -= (blocks[i].text as string).length - preservedChars;
+          } else {
+            blocks[i] = { ...blocks[i], text: "[truncated]" };
+            remaining -= (blocks[i].text as string).length;
           }
         }
-        return block;
-      });
+      }
+      finalBody.system = blocks;
     }
-  }
 
-  currentTokens = estimateRequestTokens(finalBody);
-  stats.layers.push({ name: "truncate_system", tokens: currentTokens });
+    stats.systemTruncated = true;
+    currentTokens = estimateRequestTokens(finalBody);
+    stats.layers.push({
+      name: "truncate_system",
+      tokens: currentTokens,
+      tokensRemoved: tokensBefore - currentTokens,
+    });
+  }
 
   return {
     body: finalBody,
@@ -625,12 +807,27 @@ function compactToolDefinitions(
     }
   }
 
+  // Variable description budgets based on tool priority:
+  // - Required tool choice: full description preserved (up to 500 chars)
+  // - Previously used tools: 400 char budget
+  // - Preferred/common tools: 250 char budget
+  // - Unused/other tools: 120 char budget
+  const getDescriptionBudget = (tool: JsonRecord): number => {
+    const name = getToolName(tool);
+    const key = normalizeToolNameKey(name);
+    if (requiredToolNames.has(key)) return 500;
+    if (calledToolNames.has(key)) return 400;
+    if (preferredToolNames.has(key)) return 250;
+    return 120;
+  };
+
   return selected.map((tool) => {
     const next = { ...tool };
     if (next.function && typeof next.function === "object") {
       const fn = { ...(next.function as Record<string, unknown>) };
-      if (typeof fn.description === "string" && fn.description.length > 300) {
-        fn.description = `${fn.description.slice(0, 300)}...`;
+      const budget = getDescriptionBudget(tool);
+      if (typeof fn.description === "string" && fn.description.length > budget) {
+        fn.description = `${fn.description.slice(0, budget)}...`;
       }
       next.function = fn;
     }
@@ -638,15 +835,131 @@ function compactToolDefinitions(
   });
 }
 
-// ─── Layer 1: Trim Tool Messages ────────────────────────────────────────────
+// ─── Signal-Aware Text Compaction Helpers ───────────────────────────────────
 
-function trimToolMessages(messages: JsonRecord[], maxChars: number): JsonRecord[] {
-  return messages.map((msg) => {
+const ERROR_PATTERNS = [
+  /\berror\b/i,
+  /\bexception\b/i,
+  /\bfail(ed|ure)?\b/i,
+  /\btraceback\b/i,
+  /\bstack\s*trace\b/i,
+  /\bfatal\b/i,
+  /\bwarning\b/i,
+  /\bwarn\b/i,
+  /\bpanic\b/i,
+  /\bnot\s+found\b/i,
+  /\bdenied\b/i,
+  /\bforbidden\b/i,
+  /\bunauthorized\b/i,
+  /\btimeout\b/i,
+  /\babort(ed)?\b/i,
+];
+
+/** Extract signal-bearing lines (errors, warnings, stack traces) from text. */
+function extractSignalLines(text: string, maxLines: number = 50): string[] {
+  const lines = text.split("\n");
+  const signalLines: string[] = [];
+  for (const line of lines) {
+    if (signalLines.length >= maxLines) break;
+    if (ERROR_PATTERNS.some((p) => p.test(line))) {
+      signalLines.push(line);
+    }
+  }
+  return signalLines;
+}
+
+/** Compact a text string preserving head + tail with a gap indicator. */
+function _compactTextOutput(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const headBudget = Math.ceil(maxChars * 0.6);
+  const tailBudget = maxChars - headBudget - 30; // 30 chars for gap marker
+  const head = text.slice(0, headBudget);
+  const tail = text.slice(text.length - tailBudget);
+  return head + "\n... [truncated, signal lines preserved] ...\n" + tail;
+}
+
+/** Compact a JSON string preserving its shape and key fields. */
+function compactJsonOutput(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  try {
+    const obj = JSON.parse(text);
+    const compacted = JSON.stringify(obj, (key, value) => {
+      if (typeof value === "string" && value.length > 200) {
+        return value.slice(0, 200) + "... [truncated]";
+      }
+      return value;
+    });
+    if (compacted.length <= maxChars) return compacted;
+  } catch {
+    // Not valid JSON, fall through to text compaction
+  }
+  // Try signal-aware text compaction as fallback
+  return compactTextWithSignals(text, maxChars);
+}
+
+/** Compact text preserving signal lines (errors, warnings) + head/tail. */
+function compactTextWithSignals(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const signals = extractSignalLines(text, 40);
+  if (signals.length > 3) {
+    // Worth extracting signals separately
+    const signalBlock = signals.join("\n");
+    const remainingBudget = maxChars - signalBlock.length - 60;
+    if (remainingBudget > 200) {
+      const head = text.slice(0, Math.ceil(remainingBudget * 0.6));
+      const tail = text.slice(text.length - Math.floor(remainingBudget * 0.4));
+      return (
+        head +
+        "\n\n... [truncated] Key signal lines:\n" +
+        signalBlock +
+        "\n\n... [truncated] ...\n" +
+        tail
+      );
+    }
+  }
+
+  // Standard head+tail compaction with signal awareness
+  const signalHead = extractSignalLines(text.slice(0, Math.ceil(maxChars * 0.3)), 10);
+  const headBudget = Math.ceil(maxChars * 0.55);
+  const tailBudget = maxChars - headBudget - 30;
+  const head = text.slice(0, headBudget);
+  const tail = text.slice(text.length - tailBudget);
+  let result = head + "\n... [truncated] ...\n" + tail;
+  if (signalHead.length > 0 && !result.includes(signalHead[0])) {
+    const signalPrefix = signalHead.slice(0, 5).join("\n");
+    result = signalPrefix + "\n... [signal lines] ...\n" + result;
+  }
+  return result;
+}
+
+/** Signal-aware compaction for a single content string. */
+function compactContentString(content: string, maxChars: number): string {
+  if (content.length <= maxChars) return content;
+  const trimmed = content.trim();
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    return compactJsonOutput(content, maxChars);
+  }
+  return compactTextWithSignals(content, maxChars);
+}
+
+// ─── Layer 1: Trim Tool Messages (Signal-Aware) ───────────────────────────
+
+function trimToolMessages(
+  messages: JsonRecord[],
+  maxChars: number
+): { messages: JsonRecord[]; truncatedCount: number } {
+  let truncatedCount = 0;
+  const result = messages.map((msg) => {
     if (msg.role === "tool") {
       if (typeof msg.content === "string" && msg.content.length > maxChars) {
+        truncatedCount++;
         return {
           ...msg,
-          content: msg.content.slice(0, maxChars) + "\n... [truncated]",
+          content: compactContentString(msg.content, maxChars),
         };
       }
       if (Array.isArray(msg.content)) {
@@ -658,7 +971,8 @@ function trimToolMessages(messages: JsonRecord[], maxChars: number): JsonRecord[
               typeof block.text === "string" &&
               block.text.length > maxChars
             ) {
-              return { ...block, text: block.text.slice(0, maxChars) + "\n... [truncated]" };
+              truncatedCount++;
+              return { ...block, text: compactContentString(block.text, maxChars) };
             }
             return block;
           }),
@@ -672,24 +986,26 @@ function trimToolMessages(messages: JsonRecord[], maxChars: number): JsonRecord[
         content: (msg.content as JsonRecord[]).map((block) => {
           if (block.type === "tool_result") {
             if (typeof block.content === "string" && block.content.length > maxChars) {
-              return { ...block, content: block.content.slice(0, maxChars) + "\n... [truncated]" };
+              truncatedCount++;
+              return { ...block, content: compactContentString(block.content, maxChars) };
             } else if (Array.isArray(block.content)) {
-              return {
-                ...block,
-                content: (block.content as JsonRecord[]).map((subBlock) => {
-                  if (
-                    subBlock.type === "text" &&
-                    typeof subBlock.text === "string" &&
-                    subBlock.text.length > maxChars
-                  ) {
-                    return {
-                      ...subBlock,
-                      text: subBlock.text.slice(0, maxChars) + "\n... [truncated]",
-                    };
-                  }
-                  return subBlock;
-                }),
-              };
+              let subTruncated = 0;
+              const newContent = (block.content as JsonRecord[]).map((subBlock) => {
+                if (
+                  subBlock.type === "text" &&
+                  typeof subBlock.text === "string" &&
+                  subBlock.text.length > maxChars
+                ) {
+                  subTruncated++;
+                  return {
+                    ...subBlock,
+                    text: compactContentString(subBlock.text, maxChars),
+                  };
+                }
+                return subBlock;
+              });
+              truncatedCount += subTruncated;
+              return { ...block, content: newContent };
             }
           }
           return block;
@@ -698,6 +1014,7 @@ function trimToolMessages(messages: JsonRecord[], maxChars: number): JsonRecord[
     }
     return msg;
   });
+  return { messages: result, truncatedCount };
 }
 
 // ─── Layer 2: Compress Thinking Blocks ──────────────────────────────────────
@@ -738,42 +1055,102 @@ function compressThinking(messages: JsonRecord[]): JsonRecord[] {
   });
 }
 
-// ─── Layer 3: Aggressive Purification ───────────────────────────────────────
+// ─── Layer 3: Importance-Aware Purification ──────────────────────────────────
+
+/** Score a message's importance for preservation during compression. Higher = more important. */
+function scoreMessageImportance(msg: JsonRecord, index: number, total: number): number {
+  let score = 0;
+  const content = extractTextContent(msg);
+  const role = typeof msg.role === "string" ? msg.role : "";
+
+  // Recency bonus: later messages are more important
+  score += (index / total) * 40;
+
+  // Role-based scoring
+  if (role === "system" || role === "developer") {
+    score += 100; // System messages are always preserved separately
+  } else if (role === "user") {
+    // Latest user message is extremely important
+    if (index === total - 1 || (index === total - 2 && total - 1 >= 0)) {
+      score += 80;
+    } else {
+      score += 30;
+    }
+    // User messages containing constraints are more important
+    if (content && CONSTRAINT_PATTERNS.some((p) => p.test(content))) {
+      score += 25;
+    }
+  } else if (role === "assistant") {
+    // Latest assistant response is very important
+    score += 20;
+    // Assistant decisions are important
+    if (content && DECISION_PATTERNS.some((p) => p.test(content))) {
+      score += 15;
+    }
+  } else if (role === "tool") {
+    // Tool results with errors are important
+    if (content && ERROR_PATTERNS_ANCHOR.some((p) => p.test(content))) {
+      score += 35;
+    } else {
+      score += 5;
+    }
+  }
+
+  // Messages with tool_calls are important (they hold the interaction chain)
+  if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+    score += 20;
+  }
+  // Assistant messages with tool_use content blocks
+  if (Array.isArray(msg.content)) {
+    const hasToolUse = (msg.content as JsonRecord[]).some(
+      (b) => b.type === "tool_use" || b.type === "server_tool_use"
+    );
+    if (hasToolUse) score += 20;
+  }
+
+  return score;
+}
 
 function purifyHistory(
   messages: JsonRecord[],
   fitsWithinTarget: (msgs: JsonRecord[]) => boolean
-): JsonRecord[] {
-  // Keep system message(s) and the most recent non-system messages that still fit.
+): { messages: JsonRecord[]; droppedCount: number } {
+  // Keep system message(s) and the most important non-system messages that still fit.
   const system = messages.filter((m) => m.role === "system" || m.role === "developer");
   const nonSystem = messages.filter((m) => m.role !== "system" && m.role !== "developer");
 
-  const buildCandidate = (keep: number, includeSummary: boolean): JsonRecord[] => {
+  if (nonSystem.length === 0) {
+    return { messages: [...system], droppedCount: 0 };
+  }
+
+  const buildCandidate = (
+    keepCount: number,
+    includeSummary: boolean,
+    droppedSlice: JsonRecord[]
+  ): JsonRecord[] => {
     let keptMessages: JsonRecord[] = [];
-    if (keep > 0) {
-      let startIndex = Math.max(0, nonSystem.length - keep);
-      while (startIndex > 0 && nonSystem[startIndex]?.role !== "user") {
-        startIndex -= 1;
-      }
-      keptMessages = nonSystem.slice(startIndex);
+    if (keepCount > 0) {
+      // Use importance-aware selection: always anchor from newest, then pick important older messages
+      keptMessages = selectImportantMessages(nonSystem, keepCount);
     }
     const candidate =
-      includeSummary && keep < nonSystem.length
-        ? addCompressionSummary(system, keptMessages, nonSystem.length - keep)
+      includeSummary && keepCount < nonSystem.length
+        ? addCompressionSummary(system, keptMessages, droppedSlice)
         : [...system, ...keptMessages];
     return normalizePurifiedMessages(candidate);
   };
 
   let keep = nonSystem.length;
   while (keep >= 0) {
-    const withSummary = buildCandidate(keep, true);
+    const droppedSlice = keep < nonSystem.length ? nonSystem.slice(0, nonSystem.length - keep) : [];
+    const withSummary = buildCandidate(keep, true, droppedSlice);
     if (fitsWithinTarget(withSummary)) {
-      return withSummary;
+      return { messages: withSummary, droppedCount: nonSystem.length - keep };
     }
 
-    const withoutSummary = buildCandidate(keep, false);
+    const withoutSummary = buildCandidate(keep, false, []);
     if (fitsWithinTarget(withoutSummary)) {
-      return withoutSummary;
+      return { messages: withoutSummary, droppedCount: nonSystem.length - keep };
     }
 
     if (keep === 0) break;
@@ -782,15 +1159,199 @@ function purifyHistory(
     keep = nextKeep < keep ? nextKeep : keep - 1;
   }
 
-  return buildCandidate(0, false);
+  return { messages: buildCandidate(0, false, []), droppedCount: nonSystem.length };
+}
+
+/** Select the most important messages, preserving conversation coherence. */
+function findLastUserIndex(messages: JsonRecord[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return i;
+  }
+  return -1;
+}
+
+function selectImportantMessages(messages: JsonRecord[], count: number): JsonRecord[] {
+  if (count >= messages.length) return [...messages];
+  if (count <= 0) return [];
+
+  const total = messages.length;
+
+  // Always include the last user message (most recent request)
+  // Then fill with most important messages using scoring
+  const scored = messages.map((msg, i) => ({
+    msg,
+    index: i,
+    score: scoreMessageImportance(msg, i, total),
+  }));
+
+  // Sort by score descending, but always ensure the last user message is included
+  const lastUserIdx = findLastUserIndex(messages);
+  const mustInclude = new Set<number>();
+  if (lastUserIdx >= 0) mustInclude.add(lastUserIdx);
+
+  // Also include messages in the immediate tail that form a coherent conversation
+  // (the last few messages are almost always important)
+  const tailSize = Math.min(3, count);
+  for (let i = total - tailSize; i < total; i++) {
+    if (i >= 0) mustInclude.add(i);
+  }
+
+  // Fill remaining slots by score
+  const remaining = count - mustInclude.size;
+  const candidates = scored
+    .filter((s) => !mustInclude.has(s.index))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, remaining);
+
+  const selected = new Set<number>(Array.from(mustInclude).concat(candidates.map((c) => c.index)));
+
+  // Return messages in original order for coherence, then rebuild conversation anchors
+  const result = messages.filter((_, i) => selected.has(i));
+
+  // Ensure the result starts with a user message (conversation anchoring)
+  const firstUserIdx = result.findIndex((m) => m.role === "user");
+  if (firstUserIdx > 0) {
+    return result.slice(firstUserIdx);
+  }
+
+  return result;
+}
+
+/** Patterns for extracting semantic anchors from dropped messages. */
+const CONSTRAINT_PATTERNS = [
+  /\b(must|shall|always|never|do\s+not|don'?t|required?|mandatory|essential|critical|important|vital|strictly)\b/i,
+  /\b(constraint|requirement|prerequisite|condition|limitation|restriction|boundary|deadline)\b/i,
+];
+const DECISION_PATTERNS = [
+  /\b(decided|decision|chose|chosen|going\s+to|will\s+use|we'?ll|plan\s+is|strategy|approach)\b/i,
+];
+const ERROR_PATTERNS_ANCHOR = [
+  /\berror\b/i,
+  /\bexception\b/i,
+  /\bfail(ed|ure)?\b/i,
+  /\btraceback\b/i,
+  /\bblocked\b/i,
+];
+const QUESTION_PATTERN = /\?/;
+
+/** Extract plain text from a message regardless of content format. */
+function extractTextContent(msg: JsonRecord): string | null {
+  if (!msg || typeof msg !== "object") return null;
+  const content = msg.content;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return (content as JsonRecord[])
+      .filter((b) => b.type === "text" && typeof b.text === "string")
+      .map((b) => b.text as string)
+      .join("\n");
+  }
+  return null;
+}
+
+/** Extract semantic anchors from messages being dropped by compression. */
+function extractAnchors(droppedMessages: JsonRecord[]): {
+  goal: string | null;
+  constraints: string[];
+  decisions: string[];
+  errors: string[];
+  openIssues: string[];
+} {
+  let goal: string | null = null;
+  const constraints: string[] = [];
+  const decisions: string[] = [];
+  const errors: string[] = [];
+  const openIssues: string[] = [];
+  const MAX_PER_CATEGORY = 3;
+  const MAX_LINE_LENGTH = 120;
+
+  const truncate = (s: string): string =>
+    s.length > MAX_LINE_LENGTH ? s.slice(0, MAX_LINE_LENGTH) + "..." : s;
+
+  for (const msg of droppedMessages) {
+    const content = extractTextContent(msg);
+    if (!content) continue;
+
+    // Extract goal from first user message
+    if (!goal && msg.role === "user") {
+      goal = truncate(content.split("\n")[0]);
+    }
+
+    // Extract constraints from user or system messages
+    if ((msg.role === "user" || msg.role === "system") && constraints.length < MAX_PER_CATEGORY) {
+      for (const line of content.split("\n")) {
+        if (CONSTRAINT_PATTERNS.some((p) => p.test(line))) {
+          constraints.push(truncate(line.trim()));
+          if (constraints.length >= MAX_PER_CATEGORY) break;
+        }
+      }
+    }
+
+    // Extract decisions from assistant messages
+    if (msg.role === "assistant" && decisions.length < MAX_PER_CATEGORY) {
+      for (const line of content.split("\n")) {
+        if (DECISION_PATTERNS.some((p) => p.test(line))) {
+          decisions.push(truncate(line.trim()));
+          if (decisions.length >= MAX_PER_CATEGORY) break;
+        }
+      }
+    }
+
+    // Extract errors from tool results and assistant messages
+    if ((msg.role === "tool" || msg.role === "assistant") && errors.length < MAX_PER_CATEGORY) {
+      for (const line of content.split("\n")) {
+        if (ERROR_PATTERNS_ANCHOR.some((p) => p.test(line))) {
+          errors.push(truncate(line.trim()));
+          if (errors.length >= MAX_PER_CATEGORY) break;
+        }
+      }
+    }
+
+    // Extract open issues (questions in user messages)
+    if (msg.role === "user" && openIssues.length < MAX_PER_CATEGORY) {
+      for (const line of content.split("\n")) {
+        if (QUESTION_PATTERN.test(line) && line.trim().length > 10) {
+          openIssues.push(truncate(line.trim()));
+          if (openIssues.length >= MAX_PER_CATEGORY) break;
+        }
+      }
+    }
+  }
+
+  return { goal, constraints, decisions, errors, openIssues };
+}
+
+/** Build a structured compression summary from extracted anchors. */
+function buildStructuredSummary(droppedMessages: JsonRecord[], droppedCount: number): string {
+  const anchors = extractAnchors(droppedMessages);
+  const parts: string[] = [
+    `[Context compressed: ${droppedCount} earlier messages removed to fit context window]`,
+  ];
+
+  if (anchors.goal) {
+    parts.push(`Goal: ${anchors.goal}`);
+  }
+  if (anchors.constraints.length > 0) {
+    parts.push(`Constraints: ${anchors.constraints.join("; ")}`);
+  }
+  if (anchors.decisions.length > 0) {
+    parts.push(`Decisions: ${anchors.decisions.join("; ")}`);
+  }
+  if (anchors.errors.length > 0) {
+    parts.push(`Prior errors: ${anchors.errors.join("; ")}`);
+  }
+  if (anchors.openIssues.length > 0) {
+    parts.push(`Open issues: ${anchors.openIssues.join("; ")}`);
+  }
+
+  return parts.join("\n");
 }
 
 function addCompressionSummary(
   system: JsonRecord[],
   keptMessages: JsonRecord[],
-  dropped: number
+  droppedMessages: JsonRecord[]
 ): JsonRecord[] {
-  const summary = `[Context compressed: ${dropped} earlier messages removed to fit context window]`;
+  const summary = buildStructuredSummary(droppedMessages, droppedMessages.length);
   const candidate = [...system, ...keptMessages];
   const firstConversationIdx = candidate.findIndex(
     (msg) => msg.role !== "system" && msg.role !== "developer"
