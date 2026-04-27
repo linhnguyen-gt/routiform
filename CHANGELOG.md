@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.23.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.22.1...v3.23.0) (2026-04-27)
+
+
+### Features
+
+* **cli:** add interactive menu with log suppression ([6c46f4b](https://github.com/linhnguyen-gt/Routiform/commit/6c46f4bf6c50eee419b22f35a19cabf0393600a5))
+
 ### [3.22.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.22.0...v3.22.1) (2026-04-27)
 
 
