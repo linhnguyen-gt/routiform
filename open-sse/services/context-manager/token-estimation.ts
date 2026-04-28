@@ -4,12 +4,15 @@ import { getEffectiveContextLimit, getSafeLimit } from "./token-limits.ts";
 const CHARS_PER_TOKEN: Record<string, number> = {
   text: 4.0,
   code: 3.0,
-  json: 2.8,
+  json: 1.8,
+  tool_result: 1.8,
   schema: 2.5,
   default: 3.5,
 };
 
-export function detectContentType(str: string): "text" | "code" | "json" | "schema" {
+export function detectContentType(
+  str: string
+): "text" | "code" | "json" | "tool_result" | "schema" {
   if (str.length === 0) return "text";
   const trimmed = str.trim();
   if (
@@ -17,14 +20,49 @@ export function detectContentType(str: string): "text" | "code" | "json" | "sche
     (trimmed.startsWith("[") && trimmed.endsWith("]"))
   ) {
     try {
-      JSON.parse(trimmed);
       const obj = JSON.parse(trimmed);
-      if (
-        typeof obj === "object" &&
-        obj !== null &&
-        ("type" in obj || "properties" in obj || "parameters" in obj || "function" in obj)
-      ) {
-        return "schema";
+      if (typeof obj === "object" && obj !== null) {
+        if (
+          !Array.isArray(obj) &&
+          ("type" in obj || "properties" in obj || "parameters" in obj || "function" in obj)
+        ) {
+          return "schema";
+        }
+        if (Array.isArray(obj) && obj.length > 0) {
+          const firstItem = obj[0];
+          if (
+            typeof firstItem === "object" &&
+            firstItem !== null &&
+            "type" in firstItem &&
+            (firstItem.type === "tool_result" ||
+              firstItem.type === "tool_use" ||
+              (typeof (firstItem as Record<string, unknown>).content === "object" &&
+                Array.isArray((firstItem as Record<string, unknown>).content) &&
+                ((firstItem as Record<string, unknown>).content as unknown[]).some(
+                  (b) =>
+                    typeof b === "object" &&
+                    b !== null &&
+                    ((b as Record<string, unknown>).type === "tool_result" ||
+                      (b as Record<string, unknown>).type === "tool_use")
+                )))
+          ) {
+            return "tool_result";
+          }
+          if (
+            "role" in firstItem &&
+            Array.isArray((firstItem as Record<string, unknown>).content)
+          ) {
+            const hasToolContent = (obj as Record<string, unknown>[]).some(
+              (msg) =>
+                Array.isArray(msg.content) &&
+                (msg.content as Record<string, unknown>[]).some(
+                  (b) => b.type === "tool_result" || b.type === "tool_use"
+                )
+            );
+            if (hasToolContent) return "tool_result";
+          }
+        }
+        return "json";
       }
       return "json";
     } catch {
