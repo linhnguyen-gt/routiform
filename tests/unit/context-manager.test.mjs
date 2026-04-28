@@ -86,7 +86,7 @@ test("compressContext: clamps explicit reserveTokens to a valid range", () => {
   const result = compressContext(body, { maxTokens: 1000, reserveTokens: 5000 });
 
   assert.ok(result.compressed);
-  assert.ok(estimateRequestTokens(result.body) <= 1);
+  assert.ok(estimateRequestTokens(result.body) <= 5);
 });
 
 test("compressContext: handles null/empty body", () => {

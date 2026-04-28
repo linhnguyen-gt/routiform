@@ -2,7 +2,7 @@ import { REGISTRY } from "../../config/registry-providers.ts";
 import { getModelContextLimit } from "../../../src/lib/modelsDevSync";
 import { CONTEXT_CONFIG } from "../../../src/shared/constants/context";
 
-const SAFETY_MARGIN = 0.9;
+const SAFETY_MARGIN = 0.8;
 
 function getEnvOverride(provider: string): number | null {
   const envKey = `CONTEXT_LENGTH_${provider.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
