@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.1...v3.23.2) (2026-04-28)
+
+
+### Bug Fixes
+
+* map gemini-3.1-pro-high/low to upstream model names ([d3cf9e6](https://github.com/linhnguyen-gt/Routiform/commit/d3cf9e64a2d3ba3ae3e92874cd58ee68a09e8886))
+
 ### [3.23.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.0...v3.23.1) (2026-04-28)
 
 
