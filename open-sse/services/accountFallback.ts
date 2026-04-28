@@ -136,7 +136,7 @@ export function lockModel(provider, connectionId, model, reason, cooldownMs) {
  * Gemini AI Studio has per-model quotas; passthrough providers have independent model limits.
  */
 export function hasPerModelQuota(provider: string): boolean {
-  if (provider === "gemini") return true;
+  if (provider === "gemini" || provider === "github") return true;
   try {
     const { getPassthroughProviders } = require("../config/providerRegistry.ts");
     return getPassthroughProviders().has(provider);

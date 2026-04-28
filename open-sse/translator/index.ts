@@ -14,6 +14,7 @@ import { bootstrapTranslatorRegistry } from "./bootstrap.ts";
 import { normalizeThinkingConfig } from "../services/provider.ts";
 import { applyThinkingBudget } from "../services/thinkingBudget.ts";
 import { normalizeRoles } from "../services/roleNormalizer.ts";
+import { lookupReasoning, requiresReasoningReplay } from "../services/reasoningCache.ts";
 
 bootstrapTranslatorRegistry();
 export { register } from "./registry.ts";
@@ -194,6 +195,29 @@ export function translateRequest(
   }
 
   if (targetFormat === FORMATS.OPENAI && result.messages && Array.isArray(result.messages)) {
+    const replayEnabled = requiresReasoningReplay(String(provider || ""), String(model || ""));
+    if (replayEnabled) {
+      for (const msg of result.messages) {
+        if (
+          msg?.role === "assistant" &&
+          Array.isArray(msg.tool_calls) &&
+          msg.tool_calls.length > 0 &&
+          (msg.reasoning_content === undefined || msg.reasoning_content === "")
+        ) {
+          const toolCallId = msg.tool_calls?.[0]?.id;
+          if (typeof toolCallId === "string" && toolCallId.length > 0) {
+            const cachedReasoning = lookupReasoning(
+              toolCallId,
+              String(provider || ""),
+              String(model || "")
+            );
+            if (cachedReasoning) {
+              msg.reasoning_content = cachedReasoning;
+            }
+          }
+        }
+      }
+    }
     result.messages = injectEmptyReasoningContentForToolCalls(result.messages, provider, model);
   }
 

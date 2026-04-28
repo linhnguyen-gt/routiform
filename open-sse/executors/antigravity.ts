@@ -17,11 +17,11 @@ const LONG_RETRY_THRESHOLD_MS = 60_000;
 
 const BARE_PRO_IDS = new Set(["gemini-3.1-pro"]);
 
-// Upstream cloudcode-pa.googleapis.com/v1internal uses "gemini-3-pro-*" naming
-// (no ".1"), while our registry exposes "gemini-3.1-pro-*" to users.
-const UPSTREAM_MODEL_MAP: Record<string, string> = {
-  "gemini-3.1-pro-high": "gemini-3-pro-high",
-  "gemini-3.1-pro-low": "gemini-3-pro-low",
+type AntigravityCollectedStream = {
+  textContent: string;
+  finishReason: string;
+  usage: Record<string, unknown> | null;
+  remainingCredits: Array<{ creditType: string; creditAmount: string }> | null;
 };
 
 /**
@@ -36,8 +36,73 @@ function cleanModelName(model: string): string {
   if (BARE_PRO_IDS.has(clean)) {
     clean = `${clean}-low`;
   }
-  // Map registry model IDs to upstream API model names.
-  return UPSTREAM_MODEL_MAP[clean] ?? clean;
+  return clean;
+}
+
+function processAntigravitySSEPayload(
+  payload: string,
+  collected: AntigravityCollectedStream,
+  log?: { debug?: (scope: string, message: string) => void }
+) {
+  if (!payload || payload === "[DONE]") return;
+  try {
+    const parsed = JSON.parse(payload);
+    const candidate = parsed?.response?.candidates?.[0];
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (typeof part.text === "string" && !part.thought && !part.thoughtSignature) {
+          collected.textContent += part.text;
+        }
+      }
+    }
+    if (candidate?.finishReason) {
+      collected.finishReason =
+        candidate.finishReason.toLowerCase() === "stop"
+          ? "stop"
+          : candidate.finishReason.toLowerCase();
+    }
+    if (parsed?.response?.usageMetadata) {
+      const um = parsed.response.usageMetadata;
+      collected.usage = {
+        prompt_tokens: um.promptTokenCount || 0,
+        completion_tokens: um.candidatesTokenCount || 0,
+        total_tokens: um.totalTokenCount || 0,
+      };
+    }
+    if (Array.isArray(parsed?.remainingCredits)) {
+      collected.remainingCredits = parsed.remainingCredits;
+    }
+  } catch {
+    log?.debug?.("SSE_PARSE", `Skipping malformed SSE line: ${payload.slice(0, 80)}`);
+  }
+}
+
+function processAntigravitySSEText(
+  text: string,
+  partialLine: { value: string },
+  collected: AntigravityCollectedStream,
+  log?: { debug?: (scope: string, message: string) => void }
+) {
+  partialLine.value += text;
+  const lines = partialLine.value.split("\n");
+  partialLine.value = lines.pop() || "";
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) continue;
+    processAntigravitySSEPayload(trimmed.slice(5).trim(), collected, log);
+  }
+}
+
+function flushAntigravitySSEText(
+  partialLine: { value: string },
+  collected: AntigravityCollectedStream,
+  log?: { debug?: (scope: string, message: string) => void }
+) {
+  const trimmed = partialLine.value.trim();
+  partialLine.value = "";
+  if (!trimmed.startsWith("data:")) return;
+  processAntigravitySSEPayload(trimmed.slice(5).trim(), collected, log);
 }
 
 export class AntigravityExecutor extends BaseExecutor {
@@ -267,7 +332,13 @@ export class AntigravityExecutor extends BaseExecutor {
     const SSE_COLLECT_TIMEOUT_MS = 120_000;
 
     const collect = async () => {
-      const chunks: string[] = [];
+      const collected: AntigravityCollectedStream = {
+        textContent: "",
+        finishReason: "stop",
+        usage: null,
+        remainingCredits: null,
+      };
+      const partialLine = { value: "" };
       let timedOut = false;
       const timeout = AbortSignal.timeout(SSE_COLLECT_TIMEOUT_MS);
       try {
@@ -284,7 +355,12 @@ export class AntigravityExecutor extends BaseExecutor {
             ),
           ]);
           if (done) break;
-          chunks.push(decoder.decode(value, { stream: true }));
+          processAntigravitySSEText(
+            decoder.decode(value, { stream: true }),
+            partialLine,
+            collected,
+            log
+          );
         }
       } catch (err) {
         const msg = err?.message || String(err);
@@ -292,51 +368,8 @@ export class AntigravityExecutor extends BaseExecutor {
         log?.warn?.("SSE_COLLECT", `Error collecting SSE stream: ${msg}`);
         // Fall through — return whatever was collected so far
       }
-      const rawSSE = chunks.join("");
-
-      // Parse Gemini SSE: each line is "data: {json}"
-      let textContent = "";
-      let finishReason = "stop";
-      let usage: Record<string, unknown> | null = null;
-      let remainingCredits: Array<{ creditType: string; creditAmount: string }> | null = null;
-      const lines = rawSSE.split("\n");
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const payload = trimmed.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(payload);
-          const candidate = parsed?.response?.candidates?.[0];
-          if (candidate?.content?.parts) {
-            for (const part of candidate.content.parts) {
-              if (typeof part.text === "string" && !part.thought && !part.thoughtSignature) {
-                textContent += part.text;
-              }
-            }
-          }
-          if (candidate?.finishReason) {
-            finishReason =
-              candidate.finishReason.toLowerCase() === "stop"
-                ? "stop"
-                : candidate.finishReason.toLowerCase();
-          }
-          if (parsed?.response?.usageMetadata) {
-            const um = parsed.response.usageMetadata;
-            usage = {
-              prompt_tokens: um.promptTokenCount || 0,
-              completion_tokens: um.candidatesTokenCount || 0,
-              total_tokens: um.totalTokenCount || 0,
-            };
-          }
-          // Credit balance — arrives in the final chunk alongside consumedCredits
-          if (Array.isArray(parsed?.remainingCredits)) {
-            remainingCredits = parsed.remainingCredits;
-          }
-        } catch (_e) {
-          log?.debug?.("SSE_PARSE", `Skipping malformed SSE line: ${payload.slice(0, 80)}`);
-        }
-      }
+      processAntigravitySSEText(decoder.decode(), partialLine, collected, log);
+      flushAntigravitySSEText(partialLine, collected, log);
 
       const result = {
         id: `chatcmpl-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
@@ -348,14 +381,14 @@ export class AntigravityExecutor extends BaseExecutor {
             index: 0,
             message: {
               role: "assistant",
-              content: normalizePlaceholderOnlyAssistantText(textContent),
+              content: normalizePlaceholderOnlyAssistantText(collected.textContent),
             },
-            finish_reason: timedOut ? "length" : finishReason,
+            finish_reason: timedOut ? "length" : collected.finishReason,
           },
         ],
-        ...(usage && { usage }),
+        ...(collected.usage && { usage: collected.usage }),
         // Expose credit balance for upstream consumers (usage service, dashboard)
-        ...(remainingCredits && { _remainingCredits: remainingCredits }),
+        ...(collected.remainingCredits && { _remainingCredits: collected.remainingCredits }),
       };
 
       const syntheticStatus = timedOut ? 504 : response.status;
