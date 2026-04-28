@@ -16,6 +16,13 @@ const LONG_RETRY_THRESHOLD_MS = 60_000;
 
 const BARE_PRO_IDS = new Set(["gemini-3.1-pro"]);
 
+// Upstream cloudcode-pa.googleapis.com/v1internal uses "gemini-3-pro-*" naming
+// (no ".1"), while our registry exposes "gemini-3.1-pro-*" to users.
+const UPSTREAM_MODEL_MAP: Record<string, string> = {
+  "gemini-3.1-pro-high": "gemini-3-pro-high",
+  "gemini-3.1-pro-low": "gemini-3-pro-low",
+};
+
 /**
  * Strip provider prefixes (e.g. "antigravity/model" → "model").
  * Ensures the model name sent to the upstream API never contains a routing prefix.
@@ -28,7 +35,8 @@ function cleanModelName(model: string): string {
   if (BARE_PRO_IDS.has(clean)) {
     clean = `${clean}-low`;
   }
-  return clean;
+  // Map registry model IDs to upstream API model names.
+  return UPSTREAM_MODEL_MAP[clean] ?? clean;
 }
 
 export class AntigravityExecutor extends BaseExecutor {
