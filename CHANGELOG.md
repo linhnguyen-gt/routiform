@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.3...v3.23.4) (2026-04-28)
+
+
+### Bug Fixes
+
+* harden antigravity routing and reasoning replay reliability ([df4d409](https://github.com/linhnguyen-gt/Routiform/commit/df4d409b9a896f7813461fef5f58121cf050c4dd))
+* preserve tool fields named pattern in Antigravity schema sanitizer ([da3d51b](https://github.com/linhnguyen-gt/Routiform/commit/da3d51be3b9e865ad10e85989dc638da51499705))
+* treat placeholder-only assistant content as empty ([d20fd99](https://github.com/linhnguyen-gt/Routiform/commit/d20fd99b70e8d28968b8cb6ea858b15b805f7090))
+
 ### [3.23.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.2...v3.23.3) (2026-04-28)
 
 
