@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.0...v3.23.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* correct token estimation ratios to prevent context overflow 500 errors ([fcd330b](https://github.com/linhnguyen-gt/Routiform/commit/fcd330be741d07f74fefeb7ed9b5e9c5de77371b))
+
 ## [3.23.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.22.1...v3.23.0) (2026-04-27)
 
 
