@@ -88,3 +88,11 @@ test("isEmptyContentResponse: false when usage shows completion_tokens but conte
   });
   assert.equal(empty, false);
 });
+
+test("isEmptyContentResponse: true when content is placeholder-only <br> with output tokens", () => {
+  const empty = isEmptyContentResponse({
+    choices: [{ message: { role: "assistant", content: "<br>" } }],
+    usage: { completion_tokens: 10, prompt_tokens: 5 },
+  });
+  assert.equal(empty, true);
+});

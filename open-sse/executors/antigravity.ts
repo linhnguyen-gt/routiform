@@ -10,6 +10,7 @@ import {
   handleCreditsFailure,
 } from "../services/antigravityCredits.ts";
 import { obfuscateSensitiveWords } from "../services/antigravityObfuscation.ts";
+import { normalizePlaceholderOnlyAssistantText } from "../utils/assistantContent.ts";
 
 const MAX_RETRY_AFTER_MS = 60_000;
 const LONG_RETRY_THRESHOLD_MS = 60_000;
@@ -345,7 +346,10 @@ export class AntigravityExecutor extends BaseExecutor {
         choices: [
           {
             index: 0,
-            message: { role: "assistant", content: textContent },
+            message: {
+              role: "assistant",
+              content: normalizePlaceholderOnlyAssistantText(textContent),
+            },
             finish_reason: timedOut ? "length" : finishReason,
           },
         ],

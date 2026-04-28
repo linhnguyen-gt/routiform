@@ -1068,6 +1068,28 @@ test("parseSSEToOpenAIResponse collapses duplicated short message with whitespac
   assert.equal(parsed.choices[0].message.content, "Chưa done.");
 });
 
+test("parseSSEToOpenAIResponse normalizes placeholder-only <br> to empty content", () => {
+  const rawSSE = [
+    `data: ${JSON.stringify({
+      id: "chatcmpl_br",
+      object: "chat.completion.chunk",
+      choices: [{ index: 0, delta: { content: "<br>" } }],
+    })}`,
+    `data: ${JSON.stringify({
+      id: "chatcmpl_br",
+      object: "chat.completion.chunk",
+      choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+      usage: { prompt_tokens: 100, completion_tokens: 5, total_tokens: 105 },
+    })}`,
+    "data: [DONE]",
+  ].join("\n");
+
+  const parsed = parseSSEToOpenAIResponse(rawSSE, "claude-sonnet-4-6");
+  assert.ok(parsed);
+  assert.equal(parsed.choices[0].message.content, "");
+  assert.equal(parsed.choices[0].finish_reason, "stop");
+});
+
 function streamFromChunks(chunks) {
   const encoder = new TextEncoder();
   return new ReadableStream({
