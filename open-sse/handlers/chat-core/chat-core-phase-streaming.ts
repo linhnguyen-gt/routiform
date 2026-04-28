@@ -14,6 +14,7 @@ import { pipeWithDisconnect } from "../../utils/streamHandler.ts";
 
 type StreamControllerForPipe = Parameters<typeof pipeWithDisconnect>[2];
 import { buildCacheUsageLogMeta } from "../utils/cache-log-helpers.ts";
+import { cacheReasoningFromAssistantMessage } from "../../services/reasoningCache.ts";
 import { toPositiveNumber } from "./chat-core-flags.ts";
 import type { ChatCorePipeline } from "./chat-core-pipeline.ts";
 
@@ -64,6 +65,18 @@ export async function chatCorePhaseStreamingResponse(p: ChatCorePipeline): Promi
     clientPayload,
     ttft,
   }: StreamCompleteArgs) => {
+    try {
+      const assistantMessage = (streamResponseBody as Record<string, unknown>)?.choices?.[0]
+        ?.message;
+      cacheReasoningFromAssistantMessage(
+        assistantMessage as Record<string, unknown>,
+        p.provider,
+        p.model
+      );
+    } catch {
+      // Reasoning cache capture is best effort only.
+    }
+
     const cacheUsageLogMeta = buildCacheUsageLogMeta(
       streamUsage as Record<string, unknown> | null | undefined
     );

@@ -1,4 +1,5 @@
 import { generateToolUseId } from "@routiform/open-sse/translator/helpers/toolCallHelper.ts";
+import { normalizePlaceholderOnlyAssistantText } from "../utils/assistantContent.ts";
 
 /**
  * Convert OpenAI-style SSE chunks into a single non-streaming JSON response.
@@ -305,10 +306,11 @@ export function parseSSEToOpenAIResponse(rawSSE, fallbackModel) {
   }
 
   const selectedContentParts = contentParts.length > 0 ? contentParts : fallbackMessageParts;
-  const joinedContent =
+  const joinedContentRaw =
     selectedContentParts.length > 0
       ? collapseExactDuplicateMessage(selectedContentParts.join("").trim())
       : "";
+  const joinedContent = normalizePlaceholderOnlyAssistantText(joinedContentRaw);
   const joinedReasoning =
     reasoningParts.length > 0
       ? collapseExactDuplicateMessage(reasoningParts.join("").trim())

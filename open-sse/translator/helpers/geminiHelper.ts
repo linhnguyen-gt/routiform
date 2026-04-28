@@ -127,25 +127,26 @@ export function generateSessionId() {
   return `-${Math.floor(Math.random() * 9000000000000000000)}`;
 }
 
-// Helper: Remove unsupported keywords recursively from object/array
-function removeUnsupportedKeywords(obj, keywords) {
+// Helper: Remove unsupported keywords recursively from object/array.
+// "properties" maps contain user-defined field names, not schema keywords.
+function removeUnsupportedKeywords(obj, keywords, inPropertiesMap = false) {
   if (!obj || typeof obj !== "object") return;
 
   if (Array.isArray(obj)) {
     for (const item of obj) {
-      removeUnsupportedKeywords(item, keywords);
+      removeUnsupportedKeywords(item, keywords, false);
     }
   } else {
     // Delete unsupported keys at current level
     for (const key of Object.keys(obj)) {
-      if (keywords.includes(key) || key.startsWith("x-")) {
+      if (!inPropertiesMap && (keywords.includes(key) || key.startsWith("x-"))) {
         delete obj[key];
       }
     }
     // Recurse into remaining values
-    for (const value of Object.values(obj)) {
+    for (const [key, value] of Object.entries(obj)) {
       if (value && typeof value === "object") {
-        removeUnsupportedKeywords(value, keywords);
+        removeUnsupportedKeywords(value, keywords, key === "properties");
       }
     }
   }

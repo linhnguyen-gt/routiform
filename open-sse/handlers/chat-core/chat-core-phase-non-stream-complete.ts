@@ -12,6 +12,7 @@ import { COLORS } from "../../utils/stream.ts";
 import { restoreClaudePassthroughToolNames } from "../utils/claude-passthrough-helpers.ts";
 import { normalizeNonStreamingTranslatedResponse } from "../utils/non-streaming-response-normalizer.ts";
 import { extractUsageFromResponse } from "../usageExtractor.ts";
+import { cacheReasoningFromAssistantMessage } from "../../services/reasoningCache.ts";
 import { toPositiveNumber } from "./chat-core-flags.ts";
 import type { ToolNameMap } from "../types/chat-core.ts";
 import type { ChatCorePipeline } from "./chat-core-pipeline.ts";
@@ -134,6 +135,17 @@ export async function chatCorePhaseNonStreamComplete(p: ChatCorePipeline): Promi
     stream: !!p.stream,
     toolNameMap,
   });
+
+  try {
+    const assistantMessage = (translatedResponse as Record<string, unknown>)?.choices?.[0]?.message;
+    cacheReasoningFromAssistantMessage(
+      assistantMessage as Record<string, unknown>,
+      p.provider,
+      p.model
+    );
+  } catch {
+    // Reasoning cache capture is best effort only.
+  }
 
   if (isCacheable(p.body, clientRawRequest?.headers as Headers | undefined)) {
     const signature = generateSignature(

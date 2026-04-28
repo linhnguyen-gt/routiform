@@ -1,4 +1,8 @@
 type JsonRecord = Record<string, unknown>;
+const DEFAULT_MAX_STREAM_CHUNK_BYTES = 128 * 1024;
+const DEFAULT_MAX_STREAM_CHUNK_ITEMS = 512;
+const UTF8_ENCODER = new TextEncoder();
+const UTF8_DECODER = new TextDecoder();
 
 type HeaderInput =
   | Headers
@@ -108,6 +112,44 @@ function createEmptyStreamChunks() {
   };
 }
 
+function appendBoundedChunk(
+  chunks: string[],
+  chunk: string,
+  maxBytes: number,
+  maxItems: number
+): void {
+  if (typeof chunk !== "string" || chunk.length === 0) return;
+  if (chunks.some((entry) => entry.includes("[stream chunk log truncated"))) return;
+
+  if (chunks.length >= maxItems) {
+    const marker = `[stream chunk log truncated after ${maxItems} chunks]`;
+    chunks[maxItems - 1] = marker;
+    return;
+  }
+
+  const currentBytes = UTF8_ENCODER.encode(chunks.join("")).length;
+  if (currentBytes >= maxBytes) {
+    if (chunks.length < maxItems) {
+      chunks.push(`[stream chunk log truncated after ${maxBytes} bytes]`);
+    }
+    return;
+  }
+
+  const remainingBytes = maxBytes - currentBytes;
+  const chunkBytes = UTF8_ENCODER.encode(chunk).length;
+  if (chunkBytes <= remainingBytes) {
+    chunks.push(chunk);
+    return;
+  }
+
+  const encoded = UTF8_ENCODER.encode(chunk);
+  const truncated = UTF8_DECODER.decode(encoded.subarray(0, remainingBytes));
+  chunks.push(truncated);
+  if (chunks.length < maxItems) {
+    chunks.push(`[stream chunk log truncated after ${maxBytes} bytes]`);
+  }
+}
+
 function hasOwnValues(value: unknown): boolean {
   return Boolean(value && typeof value === "object" && Object.keys(value as JsonRecord).length > 0);
 }
@@ -163,8 +205,18 @@ function _createNoOpLogger(): RequestLogger {
 export async function createRequestLogger(
   _sourceFormat?: string,
   _targetFormat?: string,
-  _model?: string
+  _model?: string,
+  options: { maxStreamChunkBytes?: number; maxStreamChunkItems?: number } = {}
 ): Promise<RequestLogger> {
+  const maxStreamChunkBytes =
+    Number.isInteger(options.maxStreamChunkBytes) && Number(options.maxStreamChunkBytes) > 0
+      ? Number(options.maxStreamChunkBytes)
+      : DEFAULT_MAX_STREAM_CHUNK_BYTES;
+  const maxStreamChunkItems =
+    Number.isInteger(options.maxStreamChunkItems) && Number(options.maxStreamChunkItems) > 0
+      ? Number(options.maxStreamChunkItems)
+      : DEFAULT_MAX_STREAM_CHUNK_ITEMS;
+
   const streamChunks = createEmptyStreamChunks();
   const payloads: RequestPipelinePayloads = {
     streamChunks,
@@ -209,15 +261,11 @@ export async function createRequestLogger(
     },
 
     appendProviderChunk(chunk) {
-      if (typeof chunk === "string" && chunk.length > 0) {
-        streamChunks.provider.push(chunk);
-      }
+      appendBoundedChunk(streamChunks.provider, chunk, maxStreamChunkBytes, maxStreamChunkItems);
     },
 
     appendOpenAIChunk(chunk) {
-      if (typeof chunk === "string" && chunk.length > 0) {
-        streamChunks.openai.push(chunk);
-      }
+      appendBoundedChunk(streamChunks.openai, chunk, maxStreamChunkBytes, maxStreamChunkItems);
     },
 
     logConvertedResponse(body) {
@@ -228,9 +276,7 @@ export async function createRequestLogger(
     },
 
     appendConvertedChunk(chunk) {
-      if (typeof chunk === "string" && chunk.length > 0) {
-        streamChunks.client.push(chunk);
-      }
+      appendBoundedChunk(streamChunks.client, chunk, maxStreamChunkBytes, maxStreamChunkItems);
     },
 
     logError(error, requestBody = null) {
