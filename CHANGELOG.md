@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.2...v3.23.3) (2026-04-28)
+
+
+### Bug Fixes
+
+* add python3, make, g++ to builder stage for better-sqlite3 native build ([eb666f4](https://github.com/linhnguyen-gt/Routiform/commit/eb666f40ed2ed41cd15d4d88c43f6895af6e4e5b))
+
 ### [3.23.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.1...v3.23.2) (2026-04-28)
 
 
