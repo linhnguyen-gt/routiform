@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { CALL_LOGS_DIR } from "./migrations";
-export const MAX_CALL_LOG_ARTIFACT_BYTES = 512 * 1024;
+export const MAX_CALL_LOG_ARTIFACT_BYTES = 2 * 1024 * 1024;
 
 export type CallLogArtifact = {
   schemaVersion: 3;
@@ -66,15 +66,38 @@ function truncateArtifactForStorage(artifact: CallLogArtifact): CallLogArtifact 
 
 function omitOversizedPipeline(artifact: CallLogArtifact): CallLogArtifact {
   if (!artifact.pipeline) return artifact;
-  return {
-    ...artifact,
-    pipeline: {
-      error: {
-        _routiform_truncated: true,
-        reason: "call_log_artifact_size_limit_exceeded",
-      },
-    },
-  };
+  const pipeline = artifact.pipeline as Record<string, unknown>;
+  const trimmedPipeline: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(pipeline)) {
+    if (key === "streamChunks") {
+      trimmedPipeline[key] = value;
+      continue;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const obj = value as Record<string, unknown>;
+      if (obj.body && typeof obj.body === "object" && !Array.isArray(obj.body)) {
+        const bodyRecord = obj.body as Record<string, unknown>;
+        if ("messages" in bodyRecord && Array.isArray(bodyRecord.messages)) {
+          const msgCount = bodyRecord.messages.length;
+          const firstMsg = truncateString(JSON.stringify(bodyRecord.messages[0]).slice(0, 200));
+          const lastMsg = truncateString(
+            JSON.stringify(bodyRecord.messages[msgCount - 1]).slice(0, 200)
+          );
+          trimmedPipeline[key] = {
+            ...obj,
+            body: {
+              ...bodyRecord,
+              messages: `[${msgCount} messages truncated — call log artifact size limit exceeded]`,
+              _sample: { first: firstMsg, last: lastMsg },
+            },
+          };
+          continue;
+        }
+      }
+    }
+    trimmedPipeline[key] = value;
+  }
+  return { ...artifact, pipeline: trimmedPipeline };
 }
 
 function truncateString(value: unknown, maxLength = 256): string {

@@ -44,8 +44,8 @@ function extractAnchors(droppedMessages: JsonRecord[]): {
   const decisions: string[] = [];
   const errors: string[] = [];
   const openIssues: string[] = [];
-  const MAX_PER_CATEGORY = 3;
-  const MAX_LINE_LENGTH = 120;
+  const MAX_PER_CATEGORY = 6;
+  const MAX_LINE_LENGTH = 200;
 
   const truncate = (s: string): string =>
     s.length > MAX_LINE_LENGTH ? s.slice(0, MAX_LINE_LENGTH) + "..." : s;

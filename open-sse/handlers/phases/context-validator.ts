@@ -98,101 +98,108 @@ export async function validateAndCompressContext({
     return { valid: true, body };
   }
 
-  if (!validation.valid) {
+  // Proactive threshold: compress when approaching 200K even if still under hard limit
+  const PROACTIVE_THRESHOLD = 200_000;
+  const overHardLimit = !validation.valid;
+  const overProactive = validation.estimatedTokens > PROACTIVE_THRESHOLD;
+
+  if (!overHardLimit && !overProactive) {
+    return { valid: true, body };
+  }
+
+  if (overHardLimit) {
     log?.warn?.(
       "CONTEXT",
       `Request exceeds context limit: ${validation.estimatedTokens} > ${validation.limit} (exceeded by ${validation.exceeded} tokens)`
     );
+  } else {
+    log?.info?.(
+      "CONTEXT",
+      `Proactive compression: ${validation.estimatedTokens} tokens, target ≤ ${PROACTIVE_THRESHOLD}`
+    );
+  }
 
-    // Try compression
-    const compressionResult = compressContext(body, {
-      provider,
-      model,
-      maxTokens: validation.limit,
-    });
+  const compressionTarget = overHardLimit ? validation.limit : PROACTIVE_THRESHOLD;
+  const compressionResult = compressContext(body, {
+    provider,
+    model,
+    maxTokens: compressionTarget,
+  });
 
-    if (compressionResult.compressed) {
-      body = compressionResult.body;
-      const newValidation = validateContextLimit(body, provider, model, combo);
+  if (compressionResult.compressed) {
+    body = compressionResult.body;
+    const newValidation = validateContextLimit(body, provider, model, combo);
 
-      if (newValidation.valid) {
-        log?.info?.(
-          "CONTEXT",
-          `Compressed: ${compressionResult.stats.original} → ${compressionResult.stats.final} tokens (limit=${validation.limit})`
-        );
+    if (newValidation.valid && newValidation.estimatedTokens <= compressionTarget) {
+      log?.info?.(
+        "CONTEXT",
+        `Compressed: ${compressionResult.stats.original} → ${compressionResult.stats.final} tokens (target=${compressionTarget})`
+      );
 
-        // Track compression metrics
-        if (comboName) {
-          recordContextCompression(
-            comboName,
-            `${provider}/${model}`,
-            compressionResult.stats.original,
-            compressionResult.stats.final
-          );
-        }
-
-        // Log successful context compression to reqLogger for dashboard visibility
-        reqLogger?.logContextValidation?.({
-          originalTokens: validation.estimatedTokens,
-          limit: validation.limit,
-          exceeded: validation.exceeded,
-          compressed: true,
-          finalTokens: newValidation.estimatedTokens,
-          layers: compressionResult.stats.layers?.map((l) => l.name) || [],
-          rejected: false,
-          droppedMessageCount: compressionResult.stats.droppedMessageCount,
-          truncatedToolCount: compressionResult.stats.truncatedToolCount,
-          compressedThinkingCount: compressionResult.stats.compressedThinkingCount,
-          summaryInserted: compressionResult.stats.summaryInserted,
-          systemTruncated: compressionResult.stats.systemTruncated,
-        });
-
-        return { valid: true, body };
-      } else {
-        // Still oversized after compression - track rejection
-        if (comboName) {
-          recordContextRejection(comboName, `${provider}/${model}`);
-        }
-
-        // Log context rejection to reqLogger for dashboard visibility
-        reqLogger?.logContextValidation?.({
-          originalTokens: validation.estimatedTokens,
-          limit: validation.limit,
-          exceeded: validation.exceeded,
-          compressed: true,
-          finalTokens: newValidation.estimatedTokens,
-          rejected: true,
-        });
-
-        persistFailureUsage(HTTP_STATUS.BAD_REQUEST, "context_length_exceeded");
-
-        return {
-          valid: false,
-          body,
-          error: createErrorResult(
-            HTTP_STATUS.BAD_REQUEST,
-            `Request exceeds context limit even after compression: ${newValidation.estimatedTokens} > ${validation.limit} tokens. Please reduce message history or input size.`
-          ),
-        };
-      }
-    } else {
-      // Compression didn't help or wasn't applicable - track rejection
       if (comboName) {
-        recordContextRejection(comboName, `${provider}/${model}`);
+        recordContextCompression(
+          comboName,
+          `${provider}/${model}`,
+          compressionResult.stats.original,
+          compressionResult.stats.final
+        );
       }
+
+      reqLogger?.logContextValidation?.({
+        originalTokens: validation.estimatedTokens,
+        limit: validation.limit,
+        exceeded: validation.exceeded,
+        compressed: true,
+        finalTokens: newValidation.estimatedTokens,
+        layers: compressionResult.stats.layers?.map((l) => l.name) || [],
+        rejected: false,
+        droppedMessageCount: compressionResult.stats.droppedMessageCount,
+        truncatedToolCount: compressionResult.stats.truncatedToolCount,
+        compressedThinkingCount: compressionResult.stats.compressedThinkingCount,
+        summaryInserted: compressionResult.stats.summaryInserted,
+        systemTruncated: compressionResult.stats.systemTruncated,
+      });
+
+      return { valid: true, body };
+    }
+
+    // Over hard limit + still oversized → reject
+    if (overHardLimit) {
+      if (comboName) recordContextRejection(comboName, `${provider}/${model}`);
 
       persistFailureUsage(HTTP_STATUS.BAD_REQUEST, "context_length_exceeded");
-
       return {
         valid: false,
         body,
         error: createErrorResult(
           HTTP_STATUS.BAD_REQUEST,
-          `Request exceeds context limit: ${validation.estimatedTokens} > ${validation.limit} tokens. Please reduce message history or input size.`
+          `Request exceeds context limit even after compression: ${newValidation.estimatedTokens} > ${validation.limit} tokens.`
         ),
       };
     }
+
+    // Proactive only + compression partially helped → allow through
+    log?.info?.(
+      "CONTEXT",
+      `Proactive compression partially helped: ${compressionResult.stats.original} → ${compressionResult.stats.final}`
+    );
+    return { valid: true, body };
   }
 
+  // No compression achieved
+  if (overHardLimit) {
+    if (comboName) recordContextRejection(comboName, `${provider}/${model}`);
+    persistFailureUsage(HTTP_STATUS.BAD_REQUEST, "context_length_exceeded");
+    return {
+      valid: false,
+      body,
+      error: createErrorResult(
+        HTTP_STATUS.BAD_REQUEST,
+        `Request exceeds context limit: ${validation.estimatedTokens} > ${validation.limit} tokens.`
+      ),
+    };
+  }
+
+  // Proactive only + nothing to compress → allow through
   return { valid: true, body };
 }
