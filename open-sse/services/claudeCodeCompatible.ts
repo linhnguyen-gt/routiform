@@ -218,7 +218,7 @@ export function buildClaudeCodeCompatibleRequest({
         )
       : undefined;
 
-  return {
+  const built = {
     model,
     messages,
     system,
@@ -251,6 +251,14 @@ export function buildClaudeCodeCompatibleRequest({
     ...(toolChoice ? { tool_choice: toolChoice } : {}),
     ...(stream ? { stream: true } : {}),
   };
+
+  // Non-Anthropic Claude-compatible upstreams reject Anthropic-only keys (#1719 parity).
+  const oc = built.output_config as Record<string, unknown> | undefined;
+  if (oc && typeof oc.format !== "undefined") {
+    delete oc.format;
+  }
+
+  return built;
 }
 
 /**
@@ -549,6 +557,9 @@ function buildClaudeCodeCompatibleSystemBlocks({
     if (!preserveCacheControl) {
       delete preparedBlock.cache_control;
     }
+    if (typeof preparedBlock.text === "string") {
+      preparedBlock.text = stripEmbeddedAnthropicBillingLines(preparedBlock.text);
+    }
     blocks.push(preparedBlock);
   }
 
@@ -782,6 +793,16 @@ function convertClaudeCodeCompatibleClaudeMessage(
   };
 }
 
+/** Strip duplicate billing header lines clients embed in system content (#1712 parity). */
+export function stripEmbeddedAnthropicBillingLines(text: string): string {
+  const cleaned = String(text || "")
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*x-anthropic-billing-header\s*:/i.test(line.trim()))
+    .join("\n")
+    .trim();
+  return cleaned;
+}
+
 function extractCustomSystemBlocks(messages: MessageLike[] | undefined) {
   if (!Array.isArray(messages)) return [];
 
@@ -790,7 +811,7 @@ function extractCustomSystemBlocks(messages: MessageLike[] | undefined) {
       const role = String(message?.role || "").toLowerCase();
       return role === "system" || role === "developer";
     })
-    .map((message) => contentToText(message?.content))
+    .map((message) => stripEmbeddedAnthropicBillingLines(contentToText(message?.content)))
     .filter(Boolean)
     .map((text) => ({
       type: "text",

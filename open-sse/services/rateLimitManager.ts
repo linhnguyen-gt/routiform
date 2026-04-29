@@ -60,10 +60,19 @@ const PERSIST_DEBOUNCE_MS = 60_000; // Debounce persistence to every 60s max
 // Track initialization
 let initialized = false;
 
-// Max time (ms) a job can wait in queue before failing with a timeout error.
-// Prevents infinite queuing when all providers are exhausted after a 429.
-// Configurable via RATE_LIMIT_MAX_WAIT_MS env var (default: 2 minutes).
-const MAX_WAIT_MS = parseInt(process.env.RATE_LIMIT_MAX_WAIT_MS || "120000", 10);
+// Bottleneck v2 does not document `maxWait` on the constructor (unknown keys are ignored).
+// Per-job `expiration` (see `withRateLimit`) caps execution time after the job starts running
+// (Bottleneck JobOptions), not time spent waiting in the internal queue.
+// Queue-depth stalls when the reservoir is depleted are handled by header-driven updates,
+// `stop({ dropWaitingJobs: true })` on 429, and optional shedding via `RATE_LIMIT_QUEUE_HIGH_WATER`.
+// RATE_LIMIT_MAX_WAIT_MS is retained for backward compatibility; it maps to job expiration ms.
+const _parsedJobExpiration = parseInt(process.env.RATE_LIMIT_MAX_WAIT_MS || "120000", 10);
+const JOB_EXPIRATION_MS =
+  Number.isFinite(_parsedJobExpiration) && _parsedJobExpiration > 0
+    ? _parsedJobExpiration
+    : 120_000;
+
+const QUEUE_HIGH_WATER = parseInt(process.env.RATE_LIMIT_QUEUE_HIGH_WATER || "0", 10);
 
 // Default conservative settings (before we learn from headers)
 const DEFAULT_SETTINGS = {
@@ -72,7 +81,12 @@ const DEFAULT_SETTINGS = {
   reservoir: null, // No initial reservoir — unlimited until we learn
   reservoirRefreshAmount: null,
   reservoirRefreshInterval: null,
-  maxWait: MAX_WAIT_MS, // Fail-fast: don't queue forever on 429 exhaustion
+  ...(QUEUE_HIGH_WATER > 0
+    ? {
+        highWater: QUEUE_HIGH_WATER,
+        strategy: Bottleneck.strategy.OVERFLOW,
+      }
+    : {}),
 };
 
 /**
@@ -118,7 +132,12 @@ export async function initializeRateLimits() {
               reservoir: rpm,
               reservoirRefreshAmount: rpm,
               reservoirRefreshInterval: 60 * 1000,
-              maxWait: MAX_WAIT_MS,
+              ...(QUEUE_HIGH_WATER > 0
+                ? {
+                    highWater: QUEUE_HIGH_WATER,
+                    strategy: Bottleneck.strategy.OVERFLOW,
+                  }
+                : {}),
               id: key,
             })
           );
@@ -143,7 +162,12 @@ export async function initializeRateLimits() {
               reservoir: DEFAULT_API_LIMITS.requestsPerMinute,
               reservoirRefreshAmount: DEFAULT_API_LIMITS.requestsPerMinute,
               reservoirRefreshInterval: 60 * 1000, // Refresh every minute
-              maxWait: MAX_WAIT_MS,
+              ...(QUEUE_HIGH_WATER > 0
+                ? {
+                    highWater: QUEUE_HIGH_WATER,
+                    strategy: Bottleneck.strategy.OVERFLOW,
+                  }
+                : {}),
               id: key,
             })
           );
@@ -249,7 +273,7 @@ export async function withRateLimit(provider, connectionId, model, fn) {
   }
 
   const limiter = getLimiter(provider, connectionId, model);
-  return limiter.schedule(fn);
+  return limiter.schedule({ expiration: JOB_EXPIRATION_MS }, fn);
 }
 
 // ─── Header Parsing ──────────────────────────────────────────────────────────

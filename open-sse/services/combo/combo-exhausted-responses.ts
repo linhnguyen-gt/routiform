@@ -72,7 +72,7 @@ export async function respondComboModelsExhausted(options: {
     );
   }
 
-  if (!lastStatus) {
+  if (lastStatus === null && !lastError) {
     return new Response(
       JSON.stringify({
         error: {
@@ -85,7 +85,24 @@ export async function respondComboModelsExhausted(options: {
     );
   }
 
-  const status = lastStatus;
+  if (lastStatus === null && lastError) {
+    log.warn(logTag, "Combo exhausted without terminal HTTP status (quality or upstream gap)", {
+      lastError,
+      lastTriedModelStr,
+    });
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: lastError,
+          type: "api_error",
+          code: "COMBO_MODELS_EXHAUSTED",
+        },
+      }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const status = lastStatus as number;
   const msg = lastError || exhaustedDefaultMessage;
   const exhaustedStatus = status === 402 || status === 403 || status === 429 ? 503 : status;
 

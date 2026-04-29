@@ -42,3 +42,20 @@ test("combo bad-request fallback recognizes generic 'Provider returned error' 40
     true
   );
 });
+
+test("combo bad-request optional broad fallback when COMBO_BAD_REQUEST_FALLBACK_BROAD=1", () => {
+  const prev = process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD;
+  try {
+    process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD = "1";
+    assert.equal(
+      shouldFallbackComboBadRequest(400, "opaque provider body not on allowlist", "openai"),
+      true
+    );
+  } finally {
+    if (typeof prev === "undefined") {
+      delete process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD;
+    } else {
+      process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD = prev;
+    }
+  }
+});

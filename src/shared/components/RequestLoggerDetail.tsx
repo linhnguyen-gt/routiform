@@ -124,20 +124,20 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
 
   // Extract reasoning effort from request body
   // Try providerRequest first (has transformed body with reasoning.effort set by executor)
-  // Fall back to clientRawRequest if providerRequest not available
-  const payloads = (detail as Record<string, unknown>)?.pipelinePayloads as
+  // Fall back to clientRequest if providerRequest not available
+  const payloads = ((detail as Record<string, unknown>)?.pipelinePayloads ??
+    (detail as Record<string, unknown>)?.pipeline) as Record<string, unknown> | undefined;
+  const providerRequestWrapper = payloads?.providerRequest as Record<string, unknown> | undefined;
+  const providerRequestBody = providerRequestWrapper?.body as Record<string, unknown> | undefined;
+  const clientRequestBody = (payloads?.clientRequest ?? detail?.requestBody) as
     | Record<string, unknown>
     | undefined;
-  const providerRequestBody =
-    (payloads?.providerRequest as Record<string, unknown>)?.body ??
-    (detail as Record<string, unknown>)?.providerRequest?.body;
-  const clientRequestBody = detail?.requestBody as Record<string, unknown> | undefined;
 
   const reasoningEffort =
-    (providerRequestBody as Record<string, unknown>)?.reasoning?.effort ??
-    (providerRequestBody as Record<string, unknown>)?.reasoning_effort ??
-    (clientRequestBody as Record<string, unknown>)?.reasoning?.effort ??
-    (clientRequestBody as Record<string, unknown>)?.reasoning_effort ??
+    (providerRequestBody?.reasoning as Record<string, unknown>)?.effort ??
+    providerRequestBody?.reasoning_effort ??
+    (clientRequestBody?.reasoning as Record<string, unknown>)?.effort ??
+    clientRequestBody?.reasoning_effort ??
     null;
 
   const formatNullableToken = (value) => {
@@ -233,7 +233,7 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-text-muted">Effort</span>
                 <span className="px-2.5 py-1 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 text-sm font-bold">
-                  {reasoningEffort || "N/A"}
+                  {String(reasoningEffort || "N/A")}
                 </span>
               </div>
             </div>

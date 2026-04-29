@@ -4,96 +4,71 @@ import {
   DECISION_PATTERNS,
   ERROR_PATTERNS_ANCHOR,
   extractTextContent,
+  QUESTION_PATTERN,
 } from "./semantic-extraction.ts";
 import { addCompressionSummary } from "./semantic-extraction.ts";
 import { normalizePurifiedMessages } from "./conversation-normalizer.ts";
 
-function scoreMessageImportance(msg: JsonRecord, index: number, total: number): number {
-  let score = 0;
-  const content = extractTextContent(msg);
-  const role = typeof msg.role === "string" ? msg.role : "";
+function groupMessagesIntoTurns(messages: JsonRecord[]): JsonRecord[][] {
+  const turns: JsonRecord[][] = [];
+  let currentTurn: JsonRecord[] = [];
 
-  score += (index / total) * 40;
-
-  if (role === "system" || role === "developer") {
-    score += 100;
-  } else if (role === "user") {
-    if (index === total - 1 || (index === total - 2 && total - 1 >= 0)) {
-      score += 80;
-    } else {
-      score += 30;
+  for (const msg of messages) {
+    if (msg.role === "user" && currentTurn.length > 0) {
+      turns.push(currentTurn);
+      currentTurn = [];
     }
-    if (content && CONSTRAINT_PATTERNS.some((p) => p.test(content))) {
-      score += 25;
-    }
-  } else if (role === "assistant") {
-    score += 20;
-    if (content && DECISION_PATTERNS.some((p) => p.test(content))) {
-      score += 15;
-    }
-  } else if (role === "tool") {
-    if (content && ERROR_PATTERNS_ANCHOR.some((p) => p.test(content))) {
-      score += 35;
-    } else {
-      score += 5;
-    }
+    currentTurn.push(msg);
   }
+  if (currentTurn.length > 0) turns.push(currentTurn);
 
-  if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-    score += 20;
-  }
-  if (Array.isArray(msg.content)) {
-    const hasToolUse = (msg.content as JsonRecord[]).some(
-      (b) => b.type === "tool_use" || b.type === "server_tool_use"
-    );
-    if (hasToolUse) score += 20;
-  }
-
-  return score;
+  return turns;
 }
 
-function findLastUserIndex(messages: JsonRecord[]): number {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") return i;
-  }
-  return -1;
-}
-
-function selectImportantMessages(messages: JsonRecord[], count: number): JsonRecord[] {
-  if (count >= messages.length) return [...messages];
+function selectTurns(turns: JsonRecord[][], count: number, total: number): JsonRecord[][] {
+  if (count >= turns.length) return [...turns];
   if (count <= 0) return [];
 
-  const total = messages.length;
-  const scored = messages.map((msg, i) => ({
-    msg,
-    index: i,
-    score: scoreMessageImportance(msg, i, total),
-  }));
+  const scored = turns.map((turn, i) => {
+    let score = 0;
+    for (const msg of turn) {
+      const content = extractTextContent(msg);
+      const role = typeof msg.role === "string" ? msg.role : "";
+      if (role === "user" && content) {
+        score += 10;
+        if (CONSTRAINT_PATTERNS.some((p) => p.test(content))) score += 15;
+        if (QUESTION_PATTERN.test(content)) score += 5;
+      }
+      if (role === "assistant" && content) {
+        score += 5;
+        if (DECISION_PATTERNS.some((p) => p.test(content))) score += 10;
+      }
+      if (role === "tool" && content) {
+        score += 5;
+        if (content.length > 2000) score += 10;
+        if (ERROR_PATTERNS_ANCHOR.some((p) => p.test(content))) score += 20;
+      }
+      score += content ? Math.min(5, content.length / 500) : 0;
+    }
+    score += (i / total) * 20;
+    return { turn, index: i, score };
+  });
 
-  const lastUserIdx = findLastUserIndex(messages);
-  const mustInclude = new Set<number>();
-  if (lastUserIdx >= 0) mustInclude.add(lastUserIdx);
+  // Always keep last 2 turns
+  const mustKeep = new Set<number>();
+  for (let i = Math.max(0, turns.length - 2); i < turns.length; i++) mustKeep.add(i);
 
-  const tailSize = Math.min(3, count);
-  for (let i = total - tailSize; i < total; i++) {
-    if (i >= 0) mustInclude.add(i);
-  }
+  // Always keep first turn (has system prompt / initial context)
+  mustKeep.add(0);
 
-  const remaining = count - mustInclude.size;
+  const remaining = count - mustKeep.size;
   const candidates = scored
-    .filter((s) => !mustInclude.has(s.index))
+    .filter((s) => !mustKeep.has(s.index))
     .sort((a, b) => b.score - a.score)
     .slice(0, remaining);
 
-  const selected = new Set<number>(Array.from(mustInclude).concat(candidates.map((c) => c.index)));
-  const result = messages.filter((_, i) => selected.has(i));
-
-  const firstUserIdx = result.findIndex((m) => m.role === "user");
-  if (firstUserIdx > 0) {
-    return result.slice(firstUserIdx);
-  }
-
-  return result;
+  const selected = new Set([...mustKeep, ...candidates.map((c) => c.index)]);
+  return turns.filter((_, i) => selected.has(i));
 }
 
 export function purifyHistory(
@@ -107,39 +82,41 @@ export function purifyHistory(
     return { messages: [...system], droppedCount: 0 };
   }
 
+  const turns = groupMessagesIntoTurns(nonSystem);
+
   const buildCandidate = (
-    keepCount: number,
+    keptTurns: JsonRecord[][],
     includeSummary: boolean,
-    droppedSlice: JsonRecord[]
+    droppedTurns: JsonRecord[][]
   ): JsonRecord[] => {
-    let keptMessages: JsonRecord[] = [];
-    if (keepCount > 0) {
-      keptMessages = selectImportantMessages(nonSystem, keepCount);
-    }
+    const keptMessages = keptTurns.flat();
+    const droppedMessages = droppedTurns.flat();
     const candidate =
-      includeSummary && keepCount < nonSystem.length
-        ? addCompressionSummary(system, keptMessages, droppedSlice)
+      includeSummary && droppedMessages.length > 0
+        ? addCompressionSummary(system, keptMessages, droppedMessages)
         : [...system, ...keptMessages];
     return normalizePurifiedMessages(candidate);
   };
 
-  let keep = nonSystem.length;
+  let keep = turns.length;
   while (keep >= 0) {
-    const droppedSlice = keep < nonSystem.length ? nonSystem.slice(0, nonSystem.length - keep) : [];
-    const withSummary = buildCandidate(keep, true, droppedSlice);
+    const selectedTurns = selectTurns(turns, keep, turns.length);
+    const droppedTurns = turns.filter((_, i) => !selectedTurns.some((t) => t === turns[i]));
+    const droppedMsgs = droppedTurns.flat();
+
+    const withSummary = buildCandidate(selectedTurns, true, droppedTurns);
     if (fitsWithinTarget(withSummary)) {
-      return { messages: withSummary, droppedCount: nonSystem.length - keep };
+      return { messages: withSummary, droppedCount: droppedMsgs.length };
     }
 
-    const withoutSummary = buildCandidate(keep, false, []);
+    const withoutSummary = buildCandidate(selectedTurns, false, []);
     if (fitsWithinTarget(withoutSummary)) {
-      return { messages: withoutSummary, droppedCount: nonSystem.length - keep };
+      return { messages: withoutSummary, droppedCount: droppedMsgs.length };
     }
 
     if (keep === 0) break;
-    const nextKeep = Math.max(0, Math.floor(keep * 0.9));
-    keep = nextKeep < keep ? nextKeep : keep - 1;
+    keep = Math.max(0, Math.floor(keep * 0.9));
   }
 
-  return { messages: buildCandidate(0, false, []), droppedCount: nonSystem.length };
+  return { messages: buildCandidate([], false, []), droppedCount: nonSystem.length };
 }

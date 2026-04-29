@@ -12,63 +12,74 @@ export default function ContextValidationTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"" | "saved" | "error">("");
+  const savingRef = { current: false };
 
   useEffect(() => {
+    let cancelled = false;
     let attempts = 0;
     const maxAttempts = 3;
-    const load = () => {
+
+    const poll = () => {
+      if (cancelled || savingRef.current) {
+        setTimeout(poll, 500);
+        return;
+      }
       attempts++;
       fetch("/api/settings", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
-          if (
-            data?.contextValidation === "auto-compress" ||
-            data?.contextValidation === "passthrough"
-          ) {
-            setMode(data.contextValidation);
+          if (cancelled) return;
+          const value = data?.contextValidation;
+          if (value === "passthrough" || value === "auto-compress") {
+            setMode(value);
             setLoading(false);
-          } else if (attempts < maxAttempts) {
-            setTimeout(load, 1000);
-          } else {
+            attempts = 0;
+          } else if (mode === null) {
             setMode("passthrough");
             setLoading(false);
           }
+          setTimeout(poll, 500);
         })
         .catch(() => {
-          if (attempts < maxAttempts) {
-            setTimeout(load, 1000);
-          } else {
-            setMode("passthrough");
+          if (cancelled) return;
+          if (attempts >= maxAttempts) {
+            if (mode === null) setMode("passthrough");
             setLoading(false);
+            setStatus("error");
+          } else {
+            setTimeout(poll, 500);
           }
         });
     };
-    load();
+    poll();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const save = async (next: ContextValidationMode) => {
-    setMode(next);
+  const handleSave = async (newMode: ContextValidationMode) => {
+    savingRef.current = true;
+    setMode(newMode);
     setSaving(true);
     setStatus("");
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contextValidation: next }),
+        body: JSON.stringify({ contextValidation: newMode }),
       });
-      if (res.ok) {
-        setStatus("saved");
-        setTimeout(() => setStatus(""), 2000);
-      } else {
-        setStatus("error");
-      }
+      if (!res.ok) throw new Error("Failed");
+      setStatus("saved");
+      setTimeout(() => setStatus(""), 2000);
     } catch {
       setStatus("error");
     } finally {
       setSaving(false);
+      setTimeout(() => {
+        savingRef.current = false;
+      }, 2000);
     }
   };
-
   const resolvedMode = mode ?? "passthrough";
   const noSelectionYet = mode === null;
 
@@ -97,7 +108,7 @@ export default function ContextValidationTab() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => save("passthrough")}
+          onClick={() => handleSave("passthrough")}
           disabled={loading || saving || noSelectionYet}
           className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
             !noSelectionYet && resolvedMode === "passthrough"
@@ -127,7 +138,7 @@ export default function ContextValidationTab() {
 
         <button
           type="button"
-          onClick={() => save("auto-compress")}
+          onClick={() => handleSave("auto-compress")}
           disabled={loading || saving || noSelectionYet}
           className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
             !noSelectionYet && resolvedMode === "auto-compress"

@@ -24,8 +24,12 @@ export function applyProviderRequestDefaults(
   }
 
   if (defaults.reasoningEffort !== undefined) {
+    // Check both reasoning.effort (nested) and reasoning_effort (flat)
     const reasoning = asRecord(payload.reasoning);
-    if (reasoning.effort === undefined) {
+    const hasNestedEffort = reasoning.effort !== undefined;
+    const hasFlatEffort = payload.reasoning_effort !== undefined;
+
+    if (!hasNestedEffort && !hasFlatEffort) {
       payload.reasoning = {
         ...reasoning,
         effort: defaults.reasoningEffort,

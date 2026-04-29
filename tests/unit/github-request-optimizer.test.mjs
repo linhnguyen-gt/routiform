@@ -67,7 +67,7 @@ test("optimizeGithubRequestBody truncates tools and preserves required tool choi
   const { optimizeGithubRequestBody } =
     await import("../../open-sse/utils/githubRequestOptimizer.ts");
 
-  const tools = Array.from({ length: 80 }, (_, i) => ({
+  const tools = Array.from({ length: 140 }, (_, i) => ({
     type: "function",
     function: {
       name: `tool_${i}`,
@@ -80,14 +80,14 @@ test("optimizeGithubRequestBody truncates tools and preserves required tool choi
     tools,
     tool_choice: {
       type: "function",
-      function: { name: "tool_79" },
+      function: { name: "tool_139" },
     },
   };
 
   const result = optimizeGithubRequestBody(body, "claude-sonnet-4.5");
 
   assert.equal(Array.isArray(body.tools), true);
-  assert.equal(body.tools.length, 64);
-  assert.ok(body.tools.some((t) => t.function.name === "tool_79"));
-  assert.ok(result.actions.includes("truncate_tools_64"));
+  assert.equal(body.tools.length, 128);
+  assert.ok(body.tools.some((t) => t.function.name === "tool_139"));
+  assert.ok(result.actions.includes("truncate_tools_128"));
 });

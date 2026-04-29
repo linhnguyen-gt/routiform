@@ -96,6 +96,7 @@ export async function runRoundRobinInnerRetries(options: {
         startTime,
         fallbackCount: state.fallbackCount,
         modelIndex,
+        state,
       });
       if (!okRes) {
         if (offset > 0) state.fallbackCount++;

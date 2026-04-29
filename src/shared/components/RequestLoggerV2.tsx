@@ -65,6 +65,25 @@ function titleCaseFromKey(key) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function extractReasoningEffort(resolved) {
+  const payloads = (resolved?.pipelinePayloads ?? resolved?.pipeline) as
+    | Record<string, unknown>
+    | undefined;
+  const providerRequestWrapper = payloads?.providerRequest as Record<string, unknown> | undefined;
+  const providerRequestBody = providerRequestWrapper?.body as Record<string, unknown> | undefined;
+  const clientRequestBody = (payloads?.clientRequest ?? resolved?.requestBody) as
+    | Record<string, unknown>
+    | undefined;
+
+  return (
+    (providerRequestBody?.reasoning as Record<string, unknown>)?.effort ??
+    providerRequestBody?.reasoning_effort ??
+    (clientRequestBody?.reasoning as Record<string, unknown>)?.effort ??
+    clientRequestBody?.reasoning_effort ??
+    "N/A"
+  );
+}
+
 export function buildExportText(log, detail) {
   const resolved = detail || {};
   const resolvedDurationMs = resolved.duration ?? log.duration;
@@ -92,7 +111,7 @@ export function buildExportText(log, detail) {
     `[Cache Read] ${resolved.tokens?.cacheRead ?? log.tokens?.cacheRead ?? "-"}`,
     `[Cache Write] ${resolved.tokens?.cacheCreation ?? log.tokens?.cacheCreation ?? "-"}`,
     `[Reasoning Tokens] ${resolved.tokens?.reasoning ?? log.tokens?.reasoning ?? "-"}`,
-    `[Reasoning Effort] ${(resolved.requestBody as Record<string, unknown>)?.reasoning?.effort ?? (resolved.requestBody as Record<string, unknown>)?.reasoning_effort ?? "N/A"}`,
+    `[Reasoning Effort] ${extractReasoningEffort(resolved)}`,
     `[Detail Loaded] ${detail ? "yes" : "no"}`,
   ];
 

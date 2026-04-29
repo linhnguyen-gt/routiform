@@ -68,6 +68,46 @@ describe("hasValuableContent", () => {
       const chunk = { candidates: [{ finishReason: "STOP" }] };
       assert.strictEqual(hasValuableContent(chunk, FORMATS.GEMINI), true);
     });
+
+    it("returns true for thought-only part with empty text (streaming parity)", () => {
+      const chunk = {
+        candidates: [{ content: { parts: [{ thought: true, text: "" }] } }],
+      };
+      assert.strictEqual(hasValuableContent(chunk, FORMATS.GEMINI), true);
+    });
+
+    it("returns true for error-shaped part without assistant text", () => {
+      const chunk = {
+        candidates: [
+          {
+            content: {
+              parts: [{ error: { code: 400, message: "upstream" }, text: "" }],
+            },
+          },
+        ],
+      };
+      assert.strictEqual(hasValuableContent(chunk, FORMATS.GEMINI), true);
+    });
+
+    it("returns true for codeExecutionResult part", () => {
+      const chunk = {
+        candidates: [
+          {
+            content: {
+              parts: [{ codeExecutionResult: { outcome: "completed" }, text: "" }],
+            },
+          },
+        ],
+      };
+      assert.strictEqual(hasValuableContent(chunk, FORMATS.GEMINI), true);
+    });
+
+    it("returns true for Antigravity thoughtSignature-only part", () => {
+      const chunk = {
+        candidates: [{ content: { parts: [{ thoughtSignature: "sig_x" }] } }],
+      };
+      assert.strictEqual(hasValuableContent(chunk, FORMATS.ANTIGRAVITY), true);
+    });
   });
 });
 

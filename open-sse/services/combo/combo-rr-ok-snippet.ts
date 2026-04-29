@@ -8,6 +8,13 @@ type LogLike = {
 
 type BreakerLike = { _onFailure: () => void; _onSuccess: () => void };
 
+type MutableRrState = {
+  lastError: string | null;
+  lastStatus: number | null;
+  earliestRetryAfter: string | null;
+  fallbackCount: number;
+};
+
 /** RR: validate 200 body; record metrics; return response or null if bad quality. */
 export async function tryRoundRobinOkResponse(options: {
   result: Response;
@@ -19,13 +26,29 @@ export async function tryRoundRobinOkResponse(options: {
   startTime: number;
   fallbackCount: number;
   modelIndex: number;
+  state?: MutableRrState;
 }): Promise<Response | null> {
-  const { result, body, log, breaker, combo, modelStr, startTime, fallbackCount, modelIndex } =
-    options;
+  const {
+    result,
+    body,
+    log,
+    breaker,
+    combo,
+    modelStr,
+    startTime,
+    fallbackCount,
+    modelIndex,
+    state,
+  } = options;
 
   const quality = await validateResponseQuality(result, !!body.stream, log);
   if (!quality.valid) {
-    log.warn("COMBO-RR", `${modelStr} returned 200 but failed quality check: ${quality.reason}`);
+    const reason = quality.reason || "unknown";
+    log.warn("COMBO-RR", `${modelStr} returned 200 but failed quality check: ${reason}`);
+    if (state) {
+      state.lastStatus = 200;
+      state.lastError = `Combo response quality check failed: ${reason}`;
+    }
     breaker._onFailure();
     recordComboRequest(combo.name, modelStr, {
       success: false,

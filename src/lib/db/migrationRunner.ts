@@ -6,6 +6,10 @@
  *
  * Naming convention: `NNN_description.sql` (e.g., `001_initial_schema.sql`)
  *
+ * Each `NNN` prefix must be unique across the migrations folder — duplicate version numbers
+ * (e.g. two `032_*.sql` files) produce undefined ordering and failed upgrades; always add the
+ * next free integer instead of reusing a slot.
+ *
  * All migrations run within a single transaction — all-or-nothing per file.
  */
 

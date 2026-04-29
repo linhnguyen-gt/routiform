@@ -73,10 +73,17 @@ export function hasValuableContent(chunk, format) {
     // Filter out chunks where parts array is empty or missing
     const parts = candidate.content?.parts;
     if (!parts || parts.length === 0) return false;
-    // Filter out chunks where all parts have empty text
-    const hasContent = parts.some(
-      (p) => (typeof p.text === "string" && p.text.length > 0) || p.functionCall || p.executableCode
-    );
+    const hasContent = parts.some((part) => {
+      if (!part || typeof part !== "object") return false;
+      const p = part;
+      if (typeof p.text === "string" && p.text.length > 0) return true;
+      if (p.functionCall || p.executableCode) return true;
+      if (p.thought === true) return true;
+      if (typeof p.thoughtSignature === "string" && p.thoughtSignature.length > 0) return true;
+      if (p.error != null && typeof p.error === "object") return true;
+      if (p.codeExecutionResult != null) return true;
+      return false;
+    });
     return hasContent;
   }
 

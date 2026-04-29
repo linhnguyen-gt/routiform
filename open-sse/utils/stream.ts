@@ -58,6 +58,11 @@ type StreamOptions = {
   apiKeyInfo?: unknown;
   body?: unknown;
   onComplete?: ((payload: StreamCompletePayload) => void) | null;
+  /**
+   * Override `STREAM_IDLE_TIMEOUT_MS` for this stream only (e.g. unit tests).
+   * When omitted, uses `STREAM_IDLE_TIMEOUT_MS` from env / runtime defaults.
+   */
+  idleTimeoutMs?: number | null;
 };
 
 type TranslateState = ReturnType<typeof initState> & {
@@ -150,8 +155,9 @@ const STREAM_MODE = {
 
 /**
  * Create unified SSE transform stream with idle timeout protection.
- * If the upstream provider stops sending data for STREAM_IDLE_TIMEOUT_MS,
- * the stream emits an error event and closes to prevent indefinite hanging.
+ * If the upstream provider stops sending data for longer than the effective idle limit
+ * (`idleTimeoutMs` option, else `STREAM_IDLE_TIMEOUT_MS`), the stream errors with
+ * `StreamIdleTimeoutError` and logs `HTTP_STATUS.GATEWAY_TIMEOUT` (504-class) for combo fallback.
  *
  * @param {object} options
  * @param {string} options.mode - Stream mode: translate, passthrough
@@ -164,6 +170,7 @@ const STREAM_MODE = {
  * @param {object|null} options.apiKeyInfo - API key metadata for usage attribution
  * @param {object} options.body - Request body (for input token estimation)
  * @param {function} options.onComplete - Callback when stream finishes: ({ status, usage }) => void
+ * @param {number} [options.idleTimeoutMs] - Per-stream idle limit (ms); overrides global env default.
  */
 export function createSSEStream(options: StreamOptions = {}) {
   const {
@@ -178,7 +185,16 @@ export function createSSEStream(options: StreamOptions = {}) {
     apiKeyInfo = null,
     body = null,
     onComplete = null,
+    idleTimeoutMs: idleTimeoutMsOption = null,
   } = options;
+
+  const effectiveIdleMs =
+    typeof idleTimeoutMsOption === "number" && Number.isFinite(idleTimeoutMsOption)
+      ? Math.max(0, Math.floor(idleTimeoutMsOption))
+      : STREAM_IDLE_TIMEOUT_MS;
+
+  const idleCheckIntervalMs =
+    effectiveIdleMs <= 0 ? 0 : Math.min(10_000, Math.max(250, Math.floor(effectiveIdleMs / 4)));
 
   let buffer = "";
   let usage: UsageTokenRecord | null = null;
@@ -236,14 +252,14 @@ export function createSSEStream(options: StreamOptions = {}) {
   return new TransformStream(
     {
       start(controller) {
-        // Start idle watchdog — checks every 10s if provider has stopped sending
-        if (STREAM_IDLE_TIMEOUT_MS > 0) {
+        // Idle watchdog — interval scales down when idle timeout is short (faster zombie detection).
+        if (effectiveIdleMs > 0 && idleCheckIntervalMs > 0) {
           idleTimer = setInterval(() => {
-            if (!streamTimedOut && Date.now() - lastChunkTime > STREAM_IDLE_TIMEOUT_MS) {
+            if (!streamTimedOut && Date.now() - lastChunkTime > effectiveIdleMs) {
               streamTimedOut = true;
               clearInterval(idleTimer);
               idleTimer = null;
-              const timeoutMsg = `[STREAM] Idle timeout: no data from ${provider || "provider"} for ${STREAM_IDLE_TIMEOUT_MS}ms (model: ${model || "unknown"})`;
+              const timeoutMsg = `[STREAM] Idle timeout: no data from ${provider || "provider"} for ${effectiveIdleMs}ms (model: ${model || "unknown"})`;
               console.warn(timeoutMsg);
               trackPendingRequest(model, provider, connectionId, false);
               appendRequestLog({
@@ -256,7 +272,7 @@ export function createSSEStream(options: StreamOptions = {}) {
               timeoutError.name = "StreamIdleTimeoutError";
               controller.error(timeoutError);
             }
-          }, 10_000);
+          }, idleCheckIntervalMs);
         }
       },
 
