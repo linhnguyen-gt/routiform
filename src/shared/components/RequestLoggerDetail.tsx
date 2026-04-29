@@ -233,7 +233,7 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-text-muted">Effort</span>
                 <span className="px-2.5 py-1 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 text-sm font-bold">
-                  {reasoningEffort || "N/A"}
+                  {String(reasoningEffort || "N/A")}
                 </span>
               </div>
             </div>
