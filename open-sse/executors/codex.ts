@@ -439,6 +439,8 @@ export class CodexExecutor extends BaseExecutor {
     delete body.max_output_tokens;
     delete body.max_completion_tokens;
 
+    // Native passthrough must return after hygiene only; do not strip `tools` (MCP namespaces,
+    // hosted tools) or other Responses fields — upstream parity
     if (nativeCodexPassthrough) {
       return body;
     }

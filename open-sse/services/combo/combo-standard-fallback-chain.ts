@@ -107,6 +107,8 @@ export async function runStandardComboFallbackChain(options: {
           comboIdOrName: combo.id || combo.name,
         });
         if (ok.kind === "bad_quality") {
+          lastStatus = 200;
+          lastError = `Combo response quality check failed: ${ok.reason || "unknown"}`;
           if (i > 0) fallbackCount++;
           break;
         }

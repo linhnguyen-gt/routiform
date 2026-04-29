@@ -27,7 +27,7 @@ export async function resolveStandardOkAttempt(options: {
   modelIndex: number;
   provider: string;
   comboIdOrName: string;
-}): Promise<{ kind: "return"; response: Response } | { kind: "bad_quality" }> {
+}): Promise<{ kind: "return"; response: Response } | { kind: "bad_quality"; reason: string }> {
   const {
     result,
     body,
@@ -56,7 +56,7 @@ export async function resolveStandardOkAttempt(options: {
       failureModelIndex: modelIndex,
       failureModelStr: modelStr,
     });
-    return { kind: "bad_quality" };
+    return { kind: "bad_quality", reason: quality.reason || "unknown" };
   }
 
   const latencyMs = Date.now() - startTime;

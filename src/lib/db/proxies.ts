@@ -93,6 +93,21 @@ function normalizeScope(scope: string): ProxyScope {
   return "global";
 }
 
+function isMissingProxyAssignmentsTableError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /no such table:\s*proxy_assignments/i.test(msg);
+}
+
+/** Migration 004 adds proxy_assignments; guard reads when DB predates it (#1706 parity). */
+function withProxyAssignmentsTable<T>(fallback: T, fn: () => T): T {
+  try {
+    return fn();
+  } catch (error: unknown) {
+    if (isMissingProxyAssignmentsTableError(error)) return fallback;
+    throw error;
+  }
+}
+
 function coerceProxyPayload(value: unknown, fallbackName: string): ProxyPayload | null {
   if (!value) return null;
 
@@ -242,40 +257,44 @@ export async function updateProxy(id: string, payload: Partial<ProxyPayload>) {
 export async function getProxyAssignments(filters?: { proxyId?: string; scope?: string }) {
   const db = getDbInstance();
 
-  if (filters?.proxyId) {
+  return withProxyAssignmentsTable([], () => {
+    if (filters?.proxyId) {
+      return db
+        .prepare(
+          "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE proxy_id = ? ORDER BY scope, scope_id"
+        )
+        .all(filters.proxyId)
+        .map(mapAssignmentRow);
+    }
+
+    if (filters?.scope) {
+      return db
+        .prepare(
+          "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE scope = ? ORDER BY scope_id"
+        )
+        .all(normalizeScope(filters.scope))
+        .map(mapAssignmentRow);
+    }
+
     return db
       .prepare(
-        "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE proxy_id = ? ORDER BY scope, scope_id"
+        "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments ORDER BY scope, scope_id"
       )
-      .all(filters.proxyId)
+      .all()
       .map(mapAssignmentRow);
-  }
-
-  if (filters?.scope) {
-    return db
-      .prepare(
-        "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE scope = ? ORDER BY scope_id"
-      )
-      .all(normalizeScope(filters.scope))
-      .map(mapAssignmentRow);
-  }
-
-  return db
-    .prepare(
-      "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments ORDER BY scope, scope_id"
-    )
-    .all()
-    .map(mapAssignmentRow);
+  });
 }
 
 export async function getProxyWhereUsed(proxyId: string) {
   const db = getDbInstance();
-  const rows = db
-    .prepare(
-      "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE proxy_id = ? ORDER BY scope, scope_id"
-    )
-    .all(proxyId)
-    .map(mapAssignmentRow);
+  const rows = withProxyAssignmentsTable([], () =>
+    db
+      .prepare(
+        "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE proxy_id = ? ORDER BY scope, scope_id"
+      )
+      .all(proxyId)
+      .map(mapAssignmentRow)
+  );
 
   return {
     count: rows.length,
@@ -292,38 +311,50 @@ export async function assignProxyToScope(
   const normalizedScopeId = normalizedScope === "global" ? "__global__" : scopeId;
   const db = getDbInstance();
 
-  if (!proxyId) {
-    db.prepare("DELETE FROM proxy_assignments WHERE scope = ? AND scope_id IS ?").run(
-      normalizedScope,
-      normalizedScopeId
-    );
+  try {
+    if (!proxyId) {
+      db.prepare("DELETE FROM proxy_assignments WHERE scope = ? AND scope_id IS ?").run(
+        normalizedScope,
+        normalizedScopeId
+      );
+      backupDbFile("pre-write");
+      return null;
+    }
+
+    const proxy = await getProxyById(proxyId, { includeSecrets: true });
+    if (!proxy) {
+      const err = new Error(`Proxy not found: ${proxyId}`) as Error & { status?: number };
+      err.status = 404;
+      throw err;
+    }
+
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO proxy_assignments (proxy_id, scope, scope_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(scope, scope_id)
+       DO UPDATE SET proxy_id = excluded.proxy_id, updated_at = excluded.updated_at`
+    ).run(proxyId, normalizedScope, normalizedScopeId, now, now);
+
     backupDbFile("pre-write");
-    return null;
+
+    const row = db
+      .prepare(
+        "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE scope = ? AND scope_id IS ?"
+      )
+      .get(normalizedScope, normalizedScopeId);
+    return row ? mapAssignmentRow(row) : null;
+  } catch (error: unknown) {
+    if (isMissingProxyAssignmentsTableError(error)) {
+      const err = new Error(
+        "proxy_assignments table missing — apply DB migrations (proxy registry migration)."
+      ) as Error & { status?: number; code?: string };
+      err.status = 503;
+      err.code = "proxy_assignments_missing";
+      throw err;
+    }
+    throw error;
   }
-
-  const proxy = await getProxyById(proxyId, { includeSecrets: true });
-  if (!proxy) {
-    const err = new Error(`Proxy not found: ${proxyId}`) as Error & { status?: number };
-    err.status = 404;
-    throw err;
-  }
-
-  const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO proxy_assignments (proxy_id, scope, scope_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(scope, scope_id)
-     DO UPDATE SET proxy_id = excluded.proxy_id, updated_at = excluded.updated_at`
-  ).run(proxyId, normalizedScope, normalizedScopeId, now, now);
-
-  backupDbFile("pre-write");
-
-  const row = db
-    .prepare(
-      "SELECT id, proxy_id, scope, scope_id, created_at, updated_at FROM proxy_assignments WHERE scope = ? AND scope_id IS ?"
-    )
-    .get(normalizedScope, normalizedScopeId);
-  return row ? mapAssignmentRow(row) : null;
 }
 
 export async function deleteProxyById(id: string, options?: { force?: boolean }) {
@@ -344,7 +375,11 @@ export async function deleteProxyById(id: string, options?: { force?: boolean })
   }
 
   if (force && usage.count > 0) {
-    db.prepare("DELETE FROM proxy_assignments WHERE proxy_id = ?").run(id);
+    try {
+      db.prepare("DELETE FROM proxy_assignments WHERE proxy_id = ?").run(id);
+    } catch (error: unknown) {
+      if (!isMissingProxyAssignmentsTableError(error)) throw error;
+    }
   }
 
   const result = db.prepare("DELETE FROM proxy_registry WHERE id = ?").run(id);
@@ -355,39 +390,14 @@ export async function deleteProxyById(id: string, options?: { force?: boolean })
 export async function resolveProxyForConnectionFromRegistry(connectionId: string) {
   const db = getDbInstance();
 
-  const accountAssignment = db
-    .prepare(
-      "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'account' AND a.scope_id = ? LIMIT 1"
-    )
-    .get(connectionId);
-  if (accountAssignment) {
-    const record = toRecord(accountAssignment);
-    return {
-      proxy: {
-        type: record.type,
-        host: record.host,
-        port: record.port,
-        username: record.username,
-        password: record.password,
-      },
-      level: "account",
-      levelId: connectionId,
-      source: "registry",
-    };
-  }
-
-  const connection = db
-    .prepare("SELECT provider FROM provider_connections WHERE id = ?")
-    .get(connectionId) as { provider?: string } | undefined;
-
-  if (connection?.provider) {
-    const providerAssignment = db
+  try {
+    const accountAssignment = db
       .prepare(
-        "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'provider' AND a.scope_id = ? LIMIT 1"
+        "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'account' AND a.scope_id = ? LIMIT 1"
       )
-      .get(connection.provider);
-    if (providerAssignment) {
-      const record = toRecord(providerAssignment);
+      .get(connectionId);
+    if (accountAssignment) {
+      const record = toRecord(accountAssignment);
       return {
         proxy: {
           type: record.type,
@@ -396,35 +406,65 @@ export async function resolveProxyForConnectionFromRegistry(connectionId: string
           username: record.username,
           password: record.password,
         },
-        level: "provider",
-        levelId: connection.provider,
+        level: "account",
+        levelId: connectionId,
         source: "registry",
       };
     }
-  }
 
-  const globalAssignment = db
-    .prepare(
-      "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'global' LIMIT 1"
-    )
-    .get();
-  if (globalAssignment) {
-    const record = toRecord(globalAssignment);
-    return {
-      proxy: {
-        type: record.type,
-        host: record.host,
-        port: record.port,
-        username: record.username,
-        password: record.password,
-      },
-      level: "global",
-      levelId: null,
-      source: "registry",
-    };
-  }
+    const connection = db
+      .prepare("SELECT provider FROM provider_connections WHERE id = ?")
+      .get(connectionId) as { provider?: string } | undefined;
 
-  return null;
+    if (connection?.provider) {
+      const providerAssignment = db
+        .prepare(
+          "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'provider' AND a.scope_id = ? LIMIT 1"
+        )
+        .get(connection.provider);
+      if (providerAssignment) {
+        const record = toRecord(providerAssignment);
+        return {
+          proxy: {
+            type: record.type,
+            host: record.host,
+            port: record.port,
+            username: record.username,
+            password: record.password,
+          },
+          level: "provider",
+          levelId: connection.provider,
+          source: "registry",
+        };
+      }
+    }
+
+    const globalAssignment = db
+      .prepare(
+        "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'global' LIMIT 1"
+      )
+      .get();
+    if (globalAssignment) {
+      const record = toRecord(globalAssignment);
+      return {
+        proxy: {
+          type: record.type,
+          host: record.host,
+          port: record.port,
+          username: record.username,
+          password: record.password,
+        },
+        level: "global",
+        levelId: null,
+        source: "registry",
+      };
+    }
+
+    return null;
+  } catch (error: unknown) {
+    if (isMissingProxyAssignmentsTableError(error)) return null;
+    throw error;
+  }
 }
 
 export async function migrateLegacyProxyConfigToRegistry(options?: { force?: boolean }) {
@@ -595,39 +635,42 @@ export async function bulkAssignProxyToScope(
 export async function resolveProxyForProvider(providerId: string) {
   const db = getDbInstance();
 
-  // Check provider-level proxy
-  const providerAssignment = db
-    .prepare(
-      "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'provider' AND a.scope_id = ? LIMIT 1"
-    )
-    .get(providerId);
-  if (providerAssignment) {
-    const record = toRecord(providerAssignment);
-    return {
-      type: record.type,
-      host: record.host,
-      port: record.port,
-      username: record.username,
-      password: record.password,
-    };
-  }
+  try {
+    const providerAssignment = db
+      .prepare(
+        "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'provider' AND a.scope_id = ? LIMIT 1"
+      )
+      .get(providerId);
+    if (providerAssignment) {
+      const record = toRecord(providerAssignment);
+      return {
+        type: record.type,
+        host: record.host,
+        port: record.port,
+        username: record.username,
+        password: record.password,
+      };
+    }
 
-  // Check global proxy
-  const globalAssignment = db
-    .prepare(
-      "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'global' LIMIT 1"
-    )
-    .get();
-  if (globalAssignment) {
-    const record = toRecord(globalAssignment);
-    return {
-      type: record.type,
-      host: record.host,
-      port: record.port,
-      username: record.username,
-      password: record.password,
-    };
-  }
+    const globalAssignment = db
+      .prepare(
+        "SELECT p.id, p.type, p.host, p.port, p.username, p.password FROM proxy_assignments a JOIN proxy_registry p ON p.id = a.proxy_id WHERE a.scope = 'global' LIMIT 1"
+      )
+      .get();
+    if (globalAssignment) {
+      const record = toRecord(globalAssignment);
+      return {
+        type: record.type,
+        host: record.host,
+        port: record.port,
+        username: record.username,
+        password: record.password,
+      };
+    }
 
-  return null;
+    return null;
+  } catch (error: unknown) {
+    if (isMissingProxyAssignmentsTableError(error)) return null;
+    throw error;
+  }
 }

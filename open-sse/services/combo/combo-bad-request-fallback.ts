@@ -2,6 +2,7 @@ import { resolveProviderAlias } from "../model.ts";
 import { isModelUnavailableError } from "../modelFamilyFallback.ts";
 import { COMBO_BAD_REQUEST_FALLBACK_PATTERNS } from "./combo-constants.ts";
 
+/** See plan parity v3.7.3: optional broad 400 → next combo target (no regex gate). Off by default. */
 export function shouldFallbackComboBadRequest(
   status: number,
   errorText: string | null | undefined,
@@ -9,6 +10,12 @@ export function shouldFallbackComboBadRequest(
 ): boolean {
   if (status !== 400 || !errorText) return false;
   const message = String(errorText);
+  const broadFallback =
+    process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD === "1" ||
+    process.env.COMBO_BAD_REQUEST_FALLBACK_BROAD === "true";
+  if (broadFallback && message.trim().length > 0) {
+    return true;
+  }
   const pid =
     typeof providerHint === "string" && providerHint.length > 0
       ? resolveProviderAlias(providerHint)
