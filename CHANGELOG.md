@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.24.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.4...v3.24.0) (2026-04-29)
+
+
+### Features
+
+* **open-sse:** stream stability parity — Gemini chunks, proxy pipelining, Codex session ([f3de5eb](https://github.com/linhnguyen-gt/Routiform/commit/f3de5eb63f7a37bd31a2623d190b65982bf6421c))
+* **registry,ui:** reasoning effort defaults for o1/o3/deepseek-reasoner, fix UI extraction ([0685e38](https://github.com/linhnguyen-gt/Routiform/commit/0685e3861a4de89d93c1a8a8ceda677e2a42905c))
+
+
+### Bug Fixes
+
+* **open-sse:** gateway parity stability for rate limits, SSE idle, and tools ([b550d6f](https://github.com/linhnguyen-gt/Routiform/commit/b550d6f0a70cae6f93456164772d4c363664eab3))
+* **open-sse:** improve auto-compress efficiency with turn-based purification and proactive threshold ([64e2b16](https://github.com/linhnguyen-gt/Routiform/commit/64e2b162f362a22a2628452fdf8301c6fa67651d))
+* **ui:** cast reasoningEffort to string to satisfy ReactNode type ([fe43d28](https://github.com/linhnguyen-gt/Routiform/commit/fe43d2871fcaaad01a133b3f5e7e3c10726a82cd))
+* **ui:** prevent contextValidation race by pausing poll during save ([be5ee80](https://github.com/linhnguyen-gt/Routiform/commit/be5ee80b1368b50855684e048a71ac31fc075f17))
+
 ### [3.23.4](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.3...v3.23.4) (2026-04-28)
 
 
