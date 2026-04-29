@@ -27,11 +27,36 @@ export const APIKEY_PROVIDERS: Record<string, RegistryEntry> = {
       { id: "gpt-4o", name: "GPT-4o" },
       { id: "gpt-4o-mini", name: "GPT-4o Mini" },
       { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
-      { id: "o1", name: "O1", unsupportedParams: REASONING_UNSUPPORTED },
-      { id: "o1-mini", name: "O1 Mini", unsupportedParams: REASONING_UNSUPPORTED },
-      { id: "o1-pro", name: "O1 Pro", unsupportedParams: REASONING_UNSUPPORTED },
-      { id: "o3", name: "O3", unsupportedParams: REASONING_UNSUPPORTED },
-      { id: "o3-mini", name: "O3 Mini", unsupportedParams: REASONING_UNSUPPORTED },
+      {
+        id: "o1",
+        name: "O1",
+        unsupportedParams: REASONING_UNSUPPORTED,
+        defaultParams: { reasoning: { effort: "medium" } },
+      },
+      {
+        id: "o1-mini",
+        name: "O1 Mini",
+        unsupportedParams: REASONING_UNSUPPORTED,
+        defaultParams: { reasoning: { effort: "medium" } },
+      },
+      {
+        id: "o1-pro",
+        name: "O1 Pro",
+        unsupportedParams: REASONING_UNSUPPORTED,
+        defaultParams: { reasoning: { effort: "high" } },
+      },
+      {
+        id: "o3",
+        name: "O3",
+        unsupportedParams: REASONING_UNSUPPORTED,
+        defaultParams: { reasoning: { effort: "high" } },
+      },
+      {
+        id: "o3-mini",
+        name: "O3 Mini",
+        unsupportedParams: REASONING_UNSUPPORTED,
+        defaultParams: { reasoning: { effort: "medium" } },
+      },
     ],
   },
 
@@ -460,7 +485,11 @@ export const APIKEY_PROVIDERS: Record<string, RegistryEntry> = {
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     models: [
       { id: "deepseek-chat", name: "DeepSeek V3.2 Chat" },
-      { id: "deepseek-reasoner", name: "DeepSeek V3.2 Reasoner" },
+      {
+        id: "deepseek-reasoner",
+        name: "DeepSeek V3.2 Reasoner",
+        defaultParams: { reasoning: { effort: "medium" } },
+      },
     ],
   },
 

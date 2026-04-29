@@ -113,6 +113,22 @@ export async function createExecuteProviderRequestBundle({
           if (bodyToSend[key] === undefined) {
             bodyToSend[key] = value;
             console.log(`[DefaultParams] Set ${key} =`, value);
+          } else if (
+            key === "reasoning" &&
+            value &&
+            typeof value === "object" &&
+            !Array.isArray(value) &&
+            bodyToSend[key] &&
+            typeof bodyToSend[key] === "object" &&
+            !Array.isArray(bodyToSend[key])
+          ) {
+            // Merge reasoning object: only set effort if not already present
+            const existingReasoning = bodyToSend[key] as Record<string, unknown>;
+            const defaultReasoning = value as Record<string, unknown>;
+            if (existingReasoning.effort === undefined && defaultReasoning.effort !== undefined) {
+              existingReasoning.effort = defaultReasoning.effort;
+              console.log(`[DefaultParams] Merged reasoning.effort =`, defaultReasoning.effort);
+            }
           }
         }
       } else {
