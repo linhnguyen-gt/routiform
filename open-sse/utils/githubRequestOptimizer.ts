@@ -1,6 +1,8 @@
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
-const GITHUB_MAX_TOOLS = 64;
+// GitHub Copilot chat API accepts large tool lists; upstream parity uses 128 as a safe ceiling
+// before provider 400s. Keep conservative token caps elsewhere (Haiku + tools).
+const GITHUB_MAX_TOOLS = 128;
 const GITHUB_MAX_TOKENS_DEFAULT = 8192;
 const GITHUB_MAX_TOKENS_HAIKU_WITH_TOOLS = 4096;
 

@@ -1,3 +1,17 @@
+/**
+ * Upstream HTTP timeout matrix (Routiform):
+ *
+ * | Path | What bounds stalled reads |
+ * |------|---------------------------|
+ * | Default executor fetch (`open-sse/executors/base.ts`) | `AbortSignal.timeout(FETCH_TIMEOUT_MS)` merged with client `signal` — caps entire request including body read for non-streaming; streaming initial handshake uses same signal until bytes arrive. |
+ * | Undici Agent (`open-sse/utils/proxyDispatcher.ts`) | `getUpstreamTimeoutConfig()` → `headersTimeout`, `bodyTimeout`, `connectTimeout`, `keepAliveTimeout` on cached `Agent` / proxy dispatchers. |
+ * | TLS fingerprint fetch (`open-sse/utils/tlsClient.ts`) | `getTlsClientTimeoutConfig()` → `tlsClientTimeoutMs` (env `TLS_CLIENT_TIMEOUT_MS`). |
+ * | SSE after first bytes (`open-sse/utils/stream.ts`) | `STREAM_IDLE_TIMEOUT_MS` (or per-stream `idleTimeoutMs`) — zombie stream detection; errors as `StreamIdleTimeoutError` / 504-class for combo fallback. |
+ * | Antigravity SSE collect-to-json (`collectStreamToResponse`) | Internal `SSE_COLLECT_TIMEOUT_MS` while draining reader. |
+ *
+ * Env knobs are centralized here and in `open-sse/config/constants.ts` (re-exported `FETCH_TIMEOUT_MS`, `STREAM_IDLE_TIMEOUT_MS`).
+ */
+
 type EnvSource = Record<string, string | undefined>;
 type TimeoutLogger = (message: string) => void;
 

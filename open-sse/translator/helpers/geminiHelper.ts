@@ -168,6 +168,39 @@ function convertConstToEnum(obj) {
   }
 }
 
+// Strip null/undefined from enum arrays (strict JSON Schema validators reject them).
+// Tuple-style `items` / `prefixItems` arrays may include null placeholders — remove those entries.
+function sanitizeStrictEnumAndTupleArrays(obj) {
+  if (!obj || typeof obj !== "object") return;
+
+  if (obj.enum && Array.isArray(obj.enum)) {
+    obj.enum = obj.enum.filter((v) => v !== null && v !== undefined);
+    if (obj.enum.length === 0) {
+      delete obj.enum;
+    }
+  }
+
+  if (Array.isArray(obj.items)) {
+    obj.items = obj.items.filter((item) => item != null);
+    if (obj.items.length === 0) {
+      obj.items = { type: "string" };
+    }
+  }
+
+  if (Array.isArray(obj.prefixItems)) {
+    obj.prefixItems = obj.prefixItems.filter((item) => item != null);
+    if (obj.prefixItems.length === 0) {
+      delete obj.prefixItems;
+    }
+  }
+
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object") {
+      sanitizeStrictEnumAndTupleArrays(value);
+    }
+  }
+}
+
 // Convert enum values to strings (Gemini requires string enum values)
 // For integer types, remove enum entirely as Gemini doesn't support it
 function convertEnumValuesToStrings(obj) {
@@ -310,6 +343,7 @@ export function cleanJSONSchemaForAntigravity(schema) {
 
   // Phase 1: Convert and prepare
   convertConstToEnum(cleaned);
+  sanitizeStrictEnumAndTupleArrays(cleaned);
   convertEnumValuesToStrings(cleaned);
 
   // Phase 2: Flatten complex structures
