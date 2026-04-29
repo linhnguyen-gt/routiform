@@ -59,6 +59,18 @@ function getDispatcherOptions() {
   };
 }
 
+/**
+ * Undici options for HTTP/SOCKS proxy dispatchers only (not the default direct Agent).
+ * Disables HTTP pipelining on pooled connections — reduces flaky ECONNRESET / socket hang up
+ * when rotating through proxies that drop reused tunnels (external v3.7.4 parity).
+ */
+export function getProxyDispatcherOptions() {
+  return {
+    ...getDispatcherOptions(),
+    pipelining: 0,
+  };
+}
+
 export function getDefaultDispatcher(): Dispatcher {
   const globalWithCache = globalThis as GlobalWithDispatcherCache;
   if (!globalWithCache[DEFAULT_DISPATCHER_KEY]) {
@@ -218,7 +230,7 @@ export function proxyConfigToUrl(
 export function createProxyDispatcher(proxyUrl: string): Dispatcher {
   const normalizedUrl = normalizeProxyUrl(proxyUrl, "proxy dispatcher");
   const dispatcherCache = getDispatcherCache();
-  const dispatcherOptions = getDispatcherOptions();
+  const dispatcherOptions = getProxyDispatcherOptions();
 
   let dispatcher = dispatcherCache.get(normalizedUrl);
   if (dispatcher) return dispatcher;

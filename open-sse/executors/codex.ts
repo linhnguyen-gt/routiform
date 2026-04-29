@@ -138,8 +138,10 @@ function normalizeServiceTierValue(value: unknown): string | undefined {
 
 function normalizeEffortValue(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
-  const normalized = value.trim().toLowerCase();
-  return normalized || undefined;
+  let normalized = value.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === "max") normalized = "xhigh";
+  return normalized;
 }
 
 /**
@@ -187,7 +189,14 @@ function convertSystemToDeveloperRole(body: Record<string, unknown>): void {
 }
 
 function stripStoredItemReferences(body: Record<string, unknown>): void {
-  delete body.previous_response_id;
+  const prev = body.previous_response_id;
+  const preservePreviousResponseId =
+    typeof prev === "string" &&
+    prev.length > 0 &&
+    (!Array.isArray(body.input) || body.input.length === 0);
+  if (!preservePreviousResponseId) {
+    delete body.previous_response_id;
+  }
   if (!Array.isArray(body.input)) return;
   const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
   let strippedCount = 0;
