@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.24.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.0...v3.24.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **normalize:** strip stale unsupported-image error blocks when switching models mid-session ([40cd311](https://github.com/linhnguyen-gt/Routiform/commit/40cd3113039a20a2c66dcd05c09eb1acc553e82f))
+
 ## [3.24.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.23.4...v3.24.0) (2026-04-29)
 
 
