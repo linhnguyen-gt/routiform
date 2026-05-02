@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.24.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.1...v3.24.2) (2026-05-02)
+
+
+### Bug Fixes
+
+* **cline:** handle unix timestamp expiresAt in both OAuth and refresh paths ([c3b62ca](https://github.com/linhnguyen-gt/Routiform/commit/c3b62ca63b7706ba1ffbba6b8abfc82a9ff30e13))
+* **cline:** handle unix timestamp expiresAt in OAuth token mapping ([99528db](https://github.com/linhnguyen-gt/Routiform/commit/99528db8709590dde2c102a5ad7a657b7d90a7f9))
+* **cline:** rewrite OAuth exchange, refresh, and auth prefix from upstream ([16e8191](https://github.com/linhnguyen-gt/Routiform/commit/16e8191212c5ed389550246ed98c5f390271c275))
+* **codex:** update CLI fingerprint body order + filter Responses deltas ([1dd587a](https://github.com/linhnguyen-gt/Routiform/commit/1dd587abab2c1466b28879192e81d72a18996c0c))
+* **db:** tolerate missing request_detail_logs table in legacy databases ([9216971](https://github.com/linhnguyen-gt/Routiform/commit/9216971bf522c411076084fb0032c522732dbc47))
+* **gemini-cli:** add capture-backed fingerprint + UI redesign ([33e4277](https://github.com/linhnguyen-gt/Routiform/commit/33e4277e5d3009f3b3f9a6591e965d31599534f8))
+* **mitm:** Antigravity MITM proxy improvements + Docker support ([6fe6690](https://github.com/linhnguyen-gt/Routiform/commit/6fe66907f7bf61730ee6f88ba880ad57e2e1fffa))
+* **workflow:** trigger docker build on version tags + grok toolCalling ([2675120](https://github.com/linhnguyen-gt/Routiform/commit/2675120cfe1726b271dcdc93e755e6bf03e2a529))
+
 ### [3.24.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.0...v3.24.1) (2026-04-30)
 
 
