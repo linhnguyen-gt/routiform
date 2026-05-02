@@ -206,9 +206,9 @@ export const APIKEY_PROVIDERS: Record<string, RegistryEntry> = {
           authType: "apikey",
           authHeader: "cookie",
           models: [
-            { id: "grok-web-auto", name: "Grok Web Auto" },
-            { id: "grok-4", name: "Grok 4 (Web)" },
-            { id: "grok-code-fast-1", name: "Grok Code Fast 1 (Web)" },
+            { id: "grok-web-auto", name: "Grok Web Auto", toolCalling: true },
+            { id: "grok-4", name: "Grok 4 (Web)", toolCalling: true },
+            { id: "grok-code-fast-1", name: "Grok Code Fast 1 (Web)", toolCalling: true },
           ],
         },
       }
