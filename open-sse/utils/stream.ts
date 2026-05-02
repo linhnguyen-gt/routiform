@@ -350,9 +350,15 @@ export function createSSEStream(options: StreamOptions = {}) {
                   if (extracted) {
                     usage = extracted;
                   }
-                  // Track content length and accumulate for call log
-                  if (parsed.delta && typeof parsed.delta === "string") {
+                  // Track content length for fallback usage estimates.
+                  // Only visible text deltas become assistant content in logs/replay.
+                  if (typeof parsed.delta === "string") {
                     totalContentLength += parsed.delta.length;
+                  }
+                  if (
+                    parsed.type === "response.output_text.delta" &&
+                    typeof parsed.delta === "string"
+                  ) {
                     passthroughAccumulatedContent += parsed.delta;
                   }
                 } else if (isClaudeSSE) {
