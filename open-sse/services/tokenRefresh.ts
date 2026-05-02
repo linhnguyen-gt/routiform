@@ -139,10 +139,15 @@ export async function refreshClineToken(refreshToken, log, proxyConfig = null) {
 
         const payload = await response.json();
         const data = payload?.data || payload;
-        const expiresAtIso = data?.expiresAt;
-        const expiresIn = expiresAtIso
-          ? Math.max(1, Math.floor((new Date(expiresAtIso).getTime() - Date.now()) / 1000))
-          : undefined;
+        const expiresAtRaw = data?.expiresAt;
+        let expiresIn: number | undefined;
+        if (expiresAtRaw) {
+          const expiresAtMs =
+            typeof expiresAtRaw === "number" && expiresAtRaw > 1_000_000_000
+              ? expiresAtRaw * 1000
+              : new Date(expiresAtRaw).getTime();
+          expiresIn = Math.max(1, Math.floor((expiresAtMs - Date.now()) / 1000));
+        }
 
         log?.info?.("TOKEN_REFRESH", "Successfully refreshed Cline token", {
           endpoint,
