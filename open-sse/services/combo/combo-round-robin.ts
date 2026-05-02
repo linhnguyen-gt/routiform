@@ -119,8 +119,14 @@ export async function handleRoundRobinCombo(options: {
         timeoutMs: queueTimeout,
       })) as () => void;
     } catch (err: unknown) {
-      if ((err as { code?: string }).code === "SEMAPHORE_TIMEOUT") {
-        log.warn("COMBO-RR", `Semaphore timeout for ${modelStr}, trying next model`);
+      if (
+        (err as { code?: string }).code === "SEMAPHORE_TIMEOUT" ||
+        (err as { code?: string }).code === "SEMAPHORE_QUEUE_FULL"
+      ) {
+        log.warn(
+          "COMBO-RR",
+          `Semaphore ${(err as { code?: string }).code === "SEMAPHORE_QUEUE_FULL" ? "queue full" : "timeout"} for ${modelStr}, trying next model`
+        );
         if (offset > 0) state.fallbackCount++;
         continue;
       }
