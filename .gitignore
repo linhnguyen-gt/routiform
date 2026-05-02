@@ -163,3 +163,5 @@ plans/
 .claude/
 CLAUDE.md
 .mcp.json
+
+scripts/agSniffer/*

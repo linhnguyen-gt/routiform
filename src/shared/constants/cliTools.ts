@@ -289,23 +289,6 @@ export const CLI_TOOLS = {
       { step: 4, title: "Select Model", type: "modelSelector" },
     ],
   },
-  // HIDDEN: gemini-cli
-  // "gemini-cli": {
-  //   id: "gemini-cli",
-  //   name: "Gemini CLI",
-  //   icon: "terminal",
-  //   color: "#4285F4",
-  //   description: "Google Gemini CLI",
-  //   configType: "env",
-  //   envVars: {
-  //     baseUrl: "GEMINI_API_BASE_URL",
-  //     model: "GEMINI_MODEL",
-  //   },
-  //   defaultModels: [
-  //     { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", alias: "pro" },
-  //     { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", alias: "flash" },
-  //   ],
-  // },
 };
 
 // Get all provider models for mapping dropdown

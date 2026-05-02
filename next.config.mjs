@@ -15,13 +15,7 @@ const nextConfig = {
   experimental: {
     proxyClientMaxBodySize: "100mb",
   },
-  // Turbopack config: redirect native modules to stubs at build time
-  turbopack: {
-    resolveAlias: {
-      // Point mitm/manager to a stub during build (native child_process/fs can't be bundled)
-      "@/mitm/manager": "./src/mitm/manager.stub.ts",
-    },
-  },
+  // MITM modules use runtime = "nodejs" + dynamic imports — no static bundling needed
   output: "standalone",
   serverExternalPackages: [
     "pino",

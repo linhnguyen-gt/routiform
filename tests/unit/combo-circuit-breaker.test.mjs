@@ -207,8 +207,8 @@ test("handleComboChat: 429 errors also trigger circuit breaker", async () => {
 });
 
 test("circuit breaker uses provider profile thresholds", () => {
-  // OAuth providers (e.g. claude) should have lower threshold
-  assert.equal(PROVIDER_PROFILES.oauth.circuitBreakerThreshold, 3);
-  // API providers (e.g. groq) should have higher threshold
-  assert.equal(PROVIDER_PROFILES.apikey.circuitBreakerThreshold, 5);
+  // OAuth providers have scaled threshold for 500+ connections
+  assert.equal(PROVIDER_PROFILES.oauth.circuitBreakerThreshold, 8);
+  // API providers have scaled threshold for 500+ connections
+  assert.equal(PROVIDER_PROFILES.apikey.circuitBreakerThreshold, 12);
 });

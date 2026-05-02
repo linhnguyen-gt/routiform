@@ -20,6 +20,8 @@
 /** @type {Map<string, ModelGate>} */
 const gates = new Map();
 
+const DEFAULT_MAX_QUEUE_SIZE = 20;
+
 /**
  * Get or create gate for a model
  * @param {string} modelStr
@@ -98,16 +100,29 @@ function createReleaseFn(modelStr) {
  * @param {Object} [options]
  * @param {number} [options.maxConcurrency=3] - Max concurrent requests for this model
  * @param {number} [options.timeoutMs=30000] - Max wait time in queue
+ * @param {number} [options.maxQueueSize=20] - Max queue size before rejecting
  * @returns {Promise<Function>} Release function — MUST be called when done
  * @throws {Error} If queue timeout expires ("SEMAPHORE_TIMEOUT")
+ * @throws {Error} If queue is full ("SEMAPHORE_QUEUE_FULL")
  */
-export function acquire(modelStr, { maxConcurrency = 3, timeoutMs = 30000 } = {}) {
+export function acquire(
+  modelStr,
+  { maxConcurrency = 3, timeoutMs = 30000, maxQueueSize = DEFAULT_MAX_QUEUE_SIZE } = {}
+) {
   const gate = getGate(modelStr, maxConcurrency);
 
   // Fast path: slot available and not rate-limited
   if (gate.running < gate.max && !isRateLimited(gate)) {
     gate.running++;
     return Promise.resolve(createReleaseFn(modelStr));
+  }
+
+  if (gate.queue.length >= maxQueueSize) {
+    const err = new Error(`Semaphore queue full (${maxQueueSize}) for ${modelStr}`) as Error & {
+      code?: string;
+    };
+    err.code = "SEMAPHORE_QUEUE_FULL";
+    return Promise.reject(err);
   }
 
   // Slow path: enqueue and wait
