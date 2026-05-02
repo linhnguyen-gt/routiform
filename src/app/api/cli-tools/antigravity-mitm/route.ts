@@ -9,7 +9,7 @@ import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 // GET - Check MITM status
 export async function GET() {
   try {
-    const { getMitmStatus, getCachedPassword } = await import("@/mitm/manager");
+    const { getMitmStatus, getCachedPassword, isDocker } = await import("@/mitm/manager");
     const status = await getMitmStatus();
     return NextResponse.json({
       running: status.running,
@@ -17,6 +17,7 @@ export async function GET() {
       dnsConfigured: status.dnsConfigured || false,
       certExists: status.certExists || false,
       hasCachedPassword: !!getCachedPassword(),
+      isDocker: isDocker(),
     });
   } catch (error) {
     console.log("Error getting MITM status:", error.message);
