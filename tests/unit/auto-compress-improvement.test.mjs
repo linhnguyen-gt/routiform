@@ -1,13 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const {
-  compressContext,
-  estimateRequestTokens,
-  estimateTokens,
-  estimateTokensDetailed,
-  getTokenLimit,
-} = await import("../../open-sse/services/contextManager.ts");
+const { compressContext, estimateTokens, estimateTokensDetailed } =
+  await import("../../open-sse/services/contextManager.ts");
 
 // ─── Phase 1.1: Structured Compression Summary ───────────────────────────────
 

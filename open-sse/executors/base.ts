@@ -188,7 +188,12 @@ export class BaseExecutor {
     return baseUrls[urlIndex] || baseUrls[0] || this.config.baseUrl;
   }
 
-  buildHeaders(credentials: ProviderCredentials, stream = true): Record<string, string> {
+  buildHeaders(
+    credentials: ProviderCredentials,
+    stream = true,
+    _clientHeaders?: Record<string, string> | null,
+    _model?: string
+  ): Record<string, string> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...this.config.headers,

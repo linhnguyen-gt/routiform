@@ -22,6 +22,7 @@ export default function RoutingTab() {
   const [settings, setSettings] = useState<Record<string, unknown>>({
     fallbackStrategy: "fill-first",
     alwaysPreserveClientCache: "auto",
+    cliCompatProviders: [],
   });
   const [loading, setLoading] = useState(true);
   const [aliases, setAliases] = useState([]);
