@@ -73,12 +73,15 @@ export const cline = {
     const firstName = tokens.firstName || "";
     const lastName = tokens.lastName || "";
     const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    const expiresAtMs = tokens.expires_at
+      ? typeof tokens.expires_at === "number" && tokens.expires_at > 1_000_000_000
+        ? tokens.expires_at * 1000
+        : new Date(tokens.expires_at).getTime()
+      : null;
     return {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
-      expiresIn: tokens.expires_at
-        ? Math.floor((new Date(tokens.expires_at).getTime() - Date.now()) / 1000)
-        : 3600,
+      expiresIn: expiresAtMs ? Math.floor((expiresAtMs - Date.now()) / 1000) : 3600,
       // Use full name if available, fallback to email so UI shows a real label
       name: fullName || tokens.email || null,
       email: tokens.email,
