@@ -359,7 +359,7 @@ export const APIKEY_PROVIDERS: Record<string, RegistryEntry> = {
     baseUrl: "https://api.cline.bot/api/v1/chat/completions",
     authType: "oauth",
     authHeader: "Authorization",
-    authPrefix: "Bearer ",
+    authPrefix: "Bearer workos:",
     defaultContextLength: CONTEXT_CONFIG.defaultLimit,
     oauth: {
       tokenUrl: "https://api.cline.bot/api/v1/auth/token",
