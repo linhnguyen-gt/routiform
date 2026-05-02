@@ -228,6 +228,7 @@ docker run -d \
   --restart unless-stopped \
   -p 20128:20128 \
   -p 20129:20129 \
+  -p 443:443 \
   -e DATA_DIR=/app/data \
   -e INITIAL_PASSWORD="change_your_password" \
   -v routiform-data:/app/data \
@@ -238,6 +239,19 @@ docker run -d \
   -v "$HOME/.aws:/root/.aws" \
   linhnguyen0944/routiform:cli
 ```
+
+> **MITM support in Docker:** The MITM proxy (Antigravity, Kiro etc.) can run inside Docker but requires **manual host setup** since the container cannot modify your host's `/etc/hosts` or system keychain. After starting the MITM from the dashboard, run these on your host:
+
+```bash
+# 1. Add DNS redirect (run once)
+echo '127.0.0.1 daily-cloudcode-pa.googleapis.com' | sudo tee -a /etc/hosts
+
+# 2. Install MITM cert (copy cert from container to host, then install)
+docker cp routiform:/app/data/mitm/server.crt /tmp/routiform-mitm.crt
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /tmp/routiform-mitm.crt
+```
+
+If you use `npm install -g routiform` instead, MITM works out of the box — it runs directly on your host with full DNS and keychain access.
 
 ### Option 4: source
 

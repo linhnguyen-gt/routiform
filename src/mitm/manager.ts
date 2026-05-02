@@ -1,10 +1,28 @@
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { resolveDataDir } from "@/lib/dataPaths";
 import { addDNSEntry, removeDNSEntry } from "./dns/dnsConfig";
 import { generateCert } from "./cert/generate";
 import { installCert } from "./cert/install";
+import { isAdmin, runElevatedPowerShell } from "./winElevated";
+
+const IS_WIN = process.platform === "win32";
+
+function isDocker(): boolean {
+  try {
+    return fs.existsSync("/.dockerenv");
+  } catch {
+    return false;
+  }
+}
+
+function isHostOpsSkipped(): boolean {
+  return isDocker() || !!process.env.MITM_SKIP_HOST_OPS;
+}
+
+export { isDocker };
 
 // Store server process
 let serverProcess = null;
@@ -24,11 +42,7 @@ export function clearCachedPassword() {
 }
 
 const PID_FILE = path.join(resolveDataDir(), "mitm", ".mitm.pid");
-const MITM_SERVER_URL = new URL("./server.cjs", import.meta.url);
-const MITM_SERVER_PATH =
-  process.platform === "win32" && MITM_SERVER_URL.pathname.startsWith("/")
-    ? decodeURIComponent(MITM_SERVER_URL.pathname.slice(1))
-    : decodeURIComponent(MITM_SERVER_URL.pathname);
+const MITM_SERVER_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "server.cjs");
 
 // Check if a PID is alive
 function isProcessAlive(pid) {
@@ -65,10 +79,13 @@ export async function getMitmStatus() {
     }
   }
 
-  // Check DNS configuration
+  const hostsPath = IS_WIN
+    ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "drivers", "etc", "hosts")
+    : "/etc/hosts";
+
   let dnsConfigured = false;
   try {
-    const hostsContent = fs.readFileSync("/etc/hosts", "utf-8");
+    const hostsContent = fs.readFileSync(hostsPath, "utf-8");
     dnsConfigured = /\bdaily-cloudcode-pa\.googleapis\.com\b/.test(hostsContent);
   } catch {
     // Ignore
@@ -99,12 +116,20 @@ export async function startMitm(apiKey, sudoPassword) {
     await generateCert();
   }
 
-  // 2. Install certificate to system keychain
-  await installCert(sudoPassword, certPath);
+  // 2. Install certificate to system keychain (skip in Docker)
+  if (!isHostOpsSkipped()) {
+    await installCert(sudoPassword, certPath);
+  } else {
+    console.log("🐳 Docker: skipping host cert install (run manually on host)");
+  }
 
-  // 3. Add DNS entry
-  console.log("Adding DNS entry...");
-  await addDNSEntry(sudoPassword);
+  // 3. Add DNS entry (skip in Docker)
+  if (!isHostOpsSkipped()) {
+    console.log("Adding DNS entry...");
+    await addDNSEntry(sudoPassword);
+  } else {
+    console.log("🐳 Docker: skipping host DNS (add manually on host)");
+  }
 
   // 4. Start MITM server
   console.log("Starting MITM server...");
@@ -223,12 +248,27 @@ export async function stopMitm(sudoPassword) {
     serverPid = null;
   }
 
-  // 2. Remove DNS entry
-  console.log("Removing DNS entry...");
-  await removeDNSEntry(sudoPassword);
+  // 2. Remove DNS entry (skip in Docker)
+  if (!isHostOpsSkipped()) {
+    console.log("Removing DNS entry...");
+    await removeDNSEntry(sudoPassword);
+    if (IS_WIN) {
+      try {
+        if (isAdmin()) {
+          execSync("ipconfig /flushdns", { windowsHide: true, stdio: "ignore" });
+        } else {
+          await runElevatedPowerShell("ipconfig /flushdns | Out-Null");
+        }
+      } catch {
+        /* ignore flush failures */
+      }
+    }
+  } else {
+    console.log("🐳 Docker: skipping host DNS cleanup");
+  }
 
   // 3. Clean up
-  clearCachedPassword(); // Clear password from memory when proxy stops
+  clearCachedPassword();
   try {
     fs.unlinkSync(PID_FILE);
   } catch (_error) {
