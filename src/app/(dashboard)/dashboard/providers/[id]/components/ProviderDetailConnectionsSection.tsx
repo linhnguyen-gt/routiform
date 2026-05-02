@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Button, Toggle } from "@/shared/components";
+import { Button, Card, Toggle } from "@/shared/components";
 import { ProviderDetailConnectionRow } from "../../components/ProviderDetailConnectionRow";
 import type { ConnectionRowConnection } from "../types/connections";
 

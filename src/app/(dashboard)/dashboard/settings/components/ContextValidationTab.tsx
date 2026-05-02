@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/shared/components";
 import { useTranslations } from "next-intl";
 
@@ -12,7 +12,7 @@ export default function ContextValidationTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"" | "saved" | "error">("");
-  const savingRef = { current: false };
+  const savingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +55,7 @@ export default function ContextValidationTab() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mode, savingRef]);
 
   const handleSave = async (newMode: ContextValidationMode) => {
     savingRef.current = true;

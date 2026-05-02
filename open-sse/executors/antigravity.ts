@@ -218,14 +218,24 @@ export class AntigravityExecutor extends BaseExecutor {
       }
     }
 
+    const {
+      project: _project,
+      model: _model,
+      userAgent: _userAgent,
+      requestType: _requestType,
+      requestId: _requestId,
+      request: _request,
+      ...passthroughFields
+    } = body;
+
     return {
-      ...body,
       project: projectId,
       model: upstreamModel,
       userAgent: "antigravity",
       requestType: "agent",
       requestId: `agent-${crypto.randomUUID()}`,
       request: transformedRequest,
+      ...passthroughFields,
     };
   }
 
@@ -426,7 +436,13 @@ export class AntigravityExecutor extends BaseExecutor {
       const url = this.buildUrl(model, upstreamStream, urlIndex);
       const headers = this.buildHeaders(credentials, upstreamStream);
       mergeUpstreamExtraHeaders(headers, upstreamExtraHeaders);
-      const transformedBody = await this.transformRequest(model, body, upstreamStream, credentials);
+      const transformResult = await this.transformRequest(model, body, upstreamStream, credentials);
+
+      if (transformResult instanceof Response) {
+        return { response: transformResult, url, headers, transformedBody: body };
+      }
+
+      let transformedBody: Record<string, unknown> = transformResult as Record<string, unknown>;
 
       // Initialize retry counter for this URL
       if (!retryAttemptsByUrl[urlIndex]) {
