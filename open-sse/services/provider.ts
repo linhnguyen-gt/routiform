@@ -79,11 +79,20 @@ function getOpenRouterAttributionHeaders() {
 export function detectFormatFromEndpoint(body, endpointPath = "") {
   const path = String(endpointPath || "");
 
-  // Check body content first — Antigravity/Gemini bodies routed through
-  // MITM proxy arrive at /v1/chat/completions but need antigravity format
-  const bodyFormat = detectFormat(body);
-  if (bodyFormat !== "openai") return bodyFormat;
+  // Check for unambiguous body signals first — Antigravity/Gemini bodies
+  // routed through MITM proxy arrive at /v1/chat/completions but need their native format
+  const hasInputField =
+    Object.prototype.hasOwnProperty.call(body, "input") && body.input !== undefined;
+  const hasResponsesSpecificFields =
+    body.max_output_tokens !== undefined ||
+    body.previous_response_id !== undefined ||
+    body.reasoning !== undefined;
+  if (hasInputField || hasResponsesSpecificFields) return "openai-responses";
 
+  if (body.request?.contents && body.userAgent === "antigravity") return "antigravity";
+  if (body.contents && Array.isArray(body.contents)) return "gemini";
+
+  // Endpoint path takes priority for standard endpoints
   if (/\/responses(?=\/|$)/i.test(path) || /^responses(?=\/|$)/i.test(path)) {
     return "openai-responses";
   }
@@ -99,7 +108,8 @@ export function detectFormatFromEndpoint(body, endpointPath = "") {
     return "openai";
   }
 
-  return bodyFormat;
+  // Fall back to body-based detection for non-standard paths
+  return detectFormat(body);
 }
 
 // Detect request format from body structure
@@ -181,13 +191,6 @@ export function detectFormat(body) {
     // If content is string, it's likely OpenAI (Claude also supports this)
     // Check for other Claude-specific indicators
     if (body.system !== undefined || body.anthropic_version) {
-      return "claude";
-    }
-
-    // Additional Claude heuristic: max_tokens is a required Claude field
-    // and Claude requests rarely include OpenAI-specific fields like
-    // stream_options, response_format, or logprobs
-    if (body.max_tokens && !body.stream_options && !body.response_format) {
       return "claude";
     }
   }
