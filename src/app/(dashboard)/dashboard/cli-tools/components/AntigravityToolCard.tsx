@@ -270,9 +270,13 @@ export default function AntigravityToolCard({
             )}
           </div>
 
-          {message?.type === "error" && (
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-red-500/10 text-red-600">
-              <span className="material-symbols-outlined text-[14px]">error</span>
+          {message && (
+            <div
+              className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {message.type === "success" ? "check_circle" : "error"}
+              </span>
               <span>{message.text}</span>
             </div>
           )}

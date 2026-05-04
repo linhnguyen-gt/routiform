@@ -2,20 +2,20 @@
 
 import { useTranslations } from "next-intl";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Badge from "@/shared/components/Badge";
+import Card from "@/shared/components/Card";
+import { CardSkeleton } from "@/shared/components/Loading";
+import { USAGE_SUPPORTED_PROVIDERS } from "@/shared/constants/providers";
+import { cn } from "@/shared/utils/cn";
 import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  parseQuotaData,
-  resolveUsedDisplayPercentage,
   formatQuotaLabel,
   normalizePlanTier,
+  parseQuotaData,
   resolvePlanValue,
+  resolveUsedDisplayPercentage,
 } from "./utils";
-import Card from "@/shared/components/Card";
-import Badge from "@/shared/components/Badge";
-import { CardSkeleton } from "@/shared/components/Loading";
-import { cn } from "@/shared/utils/cn";
-import { USAGE_SUPPORTED_PROVIDERS } from "@/shared/constants/providers";
 
 const LS_GROUP_BY = "routiform:limits:groupBy";
 const LS_EXPANDED_GROUPS = "routiform:limits:expandedGroups";

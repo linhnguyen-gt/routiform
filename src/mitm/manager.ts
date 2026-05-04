@@ -116,6 +116,15 @@ export async function startMitm(apiKey, sudoPassword) {
     await generateCert();
   }
 
+  // Trust MITM cert for Node.js fetch (executor calls via 127.0.0.1)
+  if (!isHostOpsSkipped() && fs.existsSync(certPath)) {
+    const existing = process.env.NODE_EXTRA_CA_CERTS || "";
+    if (!existing.includes(certPath)) {
+      process.env.NODE_EXTRA_CA_CERTS = existing ? `${existing}:${certPath}` : certPath;
+      console.log("🔐 MITM cert added to NODE_EXTRA_CA_CERTS");
+    }
+  }
+
   // 2. Install certificate to system keychain (skip in Docker)
   if (!isHostOpsSkipped()) {
     await installCert(sudoPassword, certPath);

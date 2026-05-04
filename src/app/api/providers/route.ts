@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getProviderConnections,
   createProviderConnection,
+  updateProviderConnection,
   getProviderNodeById,
   isCloudEnabled,
 } from "@/models";
@@ -22,20 +23,95 @@ import { createProviderSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { normalizeQoderPatProviderData } from "@routiform/open-sse/services/qoderCli.ts";
 import { supportsProviderModelAutoSync } from "@/shared/utils/providerAutoSync";
+import { GITHUB_CONFIG } from "@/lib/oauth/constants/oauth";
+
+async function backfillGithubUserInfo(connection: Record<string, unknown>) {
+  const accessToken = connection.accessToken as string | undefined;
+  if (!accessToken) return connection;
+
+  const psd =
+    connection.providerSpecificData &&
+    typeof connection.providerSpecificData === "object" &&
+    !Array.isArray(connection.providerSpecificData)
+      ? (connection.providerSpecificData as Record<string, unknown>)
+      : {};
+
+  try {
+    const userRes = await fetch(GITHUB_CONFIG.userInfoUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+        "X-GitHub-Api-Version": GITHUB_CONFIG.apiVersion,
+        "User-Agent": GITHUB_CONFIG.userAgent,
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!userRes.ok) return connection;
+
+    const userInfo = await userRes.json();
+    const githubLogin = userInfo.login as string | undefined;
+    const githubName = userInfo.name as string | undefined;
+    const githubEmail = userInfo.email as string | undefined;
+
+    if (!githubLogin && !githubName) return connection;
+
+    const updatedPsd = {
+      ...psd,
+      githubUserId: userInfo.id,
+      githubLogin,
+      githubName,
+      githubEmail,
+    };
+
+    await updateProviderConnection(connection.id as string, {
+      name: githubLogin || githubName,
+      email: githubEmail || null,
+      displayName: githubName || githubLogin,
+      providerSpecificData: updatedPsd,
+    });
+
+    return {
+      ...connection,
+      name: githubLogin || githubName,
+      email: githubEmail || null,
+      displayName: githubName || githubLogin,
+      providerSpecificData: updatedPsd,
+    };
+  } catch {
+    return connection;
+  }
+}
 
 // GET /api/providers - List all connections
 export async function GET() {
   try {
     const connections = await getProviderConnections();
 
+    const backfilled = await Promise.all(
+      connections.map(async (c) => {
+        if (
+          c.provider === "github" &&
+          c.authType === "oauth" &&
+          !(c as Record<string, unknown>).name
+        ) {
+          return backfillGithubUserInfo(c as Record<string, unknown>);
+        }
+        return c;
+      })
+    );
+
     // Hide sensitive fields (expose only whether any secret exists — for dashboard hints)
-    const safeConnections = connections.map((c) => ({
-      ...c,
+    const safeConnections = backfilled.map((c) => ({
+      ...(c as Record<string, unknown>),
       apiKey: undefined,
       accessToken: undefined,
       refreshToken: undefined,
       idToken: undefined,
-      credentialsConfigured: Boolean(c.apiKey || c.accessToken || c.refreshToken),
+      credentialsConfigured: Boolean(
+        (c as Record<string, unknown>).apiKey ||
+        (c as Record<string, unknown>).accessToken ||
+        (c as Record<string, unknown>).refreshToken
+      ),
     }));
 
     return NextResponse.json({ connections: safeConnections });

@@ -12,7 +12,7 @@ function getDataDir() {
   return path.join(os.homedir(), ".routiform");
 }
 
-const TARGET_HOST = "daily-cloudcode-pa.googleapis.com";
+const TARGET_HOSTS = ["daily-cloudcode-pa.googleapis.com", "cloudcode-pa.googleapis.com"];
 const LOCAL_PORT = 443;
 const ROUTER_URL = "http://localhost:20128/v1/chat/completions";
 const API_KEY = process.env.ROUTER_API_KEY;
@@ -178,16 +178,20 @@ function createResponseDumper(req, tag) {
 }
 
 // ── Resolve real IP ──────────────────────────────────────────────
-let cachedTargetIP = null;
-async function resolveTargetIP() {
-  if (cachedTargetIP) return cachedTargetIP;
+let cachedTargetIPs = {};
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function resolveTargetIP(hostname) {
+  var cached = cachedTargetIPs[hostname];
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.ip;
   var resolver = new dns.Resolver();
   resolver.setServers(["8.8.8.8"]);
   var resolve4 = promisify(resolver.resolve4.bind(resolver));
-  var addresses = await resolve4(TARGET_HOST);
-  cachedTargetIP = addresses[0];
-  return cachedTargetIP;
+  var addresses = await resolve4(hostname);
+  cachedTargetIPs[hostname] = { ip: addresses[0], ts: Date.now() };
+  return cachedTargetIPs[hostname].ip;
 }
+
 
 // ── Body & model helpers ─────────────────────────────────────────
 function collectBodyRaw(req) {
@@ -203,7 +207,9 @@ function collectBodyRaw(req) {
   });
 }
 
-function extractModel(body) {
+function extractModel(url, body) {
+  var urlMatch = url.match(/\/models\/([^/:]+)/);
+  if (urlMatch) return urlMatch[1];
   try {
     return JSON.parse(body.toString()).model || null;
   } catch (e) {
@@ -216,7 +222,7 @@ function getSqliteDb() {
   try {
     var Database = require("better-sqlite3");
     if (fs.existsSync(SQLITE_FILE)) {
-      _sqliteDb = new Database(SQLITE_FILE, { readonly: true });
+      _sqliteDb = new Database(SQLITE_FILE);
       return _sqliteDb;
     }
   } catch (e) {
@@ -227,6 +233,7 @@ function getSqliteDb() {
 
 function getMappedModel(model) {
   if (!model) return null;
+  console.log("\u{1f50d} getMappedModel: looking up model=" + JSON.stringify(model));
   try {
     var db = getSqliteDb();
     if (db) {
@@ -237,11 +244,15 @@ function getMappedModel(model) {
         .get();
       if (row) {
         var mappings = JSON.parse(row.value);
-        return mappings[model] || null;
+        console.log("\u{1f4e6} getMappedModel: SQLite mappings=" + JSON.stringify(Object.keys(mappings)));
+        var result = mappings[model] || null;
+        console.log("\u{1f500} getMappedModel: " + model + " \u2192 " + (result || "null"));
+        return result;
       }
+      console.log("\u26a0\ufe0f getMappedModel: no row found in SQLite for mitmAlias/antigravity");
     }
   } catch (e) {
-    /* fall through */
+    console.log("\u274c getMappedModel: SQLite error: " + e.message);
   }
   try {
     if (fs.existsSync(DB_FILE)) {
@@ -258,19 +269,23 @@ function getMappedModel(model) {
 
 // ── Passthrough ──────────────────────────────────────────────────
 async function passthrough(req, res, bodyBuffer, onResponse) {
-  var targetIP = await resolveTargetIP();
+  var targetHost = (req.headers.host || TARGET_HOSTS[0]).split(":")[0];
+  var targetIP = await resolveTargetIP(targetHost);
   var rejectUnauthorized = process.env.MITM_DISABLE_TLS_VERIFY !== "1";
   var dumper = createResponseDumper(req, "passthrough");
 
-  var forwardReq = https.request(
-    {
-      hostname: targetIP,
-      port: 443,
-      path: req.url,
-      method: req.method,
-      headers: Object.assign({}, req.headers, { host: TARGET_HOST }),
-      servername: TARGET_HOST,
-      rejectUnauthorized: rejectUnauthorized,
+  // Strip anti-loop header before forwarding to real Google
+  var fwdHeaders = Object.assign({}, req.headers, { host: targetHost });
+  delete fwdHeaders["x-routiform-source"];
+
+  var forwardReq = https.request({
+    hostname: targetIP,
+    port: 443,
+    path: req.url,
+    method: req.method,
+    headers: fwdHeaders,
+    servername: targetHost,
+    rejectUnauthorized: rejectUnauthorized,
     },
     function (forwardRes) {
       res.writeHead(forwardRes.statusCode, forwardRes.headers);
@@ -387,7 +402,9 @@ async function intercept(req, res, bodyBuffer, mappedModel) {
 
 // ── Main server ──────────────────────────────────────────────────
 var server = https.createServer(sslOptions, async function (req, res) {
+  console.log("\u{1f4e1} REQUEST: " + req.method + " " + req.url + " | host=" + (req.headers.host || "?"));
   var bodyBuffer = await collectBodyRaw(req);
+  console.log("\u{1f4e6} BODY: " + bodyBuffer.length + " bytes | " + req.url);
 
   if (ENABLE_FILE_LOG) dumpRequest(req, bodyBuffer, "raw");
 
@@ -403,14 +420,15 @@ var server = https.createServer(sslOptions, async function (req, res) {
     return passthrough(req, res, bodyBuffer);
   }
 
-  var model = extractModel(bodyBuffer);
+  var model = extractModel(req.url, bodyBuffer);
   var mappedModel = getMappedModel(model);
 
   if (!mappedModel) {
+    console.log("\u23e9 passthrough | no mapping | model=" + JSON.stringify(model));
     return passthrough(req, res, bodyBuffer);
   }
 
-  console.log("\u{1f500} " + model + " \u2192 " + mappedModel);
+  console.log("\u26a1 intercept | " + model + " \u2192 " + mappedModel);
   return intercept(req, res, bodyBuffer, mappedModel);
 });
 

@@ -79,6 +79,11 @@ function getOpenRouterAttributionHeaders() {
 export function detectFormatFromEndpoint(body, endpointPath = "") {
   const path = String(endpointPath || "");
 
+  // Check body content first — Antigravity/Gemini bodies routed through
+  // MITM proxy arrive at /v1/chat/completions but need antigravity format
+  const bodyFormat = detectFormat(body);
+  if (bodyFormat !== "openai") return bodyFormat;
+
   if (/\/responses(?=\/|$)/i.test(path) || /^responses(?=\/|$)/i.test(path)) {
     return "openai-responses";
   }
@@ -94,7 +99,7 @@ export function detectFormatFromEndpoint(body, endpointPath = "") {
     return "openai";
   }
 
-  return detectFormat(body);
+  return bodyFormat;
 }
 
 // Detect request format from body structure

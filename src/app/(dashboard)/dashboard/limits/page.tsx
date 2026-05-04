@@ -19,7 +19,9 @@ export default function LimitsPage() {
         />
         <div className="relative">
           <h1 className="text-2xl font-semibold tracking-tight text-text-main">{tl("title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-text-muted">{tl("pageDescription")}</p>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-text-muted">
+            {tl("pageDescription")}
+          </p>
         </div>
       </div>
 

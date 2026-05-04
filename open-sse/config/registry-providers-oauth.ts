@@ -80,7 +80,7 @@ export const OAUTH_PROVIDERS: Record<string, RegistryEntry> = {
     alias: "gemini-cli",
     format: "gemini-cli",
     executor: "gemini-cli",
-    baseUrl: "https://cloudcode-pa.googleapis.com/v1internal",
+    baseUrl: "https://daily-cloudcode-pa.googleapis.com/v1internal",
     urlBuilder: (base, model, stream) => {
       const action = stream ? "streamGenerateContent?alt=sse" : "generateContent";
       return `${base}:${action}`;

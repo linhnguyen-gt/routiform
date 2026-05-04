@@ -177,7 +177,8 @@ function isPastResetWindow(resetAt) {
 function normalizeQuotaEntry(
   name: string,
   quota: Record<string, unknown> = {},
-  extras: Record<string, unknown> = {}
+  extras: Record<string, unknown> = {},
+  provider?: string
 ) {
   const usedRaw = Number(quota?.used || 0);
   const totalRaw = Number(quota?.total || 0);
@@ -185,7 +186,8 @@ function normalizeQuotaEntry(
   // Only flag stale when the billing window has rolled but the provider still reports usage
   // from the old window (T13). If used is already 0, data is consistent — do not show perpetual
   // "Refreshing…" (e.g. Kiro often sends a past nextDateReset while quotas are already current).
-  const staleAfterReset = isPastResetWindow(resetAt) && usedRaw > 0 && quota?.unlimited !== true;
+  const staleAfterReset =
+    provider !== "kiro" && isPastResetWindow(resetAt) && usedRaw > 0 && quota?.unlimited !== true;
   const used = staleAfterReset ? 0 : usedRaw;
   const total = Number.isFinite(totalRaw) ? totalRaw : 0;
   const remainingPercentageRaw = safePercentage(quota?.remainingPercentage);
@@ -220,7 +222,8 @@ export function parseQuotaData(provider, data) {
   const normalizedQuotas = [];
 
   try {
-    switch (provider.toLowerCase()) {
+    const p = provider.toLowerCase();
+    switch (p) {
       case "github":
         if (data.quotas) {
           Object.entries(data.quotas).forEach(
@@ -228,7 +231,7 @@ export function parseQuotaData(provider, data) {
               if (quota?.unlimited && (!quota?.total || (quota.total as number) <= 0)) {
                 return;
               }
-              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota, {}, p));
             }
           );
         }
@@ -257,9 +260,14 @@ export function parseQuotaData(provider, data) {
               }
               // Unlike GitHub, Antigravity marks tab-completion / no-reset models as unlimited with total 0 — still show them.
               normalizedQuotas.push(
-                normalizeQuotaEntry(modelKey, quota, {
-                  modelKey: modelKey,
-                })
+                normalizeQuotaEntry(
+                  modelKey,
+                  quota,
+                  {
+                    modelKey: modelKey,
+                  },
+                  p
+                )
               );
             }
           );
@@ -270,7 +278,7 @@ export function parseQuotaData(provider, data) {
         if (data.quotas) {
           Object.entries(data.quotas).forEach(
             ([quotaType, quota]: [string, Record<string, unknown>]) => {
-              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
+              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota, {}, p));
             }
           );
         }
@@ -280,7 +288,7 @@ export function parseQuotaData(provider, data) {
         if (data.quotas) {
           Object.entries(data.quotas).forEach(
             ([quotaType, quota]: [string, Record<string, unknown>]) => {
-              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota));
+              normalizedQuotas.push(normalizeQuotaEntry(quotaType, quota, {}, p));
             }
           );
         }
@@ -299,7 +307,7 @@ export function parseQuotaData(provider, data) {
         } else if (data.quotas) {
           Object.entries(data.quotas).forEach(
             ([name, quota]: [string, Record<string, unknown>]) => {
-              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota, {}, p));
             }
           );
         }
@@ -309,7 +317,7 @@ export function parseQuotaData(provider, data) {
         if (data.quotas) {
           Object.entries(data.quotas).forEach(
             ([modelKey, quota]: [string, Record<string, unknown>]) => {
-              normalizedQuotas.push(normalizeQuotaEntry(modelKey, quota, { modelKey }));
+              normalizedQuotas.push(normalizeQuotaEntry(modelKey, quota, { modelKey }, p));
             }
           );
         }
@@ -320,7 +328,7 @@ export function parseQuotaData(provider, data) {
         if (data.quotas) {
           Object.entries(data.quotas).forEach(
             ([name, quota]: [string, Record<string, unknown>]) => {
-              normalizedQuotas.push(normalizeQuotaEntry(name, quota));
+              normalizedQuotas.push(normalizeQuotaEntry(name, quota, {}, p));
             }
           );
         }

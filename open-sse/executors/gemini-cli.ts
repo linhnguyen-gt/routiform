@@ -108,7 +108,9 @@ export class GeminiCLIExecutor extends BaseExecutor {
       credentials.accessToken,
       stream ? "*/*" : "application/json"
     );
-    return scrubProxyAndFingerprintHeaders(raw);
+    const cleaned = scrubProxyAndFingerprintHeaders(raw);
+    cleaned["x-routiform-source"] = "routiform";
+    return cleaned;
   }
 
   async onboardManagedProject(

@@ -238,15 +238,14 @@ export default function RequestLoggerV2() {
   const [exportingLogIds, setExportingLogIds] = useState(() => new Set());
 
   // Column visibility with localStorage persistence
-  const [visibleColumns, setVisibleColumns] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_VISIBLE;
+  const [visibleColumns, setVisibleColumns] = useState(DEFAULT_VISIBLE);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("loggerVisibleColumns");
-      return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
-    } catch {
-      return DEFAULT_VISIBLE;
-    }
-  });
+      if (saved) setVisibleColumns({ ...DEFAULT_VISIBLE, ...JSON.parse(saved) });
+    } catch {}
+  }, []);
 
   const toggleColumn = useCallback((key) => {
     setVisibleColumns((prev) => {

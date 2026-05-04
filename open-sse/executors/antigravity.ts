@@ -130,7 +130,10 @@ export class AntigravityExecutor extends BaseExecutor {
       Accept: "text/event-stream",
     };
     // Scrub proxy/fingerprint headers that reveal non-native traffic
-    return scrubProxyAndFingerprintHeaders(raw);
+    const cleaned = scrubProxyAndFingerprintHeaders(raw);
+    // Anti-loop: tell MITM server to passthrough (stripped by Google)
+    cleaned["x-routiform-source"] = "routiform";
+    return cleaned;
   }
 
   transformRequest(model, body, stream, credentials) {

@@ -61,15 +61,29 @@ export const github = {
     });
     const copilotToken = copilotRes.ok ? await copilotRes.json() : {};
 
-    const userRes = await fetch(GITHUB_CONFIG.userInfoUrl, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        Accept: "application/json",
-        "X-GitHub-Api-Version": GITHUB_CONFIG.apiVersion,
-        "User-Agent": GITHUB_CONFIG.userAgent,
-      },
-    });
-    const userInfo = userRes.ok ? await userRes.json() : {};
+    let userInfo = {};
+    try {
+      const userRes = await fetch(GITHUB_CONFIG.userInfoUrl, {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          Accept: "application/json",
+          "X-GitHub-Api-Version": GITHUB_CONFIG.apiVersion,
+          "User-Agent": GITHUB_CONFIG.userAgent,
+        },
+      });
+      if (userRes.ok) {
+        userInfo = await userRes.json();
+      } else {
+        const errorText = await userRes.text();
+        console.log(
+          `[GitHub OAuth] Failed to fetch user info (status ${userRes.status}): ${errorText.slice(0, 300)}`
+        );
+      }
+    } catch (err) {
+      console.log(
+        `[GitHub OAuth] Error fetching user info: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
 
     return { copilotToken, userInfo };
   },
@@ -77,6 +91,9 @@ export const github = {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresIn: tokens.expires_in,
+    name: extra?.userInfo?.login || extra?.userInfo?.name,
+    email: extra?.userInfo?.email,
+    displayName: extra?.userInfo?.name || extra?.userInfo?.login,
     providerSpecificData: {
       copilotToken: extra?.copilotToken?.token,
       copilotTokenExpiresAt: extra?.copilotToken?.expires_at,
