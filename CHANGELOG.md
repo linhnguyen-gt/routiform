@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.24.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.2...v3.24.3) (2026-05-04)
+
+
+### Bug Fixes
+
+* **ci:** repair 3 failing tests — format detection and live combo tests ([fd91317](https://github.com/linhnguyen-gt/Routiform/commit/fd913170786e88cb1fd1fe3ac1a416602d975377))
+* GitHub OAuth display name + Kiro quotas Refreshing loop ([aa51d45](https://github.com/linhnguyen-gt/Routiform/commit/aa51d4525c56b1b9c51614ef3cd0036edb618387))
+
 ### [3.24.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.1...v3.24.2) (2026-05-02)
 
 
