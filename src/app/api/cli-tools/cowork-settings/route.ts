@@ -6,6 +6,8 @@ import path from "path";
 import os from "os";
 import crypto from "crypto";
 import { getApiKeyById } from "@/lib/localDb";
+import { coworkSettingsSchema } from "@/shared/validation/schemas";
+import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 const PROVIDER = "gateway";
 
@@ -181,13 +183,27 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let rawBody: Record<string, unknown>;
   try {
-    const { baseUrl, apiKey, models, keyId } = (await request.json()) as {
-      baseUrl?: string;
-      apiKey?: string;
-      models?: string[];
-      keyId?: string;
-    };
+    rawBody = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          message: "Invalid request",
+          details: [{ field: "body", message: "Invalid JSON body" }],
+        },
+      },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const validation = validateBody(coworkSettingsSchema, rawBody);
+    if (isValidationFailure(validation)) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+    const { baseUrl, apiKey, models, keyId } = validation.data;
 
     let resolvedApiKey = apiKey || null;
 

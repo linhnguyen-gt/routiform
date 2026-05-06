@@ -56,6 +56,20 @@ export const cliModelConfigSchema = z
   })
   .strict();
 
+export const coworkSettingsSchema = z.object({
+  baseUrl: z.string().trim().min(1, "baseUrl is required"),
+  apiKey: z.string().optional(),
+  keyId: z.string().optional(),
+  models: z.array(z.string().trim().min(1)).min(1, "At least one model is required"),
+});
+
+export const hermesSettingsSchema = z.object({
+  baseUrl: z.string().trim().min(1, "baseUrl is required"),
+  apiKey: z.string().optional(),
+  keyId: z.string().optional(),
+  model: z.string().trim().min(1, "model is required"),
+});
+
 export const codexProfileNameSchema = z.object({
   name: z.string().trim().min(1, "Profile name is required"),
 });

@@ -6,6 +6,8 @@ import { exec } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { hermesSettingsSchema } from "@/shared/validation/schemas";
+import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 const execAsync = promisify(exec);
 
@@ -122,15 +124,27 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let rawBody: Record<string, unknown>;
   try {
-    const { baseUrl, apiKey, model } = (await request.json()) as {
-      baseUrl?: string;
-      apiKey?: string;
-      model?: string;
-    };
-    if (!baseUrl || !model) {
-      return NextResponse.json({ error: "baseUrl and model are required" }, { status: 400 });
+    rawBody = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          message: "Invalid request",
+          details: [{ field: "body", message: "Invalid JSON body" }],
+        },
+      },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const validation = validateBody(hermesSettingsSchema, rawBody);
+    if (isValidationFailure(validation)) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
+    const { baseUrl, apiKey, model } = validation.data;
 
     const dir = getHermesDir();
     await fs.mkdir(dir, { recursive: true });

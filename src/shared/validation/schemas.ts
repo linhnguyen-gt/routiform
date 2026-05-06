@@ -117,6 +117,8 @@ export {
   codexProfileIdSchema,
   guideSettingsSaveSchema,
   opencodeGuideSettingsSaveSchema,
+  coworkSettingsSchema,
+  hermesSettingsSchema,
 } from "./schemas/cli-tools";
 export {
   v1SearchSchema,
