@@ -66,7 +66,11 @@ test("model sync route skips success log when fetched models do not change store
     assert.equal(body.logged, false);
     assert.deepEqual(body.modelChanges, { added: 0, removed: 0, updated: 0, total: 0 });
 
-    const logs = await callLogs.getCallLogs({ model: "model-sync", limit: 10 });
+    const logs = await callLogs.getCallLogs({
+      model: "model-sync",
+      limit: 10,
+      includeInternal: true,
+    });
     assert.equal(logs.length, 0);
   } finally {
     globalThis.fetch = originalFetch;
@@ -148,7 +152,11 @@ test("model sync route stores the real provider while keeping the account label"
     assert.deepEqual(body.modelChanges, { added: 1, removed: 0, updated: 0, total: 1 });
     assert.equal(body.provider, "openrouter");
 
-    const logs = await callLogs.getCallLogs({ model: "model-sync", limit: 10 });
+    const logs = await callLogs.getCallLogs({
+      model: "model-sync",
+      limit: 10,
+      includeInternal: true,
+    });
     assert.equal(logs.length, 1);
     assert.equal(logs[0].provider, "openrouter");
     assert.equal(logs[0].account, "MAIN");

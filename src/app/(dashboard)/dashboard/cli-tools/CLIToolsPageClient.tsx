@@ -14,6 +14,8 @@ import {
   DefaultToolCard,
   AntigravityToolCard,
   CopilotToolCard,
+  CoworkToolCard,
+  HermesToolCard,
 } from "./components";
 import { useTranslations } from "next-intl";
 
@@ -305,6 +307,26 @@ export default function CLIToolsPageClient({ machineId: _machineId }) {
       case "copilot":
         return (
           <CopilotToolCard
+            key={toolId}
+            {...commonProps}
+            activeProviders={getActiveProviders()}
+            hasActiveProviders={hasActiveProviders}
+            cloudEnabled={cloudEnabled}
+          />
+        );
+      case "cowork":
+        return (
+          <CoworkToolCard
+            key={toolId}
+            {...commonProps}
+            activeProviders={getActiveProviders()}
+            hasActiveProviders={hasActiveProviders}
+            cloudEnabled={cloudEnabled}
+          />
+        );
+      case "hermes":
+        return (
+          <HermesToolCard
             key={toolId}
             {...commonProps}
             activeProviders={getActiveProviders()}

@@ -56,6 +56,17 @@ function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function isArtifactMarker(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return record._artifactOnly === true;
+}
+
+function normalizePayload(value: unknown): unknown {
+  if (isArtifactMarker(value)) return null;
+  return value;
+}
+
 function hasTruncatedFlag(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   return (value as Record<string, unknown>)._truncated === true;
@@ -497,6 +508,14 @@ export async function getCallLogs(filter: Record<string, unknown> = {}) {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
 
+  if (!filter.includeInternal) {
+    conditions.push(
+      "(request_type IS NULL OR request_type NOT IN (@exclModelSync, @exclConnectionTest))"
+    );
+    params.exclModelSync = "model-sync";
+    params.exclConnectionTest = "connection-test";
+  }
+
   if (filter.status) {
     if (filter.status === "error") {
       conditions.push("(status >= 400 OR error IS NOT NULL)");
@@ -636,8 +655,8 @@ export async function getCallLogById(id: string) {
     apiKeyId: toStringOrNull(entryRow.api_key_id),
     apiKeyName: toStringOrNull(entryRow.api_key_name),
     comboName: toStringOrNull(entryRow.combo_name),
-    requestBody: parseStoredPayload(entryRow.request_body),
-    responseBody: parseStoredPayload(entryRow.response_body),
+    requestBody: normalizePayload(parseStoredPayload(entryRow.request_body)),
+    responseBody: normalizePayload(parseStoredPayload(entryRow.response_body)),
     error: toStringOrNull(entryRow.error),
     artifactRelPath,
     hasPipelineDetails: toNumber(entryRow.has_pipeline_details) === 1,

@@ -7,3 +7,5 @@ export { default as KiloToolCard } from "./KiloToolCard";
 export { default as DefaultToolCard } from "./DefaultToolCard";
 export { default as AntigravityToolCard } from "./AntigravityToolCard";
 export { default as CopilotToolCard } from "./CopilotToolCard";
+export { default as CoworkToolCard } from "./CoworkToolCard";
+export { default as HermesToolCard } from "./HermesToolCard";

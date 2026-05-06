@@ -289,6 +289,24 @@ export const CLI_TOOLS = {
       { step: 4, title: "Select Model", type: "modelSelector" },
     ],
   },
+  cowork: {
+    id: "cowork",
+    name: "Claude Cowork",
+    image: "/providers/claude.png",
+    color: "#D97757",
+    description: "Claude Desktop third-party inference (Cowork mode)",
+    docsUrl: "https://docs.anthropic.com/en/docs/claude-code/cowork",
+    configType: "custom",
+  },
+  hermes: {
+    id: "hermes",
+    name: "Hermes Agent",
+    image: "/providers/hermes.png",
+    color: "#6366F1",
+    description: "Nous Research Hermes terminal AI agent",
+    docsUrl: "https://github.com/NousResearch/hermes-agent",
+    configType: "custom",
+  },
 };
 
 // Get all provider models for mapping dropdown

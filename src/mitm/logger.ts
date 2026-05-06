@@ -1,10 +1,15 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import zlib from "zlib";
-import { resolveDataDir } from "@/lib/dataPaths";
 import { LOG_BLACKLIST_URL_PARTS } from "./config";
 
-const DUMP_DIR = path.join(resolveDataDir(), "logs", "mitm");
+function getDataDir() {
+  if (process.env.DATA_DIR) return path.resolve(process.env.DATA_DIR.trim());
+  return path.join(os.homedir(), ".routiform");
+}
+
+const DUMP_DIR = path.join(getDataDir(), "logs", "mitm");
 if (!fs.existsSync(DUMP_DIR)) fs.mkdirSync(DUMP_DIR, { recursive: true });
 
 const EMPTY_BODY_RE = /^\s*(\{\s*\}|\[\s*\]|null)?\s*$/;

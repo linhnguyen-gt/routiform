@@ -654,6 +654,24 @@
     "openClawManualConfiguration": "Open Claw - Manual Configuration",
     "clineManualConfiguration": "Cline Manual Configuration",
     "kiloManualConfiguration": "Kilo Code Manual Configuration",
+    "coworkManualConfiguration": "Claude Cowork - Manual Configuration",
+    "hermesManualConfiguration": "Hermes Agent - Manual Configuration",
+    "coworkLocalhostError": "Claude Cowork sandbox cannot reach localhost. Enable Cloud Endpoint or use VPS/public host.",
+    "coworkVpcNotice": "Claude Cowork runs in a sandboxed VM and cannot reach localhost. Use Cloud Endpoint or VPS public URL.",
+    "checkingCowork": "Checking Claude Cowork...",
+    "coworkNotDetected": "Claude Desktop (Cowork mode) not detected",
+    "coworkSetupInstructions": "Open Claude Desktop → Help → Troubleshooting → Enable Developer mode → Configure third-party inference, then return here.",
+    "settingsAppliedCowork": "Cowork settings applied. Quit & reopen Claude Desktop to load.",
+    "selectAtLeastOneModel": "Please select at least one model",
+    "endpointMode": "Endpoint Mode",
+    "addModel": "Add Model",
+    "noModelsSelected": "No models selected",
+    "models": "Models",
+    "addModelForCowork": "Add Model for Claude Cowork",
+    "checkingHermes": "Checking Hermes Agent...",
+    "hermesNotInstalled": "Hermes Agent not detected locally",
+    "hermesInstallPrompt": "Install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
+    "hermesDefaultModel": "Default Model",
     "whenToUseLabel": "When to use",
     "openToolDocs": "Open tool docs",
     "toolUseCases": {
@@ -669,7 +687,9 @@
       "kiro": "Use when integrating Kiro and controlling model routing centrally from Routiform.",
       "antigravity": "Use when Antigravity/Kiro traffic must be intercepted through MITM and routed to Routiform.",
       "copilot": "Use when you want Copilot chat style UX while enforcing Routiform keys and routing rules.",
-      "windsurf": "Use when coding in Windsurf and routing OpenAI-compatible models through Routiform."
+      "windsurf": "Use when coding in Windsurf and routing OpenAI-compatible models through Routiform.",
+      "cowork": "Use when integrating Claude Desktop's third-party inference Cowork mode with Routiform as the gateway provider.",
+      "hermes": "Use when running Hermes terminal agent locally and routing API calls through Routiform."
     },
     "toolDescriptions": {
       "antigravity": "Google Antigravity IDE with MITM",
@@ -684,7 +704,9 @@
       "opencode": "OpenCode AI coding agent (Terminal)",
       "kiro": "Amazon Kiro — AI-powered IDE",
       "windsurf": "Windsurf AI Code Editor",
-      "copilot": "GitHub Copilot AI Assistant"
+      "copilot": "GitHub Copilot AI Assistant",
+      "cowork": "Claude Desktop third-party inference (Cowork mode)",
+      "hermes": "Nous Research Hermes terminal AI agent"
     },
     "guides": {
       "cursor": {
