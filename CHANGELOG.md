@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.25.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.25.0...v3.25.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* resolve TypeScript errors — unknown type narrowing, missing imports, type predicates ([4dc374e](https://github.com/linhnguyen-gt/Routiform/commit/4dc374e7564d963b5937a1085675b7c0589367cd))
+
 ## [3.25.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.3...v3.25.0) (2026-05-06)
 
 
