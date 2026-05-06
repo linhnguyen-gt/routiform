@@ -87,6 +87,8 @@ export default function RequestLoggerDetail({ log, detail, loading, onClose, onC
 
   const toPrettyJson = (payload) => {
     if (payload === null || payload === undefined) return null;
+    if (payload && typeof payload === "object" && !Array.isArray(payload) && payload._artifactOnly)
+      return null;
     try {
       return JSON.stringify(payload, null, 2);
     } catch {

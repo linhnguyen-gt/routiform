@@ -862,6 +862,7 @@ export async function testSingleConnection(connectionId: string, validationModel
       error: result.valid ? null : result.error || null,
       sourceFormat: "test",
       targetFormat: "test",
+      requestType: "connection-test",
     }).catch(() => {});
   } catch {}
 
