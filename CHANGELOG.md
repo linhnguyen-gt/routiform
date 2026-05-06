@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.25.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.25.1...v3.25.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **mitm:** block scanner bots on raw IP + skip sudo password in Docker root ([37646eb](https://github.com/linhnguyen-gt/Routiform/commit/37646ebc68d9703afaae0a1f24ad009fd6f95ba2))
+
 ### [3.25.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.25.0...v3.25.1) (2026-05-06)
 
 
