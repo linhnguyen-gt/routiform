@@ -461,13 +461,31 @@ function removeAllDNSEntriesSync() {
   }
 }
 
+// ── Self-loop / scanner rejection ────────────────────────────────
+const IP_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+function isHostSelfLoop(host: string): boolean {
+  const h = (host || "").replace(/:.*$/, "").trim();
+  if (!h) return true;
+  if (IP_RE.test(h) || h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
+  return false;
+}
+
 // ── Main server ──────────────────────────────────────────────────
 const server = https.createServer(sslOptions, async (req, res) => {
-  console.log("REQUEST: " + req.method + " " + req.url + " | host=" + (req.headers.host || "?"));
+  const host = (req.headers.host || "").replace(/:.*$/, "");
 
+  console.log("REQUEST: " + req.method + " " + req.url + " | host=" + (host || "?"));
+
+  // Health probe must come before scanner rejection (manager polls 127.0.0.1)
   if (req.method === "GET" && req.url === "/_mitm_health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, pid: process.pid }));
+    return;
+  }
+
+  if (isHostSelfLoop(host)) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
     return;
   }
 

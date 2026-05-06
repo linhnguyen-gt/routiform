@@ -48,11 +48,13 @@ export async function POST(request) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
     const { apiKey, sudoPassword } = validation.data;
-    const { startMitm, getCachedPassword, setCachedPassword } = await import("@/mitm/manager");
+    const { startMitm, getCachedPassword, setCachedPassword, isDocker } =
+      await import("@/mitm/manager");
     const isWin = process.platform === "win32";
+    const isRootInDocker = isDocker() && process.getuid && process.getuid() === 0;
     const pwd = sudoPassword || getCachedPassword() || "";
 
-    if (!apiKey || (!isWin && !pwd)) {
+    if (!apiKey || (!isWin && !isRootInDocker && !pwd)) {
       return NextResponse.json(
         { error: isWin ? "Missing apiKey" : "Missing apiKey or sudoPassword" },
         { status: 400 }
