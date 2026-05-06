@@ -119,6 +119,15 @@ const CLI_TOOLS: Record<string, Record<string, unknown>> = {
       auth: ".qoder/auth.json",
     },
   },
+  hermes: {
+    defaultCommand: "hermes",
+    envBinKey: "CLI_HERMES_BIN",
+    requiresBinary: false,
+    healthcheckTimeoutMs: 4000,
+    paths: {
+      config: ".hermes/config.yaml",
+    },
+  },
 };
 
 const isWindows = () => process.platform === "win32";
