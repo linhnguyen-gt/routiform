@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.25.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.3...v3.25.0) (2026-05-06)
+
+
+### Features
+
+* MITM multi-tool proxy + Hermes Agent + Cowork tool ([4604e6f](https://github.com/linhnguyen-gt/Routiform/commit/4604e6f2ae50e09c0163ac5fd7a0e008f60fdfb6))
+
+
+### Bug Fixes
+
+* add Zod validation to cowork-settings and hermes-settings routes ([63f4f5e](https://github.com/linhnguyen-gt/Routiform/commit/63f4f5e6f614eeb36bc4fbe79e0b20e7da047332))
+
 ### [3.24.3](https://github.com/linhnguyen-gt/Routiform/compare/v3.24.2...v3.24.3) (2026-05-04)
 
 
