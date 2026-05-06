@@ -27,7 +27,7 @@ function openaiSSEToGemini(chunk: Record<string, unknown>): Record<string, unkno
       parts,
     };
     const candidate: Record<string, unknown> = { content };
-    if (finishReason) {
+    if (typeof finishReason === "string") {
       candidate.finishReason = finishReason === "stop" ? "STOP" : finishReason.toUpperCase();
     }
     if (delta.tool_calls) {

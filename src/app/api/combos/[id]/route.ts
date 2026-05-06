@@ -69,7 +69,7 @@ export async function PUT(request, { params }) {
       // Update the combo in the list temporarily for validation
       const updatedCombos = allCombos.map((c) => (c.id === id ? { ...c, ...body } : c));
       const comboName = body.name || (await getComboById(id))?.name;
-      if (comboName) {
+      if (typeof comboName === "string") {
         try {
           validateComboDAG(comboName, updatedCombos);
         } catch (dagError) {

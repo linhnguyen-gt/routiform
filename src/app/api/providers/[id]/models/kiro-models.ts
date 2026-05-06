@@ -94,7 +94,7 @@ export function mapKiroModelsFromApi(data: unknown, includeHidden: boolean): Arr
               : undefined,
       };
     })
-    .filter((model): model is JsonRecord => model !== null);
+    .filter((model) => model !== null);
 
   const visible = includeHidden ? mapped : mapped.filter((model) => model.hidden !== true);
 

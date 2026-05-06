@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({
       running: status.running,
       pid: status.pid || null,
-      dnsConfigured: status.dnsConfigured || false,
+      dnsConfigured: Object.keys(status.dnsStatus).length > 0,
       certExists: status.certExists || false,
       hasCachedPassword: !!getCachedPassword(),
       isDocker: isDocker(),

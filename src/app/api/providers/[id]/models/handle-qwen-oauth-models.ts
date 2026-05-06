@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { asRecord } from "./json-utils";
 import type { GetModelsHandlerContext } from "./get-models-handler-context";

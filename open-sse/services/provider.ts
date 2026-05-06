@@ -349,7 +349,7 @@ export function buildProviderHeaders(provider, credentials, stream = true, body 
 }
 
 // Optional formatHints.sourceFormat: Xiaomi Token Plan routes OpenAI vs Anthropic from the client request path/body (not from stored cluster).
-export function getTargetFormat(provider, providerSpecificData, formatHints) {
+export function getTargetFormat(provider, providerSpecificData?, formatHints?) {
   if (provider === "xiaomi-mimo-token-plan") {
     const sf = formatHints?.sourceFormat;
     if (sf === "claude") return "claude";
