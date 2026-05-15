@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.27.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.27.1...v3.27.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* **executor:** sanitize reasoning_effort per provider capability ([0abbd7d](https://github.com/linhnguyen-gt/Routiform/commit/0abbd7d13b848946721905110e68ea5b39a1d3ce))
+* **kiro:** extract system prompt and prepend to current message ([e1da1f3](https://github.com/linhnguyen-gt/Routiform/commit/e1da1f3daf40f22b0374c8e018ec79608d757ddb))
+* **kiro:** fix response translator — reasoning_content, tool index, truncation, bracket tools ([a5dc36f](https://github.com/linhnguyen-gt/Routiform/commit/a5dc36f259356cbb96bfa4f12db142795595c478))
+* **oauth:** remove premature client_secret check in Gemini OAuth ([5c45735](https://github.com/linhnguyen-gt/Routiform/commit/5c45735eeadc032de49ca43944c8512184ea0e3a))
+* **reasoning:** add deepseek-v4 to replay model patterns ([626e04c](https://github.com/linhnguyen-gt/Routiform/commit/626e04c352139baf714ba8612648cc585efa56fe))
+* **translator:** coerce submit_pr_review array fields ([a8c9021](https://github.com/linhnguyen-gt/Routiform/commit/a8c9021deb6b5923ea3b3459a99e19206f7ae596))
+* **translator:** emit reasoning_content for redacted_thinking blocks ([3d8b634](https://github.com/linhnguyen-gt/Routiform/commit/3d8b634c4611c03b7752cde59b2516bdea63192e))
+* **translator:** preserve include array and degrade background:true in Responses API ([0a83d87](https://github.com/linhnguyen-gt/Routiform/commit/0a83d8786f6dd9e6e250e5fec49f10f57e29ac3f))
+* **translator:** preserve latest assistant thinking blocks verbatim ([1787ab7](https://github.com/linhnguyen-gt/Routiform/commit/1787ab7d3b8b4b7bf7bbb404e5242bf217fc9ed4))
+
 ### [3.27.1](https://github.com/linhnguyen-gt/Routiform/compare/v3.27.0...v3.27.1) (2026-05-15)
 
 
