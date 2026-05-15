@@ -115,6 +115,19 @@ function convertMessages(messages: OpenAIMessage[], tools: OpenAITool[], model: 
   let pendingImages: KiroImage[] = [];
   let currentRole: string | null = null;
 
+  // Extract system messages first — Kiro has no dedicated system field,
+  // so we prepend them to the current (last user) message, matching kiro-gateway behavior.
+  let systemPrompt = "";
+  const nonSystemMessages: OpenAIMessage[] = [];
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      const text = typeof msg.content === "string" ? msg.content : "";
+      systemPrompt += systemPrompt ? `\n\n${text}` : text;
+    } else {
+      nonSystemMessages.push(msg);
+    }
+  }
+
   // Image support is pre-filtered by caps in translateRequest before reaching here
   const supportsImages = true;
 
@@ -186,12 +199,12 @@ function convertMessages(messages: OpenAIMessage[], tools: OpenAITool[], model: 
     }
   };
 
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
+  for (let i = 0; i < nonSystemMessages.length; i++) {
+    const msg = nonSystemMessages[i];
     let role = msg.role || "user";
 
-    // Normalize: system/tool -> user
-    if (role === "system" || role === "tool") {
+    // Normalize: tool -> user (system already extracted above)
+    if (role === "tool") {
       role = "user";
     }
 
@@ -388,7 +401,7 @@ function convertMessages(messages: OpenAIMessage[], tools: OpenAITool[], model: 
     currentMessage.userInputMessage.userInputMessageContext.tools = firstHistoryTools;
   }
 
-  return { history: mergedHistory, currentMessage };
+  return { history: mergedHistory, currentMessage, systemPrompt };
 }
 
 /**
@@ -407,13 +420,18 @@ export function buildKiroPayload(
   const temperature = body.temperature;
   const topP = body.top_p;
 
-  const { history, currentMessage } = convertMessages(messages, tools, model);
+  const { history, currentMessage, systemPrompt } = convertMessages(messages, tools, model);
 
   const profileArn = credentials?.providerSpecificData?.profileArn || "";
 
   let finalContent = currentMessage?.userInputMessage?.content || "";
-  const timestamp = new Date().toISOString();
-  finalContent = `[Context: Current time is ${timestamp}]\n\n${finalContent}`;
+
+  // Prepend system prompt to current message content — Kiro has no dedicated system field.
+  // conversationId is generated fresh per request, so Kiro has no server-side memory of prior
+  // turns — the full history is always sent. System prompt must be prepended every time.
+  if (systemPrompt) {
+    finalContent = `${systemPrompt}\n\n${finalContent}`;
+  }
 
   const payload: KiroPayload = {
     conversationState: {
