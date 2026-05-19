@@ -36,7 +36,7 @@ export function generateAuthData(providerName, redirectUri) {
   const { codeVerifier, codeChallenge, state } = generatePKCE();
 
   let authUrl;
-  if (provider.flowType === "device_code") {
+  if (provider.flowType === "device_code" || provider.flowType === "import_token") {
     authUrl = null;
   } else if (provider.flowType === "authorization_code_pkce") {
     authUrl = provider.buildAuthUrl(provider.config, redirectUri, state, codeChallenge);

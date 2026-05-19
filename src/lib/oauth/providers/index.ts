@@ -22,6 +22,7 @@ import { kiro } from "./kiro";
 import { cursor } from "./cursor";
 import { kilocode } from "./kilocode";
 import { cline } from "./cline";
+import { devin } from "./devin";
 
 export const PROVIDERS = {
   claude,
@@ -36,6 +37,7 @@ export const PROVIDERS = {
   cursor,
   kilocode,
   cline,
+  devin,
 };
 
 export default PROVIDERS;

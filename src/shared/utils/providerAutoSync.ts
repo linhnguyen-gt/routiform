@@ -13,6 +13,7 @@ const UNSUPPORTED_MODEL_LIST_PROVIDERS = new Set([
   "bailian-coding-plan",
   "qoder",
   "github",
+  "devin",
 ]);
 
 export function supportsProviderModelAutoSync(providerId: string): boolean {

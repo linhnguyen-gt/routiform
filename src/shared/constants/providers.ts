@@ -60,6 +60,14 @@ export const OAUTH_PROVIDERS = {
     color: "#5B9BD5",
     textIcon: "CL",
   },
+  devin: {
+    id: "devin",
+    alias: "dv",
+    name: "Devin",
+    icon: "terminal",
+    color: "#6C5CE7",
+    textIcon: "DV",
+  },
 };
 
 const WEB_SESSION_PROVIDER_FLAGS = {

@@ -224,6 +224,19 @@ export const CURSOR_CONFIG = {
   },
 };
 
+// Devin OAuth Configuration (Import Token from Devin CLI)
+// Credentials stored at ~/.local/share/devin/credentials.toml (TOML format)
+// Field: windsurf_api_key = "devin-session-token$<jwt>"
+// API: Codeium gRPC-web at server.codeium.com
+export const DEVIN_CONFIG = {
+  credentialFile: "~/.local/share/devin/credentials.toml",
+  credentialField: "windsurf_api_key",
+  apiServer: "https://server.codeium.com",
+  authLoginCommand: "devin auth login",
+  authStatusCommand: "devin auth status",
+  defaultModel: "claude-sonnet-4.6",
+};
+
 // OAuth timeout (5 minutes)
 export const OAUTH_TIMEOUT = 300000;
 
@@ -241,4 +254,5 @@ export const PROVIDERS = {
   CURSOR: "cursor",
   KILOCODE: "kilocode",
   CLINE: "cline",
+  DEVIN: "devin",
 };

@@ -2,6 +2,7 @@
 
 import {
   CursorAuthModal,
+  DevinAuthModal,
   KiroOAuthWrapper,
   OAuthModal,
   ProxyConfigModal,
@@ -79,6 +80,12 @@ export function ProviderDetailModalsSection({
         />
       ) : providerId === "cursor" ? (
         <CursorAuthModal
+          isOpen={showOAuthModal}
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowOAuthModal(false)}
+        />
+      ) : providerId === "devin" ? (
+        <DevinAuthModal
           isOpen={showOAuthModal}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}

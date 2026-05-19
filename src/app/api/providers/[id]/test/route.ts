@@ -68,6 +68,9 @@ const OAUTH_TEST_CONFIG = {
   cursor: {
     checkExpiry: true,
   },
+  devin: {
+    checkExpiry: true,
+  },
   "kimi-coding": {
     checkExpiry: true,
     refreshable: true,
