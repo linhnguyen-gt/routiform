@@ -84,6 +84,7 @@ export {
   oauthPollSchema,
   cursorImportSchema,
   kiroImportSchema,
+  devinImportSchema,
   kiroSocialExchangeSchema,
   cloudCredentialUpdateSchema,
   cloudResolveAliasSchema,

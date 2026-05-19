@@ -4,14 +4,9 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
 import { isAuthRequired, isAuthenticated } from "@/shared/utils/apiAuth";
 import { runWithProxyContext } from "@routiform/open-sse/utils/proxyFetch.ts";
+import { devinImportSchema } from "@/shared/validation/schemas";
+import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
-/**
- * POST /api/oauth/devin/import
- * Import and validate access token from Devin CLI
- *
- * Request body:
- * - accessToken: string - Access token from Devin CLI credentials
- */
 export async function POST(request: Request) {
   if (await isAuthRequired()) {
     if (!(await isAuthenticated(request))) {
@@ -26,20 +21,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const validation = validateBody(devinImportSchema, rawBody);
+  if (isValidationFailure(validation)) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+
+  const { accessToken } = validation.data;
+
   try {
-    const { accessToken } = rawBody;
-
-    if (!accessToken || typeof accessToken !== "string" || !accessToken.trim()) {
-      return NextResponse.json({ error: "Access token is required" }, { status: 400 });
-    }
-
-    // Resolve proxy for this provider
     const proxy = await resolveProxyForProvider("devin");
 
-    // Validate token by attempting a simple API call
-    const tokenValid = await runWithProxyContext(proxy, () =>
-      validateDevinToken(accessToken.trim())
-    );
+    const tokenValid = await runWithProxyContext(proxy, () => validateDevinToken(accessToken));
 
     if (!tokenValid.valid) {
       return NextResponse.json(
@@ -52,13 +44,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save to database
     const connection: Record<string, unknown> = await createProviderConnection({
       provider: "devin",
       authType: "oauth",
-      accessToken: accessToken.trim(),
+      accessToken,
       refreshToken: null,
-      expiresAt: new Date(Date.now() + 86400 * 1000).toISOString(), // 24h default
+      expiresAt: new Date(Date.now() + 86400 * 1000).toISOString(),
       email: tokenValid.email || null,
       providerSpecificData: {
         authMethod: "imported",
@@ -68,7 +59,6 @@ export async function POST(request: Request) {
       testStatus: "active",
     });
 
-    // Auto sync to Cloud if enabled
     await syncToCloudIfEnabled();
 
     return NextResponse.json({

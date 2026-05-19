@@ -22,6 +22,10 @@ export const kiroImportSchema = z.object({
   refreshToken: z.string().trim().min(1, "Refresh token is required"),
 });
 
+export const devinImportSchema = z.object({
+  accessToken: z.string().trim().min(1, "Access token is required"),
+});
+
 export const kiroSocialExchangeSchema = z.object({
   code: z.string().trim().min(1, "Code is required"),
   codeVerifier: z.string().trim().min(1, "Code verifier is required"),
