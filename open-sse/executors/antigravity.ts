@@ -16,6 +16,9 @@ const MAX_RETRY_AFTER_MS = 60_000;
 const LONG_RETRY_THRESHOLD_MS = 60_000;
 
 const BARE_PRO_IDS = new Set(["gemini-3.1-pro"]);
+const ANTIGRAVITY_UPSTREAM_MODEL_ALIASES: Record<string, string> = {
+  "gemini-3.5-flash": "gemini-3-flash",
+};
 
 type AntigravityCollectedStream = {
   textContent: string;
@@ -36,6 +39,7 @@ function cleanModelName(model: string): string {
   if (BARE_PRO_IDS.has(clean)) {
     clean = `${clean}-low`;
   }
+  clean = ANTIGRAVITY_UPSTREAM_MODEL_ALIASES[clean] || clean;
   return clean;
 }
 

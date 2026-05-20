@@ -50,7 +50,9 @@ const PROVIDER_MODEL_ALIASES = {
     "gpt-oss-120b": "openai/gpt-oss-120b",
     "nvidia/gpt-oss-120b": "openai/gpt-oss-120b",
   },
-  antigravity: {},
+  antigravity: {
+    "gemini-3-flash": "gemini-3.5-flash",
+  },
 };
 
 // Reverse index: modelId -> providerIds that expose this model

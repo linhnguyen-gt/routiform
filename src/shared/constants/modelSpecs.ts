@@ -53,6 +53,27 @@ export const MODEL_SPECS: Record<string, ModelSpec> = {
     supportsVision: true,
     aliases: ["gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"],
   },
+  "gemini-3.5-flash": {
+    maxOutputTokens: 65536,
+    contextWindow: 1048576,
+    defaultThinkingBudget: 0,
+    thinkingBudgetCap: 0,
+    supportsThinking: false,
+    supportsTools: true,
+    supportsVision: true,
+  },
+
+  // ── Gemini 3.5 Flash Low / Medium Fast (Antigravity) ─────────────
+  "gemini-3.5-flash-low": {
+    maxOutputTokens: 65536,
+    contextWindow: 1048576,
+    defaultThinkingBudget: 0,
+    thinkingBudgetCap: 0,
+    supportsThinking: false,
+    supportsTools: true,
+    supportsVision: true,
+    aliases: ["gemini-3.1-flash-image"],
+  },
 
   // ── Gemini 3.1 Pro High ─────────────────────────────────────────
   "gemini-3.1-pro-high": {

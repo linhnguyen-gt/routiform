@@ -20,6 +20,7 @@ const BUILT_IN_ALIASES: Record<string, string> = {
   "gemini-2.0-flash": "gemini-2.5-flash",
   "gemini-3-pro-high": "gemini-3.1-pro-high",
   "gemini-3-pro-low": "gemini-3.1-pro-low",
+  "gemini-3.1-flash-image": "gemini-3.5-flash-low",
 
   // Claude legacy → current
   "claude-3-opus-20240229": "claude-opus-4-20250514",

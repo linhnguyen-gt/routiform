@@ -389,6 +389,13 @@ export const DEFAULT_PRICING = {
       reasoning: 4.5,
       cache_creation: 0.5,
     },
+    "gemini-3.5-flash": {
+      input: 0.5,
+      output: 3.0,
+      cached: 0.03,
+      reasoning: 4.5,
+      cache_creation: 0.5,
+    },
     "claude-sonnet-4-6": {
       input: 3.0,
       output: 15.0,

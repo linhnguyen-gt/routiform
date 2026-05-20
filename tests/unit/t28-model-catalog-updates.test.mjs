@@ -22,7 +22,7 @@ test("T28: antigravity static catalog exposes current Gemini 3.1 model IDs", () 
 
   assert.ok(staticIds.includes("gemini-3.1-pro-high"));
   assert.ok(staticIds.includes("gemini-3.1-pro-low"));
-  assert.ok(staticIds.includes("gemini-3-flash"));
+  assert.ok(staticIds.includes("gemini-3.5-flash"));
   assert.ok(!staticIds.includes("gemini-3-pro-high"));
   assert.ok(!staticIds.includes("gemini-3-pro-low"));
 });
