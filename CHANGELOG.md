@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.28.0](https://github.com/linhnguyen-gt/Routiform/compare/v3.27.2...v3.28.0) (2026-05-20)
+
+
+### Features
+
+* **provider:** add Devin CLI provider integration ([d967854](https://github.com/linhnguyen-gt/Routiform/commit/d967854a04fd9e488b1f2b9b5c85bc5278e85ab0))
+* **provider:** add Devin CLI provider integration ([8fd6f43](https://github.com/linhnguyen-gt/Routiform/commit/8fd6f437beeabc9475d3df0d8da6b3f923593bdd))
+* **provider:** add Devin icon, fix models list and test support ([20db03b](https://github.com/linhnguyen-gt/Routiform/commit/20db03becb4e26d7b66a5ab9031ab85b0215a4fa))
+* **provider:** fetch Devin models dynamically ([8952209](https://github.com/linhnguyen-gt/Routiform/commit/895220939d116772a4655efec0b85d3d2a864996))
+
+
+### Bug Fixes
+
+* **provider:** add validateBody to Devin import route ([09e1d46](https://github.com/linhnguyen-gt/Routiform/commit/09e1d465cf3c6aa1a6edcdf7267246e01f74b073))
+
 ### [3.27.2](https://github.com/linhnguyen-gt/Routiform/compare/v3.27.1...v3.27.2) (2026-05-15)
 
 
